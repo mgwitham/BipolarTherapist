@@ -2,6 +2,12 @@
          Simplified therapist profile — ts-* namespace.
          These styles take precedence over legacy rules further below.
          ============================================================ */
+
+/* Offset anchor scrolls past all sticky headers (main nav + jump nav) */
+html {
+  scroll-padding-top: 110px;
+}
+
 .profile-wrap {
   max-width: 1120px;
   margin: 1.25rem auto 3rem;
@@ -2464,6 +2470,15 @@ footer a {
     font-size: 0.82rem;
   }
 }
+@media (max-width: 720px) {
+  /* Jump nav must clear main nav (64px) + public-mobile-nav (~73px) */
+  .profile-jump-nav {
+    top: 140px;
+  }
+  html {
+    scroll-padding-top: 190px;
+  }
+}
 @media (max-width: 480px) {
   .profile-identity {
     grid-template-columns: 1fr;
@@ -2558,7 +2573,7 @@ img.bth-avatar {
   border-bottom: 1px solid #e2eaf0;
   background: #fff;
   position: sticky;
-  top: 0;
+  top: 64px;
   z-index: 20;
   overflow-x: auto;
   scrollbar-width: none;
