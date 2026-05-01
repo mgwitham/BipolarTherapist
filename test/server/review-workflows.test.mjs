@@ -707,9 +707,9 @@ test("approval: emits a portal magic link to the applicant so they can finish th
     );
     assert.ok(approvalCall, "approval email should be sent to the applicant");
     assert.match(approvalCall.subject, /approved/i);
-    // Magic link points at /portal.html with a signed token in the
+    // Magic link points at /portal with a signed token in the
     // URL param — that's the "complete your profile" hop.
-    assert.match(approvalCall.html, /portal\.html\?token=/);
+    assert.match(approvalCall.html, /portal\?token=/);
   } finally {
     globalThis.fetch = originalFetch;
   }
@@ -845,7 +845,7 @@ test("free-path-selected: with a valid claim_token sends a magic-login email and
     );
     assert.ok(claimEmail, "free-path email should be sent to the applicant");
     assert.match(claimEmail.subject, /activate/i);
-    assert.match(claimEmail.html, /portal\.html\?token=/);
+    assert.match(claimEmail.html, /portal\?token=/);
   } finally {
     globalThis.fetch = origFetch;
   }

@@ -1111,6 +1111,19 @@ function setRefineDrawerOpen(open) {
 }
 
 function bindRefineButtons() {
+  // Sticky bar button (outside the results root, so not caught by the
+  // root.querySelectorAll binding inside renderResults)
+  document.querySelectorAll("[data-mx-refine-open]").forEach(function (btn) {
+    if (btn.dataset.boundRefine !== "true") {
+      btn.dataset.boundRefine = "true";
+      btn.addEventListener("click", function () {
+        setRefineDrawerOpen(true);
+        var target = btn.getAttribute("data-mx-refine-open");
+        trackFunnelEvent("match_smart_refine_chip", { target: target });
+      });
+    }
+  });
+
   // refineSearchButton: external trigger — always opens the drawer
   var externalBtn = document.getElementById("refineSearchButton");
   if (externalBtn && externalBtn.dataset.boundRefine !== "true") {

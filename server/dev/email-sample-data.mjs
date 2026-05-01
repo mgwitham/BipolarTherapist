@@ -138,20 +138,20 @@ export const sampleCompletenessSnapshot = {
 
 export const sampleLinks = {
   portalBaseUrl: SAMPLE_PORTAL_BASE,
-  portalUrl: SAMPLE_PORTAL_BASE + "/portal.html",
+  portalUrl: SAMPLE_PORTAL_BASE + "/portal",
   listingUrl: SAMPLE_PORTAL_BASE + "/therapists/jamie-rivera/",
   magicLink:
     SAMPLE_PORTAL_BASE +
-    "/portal.html?token=eyJzdWIiOiJ0aGVyYXBpc3QtcG9ydGFsIiwiZXhwIjoxNzY0MDI4ODAwfQ.SAMPLE_TOKEN",
+    "/portal?token=eyJzdWIiOiJ0aGVyYXBpc3QtcG9ydGFsIiwiZXhwIjoxNzY0MDI4ODAwfQ.SAMPLE_TOKEN",
   activationUrl:
     SAMPLE_PORTAL_BASE +
-    "/claim.html?token=eyJzdWIiOiJ0aGVyYXBpc3QtcG9ydGFsIiwiZXhwIjoxNzY0MDI4ODAwfQ.SAMPLE_TOKEN",
+    "/claim?token=eyJzdWIiOiJ0aGVyYXBpc3QtcG9ydGFsIiwiZXhwIjoxNzY0MDI4ODAwfQ.SAMPLE_TOKEN",
   confirmUrl:
     SAMPLE_PORTAL_BASE +
-    "/confirm-claim.html?token=eyJzdWIiOiJyZWNvdmVyeS1jb25maXJtIn0.SAMPLE_TOKEN&decision=confirm",
+    "/confirm-claim?token=eyJzdWIiOiJyZWNvdmVyeS1jb25maXJtIn0.SAMPLE_TOKEN&decision=confirm",
   denyUrl:
     SAMPLE_PORTAL_BASE +
-    "/confirm-claim.html?token=eyJzdWIiOiJyZWNvdmVyeS1jb25maXJtIn0.SAMPLE_TOKEN&decision=deny",
+    "/confirm-claim?token=eyJzdWIiOiJyZWNvdmVyeS1jb25maXJtIn0.SAMPLE_TOKEN&decision=deny",
   removalUrl:
     SAMPLE_PORTAL_BASE + "/remove.html?token=eyJzdWIiOiJsaXN0aW5nLXJlbW92YWwifQ.SAMPLE_TOKEN",
   adminUrl: SAMPLE_PORTAL_BASE + "/admin.html",

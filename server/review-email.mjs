@@ -265,7 +265,7 @@ function buildApprovalMagicLink(config, application, options) {
   try {
     const ttlMs = 7 * 24 * 60 * 60 * 1000;
     const token = buildPortalClaimToken(config, therapist, application.email, { ttlMs });
-    return `${portalBaseUrl.replace(/\/+$/, "")}/portal.html?token=${encodeURIComponent(token)}`;
+    return `${portalBaseUrl.replace(/\/+$/, "")}/portal?token=${encodeURIComponent(token)}`;
   } catch (_error) {
     return "";
   }
@@ -512,7 +512,7 @@ export async function sendPortalClaimLink(
   const token = buildPortalClaimToken(config, therapist, requesterEmail);
   const manageUrl =
     String(portalBaseUrl || "http://localhost:5173").replace(/\/+$/, "") +
-    "/portal.html?token=" +
+    "/portal?token=" +
     encodeURIComponent(token);
 
   const copy = buildPortalMagicLinkCopy(mode);
@@ -554,9 +554,7 @@ export async function sendPortalWelcomeEmail(config, therapist, recipientEmail, 
   const slug =
     (therapist && therapist.slug && therapist.slug.current) || (therapist && therapist.slug) || "";
   const base = String(portalBaseUrl || "http://localhost:5173").replace(/\/+$/, "");
-  const portalUrl = slug
-    ? `${base}/portal.html?slug=${encodeURIComponent(slug)}`
-    : `${base}/portal.html`;
+  const portalUrl = slug ? `${base}/portal?slug=${encodeURIComponent(slug)}` : `${base}/portal`;
   const listingUrl = slug ? `${base}/therapist.html?slug=${encodeURIComponent(slug)}` : "";
   const name = (therapist && therapist.name) || "there";
   const heading = "Welcome to BipolarTherapyHub";
@@ -1332,9 +1330,7 @@ export async function sendPortalCompletenessNudge(config, therapist, portalBaseU
   const base = String(
     portalBaseUrl || config.portalBaseUrl || "https://www.bipolartherapyhub.com",
   ).replace(/\/+$/, "");
-  const portalUrl = slug
-    ? `${base}/portal.html?slug=${encodeURIComponent(slug)}`
-    : `${base}/portal.html`;
+  const portalUrl = slug ? `${base}/portal?slug=${encodeURIComponent(slug)}` : `${base}/portal`;
 
   // Show required fields first, then up to 4 more, max 6 total.
   const required = ["card_bio", "contact"].filter((k) => missing.includes(k));

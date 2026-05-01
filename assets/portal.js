@@ -806,8 +806,8 @@ function renderLookupState(options) {
     '<section class="portal-card portal-signin-help" aria-labelledby="portalSignInHelpHeading">' +
     '<h2 id="portalSignInHelpHeading" class="portal-signin-help-title">Need help accessing your listing?</h2>' +
     '<ul class="portal-signin-help-list">' +
-    '<li>Haven\'t claimed your profile yet? <a href="claim.html">Claim your profile</a>.</li>' +
-    '<li>Need to update your email? <a href="claim.html">Update the email on your listing</a>.</li>' +
+    '<li>Haven\'t claimed your profile yet? <a href="/claim">Claim your profile</a>.</li>' +
+    '<li>Need to update your email? <a href="/claim">Update the email on your listing</a>.</li>' +
     '<li>Still stuck? <a href="mailto:support@bipolartherapyhub.com">Email support</a>.</li>' +
     "</ul>" +
     "</section>";

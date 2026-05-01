@@ -182,7 +182,7 @@ function renderSearchResults(container, results, onPick) {
       "<p>Try a different last name or California license number.</p>" +
       '<div class="quick-claim-search-state-links">' +
       '<button type="button" data-claim-search-link="retry">Try a different search →</button>' +
-      '<a href="signup.html" data-claim-search-link="new_listing">Create a new listing instead →</a>' +
+      '<a href="/signup" data-claim-search-link="new_listing">Create a new listing instead →</a>' +
       "</div>" +
       "</div>";
     return;

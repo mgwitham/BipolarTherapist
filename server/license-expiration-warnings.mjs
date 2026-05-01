@@ -50,9 +50,7 @@ export function buildLicenseExpirationEmail(therapist, threshold, expirationDate
 }
 
 function buildEmail(therapist, threshold, expirationDate, portalBaseUrl) {
-  const portalLink = portalBaseUrl
-    ? `${String(portalBaseUrl).replace(/\/+$/, "")}/portal.html`
-    : "";
+  const portalLink = portalBaseUrl ? `${String(portalBaseUrl).replace(/\/+$/, "")}/portal` : "";
   const subject = `Your CA license expires in ${threshold} days — renew before ${expirationDate}`;
   const heading = `Your CA license expires in ${threshold} days`;
   const greetingName = therapist.name ? therapist.name.split(/\s+/)[0] : "";
