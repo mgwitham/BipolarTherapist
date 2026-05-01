@@ -1386,6 +1386,10 @@ function executeMatch(profile, options) {
 
   if (zipStatus.status === "unknown") {
     setMatchJourneyMode("results");
+    // Clear any stale results from a previous search so the user doesn't see
+    // the old list while the error message says there are no matches here.
+    latestEntries = [];
+    safeRenderResults([], profile);
     setActionState(
       false,
       "No exact reviewed profile is live in this ZIP code yet. Try a nearby ZIP or widen to telehealth.",
@@ -6420,6 +6424,18 @@ function refreshIntakeUiFromForm() {
         value: event.target.type === "checkbox" ? event.target.checked : event.target.value,
       });
     }
+    // In results mode with the drawer closed, changing care type or format in the main
+    // form silently does nothing (maybeLiveRecompute bails without the drawer). Re-run
+    // immediately so the toggle is always reversible without needing to reopen the drawer.
+    if (
+      !document.body.classList.contains("match-refine-drawer-open") &&
+      refs.builder &&
+      refs.builder.classList.contains("is-results-mode") &&
+      event.target &&
+      (event.target.name === "care_intent" || event.target.name === "care_format")
+    ) {
+      handleSubmit({ preventDefault: function () {} });
+    }
   });
   var refinements = refs.refinements;
   if (refinements) {
@@ -6502,4 +6518,14 @@ function refreshIntakeUiFromForm() {
     });
   }
   renderFeedbackInsights();
+  document.addEventListener("click", function (event) {
+    var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
+    if (!link) return;
+    var href = link.getAttribute("href") || "";
+    if (href.indexOf("/therapists/") !== -1 && href.indexOf("ref=match") !== -1) {
+      try {
+        window.sessionStorage.setItem("matchResultsUrl", window.location.href);
+      } catch (_) {}
+    }
+  });
 })();
