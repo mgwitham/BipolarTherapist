@@ -19,8 +19,8 @@ test("pricing page: headline and supporting copy explain free vs paid concretely
     /Upgrade when you want clearer insight into how patients find and\s+contact you\./,
   );
   assert.match(pricingHtml, /Every therapist can claim a directory listing/);
-  assert.match(pricingHtml, /Paying never/);
-  assert.match(pricingHtml, /placement in match results\./);
+  assert.match(pricingHtml, /Ranked by fit, not payment/);
+  assert.match(pricingHtml, /Paid does not buy placement\./);
 });
 
 test("pricing page: free and paid CTA labels are parallel and easy to compare", () => {
@@ -40,7 +40,7 @@ test("pricing page: paid card keeps trial and billing clarity next to the CTA", 
 test("pricing page: fairness and fit-based ranking remain explicit", () => {
   assert.match(pricingHtml, /Paid does not buy placement\./);
   assert.match(pricingHtml, /Match results stay ranked by fit to the\s+patient\./);
-  assert.match(pricingHtml, /Paid is\s+for insight, not placement\./);
+  assert.match(pricingHtml, /Every claimed therapist keeps ownership of their listing/);
 });
 
 test("pricing page: includes decision support and a paid-value preview", () => {

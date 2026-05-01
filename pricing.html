@@ -1,35 +1,71 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q22R5G7VB5"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-Q22R5G7VB5");
+    </script>
     <meta charset="UTF-8" />
-    <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
-    <title>Pricing — BipolarTherapyHub</title>
+    <title>Free Listing + $19/month Analytics — BipolarTherapyHub</title>
     <meta
       name="description"
-      content="Every therapist can be listed and ranked by fit for free. Paid is $19/month and adds visibility and contact insights, a Monday digest email, and a 14-day free trial. Paid does not buy placement."
+      content="Every therapist can be listed and ranked by fit for free. Paid is $19/month and adds visibility and contact insights, a weekly digest email, and a 14-day free trial."
     />
     <link rel="canonical" href="https://www.bipolartherapyhub.com/pricing" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="BipolarTherapyHub" />
     <meta property="og:url" content="https://www.bipolartherapyhub.com/pricing" />
-    <meta property="og:title" content="Pricing — BipolarTherapyHub" />
+    <meta property="og:title" content="Free Listing + $19/month Analytics — BipolarTherapyHub" />
     <meta
       property="og:description"
-      content="Get listed for free. Upgrade for clearer insight into how patients find and contact you. $19/month with a 14-day free trial. Paid does not buy placement."
+      content="Get listed for free. Upgrade for clearer insight into how patients find and contact you. $19/month with a 14-day free trial."
     />
     <meta property="og:image" content="https://www.bipolartherapyhub.com/og-image.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
+    <meta
+      property="og:image:alt"
+      content="BipolarTherapyHub pricing — free listing for every therapist, $19/month for visibility analytics"
+    />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Pricing — BipolarTherapyHub" />
+    <meta name="twitter:title" content="Free Listing + $19/month Analytics — BipolarTherapyHub" />
     <meta
       name="twitter:description"
-      content="Every therapist can be listed and ranked by fit for free. Paid adds visibility and contact insights plus a Monday digest email."
+      content="Every therapist can be listed and ranked by fit for free. Paid adds visibility and contact insights plus a weekly digest email."
     />
     <meta name="twitter:image" content="https://www.bipolartherapyhub.com/og-image.png" />
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "Organization",
+            "@id": "https://www.bipolartherapyhub.com/#organization",
+            "name": "BipolarTherapyHub",
+            "url": "https://www.bipolartherapyhub.com/",
+            "logo": "https://www.bipolartherapyhub.com/favicon.png",
+            "description": "A California directory of license-verified therapists who specialize in bipolar disorder."
+          },
+          {
+            "@type": "Offer",
+            "name": "BipolarTherapyHub Paid",
+            "price": "19",
+            "priceCurrency": "USD",
+            "description": "Weekly visibility and contact analytics for listed therapists. Paid does not affect ranking or listing access.",
+            "seller": { "@id": "https://www.bipolartherapyhub.com/#organization" }
+          }
+        ]
+      }
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -38,6 +74,25 @@
     />
     <link rel="stylesheet" href="assets/styles.css" />
     <style>
+      /* =====================
+         Skip link
+         ===================== */
+      .skip-link {
+        position: absolute;
+        transform: translateY(-100%);
+        left: 0;
+        top: 0;
+        background: var(--teal);
+        color: #fff;
+        padding: 0.5rem 1rem;
+        z-index: 999;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      .skip-link:focus {
+        transform: translateY(0);
+      }
+
       body {
         background: #f7fbfc;
       }
@@ -52,6 +107,17 @@
         white-space: nowrap;
         border: 0;
       }
+
+      /* =====================
+         Focus rings
+         ===================== */
+      nav a:focus-visible,
+      .site-mini-footer a:focus-visible {
+        outline: 2px solid var(--teal);
+        outline-offset: 2px;
+        border-radius: 2px;
+      }
+
       .pricing-wrap {
         max-width: 1080px;
         margin: 0 auto;
@@ -80,7 +146,6 @@
         margin: 0;
         font-size: 0.78rem;
         font-weight: 700;
-        text-transform: uppercase;
         letter-spacing: 0.08em;
         color: var(--teal);
       }
@@ -130,7 +195,8 @@
       }
       .pricing-comparison-intro h2,
       .pricing-support h2,
-      .pricing-fairness h2 {
+      .pricing-fairness h2,
+      .pricing-faq h2 {
         font-family: "Lora", serif;
         font-size: 1.55rem;
         margin: 0;
@@ -176,10 +242,13 @@
         justify-content: space-between;
         gap: 0.75rem;
       }
-      .pricing-card h2 {
+      .pricing-plan-name {
         font-family: "Lora", serif;
         font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--navy);
         margin: 0;
+        line-height: 1.2;
       }
       .pricing-card-kicker {
         margin: 0;
@@ -187,7 +256,6 @@
         font-size: 0.82rem;
         font-weight: 700;
         letter-spacing: 0.02em;
-        text-transform: uppercase;
       }
       .pricing-card-summary {
         margin: 0;
@@ -264,7 +332,7 @@
         background: var(--teal-dark);
       }
       .pricing-cta:focus-visible {
-        outline: 3px solid rgba(26, 122, 143, 0.24);
+        outline: 3px solid var(--teal);
         outline-offset: 3px;
       }
       .pricing-cta:disabled {
@@ -279,6 +347,12 @@
       .pricing-cta-secondary:hover {
         background: rgba(26, 122, 143, 0.06);
       }
+      .pricing-stripe-note {
+        font-size: 0.78rem;
+        color: var(--muted);
+        text-align: center;
+        margin: -0.3rem 0 0;
+      }
       .pricing-tag {
         display: inline-flex;
         align-items: center;
@@ -289,7 +363,6 @@
         color: #0f414e;
         font-size: 0.72rem;
         font-weight: 700;
-        text-transform: uppercase;
         letter-spacing: 0.04em;
       }
       .pricing-tag.is-neutral {
@@ -360,12 +433,11 @@
         width: fit-content;
         padding: 0.28rem 0.7rem;
         border-radius: 999px;
-        background: var(--teal-faint);
+        background: var(--teal-faint, #e8f5f8);
         color: var(--teal-dark);
         font-size: 0.74rem;
         font-weight: 700;
         letter-spacing: 0.04em;
-        text-transform: uppercase;
       }
       .pricing-preview-card {
         border-radius: 18px;
@@ -374,6 +446,8 @@
         padding: 1.1rem;
         display: grid;
         gap: 0.9rem;
+        cursor: pointer;
+        text-align: left;
       }
       .pricing-preview-card h3 {
         margin: 0;
@@ -399,8 +473,8 @@
         margin: 0 0 0.2rem;
         color: var(--muted);
         font-size: 0.78rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
+        font-weight: 600;
+        letter-spacing: 0.02em;
       }
       .pricing-preview-metric-value {
         margin: 0;
@@ -450,6 +524,94 @@
       .pricing-disclaimer strong {
         color: var(--navy);
       }
+
+      /* =====================
+         Billing FAQ
+         ===================== */
+      .pricing-faq {
+        margin-top: 2rem;
+        padding: 1.45rem 1.5rem;
+        border-radius: 20px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: rgba(255, 255, 255, 0.88);
+        display: grid;
+        gap: 0.85rem;
+      }
+      .pricing-faq details {
+        border-radius: 12px;
+        border: 1px solid rgba(26, 122, 143, 0.1);
+        background: rgba(232, 245, 248, 0.3);
+      }
+      .pricing-faq summary {
+        padding: 0.85rem 1rem;
+        cursor: pointer;
+        font-weight: 600;
+        font-size: 0.95rem;
+        list-style: none;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 1rem;
+      }
+      .pricing-faq summary::-webkit-details-marker {
+        display: none;
+      }
+      .pricing-faq summary::after {
+        content: "+";
+        font-size: 1.1rem;
+        color: var(--teal);
+        font-weight: 700;
+        flex-shrink: 0;
+      }
+      .pricing-faq details[open] summary::after {
+        content: "−";
+      }
+      .pricing-faq details p {
+        padding: 0 1rem 0.85rem;
+        margin: 0;
+        font-size: 0.92rem;
+        color: var(--muted);
+        line-height: 1.6;
+      }
+      .pricing-faq details p a {
+        color: var(--teal);
+      }
+
+      /* =====================
+         Closing CTA
+         ===================== */
+      .pricing-closing {
+        margin-top: 2rem;
+        padding: 2rem 1.5rem;
+        border-radius: 22px;
+        background: linear-gradient(
+          180deg,
+          rgba(232, 245, 248, 0.9) 0%,
+          rgba(255, 255, 255, 0.95) 100%
+        );
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        text-align: center;
+        display: grid;
+        gap: 1rem;
+      }
+      .pricing-closing-headline {
+        font-family: "Lora", serif;
+        font-size: 1.45rem;
+        margin: 0;
+        color: var(--navy);
+      }
+      .pricing-closing p {
+        margin: 0;
+        color: var(--muted);
+        font-size: 0.95rem;
+      }
+      .pricing-closing-ctas {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+      }
+
       @media (max-width: 720px) {
         .pricing-wrap {
           padding: 1.5rem 1rem 3rem;
@@ -457,7 +619,9 @@
         .pricing-hero-panel,
         .pricing-preview,
         .pricing-support,
-        .pricing-fairness {
+        .pricing-fairness,
+        .pricing-faq,
+        .pricing-closing {
           padding: 1.25rem;
         }
         .pricing-grid {
@@ -478,7 +642,14 @@
           align-items: flex-start;
           flex-direction: column;
         }
+        .pricing-closing-ctas {
+          flex-direction: column;
+        }
       }
+
+      /* =====================
+         Footer
+         ===================== */
       .site-mini-footer {
         max-width: 1100px;
         margin: 1.5rem auto 0;
@@ -499,17 +670,20 @@
     </style>
   </head>
   <body>
-    <nav>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <nav aria-label="Main navigation">
       <a href="index.html" class="nav-logo">
         <span class="nav-name">BipolarTherapy<span>Hub</span></span>
       </a>
-      <ul class="nav-links">
-        <li><a href="directory.html">Find a Therapist</a></li>
+      <ul class="nav-links" role="list">
         <li><a href="portal.html" class="nav-signin-link">Therapist Sign In</a></li>
         <li><a href="signup.html">List Your Practice</a></li>
+        <li class="nav-zone-switch-item">
+          <a href="index.html" class="nav-zone-switch">For patients →</a>
+        </li>
       </ul>
     </nav>
-    <main class="pricing-wrap">
+    <main class="pricing-wrap" id="main-content">
       <header class="pricing-hero">
         <div class="pricing-hero-panel">
           <p class="pricing-eyebrow">Pricing</p>
@@ -520,184 +694,15 @@
           <p id="pricingHeroSupport">
             Every therapist can claim a directory listing, show a verified California license badge
             when available, manage core profile details, and rank by fit for free. Paid adds weekly
-            visibility and contact insights, plus a Monday digest email. Paying never changes
-            placement in match results.
+            visibility and contact insights, plus a weekly digest email.
           </p>
-          <ul class="pricing-hero-points" aria-label="Pricing highlights">
+          <ul class="pricing-hero-points" aria-label="Pricing highlights" role="list">
             <li>Free listing for every therapist</li>
             <li>Ranked by fit, not payment</li>
             <li>14-day paid trial, no charge until day 15</li>
           </ul>
         </div>
       </header>
-
-      <section class="pricing-comparison-intro" aria-labelledby="pricingPlansHeading">
-        <h2 id="pricingPlansHeading">Choose the level of visibility that fits how you work</h2>
-        <p>
-          Free is enough if you want to be listed, stay current, and let fit-based ranking do the
-          work. Paid is useful if you want ongoing visibility into where interest comes from, which
-          contact methods patients use, and how activity changes week to week.
-        </p>
-      </section>
-
-      <section class="pricing-grid" id="pricingGrid" aria-label="Pricing plans">
-        <article class="pricing-card" data-plan-card="free">
-          <div class="pricing-card-header">
-            <div class="pricing-card-topline">
-              <div>
-                <p class="pricing-card-kicker">For getting listed</p>
-                <h2>Free</h2>
-              </div>
-              <span class="pricing-tag is-neutral" id="pricingFreePlanBadge">Always available</span>
-            </div>
-            <div class="pricing-price-row">
-              <span class="pricing-price">$0</span>
-              <span class="pricing-price-unit">forever</span>
-            </div>
-            <p class="pricing-card-summary">
-              Real directory presence and core profile management, without changing how you rank.
-            </p>
-          </div>
-          <p class="pricing-note">No credit card. Your free listing stays free.</p>
-          <ul class="pricing-features">
-            <li><strong>Directory listing</strong> with verified license badge when available</li>
-            <li>
-              <strong>Fit-based ranking</strong> in match results, the same as every therapist
-            </li>
-            <li><strong>Claim and manage your listing</strong> from the dashboard</li>
-            <li>
-              <strong>Core dashboard access</strong> with weekly views and contact-click totals
-            </li>
-          </ul>
-          <div class="pricing-card-footer">
-            <a
-              href="claim.html"
-              class="pricing-cta pricing-cta-secondary"
-              data-plan-cta="free"
-              id="pricingFreeCta"
-            >
-              Claim free listing
-            </a>
-            <p class="pricing-plan-state" id="pricingFreeState">
-              Best if you want to be listed and keep your profile current.
-            </p>
-            <p class="pricing-feedback" id="pricingFreeFeedback" aria-live="polite"></p>
-          </div>
-        </article>
-
-        <article class="pricing-card is-paid" data-plan-card="paid">
-          <div class="pricing-card-header">
-            <div class="pricing-card-topline">
-              <div>
-                <p class="pricing-card-kicker">For understanding performance</p>
-                <h2>Paid</h2>
-              </div>
-              <span class="pricing-tag" id="pricingPaidPlanBadge">14-day free trial</span>
-            </div>
-            <div class="pricing-price-row">
-              <span class="pricing-price">$19</span>
-              <span class="pricing-price-unit">per month</span>
-            </div>
-            <p class="pricing-card-summary">
-              Actionable visibility into how patients find you, how they reach out, and what changes
-              over time.
-            </p>
-          </div>
-          <p class="pricing-note">
-            Paid adds insight. It does not buy placement and it does not gate your listing.
-          </p>
-          <ul class="pricing-features">
-            <li>Everything in Free</li>
-            <li>
-              <strong>See how patients found you</strong> with source visibility across match flow,
-              directory, and direct visits
-            </li>
-            <li>
-              <strong>See which contact path they used</strong> including phone, email, or booking
-              link
-            </li>
-            <li>
-              <strong>Track weekly change over time</strong> with 12-week visibility and contact
-              trends
-            </li>
-            <li>
-              <strong>Get a Monday digest email</strong> summarizing views, contact clicks, and
-              trend vs last week
-            </li>
-          </ul>
-          <div class="pricing-card-footer">
-            <a
-              href="signup.html"
-              class="pricing-cta"
-              data-plan-cta="paid"
-              data-paid-cta
-              id="pricingPaidCta"
-            >
-              Start free trial
-            </a>
-            <div class="pricing-trial-box" id="pricingTrialBox">
-              <strong>Start with 14 days free.</strong>
-              <p id="pricingTrialClarity">
-                Card required to start. No charge until day 15. Cancel anytime from your dashboard
-                before billing begins.
-              </p>
-            </div>
-            <p class="pricing-plan-state" id="pricingPaidState">
-              Useful if you want better visibility into how patients find and contact you.
-            </p>
-            <p class="pricing-feedback" id="pricingPaidFeedback" aria-live="polite"></p>
-            <p class="pricing-note-small" id="pricingPaidHelper">
-              Already listed and signed in? You can start the trial without repeating onboarding.
-            </p>
-          </div>
-        </article>
-      </section>
-
-      <section class="pricing-preview" aria-labelledby="pricingPreviewHeading">
-        <div class="pricing-preview-copy">
-          <span class="pricing-preview-chip">Paid preview</span>
-          <h2 id="pricingPreviewHeading">What the paid dashboard helps you see</h2>
-          <p>
-            This is the practical difference: not better placement, but better visibility into what
-            is already happening around your listing.
-          </p>
-          <p>
-            The paid dashboard is designed to answer a clinician’s common questions: Are patients
-            finding me through match results or the directory? Are they calling, emailing, or using
-            my booking link? Is activity changing week to week?
-          </p>
-        </div>
-        <button
-          type="button"
-          class="pricing-preview-card"
-          id="pricingPreviewCard"
-          aria-describedby="pricingPreviewNote"
-        >
-          <span class="sr-only">Open pricing dashboard preview details</span>
-          <div>
-            <h3>Example weekly visibility snapshot</h3>
-            <p id="pricingPreviewNote">Illustrative layout based on the current paid dashboard.</p>
-          </div>
-          <div class="pricing-preview-metrics" aria-hidden="true">
-            <div class="pricing-preview-metric">
-              <p class="pricing-preview-metric-label">Top source</p>
-              <p class="pricing-preview-metric-value">Match flow vs directory vs direct</p>
-            </div>
-            <div class="pricing-preview-metric">
-              <p class="pricing-preview-metric-label">Contact route</p>
-              <p class="pricing-preview-metric-value">Phone, email, or booking link</p>
-            </div>
-            <div class="pricing-preview-metric">
-              <p class="pricing-preview-metric-label">Weekly trend</p>
-              <p class="pricing-preview-metric-value">12-week view and contact changes</p>
-            </div>
-            <div class="pricing-preview-metric">
-              <p class="pricing-preview-metric-label">Digest email</p>
-              <p class="pricing-preview-metric-value">Monday summary of last week’s changes</p>
-            </div>
-          </div>
-        </button>
-      </section>
 
       <section class="pricing-fairness" aria-labelledby="pricingFairnessHeading">
         <h2 id="pricingFairnessHeading">What paid does and does not change</h2>
@@ -718,35 +723,274 @@
           </div>
         </div>
         <p class="pricing-disclaimer">
-          Every claimed therapist keeps ownership of their listing and core profile editing. Paid is
-          for insight, not placement.
+          Every claimed therapist keeps ownership of their listing and core profile editing.
         </p>
+      </section>
+
+      <section class="pricing-comparison-intro" aria-labelledby="pricingPlansHeading">
+        <h2 id="pricingPlansHeading">Choose the level of visibility that fits how you work</h2>
+        <p>
+          Free is enough if you want to be listed, stay current, and let fit-based ranking do the
+          work. Paid is useful if you want ongoing visibility into where interest comes from, which
+          contact methods patients use, and how activity changes week to week.
+        </p>
+      </section>
+
+      <section class="pricing-grid" id="pricingGrid" aria-label="Pricing plans">
+        <article class="pricing-card" data-plan-card="free" aria-label="Free plan">
+          <div class="pricing-card-header">
+            <div class="pricing-card-topline">
+              <div>
+                <p class="pricing-card-kicker">Directory presence</p>
+                <p class="pricing-plan-name">Free</p>
+              </div>
+              <span class="pricing-tag is-neutral" id="pricingFreePlanBadge">Always available</span>
+            </div>
+            <div class="pricing-price-row">
+              <span class="pricing-price">$0</span>
+              <span class="pricing-price-unit">forever</span>
+            </div>
+            <p class="pricing-card-summary">
+              Real directory presence and core profile management, without changing how you rank.
+            </p>
+          </div>
+          <ul class="pricing-features" role="list">
+            <li><strong>Directory listing</strong> with verified license badge when available</li>
+            <li>
+              <strong>Ranked when you're the best fit</strong> — by bipolar experience, insurance,
+              and availability, not payment
+            </li>
+            <li><strong>Edit your profile details</strong> directly from your dashboard</li>
+            <li>
+              <strong>Core dashboard access</strong> with weekly profile view counts and how many
+              times patients clicked to contact you
+            </li>
+          </ul>
+          <div class="pricing-card-footer">
+            <p class="pricing-note">No credit card. Your free listing stays free.</p>
+            <a
+              href="claim.html"
+              class="pricing-cta pricing-cta-secondary"
+              data-plan-cta="free"
+              id="pricingFreeCta"
+            >
+              Claim free listing
+            </a>
+            <p class="pricing-plan-state" id="pricingFreeState">
+              Best if you want to be listed and keep your profile current.
+            </p>
+            <p class="pricing-feedback" id="pricingFreeFeedback" aria-live="polite"></p>
+          </div>
+        </article>
+
+        <article class="pricing-card is-paid" data-plan-card="paid" aria-label="Paid plan">
+          <div class="pricing-card-header">
+            <div class="pricing-card-topline">
+              <div>
+                <p class="pricing-card-kicker">Visibility analytics</p>
+                <p class="pricing-plan-name">Paid</p>
+              </div>
+              <span class="pricing-tag" id="pricingPaidPlanBadge">14-day free trial</span>
+            </div>
+            <div class="pricing-price-row">
+              <span class="pricing-price">$19</span>
+              <span class="pricing-price-unit">/ month USD</span>
+            </div>
+            <p class="pricing-card-summary">
+              Clear visibility into how patients find you, how they reach out, and what changes over
+              time.
+            </p>
+          </div>
+          <p class="pricing-note">
+            Paid adds insight. It does not gate your listing or change how you rank.
+          </p>
+          <ul class="pricing-features" role="list">
+            <li>Everything in Free</li>
+            <li>
+              <strong>See how patients found you</strong> with source visibility across match flow,
+              directory, and direct visits
+            </li>
+            <li>
+              <strong>See which contact path they used</strong> including phone, email, or booking
+              link
+            </li>
+            <li>
+              <strong>Track weekly change over time</strong> with 12-week visibility and contact
+              trends
+            </li>
+            <li>
+              <strong>Weekly digest email</strong> summarizing views, contact clicks, and trend vs
+              last week — sent each Monday
+            </li>
+          </ul>
+          <p class="pricing-note" style="font-size: 0.82rem">
+            All visibility data is aggregated — no patient names or identities are included.
+          </p>
+          <div class="pricing-card-footer">
+            <a
+              href="portal.html#upgrade"
+              class="pricing-cta"
+              data-plan-cta="paid"
+              data-paid-cta
+              id="pricingPaidCta"
+            >
+              Start free trial
+            </a>
+            <p class="pricing-stripe-note">Secure checkout via Stripe</p>
+            <div class="pricing-trial-box" id="pricingTrialBox">
+              <strong>Start with 14 days free.</strong>
+              <p id="pricingTrialClarity">
+                Card required to start. No charge until day 15. Cancel anytime from your dashboard
+                before billing begins.
+              </p>
+              <p class="pricing-note-small">
+                If you cancel, your free listing stays live. Paid analytics history is accessible
+                for 30 days after downgrade.
+              </p>
+            </div>
+            <p class="pricing-plan-state" id="pricingPaidState">
+              Useful if you want better visibility into how patients find and contact you.
+            </p>
+            <p class="pricing-feedback" id="pricingPaidFeedback" aria-live="polite"></p>
+            <p class="pricing-note-small" id="pricingPaidHelper">
+              New to the directory? We verify your California license before you go live.
+            </p>
+          </div>
+        </article>
+      </section>
+
+      <section class="pricing-preview" aria-labelledby="pricingPreviewHeading">
+        <div class="pricing-preview-copy">
+          <span class="pricing-preview-chip">Paid preview</span>
+          <h2 id="pricingPreviewHeading">What the paid dashboard helps you see</h2>
+          <p>
+            This is the practical difference: not better placement, but better visibility into what
+            is already happening around your listing.
+          </p>
+          <p>
+            The paid dashboard is designed to answer your common questions: Are patients finding you
+            through match results or the directory? Are they calling, emailing, or using your
+            booking link? Is activity changing week to week?
+          </p>
+        </div>
+        <button
+          type="button"
+          class="pricing-preview-card"
+          id="pricingPreviewCard"
+          aria-describedby="pricingPreviewNote"
+          aria-expanded="false"
+          aria-controls="pricingPreviewMetrics"
+        >
+          <span class="sr-only">Open pricing dashboard preview details</span>
+          <div>
+            <h3>Example weekly visibility snapshot</h3>
+            <p id="pricingPreviewNote">Illustrative layout based on the current paid dashboard.</p>
+          </div>
+          <div class="pricing-preview-metrics" id="pricingPreviewMetrics" aria-hidden="true">
+            <div class="pricing-preview-metric">
+              <p class="pricing-preview-metric-label">Top source</p>
+              <p class="pricing-preview-metric-value">
+                Match flow vs directory vs direct (direct = bookmarked or linked URL)
+              </p>
+            </div>
+            <div class="pricing-preview-metric">
+              <p class="pricing-preview-metric-label">Contact route</p>
+              <p class="pricing-preview-metric-value">Phone, email, or booking link</p>
+            </div>
+            <div class="pricing-preview-metric">
+              <p class="pricing-preview-metric-label">Weekly trend</p>
+              <p class="pricing-preview-metric-value">12-week view and contact changes</p>
+            </div>
+            <div class="pricing-preview-metric">
+              <p class="pricing-preview-metric-label">Digest email</p>
+              <p class="pricing-preview-metric-value">Monday summary of last week's changes</p>
+            </div>
+          </div>
+        </button>
       </section>
 
       <section class="pricing-support" aria-labelledby="pricingSupportHeading">
         <h2 id="pricingSupportHeading">How to decide</h2>
         <div class="pricing-support-grid">
-          <div class="pricing-support-item">
-            <h3>Choose Free if</h3>
+          <div class="pricing-support-item" aria-labelledby="choose-free">
+            <h3 id="choose-free">Choose Free if</h3>
             <p>
-              You want to be listed, manage your profile, and let fit-based ranking work without
-              paying.
+              You want to be listed, keep your profile current, and let fit-based ranking do the
+              work — no analytics needed.
             </p>
           </div>
-          <div class="pricing-support-item">
-            <h3>Choose Paid if</h3>
+          <div class="pricing-support-item" aria-labelledby="choose-paid">
+            <h3 id="choose-paid">Choose Paid if</h3>
             <p>
-              You want ongoing visibility into how patients find you and which contact methods they
-              actually use.
+              You've been listed 60+ days and want to understand which profile elements are driving
+              patient contacts, or you're testing multiple contact methods and want to know which
+              patients actually use.
             </p>
           </div>
+        </div>
+      </section>
+
+      <section class="pricing-faq" aria-labelledby="pricingBillingFaqHeading">
+        <h2 id="pricingBillingFaqHeading">Billing questions</h2>
+        <details name="billing-faq">
+          <summary>What happens on day 15 if I forget to cancel?</summary>
+          <p>
+            Your card is charged $19 for the first billing month. You can cancel anytime from your
+            dashboard — paid features remain active through the end of the paid period, then your
+            listing returns to free automatically.
+          </p>
+        </details>
+        <details name="billing-faq">
+          <summary>Can I cancel mid-month?</summary>
+          <p>
+            Yes. Cancel anytime from your dashboard. You keep paid access through the current
+            billing period and there are no cancellation fees.
+          </p>
+        </details>
+        <details name="billing-faq">
+          <summary>Is there a refund policy?</summary>
+          <p>
+            Because the trial is free for 14 days, we don't offer refunds on paid months. If
+            something went wrong, email
+            <a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a> and
+            we'll sort it out.
+          </p>
+        </details>
+        <details name="billing-faq">
+          <summary>What payment methods are accepted?</summary>
+          <p>
+            All major credit and debit cards via Stripe. Apple Pay and Google Pay are also supported
+            where your browser allows.
+          </p>
+        </details>
+        <details name="billing-faq">
+          <summary>What happens if my card declines?</summary>
+          <p>
+            Stripe retries declined charges automatically. If the retry fails, your plan downgrades
+            to Free and your listing stays live. You'll receive an email from Stripe with
+            instructions to update your payment method.
+          </p>
+        </details>
+      </section>
+
+      <section class="pricing-closing" aria-labelledby="pricingClosingHeading">
+        <p class="pricing-closing-headline" id="pricingClosingHeading">Ready to get started?</p>
+        <p>Free listing takes about 5 minutes. No credit card required.</p>
+        <div class="pricing-closing-ctas">
+          <a href="signup.html" class="pricing-cta">Claim your free listing →</a>
+          <a href="portal.html" class="pricing-cta pricing-cta-secondary"
+            >Already listed? Open your dashboard →</a
+          >
         </div>
       </section>
     </main>
 
     <footer class="site-mini-footer">
-      <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> ·
-      <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+      <nav aria-label="Footer navigation">
+        <a href="signup.html">List Your Practice</a> · <a href="portal.html">Sign In</a> ·
+        <a href="privacy.html">Privacy</a> · <a href="terms.html">Terms</a> ·
+        <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+      </nav>
     </footer>
 
     <script type="module" src="assets/pricing.js"></script>

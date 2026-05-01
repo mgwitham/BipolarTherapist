@@ -174,7 +174,7 @@ function applySignedInFreeState(me, subscription) {
   }
   if (paidHelper) {
     paidHelper.textContent =
-      "Signed in already? Secure checkout opens directly for your current listing.";
+      "Already listed? Checkout opens directly without repeating onboarding.";
   }
   if (trialClarity) {
     trialClarity.textContent =
