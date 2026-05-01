@@ -2320,7 +2320,11 @@ function renderProfile(t, therapistDirectory) {
     var breadcrumbDirLink = document.getElementById("breadcrumbDirectoryLink");
     if (breadcrumbDirLink) {
       breadcrumbDirLink.textContent = "Your matches";
-      breadcrumbDirLink.href = "/match.html";
+      var savedMatchUrl;
+      try {
+        savedMatchUrl = window.sessionStorage.getItem("matchResultsUrl");
+      } catch (_) {}
+      breadcrumbDirLink.href = savedMatchUrl || "/match.html";
     }
   }
   // navClaimLink was removed from the nav (moved into heroClaimLink
