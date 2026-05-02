@@ -188,6 +188,19 @@ function buildTherapistSeoDescription(t) {
   return result.length > 158 ? result.slice(0, 155) + "…" : result;
 }
 
+var ZIP_GEO = {
+  90001: [33.9731, -118.2479],
+  90024: [34.0628, -118.4426],
+  90048: [34.0764, -118.3814],
+  90210: [34.0901, -118.4065],
+  90401: [34.0195, -118.4912],
+  91101: [34.1478, -118.1445],
+  92101: [32.7157, -117.1611],
+  94102: [37.7793, -122.4193],
+  94105: [37.7897, -122.3942],
+  95814: [38.5816, -121.4944],
+};
+
 function buildTherapistJsonLd(t) {
   var name = t.name || "";
   var credentials = t.credentials || "";
@@ -241,6 +254,7 @@ function buildTherapistJsonLd(t) {
       availableLanguage: { "@type": "Language", name: "English" },
     });
   }
+  var zipCoords = ZIP_GEO[t.zip];
   var medicalBusiness = {
     "@context": "https://schema.org",
     "@type": "MedicalBusiness",
@@ -253,6 +267,9 @@ function buildTherapistJsonLd(t) {
     paymentAccepted: insurance.length ? insurance.join(", ") : undefined,
     areaServed: t.city ? { "@type": "City", name: t.city } : undefined,
     availableChannel: serviceChannels.length ? serviceChannels : undefined,
+    geo: zipCoords
+      ? { "@type": "GeoCoordinates", latitude: zipCoords[0], longitude: zipCoords[1] }
+      : undefined,
   };
   var breadcrumb = {
     "@context": "https://schema.org",
