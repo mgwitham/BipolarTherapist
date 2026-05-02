@@ -29,12 +29,15 @@ export default async function handler(request, response) {
     });
 
     const report = body["csp-report"] || body;
-    console.warn("[CSP]", JSON.stringify({
-      blocked: report["blocked-uri"] || report.blockedURL,
-      directive: report["violated-directive"] || report.effectiveDirective,
-      document: report["document-uri"] || report.documentURL,
-      disposition: report.disposition,
-    }));
+    console.warn(
+      "[CSP]",
+      JSON.stringify({
+        blocked: report["blocked-uri"] || report.blockedURL,
+        directive: report["violated-directive"] || report.effectiveDirective,
+        document: report["document-uri"] || report.documentURL,
+        disposition: report.disposition,
+      }),
+    );
   } catch {
     // Swallow parse errors — malformed reports shouldn't 500.
   }
