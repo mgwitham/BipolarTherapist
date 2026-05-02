@@ -65,8 +65,18 @@
           <a href="/signup" class="nav-zone-switch">For therapists →</a>
         </li>
       </ul>
+      <button
+        class="nav-hamburger"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobileNav"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </nav>
-    <div class="public-mobile-nav" aria-label="Mobile navigation">
+    <div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
       <a href="/" class="public-mobile-nav-link">
         <span class="public-mobile-nav-kicker">Start</span>
         <span class="public-mobile-nav-title">Homepage</span>
@@ -569,6 +579,7 @@
 
     <script type="module" src="assets/directory.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
+    <script type="module" src="assets/nav.js"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {

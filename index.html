@@ -1852,26 +1852,29 @@
         .nav-name {
           font-size: 0.95rem;
         }
-        .nav-links li:not(:last-child) {
+        .nav-links {
           display: none;
+        }
+        .nav-hamburger {
+          display: flex;
         }
         .nav-zone-switch {
           padding: 0.3rem 0.7rem !important;
           font-size: 0.78rem !important;
         }
-        .public-mobile-nav {
-          display: grid;
-          grid-template-columns: repeat(3, minmax(0, 1fr));
+        .public-mobile-nav.is-open {
+          display: flex;
+          flex-direction: column;
           gap: 0.55rem;
-          position: sticky;
+          position: fixed;
           top: 56px;
-          z-index: 90;
-          padding: 0.8rem 1rem 0;
-          background: linear-gradient(
-            180deg,
-            rgba(247, 251, 252, 0.98) 72%,
-            rgba(247, 251, 252, 0)
-          );
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: white;
+          z-index: 99;
+          overflow-y: auto;
+          padding: 1rem;
         }
         .public-mobile-nav-link {
           display: grid;
@@ -1950,7 +1953,34 @@
           <a href="/signup" class="nav-zone-switch">For therapists →</a>
         </li>
       </ul>
+      <button
+        class="nav-hamburger"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobileNav"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </nav>
+    <div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+      <a href="/" class="public-mobile-nav-link is-current">
+        <span class="public-mobile-nav-kicker">Home</span>
+        <span class="public-mobile-nav-title">Homepage</span>
+        <span class="public-mobile-nav-copy">Get started</span>
+      </a>
+      <a href="/match.html?mode=form" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Guided</span>
+        <span class="public-mobile-nav-title">Get matched</span>
+        <span class="public-mobile-nav-copy">Top matches</span>
+      </a>
+      <a href="/directory" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Browse</span>
+        <span class="public-mobile-nav-title">Directory</span>
+        <span class="public-mobile-nav-copy">All therapists</span>
+      </a>
+    </div>
     <main id="main-content">
       <section class="hero" id="startMatch">
         <h1 class="hero-headline" id="heroTitle">Not every therapist gets bipolar. These do.</h1>
@@ -2529,6 +2559,7 @@
     </script>
     <script type="module" src="assets/home.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
+    <script type="module" src="assets/nav.js"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
