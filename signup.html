@@ -1191,10 +1191,8 @@
           font-size: 0.95rem;
         }
         .nav-links {
-          display: none;
-        }
-        .nav-hamburger {
-          display: flex;
+          gap: 0.75rem;
+          font-size: 0.88rem;
         }
         .nav-zone-switch {
           padding: 0.3rem 0.6rem !important;
@@ -1328,34 +1326,7 @@
           <a href="/" class="nav-zone-switch">← For patients</a>
         </li>
       </ul>
-      <button
-        class="nav-hamburger"
-        aria-label="Open menu"
-        aria-expanded="false"
-        aria-controls="mobileNav"
-      >
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
     </nav>
-    <div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
-      <a href="/signup" class="public-mobile-nav-link is-current">
-        <span class="public-mobile-nav-kicker">For Therapists</span>
-        <span class="public-mobile-nav-title">List your practice</span>
-        <span class="public-mobile-nav-copy">Join the directory</span>
-      </a>
-      <a href="/portal" class="public-mobile-nav-link">
-        <span class="public-mobile-nav-kicker">Account</span>
-        <span class="public-mobile-nav-title">Sign in</span>
-        <span class="public-mobile-nav-copy">Manage your listing</span>
-      </a>
-      <a href="/" class="public-mobile-nav-link">
-        <span class="public-mobile-nav-kicker">For Patients</span>
-        <span class="public-mobile-nav-title">Find care</span>
-        <span class="public-mobile-nav-copy">Browse therapists</span>
-      </a>
-    </div>
 
     <div class="signup-hero-band">
       <main class="signup-main">
@@ -1642,7 +1613,6 @@
 
     <script type="module" src="assets/signup-new-listing.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
-    <script type="module" src="assets/nav.js"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
