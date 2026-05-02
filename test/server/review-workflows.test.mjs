@@ -720,7 +720,10 @@ test("approval: emits a portal magic link to the applicant so they can finish th
 // Helper: run an intake call that will succeed and return the claim_token
 // the subsequent free-path endpoint expects. Mocks DCA so the license
 // verifies inline.
+let _intakeTestIpCounter = 0;
 async function runSuccessfulIntake(handler) {
+  // Each call uses a unique IP so in-memory rate limits don't bleed across tests.
+  const testIp = `10.0.0.${(++_intakeTestIpCounter % 254) + 1}`;
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async function (url, init) {
     const href = String(url);
@@ -781,7 +784,7 @@ async function runSuccessfulIntake(handler) {
         state: "CA",
         treats_bipolar: true,
       },
-      headers: { host: "localhost:8787" },
+      headers: { host: "localhost:8787", "x-forwarded-for": testIp },
       method: "POST",
       url: "/applications/intake",
     });

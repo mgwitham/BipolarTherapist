@@ -2,6 +2,51 @@ import crypto from "node:crypto";
 
 const loginAttemptStore = new Map();
 
+// Separate store for intake (signup) rate limiting. Keyed by real client IP
+// (x-forwarded-for takes precedence over socket address since Vercel proxies
+// all traffic). Window and cap are intentionally more lenient than admin login
+// — a legitimate therapist retrying after a DCA failure should not be locked out.
+const intakeAttemptStore = new Map();
+const INTAKE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const INTAKE_MAX_ATTEMPTS = 5;
+
+function getClientAddress(request) {
+  // x-forwarded-for may be a comma-separated chain; take the first entry.
+  const xff = request.headers && request.headers["x-forwarded-for"];
+  if (xff) {
+    const first = String(xff).split(",")[0].trim();
+    if (first) return first;
+  }
+  return (request.socket && request.socket.remoteAddress) || "unknown";
+}
+
+function purgeExpiredIntakeWindows() {
+  const now = Date.now();
+  for (const [key, value] of intakeAttemptStore.entries()) {
+    if (!value || now - value.windowStartedAt > INTAKE_WINDOW_MS) {
+      intakeAttemptStore.delete(key);
+    }
+  }
+}
+
+export function canAttemptIntake(request) {
+  purgeExpiredIntakeWindows();
+  const ip = getClientAddress(request);
+  const record = intakeAttemptStore.get(ip);
+  return !record || record.count < INTAKE_MAX_ATTEMPTS;
+}
+
+export function recordIntakeAttempt(request) {
+  purgeExpiredIntakeWindows();
+  const ip = getClientAddress(request);
+  const existing = intakeAttemptStore.get(ip);
+  if (!existing) {
+    intakeAttemptStore.set(ip, { count: 1, windowStartedAt: Date.now() });
+  } else {
+    intakeAttemptStore.set(ip, { count: existing.count + 1, windowStartedAt: existing.windowStartedAt });
+  }
+}
+
 function encodeBase64Url(value) {
   return Buffer.from(value).toString("base64url");
 }
@@ -20,10 +65,6 @@ function getAllowedOrigin(origin, config) {
   }
 
   return config.allowedOrigins.includes(origin) ? origin : "";
-}
-
-function getClientAddress(request) {
-  return request.socket && request.socket.remoteAddress ? request.socket.remoteAddress : "unknown";
 }
 
 function purgeExpiredLoginWindows(config) {
