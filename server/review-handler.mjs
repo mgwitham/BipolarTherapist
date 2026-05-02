@@ -48,6 +48,8 @@ import {
   sendUnverifiedTrialCanceledNotice,
 } from "./review-email.mjs";
 import {
+  canAttemptIntake,
+  recordIntakeAttempt,
   canAttemptLogin,
   clearFailedLogins,
   createSignedPayload,
@@ -672,6 +674,8 @@ function createReviewRouteModules() {
     {
       handler: handleApplicationRoutes,
       deps: {
+        canAttemptIntake,
+        recordIntakeAttempt,
         buildApplicationDocument: function buildApplicationDocumentForRoute(client, input) {
           return buildApplicationDocument(client, input, applicationSupportDeps);
         },

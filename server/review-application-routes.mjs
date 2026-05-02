@@ -2,6 +2,8 @@ export async function handleApplicationRoutes(context) {
   const { client, config, deps, origin, request, response, routePath, url } = context;
 
   const {
+    canAttemptIntake,
+    recordIntakeAttempt,
     buildApplicationDocument,
     buildAppliedFieldReviewStatePatch,
     buildApplicationReviewEvent,
@@ -47,6 +49,18 @@ export async function handleApplicationRoutes(context) {
   // and the therapist doc itself (listed in the admin listings
   // workspace with listingActive=false + status=pending_profile).
   if (request.method === "POST" && routePath === "/applications/intake") {
+    if (!canAttemptIntake(request)) {
+      sendJson(
+        response,
+        429,
+        { error: "Too many submission attempts. Please wait a few minutes and try again." },
+        origin,
+        config,
+      );
+      return true;
+    }
+    recordIntakeAttempt(request);
+
     const body = await parseBody(request);
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim();
