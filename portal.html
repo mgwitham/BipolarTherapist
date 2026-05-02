@@ -905,7 +905,39 @@
           <a href="/" class="nav-zone-switch">← For patients</a>
         </li>
       </ul>
+      <button
+        class="nav-hamburger"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobileNav"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </nav>
+    <div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+      <a href="/portal" class="public-mobile-nav-link is-current">
+        <span class="public-mobile-nav-kicker">Dashboard</span>
+        <span class="public-mobile-nav-title">Sign In</span>
+        <span class="public-mobile-nav-copy">Manage your profile</span>
+      </a>
+      <a href="/signup" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Apply</span>
+        <span class="public-mobile-nav-title">List Your Practice</span>
+        <span class="public-mobile-nav-copy">Join the directory</span>
+      </a>
+      <a href="/claim" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Claim</span>
+        <span class="public-mobile-nav-title">Claim a Listing</span>
+        <span class="public-mobile-nav-copy">Take ownership</span>
+      </a>
+      <a href="/" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Patients</span>
+        <span class="public-mobile-nav-title">For Patients</span>
+        <span class="public-mobile-nav-copy">Patient-facing site</span>
+      </a>
+    </div>
     <!-- Two post-checkout banners. Which one shows depends on whether
          the user already has a therapist session (i.e. claimed + in
          the dashboard before subscribing). The claimed path gets a
@@ -1037,5 +1069,6 @@
       })();
     </script>
     <script type="module" src="assets/portal.js"></script>
+    <script type="module" src="assets/nav.js"></script>
   </body>
 </html>
