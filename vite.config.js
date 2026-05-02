@@ -30,6 +30,7 @@ export default defineConfig({
     port: 4173,
   },
   build: {
+    modulePreload: { polyfill: false },
     rollupOptions: {
       input: {
         index: resolve(rootDir, "index.html"),
@@ -46,6 +47,7 @@ export default defineConfig({
         recover: resolve(rootDir, "recover.html"),
         privacy: resolve(rootDir, "privacy.html"),
         terms: resolve(rootDir, "terms.html"),
+        404: resolve(rootDir, "404.html"),
       },
     },
   },
