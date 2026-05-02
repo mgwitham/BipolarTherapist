@@ -48,6 +48,7 @@
     />
     <meta name="twitter:image" content="https://www.bipolartherapyhub.com/og-image.png" />
     <meta name="theme-color" content="#1a7a8f" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <script type="application/ld+json">
       {
         "@context": "https://schema.org",
@@ -2518,5 +2519,12 @@
     </script>
     <script type="module" src="assets/home.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js");
+        });
+      }
+    </script>
   </body>
 </html>

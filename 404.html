@@ -22,6 +22,7 @@
     />
     <meta name="robots" content="noindex" />
     <meta name="theme-color" content="#1a7a8f" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -266,5 +267,12 @@
         crisis, please call or text 988 (Suicide &amp; Crisis Lifeline).
       </div>
     </footer>
+    <script>
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", function () {
+          navigator.serviceWorker.register("/sw.js");
+        });
+      }
+    </script>
   </body>
 </html>
