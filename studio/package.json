@@ -8,10 +8,16 @@
     "deploy": "sanity deploy"
   },
   "dependencies": {
-    "@sanity/vision": "^4.9.0",
-    "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "sanity": "^4.9.0",
-    "styled-components": "^6.1.19"
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5",
+    "sanity": "^5.23.0",
+    "styled-components": "^6.4.1"
+  },
+  "overrides": {
+    "@vercel/frameworks": {
+      "js-yaml": "3.14.2"
+    },
+    "dompurify": "^3.4.2",
+    "uuid": "^14.0.0"
   }
 }

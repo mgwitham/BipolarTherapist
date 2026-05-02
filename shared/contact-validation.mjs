@@ -119,7 +119,16 @@ function looksLikeEmailShape(raw) {
   const local = raw.slice(0, at);
   const domain = raw.slice(at + 1);
   if (!local || !domain) return false;
+  if (!/^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+$/i.test(local)) return false;
   if (!domain.includes(".")) return false;
+  const labels = domain.split(".");
+  if (
+    labels.some(function (label) {
+      return !label || !/^[A-Z0-9-]+$/i.test(label) || label.startsWith("-") || label.endsWith("-");
+    })
+  ) {
+    return false;
+  }
   const tld = domain.slice(domain.lastIndexOf(".") + 1);
   if (!tld || tld.length < 2) return false;
   return true;

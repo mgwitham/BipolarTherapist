@@ -122,6 +122,27 @@ const publishingHelpers = {
 const MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_PHOTO_UPLOAD_BYTES = 4 * 1024 * 1024;
 const ALLOWED_PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const publicWriteRateLimitStore = new Map();
+const PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS = 5000;
+const PUBLIC_WRITE_RATE_LIMITS = {
+  "POST /applications": { limit: 30, windowMs: 60 * 60 * 1000 },
+  "POST /applications/free-path-selected": { limit: 60, windowMs: 60 * 60 * 1000 },
+  "POST /applications/intake": { limit: 30, windowMs: 60 * 60 * 1000 },
+  "POST /engagement/cta-click": { limit: 300, windowMs: 15 * 60 * 1000 },
+  "POST /engagement/view": { limit: 300, windowMs: 15 * 60 * 1000 },
+  "POST /match/outcomes": { limit: 120, windowMs: 15 * 60 * 1000 },
+  "POST /match/requests": { limit: 60, windowMs: 15 * 60 * 1000 },
+  "POST /portal/claim-by-slug": { limit: 120, windowMs: 60 * 60 * 1000 },
+  "POST /portal/claim-link": { limit: 120, windowMs: 60 * 60 * 1000 },
+  "POST /portal/claim-trial": { limit: 60, windowMs: 60 * 60 * 1000 },
+  "POST /portal/listing-removal/request": { limit: 30, windowMs: 60 * 60 * 1000 },
+  "POST /portal/quick-claim": { limit: 120, windowMs: 60 * 60 * 1000 },
+  "POST /portal/recovery-request": { limit: 30, windowMs: 60 * 60 * 1000 },
+  "POST /portal/requests": { limit: 30, windowMs: 60 * 60 * 1000 },
+  "POST /portal/sign-in": { limit: 120, windowMs: 60 * 60 * 1000 },
+  "POST /saved-list/email": { limit: 30, windowMs: 60 * 60 * 1000 },
+  "POST /waitlist": { limit: 30, windowMs: 60 * 60 * 1000 },
+};
 
 function normalizeSlugCandidate(value) {
   return slugify(value || "");
@@ -229,6 +250,71 @@ function parseBody(request) {
 
 function parseRawBody(request) {
   return parseRawRequestBody(request, MAX_REQUEST_BODY_BYTES);
+}
+
+function getRateLimitClientKey(request) {
+  const forwardedFor = request.headers && request.headers["x-forwarded-for"];
+  const realIp = request.headers && request.headers["x-real-ip"];
+  const raw =
+    (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) ||
+    (Array.isArray(realIp) ? realIp[0] : realIp) ||
+    (request.socket && request.socket.remoteAddress) ||
+    "unknown";
+  return String(raw).split(",")[0].trim() || "unknown";
+}
+
+function prunePublicWriteRateLimitStore(now) {
+  if (publicWriteRateLimitStore.size <= PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS) {
+    return;
+  }
+
+  for (const [key, entry] of publicWriteRateLimitStore) {
+    const limit = PUBLIC_WRITE_RATE_LIMITS[entry.routeKey];
+    if (
+      !limit ||
+      !entry.timestamps.some(function (timestamp) {
+        return now - timestamp < limit.windowMs;
+      })
+    ) {
+      publicWriteRateLimitStore.delete(key);
+    }
+  }
+
+  while (publicWriteRateLimitStore.size > PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS) {
+    const oldestKey = publicWriteRateLimitStore.keys().next().value;
+    publicWriteRateLimitStore.delete(oldestKey);
+  }
+}
+
+function evaluatePublicWriteRateLimit(request, routePath) {
+  const routeKey = `${request.method} ${routePath}`;
+  const limit = PUBLIC_WRITE_RATE_LIMITS[routeKey];
+  if (!limit) {
+    return { exceeded: false };
+  }
+
+  const now = Date.now();
+  prunePublicWriteRateLimitStore(now);
+
+  const key = `${routeKey}:${getRateLimitClientKey(request)}`;
+  const entry = publicWriteRateLimitStore.get(key);
+  const recent = (entry && Array.isArray(entry.timestamps) ? entry.timestamps : []).filter(
+    function (timestamp) {
+      return now - timestamp < limit.windowMs;
+    },
+  );
+
+  if (recent.length >= limit.limit) {
+    const oldest = recent[0] || now;
+    return {
+      exceeded: true,
+      retryAfterSeconds: Math.max(1, Math.ceil((limit.windowMs - (now - oldest)) / 1000)),
+    };
+  }
+
+  recent.push(now);
+  publicWriteRateLimitStore.set(key, { routeKey, timestamps: recent });
+  return { exceeded: false };
 }
 
 function addDays(isoString, days) {
@@ -795,6 +881,19 @@ export function createReviewApiHandler(configOverride, clientOverride) {
       return;
     }
 
+    const publicWriteRateLimit = evaluatePublicWriteRateLimit(request, routePath);
+    if (publicWriteRateLimit.exceeded) {
+      response.setHeader("Retry-After", String(publicWriteRateLimit.retryAfterSeconds));
+      sendJson(
+        response,
+        429,
+        { error: "Too many requests. Try again in a moment.", reason: "rate_limited" },
+        origin,
+        config,
+      );
+      return;
+    }
+
     try {
       for (const routeModule of routeModules) {
         if (
@@ -815,10 +914,14 @@ export function createReviewApiHandler(configOverride, clientOverride) {
 
       sendJson(response, 404, { error: "Not found." }, origin, config);
     } catch (error) {
+      console.error("[review-api] Unhandled route error", error);
+      const exposeError = process.env.NODE_ENV !== "production";
       sendJson(
         response,
         500,
-        { error: error && error.message ? error.message : "Unexpected server error." },
+        {
+          error: exposeError && error && error.message ? error.message : "Unexpected server error.",
+        },
         origin,
         config,
       );

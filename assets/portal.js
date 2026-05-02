@@ -59,6 +59,28 @@ function normalizeSlugInput(value) {
   }
 }
 
+function scrubMagicLinkTokenFromUrl(nextSlug) {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (!params.has("token")) {
+      return;
+    }
+    params.delete("token");
+    if (nextSlug) {
+      params.set("slug", nextSlug);
+    }
+    var nextUrl =
+      window.location.pathname +
+      (params.toString() ? "?" + params.toString() : "") +
+      window.location.hash;
+    window.history.replaceState({}, document.title, nextUrl);
+    token = "";
+    slug = nextSlug || params.get("slug") || slug;
+  } catch (_error) {
+    // Non-fatal; the signed token is still short-lived and single-use.
+  }
+}
+
 function formatDate(value) {
   if (!value) {
     return "";
@@ -4382,6 +4404,7 @@ function renderPortal(therapist, options) {
       if (session.therapist && session.therapist.claim_status === "claimed") {
         trackFunnelEvent("portal_signin_completed", { slug: session.therapist.slug || "" });
       }
+      scrubMagicLinkTokenFromUrl((session.therapist && session.therapist.slug) || "");
       renderPortal(session.therapist, {
         sessionMode: session.therapist.claim_status === "claimed" ? "claimed" : "claim_token",
       });
