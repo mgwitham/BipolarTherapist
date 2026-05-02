@@ -90,10 +90,10 @@ export function matchesDirectoryFilters(filterState, therapist) {
   }
   if (filterState.therapist && !filterState.psychiatrist && isPsychiatrist) return false;
   if (filterState.psychiatrist && !filterState.therapist && !isPsychiatrist) return false;
-  if (filterState.telehealth && !therapist.accepts_telehealth) return false;
-  if (filterState.in_person && !therapist.accepts_in_person) return false;
+  if (filterState.telehealth && therapist.accepts_telehealth === false) return false;
+  if (filterState.in_person && therapist.accepts_in_person === false) return false;
   if (filterState.accepting && !therapist.accepting_new_patients) return false;
-  if (filterState.medication_management && !therapist.medication_management) return false;
+  if (filterState.medication_management && therapist.medication_management === false) return false;
   if (filterState.responsive_contact && getResponsivenessRank(therapist) === 0) return false;
   if (filterState.recently_confirmed && getFreshnessRank(therapist) < 2) return false;
   return true;
