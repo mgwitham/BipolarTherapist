@@ -52,17 +52,9 @@ function getCachedMerchandisingQuality(therapist) {
 }
 
 export function matchesDirectoryFilters(filterState, therapist) {
-  var telehealthOverridesZip = Boolean(filterState.telehealth);
   var isPsychiatrist = isPsychiatristProvider(therapist);
 
   if (filterState.state && therapist.state !== filterState.state) return false;
-  if (
-    filterState.zip &&
-    !telehealthOverridesZip &&
-    String(therapist.zip || "") !== String(filterState.zip || "")
-  ) {
-    return false;
-  }
   if (filterState.specialty && !(therapist.specialties || []).includes(filterState.specialty)) {
     return false;
   }
