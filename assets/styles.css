@@ -4190,7 +4190,8 @@ body.dir-vb .dir-vb-modal-apply:hover {
   flex: 1 1 auto;
   min-width: 0;
   flex-wrap: nowrap;
-  overflow: hidden;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .dir-chips-row > .dir-vb-chips {
