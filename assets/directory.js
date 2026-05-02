@@ -89,7 +89,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     population: "",
     bipolar_experience: "",
     insurance: "",
-    therapist: true,
+    therapist: false,
     psychiatrist: false,
     telehealth: false,
     in_person: false,
