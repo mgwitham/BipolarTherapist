@@ -213,6 +213,97 @@
         margin: 1rem auto 0;
         line-height: 1.6;
       }
+      .public-mobile-nav {
+        display: none;
+      }
+      .public-mobile-nav-link {
+        display: grid;
+        gap: 0.12rem;
+        min-height: 60px;
+        padding: 0.72rem 0.74rem;
+        border-radius: 18px;
+        border: 1px solid rgba(26, 122, 143, 0.12);
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 248, 250, 0.96));
+        box-shadow: 0 12px 24px rgba(14, 77, 95, 0.08);
+        color: #4a6572;
+        text-decoration: none;
+      }
+      .public-mobile-nav-kicker {
+        font-size: 0.64rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #6b8290;
+      }
+      .public-mobile-nav-title {
+        font-size: 0.82rem;
+        line-height: 1.25;
+        font-weight: 800;
+        color: inherit;
+      }
+      .public-mobile-nav-copy {
+        font-size: 0.72rem;
+        line-height: 1.4;
+        color: #4a6572;
+      }
+      .nav-hamburger {
+        display: none;
+        flex-direction: column;
+        justify-content: space-between;
+        width: 24px;
+        height: 18px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        flex-shrink: 0;
+        color: rgba(255, 255, 255, 0.85);
+      }
+      .nav-hamburger span {
+        display: block;
+        width: 100%;
+        height: 2px;
+        background: currentColor;
+        border-radius: 2px;
+        transition:
+          opacity 0.2s,
+          transform 0.2s;
+      }
+      .nav-hamburger[aria-expanded="true"] span:nth-child(1) {
+        transform: translateY(8px) rotate(45deg);
+      }
+      .nav-hamburger[aria-expanded="true"] span:nth-child(2) {
+        opacity: 0;
+      }
+      .nav-hamburger[aria-expanded="true"] span:nth-child(3) {
+        transform: translateY(-8px) rotate(-45deg);
+      }
+      @media (max-width: 640px) {
+        nav {
+          padding: 0 1rem;
+          height: 56px;
+        }
+        .nav-links {
+          display: none;
+        }
+        .nav-hamburger {
+          display: flex;
+        }
+        .public-mobile-nav.is-open {
+          display: flex;
+          flex-direction: column;
+          gap: 0.55rem;
+          position: fixed;
+          top: 56px;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: white;
+          z-index: 99;
+          overflow-y: auto;
+          padding: 1rem;
+        }
+      }
       @media (max-width: 480px) {
         .error-actions {
           flex-direction: column;
@@ -234,7 +325,34 @@
         <li><a href="/directory">Browse Directory</a></li>
         <li><a href="/signup">For therapists →</a></li>
       </ul>
+      <button
+        class="nav-hamburger"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobileNav"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </nav>
+    <div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+      <a href="/" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Home</span>
+        <span class="public-mobile-nav-title">Homepage</span>
+        <span class="public-mobile-nav-copy">Start over</span>
+      </a>
+      <a href="/directory" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Browse</span>
+        <span class="public-mobile-nav-title">Find a therapist</span>
+        <span class="public-mobile-nav-copy">Full directory</span>
+      </a>
+      <a href="/match.html?mode=form" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Guided</span>
+        <span class="public-mobile-nav-title">Get matched</span>
+        <span class="public-mobile-nav-copy">Find your fit</span>
+      </a>
+    </div>
 
     <main id="main-content">
       <div class="error-card">
@@ -267,6 +385,7 @@
         crisis, please call or text 988 (Suicide &amp; Crisis Lifeline).
       </div>
     </footer>
+    <script type="module" src="assets/nav.js"></script>
     <script>
       if ("serviceWorker" in navigator) {
         window.addEventListener("load", function () {
