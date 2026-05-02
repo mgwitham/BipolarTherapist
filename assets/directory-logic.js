@@ -112,8 +112,9 @@ export function isPsychiatristProvider(therapist) {
   var credentials = String((therapist && therapist.credentials) || "").toLowerCase();
 
   return (
-    title.includes("psychiatrist") ||
+    title.includes("psychiatric") ||
     title.includes("psychiatry") ||
+    credentials.includes("pmhnp") ||
     /\bm\.d\.|\bmd\b/.test(credentials) ||
     /\bd\.o\.|\bdo\b/.test(credentials)
   );
