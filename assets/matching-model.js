@@ -950,8 +950,8 @@ function getProviderKind(therapist) {
   if (
     haystack.includes("psychiatrist") ||
     haystack.includes("medication management") ||
-    haystack.includes("md") ||
-    haystack.includes("do")
+    /\bmd\b/.test(haystack) ||
+    /\bdo\b/.test(haystack)
   ) {
     return "Psychiatry";
   }
