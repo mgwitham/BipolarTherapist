@@ -11,6 +11,32 @@ const FREE_PATH_ENDPOINT = "/api/review/applications/free-path-selected";
 const LICENSE_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/search";
 const EMAIL_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/lookup-by-email";
 const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
+
+// Client-side rate limit: max 3 submission attempts per 10-minute window.
+// This is a first-layer defense only. Server-side rate limiting is the
+// proper fix (see docs/ARCHITECTURE.md for the recommended Vercel Edge
+// Function approach).
+const SUBMIT_RATE_KEY = "bth_intake_submissions_v1";
+const SUBMIT_RATE_WINDOW_MS = 10 * 60 * 1000;
+const SUBMIT_RATE_MAX = 3;
+
+function checkSubmitRateLimit() {
+  try {
+    const store = window.sessionStorage;
+    const raw = store.getItem(SUBMIT_RATE_KEY);
+    const now = Date.now();
+    const record = raw ? JSON.parse(raw) : { attempts: [] };
+    record.attempts = record.attempts.filter((t) => now - t < SUBMIT_RATE_WINDOW_MS);
+    if (record.attempts.length >= SUBMIT_RATE_MAX) {
+      return false;
+    }
+    record.attempts.push(now);
+    store.setItem(SUBMIT_RATE_KEY, JSON.stringify(record));
+    return true;
+  } catch {
+    return true;
+  }
+}
 const ALLOWED_PHOTO_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 // ==========================================================================
@@ -271,6 +297,15 @@ async function submitIntake(form, status) {
   }
   if (!zip) {
     setStatus(status, "Enter a valid 5-digit ZIP code for your practice.", "error");
+    return;
+  }
+
+  if (!checkSubmitRateLimit()) {
+    setStatus(
+      status,
+      "Too many submission attempts. Please wait a few minutes and try again.",
+      "error",
+    );
     return;
   }
 
