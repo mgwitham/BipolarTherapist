@@ -385,10 +385,7 @@ async function submitEmailRequest() {
       count: payload && payload.count,
     });
   } catch (error) {
-    setEmailStatus(
-      error && error.message ? error.message : "Could not send the email. Try again.",
-      "error",
-    );
+    setEmailStatus("Could not send the email. Try again.", "error");
     trackFunnelEvent("saved_list_email_failed", {
       list_size: list.length,
       message: error && error.message ? error.message : "",
