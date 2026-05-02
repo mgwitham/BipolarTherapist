@@ -171,6 +171,26 @@ nav {
   font-weight: 600 !important;
 }
 
+.nav-crisis-item {
+  margin-left: auto;
+}
+
+.nav-crisis-item + .nav-zone-switch-item {
+  margin-left: 0;
+}
+
+.nav-crisis-link {
+  color: var(--navy) !important;
+  font-size: 0.875rem !important;
+  font-weight: 600 !important;
+}
+
+.nav-crisis-link:hover {
+  color: var(--teal) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .nav-cta {
   background: var(--teal) !important;
   color: white !important;
