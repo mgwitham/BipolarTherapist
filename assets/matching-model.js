@@ -530,8 +530,12 @@ function insuranceMatches(requestedInsurance, acceptedInsurance) {
 }
 
 function supportsTelehealthInState(therapist, careState) {
-  if (!therapist.accepts_telehealth) {
+  if (therapist.accepts_telehealth === false) {
     return false;
+  }
+
+  if (!therapist.accepts_telehealth) {
+    return "unknown";
   }
 
   if (!therapist.telehealth_states || !therapist.telehealth_states.length) {
@@ -542,7 +546,13 @@ function supportsTelehealthInState(therapist, careState) {
 }
 
 function supportsInPersonInState(therapist, careState) {
-  return Boolean(therapist.accepts_in_person && normalizeUpper(therapist.state) === careState);
+  if (therapist.accepts_in_person === false) {
+    return false;
+  }
+  if (!therapist.accepts_in_person) {
+    return "unknown";
+  }
+  return normalizeUpper(therapist.state) === careState ? true : false;
 }
 
 function getFeeFloor(therapist) {
@@ -1021,8 +1031,16 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
   }
 
   if (profile.care_format === "In-Person") {
-    if (!inPersonSupport) {
+    if (inPersonSupport === false) {
       hardFailures.push("In-person care is not available in the requested state.");
+    } else if (inPersonSupport === "unknown") {
+      breakdown.access += 12;
+      breakdown.uncertainty -= 5;
+      reasons.push({
+        text: "May see patients in person; confirm availability directly.",
+        weight: 12,
+      });
+      cautions.push("In-person availability is not confirmed in the profile.");
     } else {
       breakdown.access += 30;
       reasons.push({
@@ -1033,8 +1051,11 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
   }
 
   if (profile.care_format === "Either") {
-    if (inPersonSupport) {
+    if (inPersonSupport === true) {
       breakdown.access += 12;
+    } else if (inPersonSupport === "unknown") {
+      breakdown.access += 6;
+      breakdown.uncertainty -= 2;
     }
     if (telehealthSupport !== false) {
       breakdown.access += telehealthSupport === "unknown" ? 8 : 12;
@@ -1042,7 +1063,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
         breakdown.uncertainty -= 4;
       }
     }
-    if (inPersonSupport || telehealthSupport !== false) {
+    if (inPersonSupport !== false || telehealthSupport !== false) {
       reasons.push({
         text: "Matches at least one of the requested care formats.",
         weight: 12,
@@ -1068,7 +1089,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
   }
 
   if (profile.needs_medication_management === "Yes") {
-    if (!therapist.medication_management) {
+    if (therapist.medication_management === false) {
       hardFailures.push("Does not provide medication management.");
     } else {
       breakdown.practical += 24;
