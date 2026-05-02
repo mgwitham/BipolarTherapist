@@ -1201,6 +1201,30 @@ test("top-level review handler accepts public match outcome persistence", async 
   assert.equal(persisted.outcome, "booked_consult");
 });
 
+test("top-level review handler rate-limits repeated public writes by client IP", async function () {
+  const { client } = createMemoryClient({});
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const requestOptions = {
+    body: { email: "not-an-email", state: "CA" },
+    headers: {
+      host: "localhost:8787",
+      "x-forwarded-for": "203.0.113.77",
+    },
+    method: "POST",
+    url: "/waitlist",
+  };
+
+  for (let attempt = 0; attempt < 30; attempt += 1) {
+    const response = await runHandlerRequest(handler, requestOptions);
+    assert.equal(response.statusCode, 400);
+  }
+
+  const response = await runHandlerRequest(handler, requestOptions);
+  assert.equal(response.statusCode, 429);
+  assert.equal(response.payload.reason, "rate_limited");
+  assert.equal(Number(response.headers["Retry-After"]) > 0, true);
+});
+
 test("top-level review handler returns authenticated match requests and outcomes", async function () {
   const { client } = createMemoryClient({
     "match-request-1": {

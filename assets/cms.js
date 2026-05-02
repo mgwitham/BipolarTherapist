@@ -176,6 +176,64 @@ const therapistProjection = `{
   "slug": slug.current
 }`;
 
+const publicTherapistProjection = `{
+  _id,
+  name,
+  credentials,
+  title,
+  bio,
+  bioPreview,
+  "photo_url": photo.asset->url,
+  photoSourceType,
+  photoReviewedAt,
+  photoUsagePermissionConfirmed,
+  email,
+  phone,
+  website,
+  preferredContactMethod,
+  preferredContactLabel,
+  contactGuidance,
+  firstStepExpectation,
+  bookingUrl,
+  claimStatus,
+  practiceName,
+  city,
+  state,
+  zip,
+  country,
+  licenseState,
+  licenseNumber,
+  specialties,
+  treatmentModalities,
+  clientPopulations,
+  insuranceAccepted,
+  acceptsTelehealth,
+  acceptsInPerson,
+  acceptingNewPatients,
+  yearsExperience,
+  bipolarYearsExperience,
+  languages,
+  telehealthStates,
+  estimatedWaitTime,
+  careApproach,
+  medicationManagement,
+  verificationStatus,
+  sourceUrl,
+  supportingSourceUrls,
+  sourceReviewedAt,
+  therapistReportedFields,
+  therapistReportedConfirmedAt,
+  fieldReviewStates,
+  sessionFeeMin,
+  sessionFeeMax,
+  slidingScale,
+  listingActive,
+  status,
+  lifecycle,
+  visibilityIntent,
+  "slug": slug.current
+}`;
+
 const directoryTherapistProjection = `{
   _id,
   name,
@@ -497,7 +555,7 @@ export async function fetchPublicTherapists(options) {
 
   try {
     const fetchPromise = fetchFromSanity(
-      `*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"] | order(name asc) ${therapistProjection}`,
+      `*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"] | order(name asc) ${publicTherapistProjection}`,
       null,
       { fresh },
     ).then(function (docs) {
@@ -594,7 +652,7 @@ export async function fetchPublicTherapistBySlug(slug) {
 
   try {
     const doc = await fetchFromSanity(
-      `*[_type == "therapist" && slug.current == $slug && listingActive == true && status == "active" && visibilityIntent == "listed"][0] ${therapistProjection}`,
+      `*[_type == "therapist" && slug.current == $slug && listingActive == true && status == "active" && visibilityIntent == "listed"][0] ${publicTherapistProjection}`,
       { slug: slug },
     );
     setCmsState("sanity", null);
@@ -667,7 +725,7 @@ export async function fetchHomePageContent() {
           },
           buttonLabel,
           buttonUrl,
-          therapists[]->${therapistProjection},
+          therapists[]->${publicTherapistProjection},
           items[]{
             stars,
             quote,

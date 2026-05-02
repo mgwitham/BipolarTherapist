@@ -4,8 +4,8 @@
 // so the admin Funnel tab can group interest by state, and (b) fires
 // an admin email alert via Resend.
 //
-// Open endpoint. Rate-limited in practice by the bounded-array append
-// on funnelEventLog (same pattern as /analytics/events).
+// Open endpoint. A top-level per-IP write limiter catches high-volume
+// abuse before this route; the bounded event log keeps storage capped.
 
 const SINGLETON_ID = "funnelEventLog.singleton";
 const MAX_EVENTS = 500;
@@ -93,9 +93,23 @@ function normalizeEmail(value) {
   return safeString(value, 200).trim().toLowerCase();
 }
 
+function escapeHtml(value) {
+  return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
+  });
+}
+
 function isValidEmail(email) {
   // Minimal shape check. The real delivery test happens at Resend.
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  if (!/^[A-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(email)) {
+    return false;
+  }
+  return email
+    .slice(email.indexOf("@") + 1)
+    .split(".")
+    .every(function (label) {
+      return label && /^[A-Z0-9-]+$/i.test(label) && !label.startsWith("-") && !label.endsWith("-");
+    });
 }
 
 function normalizeState(value) {
@@ -154,8 +168,8 @@ async function notifyAdminOfWaitlist(config, sendEmail, { email, state }) {
     to: [config.notificationTo],
     subject: `Waitlist signup: ${state} — ${email}`,
     html: `<h2>New out-of-state waitlist signup</h2>
-<p><strong>State:</strong> ${state}</p>
-<p><strong>Email:</strong> ${email}</p>
+<p><strong>State:</strong> ${escapeHtml(state)}</p>
+<p><strong>Email:</strong> ${escapeHtml(email)}</p>
 <p>Logged to funnelEventLog as <code>waitlist_signup</code>. View aggregated state interest in the admin Funnel tab.</p>`,
   });
 }

@@ -83,6 +83,10 @@ test("validateEmail: rejects malformed addresses", () => {
   assert.equal(validateEmail("missing@tld").valid, false);
   assert.equal(validateEmail("double@@at.com").valid, false);
   assert.equal(validateEmail("has space@domain.com").valid, false);
+  assert.equal(validateEmail("x<img>@practice.com").valid, false);
+  assert.equal(validateEmail("jamie@practice<script>.com").valid, false);
+  assert.equal(validateEmail("jamie@-practice.com").valid, false);
+  assert.equal(validateEmail("jamie@practice-.com").valid, false);
   assert.equal(validateEmail("@nolocal.com").valid, false);
   assert.equal(validateEmail("nolocaltrailing@").valid, false);
 });

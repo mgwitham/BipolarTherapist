@@ -1,6 +1,6 @@
 module.exports = [
   {
-    ignores: ["dist/**", "node_modules/**", "studio/**"],
+    ignores: [".claude/**", ".vercel/**", "dist/**", "node_modules/**", "studio/**", "tmp/**"],
   },
   {
     files: ["eslint.config.cjs"],

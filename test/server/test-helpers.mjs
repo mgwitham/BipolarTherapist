@@ -3,11 +3,14 @@ import { Readable } from "node:stream";
 export function createResponseCapture() {
   return {
     statusCode: null,
-    headers: null,
+    headers: {},
     payload: null,
+    setHeader(name, value) {
+      this.headers[name] = value;
+    },
     writeHead(statusCode, headers) {
       this.statusCode = statusCode;
-      this.headers = headers;
+      this.headers = { ...this.headers, ...(headers || {}) };
     },
     end(body) {
       if (!body) {

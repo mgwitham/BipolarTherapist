@@ -62,6 +62,15 @@ function signValue(value, secret) {
   return crypto.createHmac("sha256", secret).update(value).digest("base64url");
 }
 
+function signaturesMatch(expected, actual) {
+  const expectedBuffer = Buffer.from(String(expected || ""), "base64url");
+  const actualBuffer = Buffer.from(String(actual || ""), "base64url");
+  return (
+    expectedBuffer.length === actualBuffer.length &&
+    crypto.timingSafeEqual(expectedBuffer, actualBuffer)
+  );
+}
+
 function getAllowedOrigin(origin, config) {
   if (!origin) {
     return "";
@@ -115,6 +124,7 @@ export function sendJson(response, statusCode, payload, origin, config) {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, Authorization",
     "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
+    "Cache-Control": "no-store",
     Vary: "Origin",
   };
   const allowedOrigin = getAllowedOrigin(origin, config);
@@ -168,7 +178,7 @@ export function readSignedPayload(token, secret) {
 
   const encodedPayload = parts[0];
   const signature = parts[1];
-  if (signValue(encodedPayload, secret) !== signature) {
+  if (!signaturesMatch(signValue(encodedPayload, secret), signature)) {
     return null;
   }
 
