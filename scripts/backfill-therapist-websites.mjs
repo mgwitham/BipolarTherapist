@@ -99,7 +99,9 @@ async function fetchPageText(url, timeoutMs = 15000) {
 //   https://out.psychologytoday.com/us/profile/{id}/website-redirect
 // Hitting this URL follows redirects and lands on the therapist's real site.
 async function followPTWebsiteRedirect(profileUrl, timeoutMs = 15000) {
-  const match = profileUrl.match(/psychologytoday\.com\/us\/(?:therapists|psychiatrists|counselors|coaches)\/[^/]+\/(\d+)/i);
+  const match = profileUrl.match(
+    /psychologytoday\.com\/us\/(?:therapists|psychiatrists|counselors|coaches)\/[^/]+\/(\d+)/i,
+  );
   if (!match) return null;
   const redirectUrl = `https://out.psychologytoday.com/us/profile/${match[1]}/website-redirect`;
   const controller = new AbortController();
