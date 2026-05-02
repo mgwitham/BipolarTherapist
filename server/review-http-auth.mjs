@@ -43,7 +43,10 @@ export function recordIntakeAttempt(request) {
   if (!existing) {
     intakeAttemptStore.set(ip, { count: 1, windowStartedAt: Date.now() });
   } else {
-    intakeAttemptStore.set(ip, { count: existing.count + 1, windowStartedAt: existing.windowStartedAt });
+    intakeAttemptStore.set(ip, {
+      count: existing.count + 1,
+      windowStartedAt: existing.windowStartedAt,
+    });
   }
 }
 
