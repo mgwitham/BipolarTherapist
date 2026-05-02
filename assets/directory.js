@@ -264,6 +264,20 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         zip: explicitZip,
         source: "explicit_zip",
       });
+      if (filters.sortBy === "stable_random") {
+        sortZip = explicitZip;
+        saveSortZip(explicitZip);
+        filters = Object.assign({}, filters, {
+          sortBy: "near_zip",
+          sortZip: explicitZip,
+        });
+        var nearZipOption = getElement("sortNearZipOption");
+        var sortByEl = getElement("sortBy");
+        var sortZipInput = getElement("sortZip");
+        if (nearZipOption) nearZipOption.hidden = false;
+        if (sortByEl) sortByEl.value = "near_zip";
+        if (sortZipInput && !sortZipInput.value.trim()) sortZipInput.value = explicitZip;
+      }
       return true;
     }
 
