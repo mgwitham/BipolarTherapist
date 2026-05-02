@@ -24,32 +24,36 @@ import { createClient } from "@sanity/client";
 
 const APPLY = process.argv.includes("--apply");
 
+// Only block PT itself (the source we're replacing) and pure social profiles
+// that are not booking destinations. Telehealth platforms (Rula, Headway,
+// Grow Therapy, etc.) are allowed — therapists actively use them for bookings.
 const AGGREGATOR_DOMAINS = new Set([
   "psychologytoday.com",
-  "rula.com",
-  "headway.co",
-  "grow.therapy",
-  "alma.com",
-  "lifestance.com",
-  "mindpath.com",
-  "amwell.com",
-  "brightside.com",
-  "talkspace.com",
-  "betterhelp.com",
-  "zocdoc.com",
-  "doximity.com",
-  "healthgrades.com",
-  "vitals.com",
-  "webmd.com",
-  "everydayhealth.com",
+  // PT site-wide embeds — appear on every profile page, not therapist sites
+  "apply.workable.com",
+  "sussexdirectories.com",
+  // Pure social — not booking destinations
   "linkedin.com",
   "facebook.com",
   "twitter.com",
+  "x.com",
   "instagram.com",
   "youtube.com",
   "google.com",
-  "yelp.com",
 ]);
+
+function stripUtm(rawUrl) {
+  try {
+    const u = new URL(rawUrl);
+    ["utm_source", "utm_medium", "utm_campaign", "utm_content", "utm_term", "t"].forEach((p) =>
+      u.searchParams.delete(p),
+    );
+    // Remove trailing ? if no params remain
+    return u.toString().replace(/\?$/, "");
+  } catch {
+    return rawUrl;
+  }
+}
 
 function urlHostname(rawUrl) {
   try {
@@ -65,12 +69,19 @@ function isAggregatorOrSocial(domain) {
   return [...AGGREGATOR_DOMAINS].some((agg) => domain === agg || domain.endsWith("." + agg));
 }
 
+const FETCH_HEADERS = {
+  "User-Agent":
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+  Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+  "Accept-Language": "en-US,en;q=0.9",
+};
+
 async function fetchPageText(url, timeoutMs = 15000) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
     const res = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0 BipolarTherapyHub-WebsiteBackfill/1.0" },
+      headers: FETCH_HEADERS,
       signal: controller.signal,
       redirect: "follow",
     });
@@ -79,6 +90,37 @@ async function fetchPageText(url, timeoutMs = 15000) {
     return { ok: true, status: res.status, text };
   } catch (err) {
     return { ok: false, status: 0, text: "", error: err.message };
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// PT serves the actual therapist website URL via its "out" redirect service:
+//   https://out.psychologytoday.com/us/profile/{id}/website-redirect
+// Hitting this URL follows redirects and lands on the therapist's real site.
+async function followPTWebsiteRedirect(profileUrl, timeoutMs = 15000) {
+  const match = profileUrl.match(
+    /psychologytoday\.com\/us\/(?:therapists|psychiatrists|counselors|coaches)\/[^/]+\/(\d+)/i,
+  );
+  if (!match) return null;
+  const redirectUrl = `https://out.psychologytoday.com/us/profile/${match[1]}/website-redirect`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(redirectUrl, {
+      headers: FETCH_HEADERS,
+      signal: controller.signal,
+      redirect: "follow",
+    });
+    if (!res.ok) return null;
+    const finalUrl = res.url;
+    if (!finalUrl) return null;
+    const host = urlHostname(finalUrl);
+    // Reject if still on PT or if it resolved to an aggregator/social site
+    if (isAggregatorOrSocial(host)) return null;
+    return stripUtm(finalUrl);
+  } catch {
+    return null;
   } finally {
     clearTimeout(timer);
   }
@@ -142,6 +184,25 @@ async function main() {
 
   for (const doc of docs) {
     summary.scanned += 1;
+
+    // Strategy 1: follow PT's /us/profile/{id}/website redirect directly.
+    // This is the most reliable path — PT redirects to the therapist's site
+    // without needing to parse the full profile page HTML.
+    const redirected = await followPTWebsiteRedirect(doc.website);
+    await new Promise((r) => setTimeout(r, 800));
+    if (redirected) {
+      console.log(`${APPLY ? "SET " : "WOULD SET"}  ${doc.name} → ${redirected}`);
+      if (APPLY) {
+        await client
+          .patch(doc._id)
+          .set({ website: redirected, supportingSourceUrls: [doc.website] })
+          .commit();
+      }
+      summary.set += 1;
+      continue;
+    }
+
+    // Strategy 2: fall back to scanning profile page HTML for outbound links.
     const result = await fetchPageText(doc.website);
     await new Promise((r) => setTimeout(r, 800));
     if (!result.ok) {
@@ -166,11 +227,12 @@ async function main() {
       }
       continue;
     }
-    console.log(`${APPLY ? "SET " : "WOULD SET"}  ${doc.name} → ${picked}`);
+    const cleanPicked = stripUtm(picked);
+    console.log(`${APPLY ? "SET " : "WOULD SET"}  ${doc.name} → ${cleanPicked}`);
     if (APPLY) {
       await client
         .patch(doc._id)
-        .set({ website: picked, supportingSourceUrls: [doc.website] })
+        .set({ website: cleanPicked, supportingSourceUrls: [doc.website] })
         .commit();
     }
     summary.set += 1;
