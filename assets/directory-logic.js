@@ -114,12 +114,8 @@ export function isPsychiatristProvider(therapist) {
   return (
     title.includes("psychiatrist") ||
     title.includes("psychiatry") ||
-    credentials.includes(" m.d.") ||
-    credentials.includes(" md") ||
-    credentials === "md" ||
-    credentials.includes(" d.o.") ||
-    credentials.includes(" do") ||
-    credentials === "do"
+    /\bm\.d\.|\bmd\b/.test(credentials) ||
+    /\bd\.o\.|\bdo\b/.test(credentials)
   );
 }
 
