@@ -206,6 +206,18 @@ function buildTherapistJsonLd(t) {
       ? rawBio.slice(0, 160) + "..."
       : rawBio
     : undefined;
+  var sameAsLinks = [];
+  if (t.license_number && t.credentials) {
+    sameAsLinks.push(
+      "https://search.dca.ca.gov/details/" +
+        encodeURIComponent(t.credentials) +
+        "/" +
+        encodeURIComponent(t.license_number),
+    );
+  }
+  if (t.source_url && t.source_url.includes("psychologytoday.com")) {
+    sameAsLinks.push(t.source_url);
+  }
   var person = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -218,6 +230,7 @@ function buildTherapistJsonLd(t) {
     image: t.photo_url || undefined,
     telephone: t.phone || undefined,
     email: t.email || undefined,
+    sameAs: sameAsLinks.length > 0 ? sameAsLinks : undefined,
   };
   var insurance = (t.insurance_accepted || []).filter(Boolean);
   var serviceChannels = [];
