@@ -200,6 +200,12 @@ function buildTherapistJsonLd(t) {
     postalCode: t.zip || undefined,
     addressCountry: "US",
   };
+  var rawBio = t.bio ? t.bio.replace(/<[^>]+>/g, "").trim() : "";
+  var bioDescription = rawBio
+    ? rawBio.length > 160
+      ? rawBio.slice(0, 160) + "..."
+      : rawBio
+    : undefined;
   var person = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -208,6 +214,7 @@ function buildTherapistJsonLd(t) {
     jobTitle: t.title || "Therapist",
     knowsAbout: ["Bipolar disorder", "Psychotherapy", "Mental health"],
     address: address,
+    description: bioDescription,
     image: t.photo_url || undefined,
     telephone: t.phone || undefined,
     email: t.email || undefined,
