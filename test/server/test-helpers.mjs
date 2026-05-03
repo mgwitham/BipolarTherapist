@@ -47,6 +47,15 @@ export async function runHandlerRequest(handler, requestOptions) {
   return response;
 }
 
+export function readSetCookieHeader(response, name) {
+  const raw = String((response && response.headers && response.headers["Set-Cookie"]) || "");
+  const firstCookie = raw.split(";")[0];
+  if (!name) {
+    return firstCookie;
+  }
+  return firstCookie.startsWith(`${name}=`) ? firstCookie : "";
+}
+
 export function createSendJson(response) {
   return function sendJson(_res, statusCode, payload) {
     response.statusCode = statusCode;

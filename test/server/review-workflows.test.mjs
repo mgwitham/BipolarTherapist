@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createReviewApiHandler } from "../../server/review-handler.mjs";
-import { createMemoryClient, createTestApiConfig, runHandlerRequest } from "./test-helpers.mjs";
+import { ADMIN_SESSION_COOKIE } from "../../server/review-http-auth.mjs";
+import {
+  createMemoryClient,
+  createTestApiConfig,
+  readSetCookieHeader,
+  runHandlerRequest,
+} from "./test-helpers.mjs";
 
 async function loginAsAdmin(handler) {
   const response = await runHandlerRequest(handler, {
@@ -18,8 +24,10 @@ async function loginAsAdmin(handler) {
   });
 
   assert.equal(response.statusCode, 200);
-  assert.equal(typeof response.payload.sessionToken, "string");
-  return response.payload.sessionToken;
+  const cookie = readSetCookieHeader(response, ADMIN_SESSION_COOKIE);
+  assert.ok(cookie);
+  assert.equal(response.payload.sessionToken, undefined);
+  return cookie;
 }
 
 test("workflow: public application submission can be approved into a live therapist profile", async function () {
@@ -61,7 +69,7 @@ test("workflow: public application submission can be approved into a live therap
   const approveResponse = await runHandlerRequest(handler, {
     body: {},
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "POST",
@@ -137,7 +145,7 @@ test("workflow: apply-live-fields updates only selected live therapist fields an
       fields: ["insurance_accepted", "telehealth_states"],
     },
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "POST",
@@ -199,7 +207,7 @@ test("workflow: candidate publish creates therapist and records candidate review
       notes: "Ready to go live",
     },
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "POST",
@@ -228,7 +236,7 @@ test("workflow: candidate publish creates therapist and records candidate review
 
   const listResponse = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "GET",
@@ -274,7 +282,7 @@ test("workflow: candidate publish is blocked without a license number", async fu
   const response = await runHandlerRequest(handler, {
     body: { decision: "publish" },
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "POST",
@@ -304,7 +312,7 @@ test("workflow: application approval is blocked without a license number", async
   const response = await runHandlerRequest(handler, {
     body: {},
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "POST",
@@ -364,7 +372,7 @@ test("workflow: merge_to_therapist fills missing fields without overwriting exis
   const response = await runHandlerRequest(handler, {
     body: { decision: "merge_to_therapist" },
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "POST",
@@ -691,7 +699,7 @@ test("approval: emits a portal magic link to the applicant so they can finish th
     const approveResponse = await runHandlerRequest(handler, {
       body: {},
       headers: {
-        authorization: `Bearer ${sessionToken}`,
+        cookie: sessionToken,
         host: "localhost:8787",
       },
       method: "POST",
@@ -898,7 +906,7 @@ test("PATCH /therapists/:id: pausing a Live profile flips listingActive off and 
 
   const response = await runHandlerRequest(handler, {
     body: { lifecycle: "paused", reason: "Therapist requested a break" },
-    headers: { authorization: `Bearer ${sessionToken}`, host: "localhost:8787" },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
     method: "PATCH",
     url: "/therapists/therapist-live-1",
   });
@@ -934,7 +942,7 @@ test("PATCH /therapists/:id: approving a draft profile turns listingActive on an
 
   const response = await runHandlerRequest(handler, {
     body: { lifecycle: "approved", visibilityIntent: "listed" },
-    headers: { authorization: `Bearer ${sessionToken}`, host: "localhost:8787" },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
     method: "PATCH",
     url: "/therapists/therapist-draft-1",
   });
@@ -963,7 +971,7 @@ test("PATCH /candidates/:id: accepts dedupe_status with enum validation (Resolve
   // Valid value lands.
   const ok = await runHandlerRequest(handler, {
     body: { dedupe_status: "rejected_duplicate" },
-    headers: { authorization: `Bearer ${sessionToken}`, host: "localhost:8787" },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
     method: "PATCH",
     url: "/candidates/candidate-dup-1",
   });
@@ -973,7 +981,7 @@ test("PATCH /candidates/:id: accepts dedupe_status with enum validation (Resolve
   // Invalid value is silently dropped (returns 400 if it was the only field).
   const bad = await runHandlerRequest(handler, {
     body: { dedupe_status: "not-a-real-value" },
-    headers: { authorization: `Bearer ${sessionToken}`, host: "localhost:8787" },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
     method: "PATCH",
     url: "/candidates/candidate-dup-1",
   });
@@ -1000,7 +1008,7 @@ test("PATCH /therapists/:id: routine field edit does not flip listingActive", as
 
   const response = await runHandlerRequest(handler, {
     body: { name: "New Name" },
-    headers: { authorization: `Bearer ${sessionToken}`, host: "localhost:8787" },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
     method: "PATCH",
     url: "/therapists/therapist-stable-1",
   });

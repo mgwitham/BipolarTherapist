@@ -679,7 +679,6 @@ export async function handleAuthAndPortalRoutes(context) {
       200,
       {
         ok: true,
-        therapist_session_token: sessionToken,
         slug,
         email: therapist.claimedByEmail || email,
       },
@@ -728,7 +727,6 @@ export async function handleAuthAndPortalRoutes(context) {
       200,
       {
         ok: true,
-        sessionToken,
         actorId,
         actorName: actorId,
         authMode: usingUserPass ? "password" : "legacy-key",
@@ -2834,7 +2832,6 @@ export async function handleAuthAndPortalRoutes(context) {
         ok: true,
         therapist_slug: therapist.slug,
         claimed_by_email: payload.email,
-        therapist_session_token: therapistSessionToken,
       },
       origin,
       config,
