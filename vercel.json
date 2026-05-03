@@ -19,6 +19,7 @@
   "rewrites": [
     { "source": "/api/public/(.*)", "destination": "/api/public/[...path]" },
     { "source": "/api/review/(.*)", "destination": "/api/review/[...path]" },
+    { "source": "/therapists/:slug/", "destination": "/api/therapists/:slug" },
     { "source": "/therapists/:slug", "destination": "/api/therapists/:slug" }
   ],
   "headers": [
