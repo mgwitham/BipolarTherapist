@@ -1311,6 +1311,30 @@ test("top-level review handler rate-limits repeated public writes by client IP",
   assert.equal(Number(response.headers["Retry-After"]) > 0, true);
 });
 
+test("top-level review handler rate-limits public claim lookup by client IP", async function () {
+  const { client } = createMemoryClient({});
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const requestOptions = {
+    headers: {
+      host: "localhost:8787",
+      "x-forwarded-for": "203.0.113.88",
+    },
+    method: "GET",
+    url: "/portal/quick-claim/lookup-by-email?q=not-an-email",
+  };
+
+  for (let attempt = 0; attempt < 60; attempt += 1) {
+    const response = await runHandlerRequest(handler, requestOptions);
+    assert.equal(response.statusCode, 200);
+    assert.deepEqual(response.payload, { result: null });
+  }
+
+  const response = await runHandlerRequest(handler, requestOptions);
+  assert.equal(response.statusCode, 429);
+  assert.equal(response.payload.reason, "rate_limited");
+  assert.equal(Number(response.headers["Retry-After"]) > 0, true);
+});
+
 test("top-level review handler returns authenticated match requests and outcomes", async function () {
   const { client } = createMemoryClient({
     "match-request-1": {
