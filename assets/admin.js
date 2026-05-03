@@ -7983,7 +7983,7 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
     trackFunnelEvent("admin_login_success", {
       has_username: Boolean(username),
     });
-    setAdminSessionToken(result.sessionToken);
+    setAdminSessionToken(result && result.ok ? "cookie" : "");
     authRequired = false;
     error.style.display = "none";
     authErrorVisible = false;
