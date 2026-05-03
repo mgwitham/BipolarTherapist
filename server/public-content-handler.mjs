@@ -55,7 +55,6 @@ const PUBLIC_THERAPIST_PROJECTION = `{
   therapistReportedFields,
   therapistReportedConfirmedAt,
   fieldReviewStates,
-  fieldTrustMeta,
   sessionFeeMin,
   sessionFeeMax,
   slidingScale,
@@ -126,22 +125,27 @@ function publicTherapistIsListed(doc) {
   );
 }
 
-function normalizeFieldTrustMeta(doc) {
-  const meta =
-    doc && doc.fieldTrustMeta && typeof doc.fieldTrustMeta === "object" ? doc.fieldTrustMeta : {};
-  return {
-    estimated_wait_time: meta.estimatedWaitTime || meta.estimated_wait_time || null,
-    insurance_accepted: meta.insuranceAccepted || meta.insurance_accepted || null,
-    telehealth_states: meta.telehealthStates || meta.telehealth_states || null,
-    bipolar_years_experience: meta.bipolarYearsExperience || meta.bipolar_years_experience || null,
-  };
+function getSourceHost(doc) {
+  const rawValue = doc && (doc.sourceUrl || doc.source_url || "");
+  if (!rawValue) {
+    return "";
+  }
+  try {
+    return new URL(rawValue).hostname.replace(/^www\./, "").toLowerCase();
+  } catch (_error) {
+    return "";
+  }
+}
+
+function getSupportingSourceCount(doc) {
+  return arrayValue(doc && doc.supportingSourceUrls, doc && doc.supporting_source_urls).length;
 }
 
 export function normalizePublicTherapist(doc, options = {}) {
   const fieldReviewStates = normalizeFieldReviewStates(doc && doc.fieldReviewStates, {
     keyStyle: "camelCase",
   });
-  return {
+  const payload = {
     id: doc._id || doc.id || "",
     name: doc.name || "",
     credentials: doc.credentials || "",
@@ -149,11 +153,6 @@ export function normalizePublicTherapist(doc, options = {}) {
     bio: normalizeDisplayRole(doc.bio || ""),
     bio_preview: normalizeDisplayRole(doc.bioPreview || doc.bio_preview || doc.bio || ""),
     photo_url: getPhotoUrl(doc),
-    photo_source_type: doc.photoSourceType || doc.photo_source_type || "",
-    photo_reviewed_at: doc.photoReviewedAt || doc.photo_reviewed_at || "",
-    photo_usage_permission_confirmed: Boolean(
-      doc.photoUsagePermissionConfirmed || doc.photo_usage_permission_confirmed,
-    ),
     email: doc.email || "",
     phone: doc.phone || "",
     website: doc.website || null,
@@ -163,12 +162,10 @@ export function normalizePublicTherapist(doc, options = {}) {
     first_step_expectation: doc.firstStepExpectation || doc.first_step_expectation || "",
     booking_url: doc.bookingUrl || doc.booking_url || null,
     claim_status: doc.claimStatus || doc.claim_status || "unclaimed",
-    practice_name: doc.practiceName || doc.practice_name || "",
     city: doc.city || "",
     state: doc.state || "",
     zip: doc.zip || "",
     country: doc.country || "US",
-    license_state: doc.licenseState || doc.license_state || "",
     license_number: doc.licenseNumber || doc.license_number || "",
     specialties: arrayValue(doc.specialties),
     treatment_modalities: arrayValue(doc.treatmentModalities, doc.treatment_modalities),
@@ -201,8 +198,6 @@ export function normalizePublicTherapist(doc, options = {}) {
         ? Boolean(doc.medicationManagement)
         : Boolean(doc.medication_management),
     verification_status: doc.verificationStatus || doc.verification_status || "",
-    source_url: doc.sourceUrl || doc.source_url || "",
-    supporting_source_urls: arrayValue(doc.supportingSourceUrls, doc.supporting_source_urls),
     source_reviewed_at: doc.sourceReviewedAt || doc.source_reviewed_at || "",
     therapist_reported_fields: arrayValue(
       doc.therapistReportedFields,
@@ -216,7 +211,6 @@ export function normalizePublicTherapist(doc, options = {}) {
       telehealth_states: fieldReviewStates.telehealthStates,
       bipolar_years_experience: fieldReviewStates.bipolarYearsExperience,
     },
-    field_trust_meta: doc.field_trust_meta || normalizeFieldTrustMeta(doc),
     session_fee_min: doc.sessionFeeMin || doc.session_fee_min || null,
     session_fee_max: doc.sessionFeeMax || doc.session_fee_max || null,
     sliding_scale:
@@ -229,6 +223,25 @@ export function normalizePublicTherapist(doc, options = {}) {
     slug: getSlug(doc),
     has_paid_subscription: Boolean(options.hasPaidSubscription),
   };
+
+  if (options.includeProfileFields) {
+    payload.photo_source_type = doc.photoSourceType || doc.photo_source_type || "";
+    payload.photo_reviewed_at = doc.photoReviewedAt || doc.photo_reviewed_at || "";
+    payload.photo_usage_permission_confirmed = Boolean(
+      doc.photoUsagePermissionConfirmed || doc.photo_usage_permission_confirmed,
+    );
+    payload.practice_name = doc.practiceName || doc.practice_name || "";
+    payload.license_state = doc.licenseState || doc.license_state || "";
+    payload.source_host = doc.sourceHost || doc.source_host || getSourceHost(doc);
+    payload.supporting_source_count =
+      doc.supportingSourceCount !== undefined
+        ? Number(doc.supportingSourceCount) || 0
+        : doc.supporting_source_count !== undefined
+          ? Number(doc.supporting_source_count) || 0
+          : getSupportingSourceCount(doc);
+  }
+
+  return payload;
 }
 
 function normalizeSiteSettings(doc) {
@@ -411,7 +424,7 @@ async function fetchPublicTherapists(client) {
   return arrayValue(docs)
     .filter(publicTherapistIsListed)
     .map(function (doc) {
-      return normalizePublicTherapist(doc);
+      return normalizePublicTherapist(doc, { includeProfileFields: false });
     });
 }
 
@@ -433,7 +446,10 @@ async function fetchPublicTherapistBySlug(client, slug) {
     subscription = null;
   }
 
-  return normalizePublicTherapist(doc, { hasPaidSubscription: hasActiveFeatured(subscription) });
+  return normalizePublicTherapist(doc, {
+    hasPaidSubscription: hasActiveFeatured(subscription),
+    includeProfileFields: true,
+  });
 }
 
 async function fetchHomeContent(client) {

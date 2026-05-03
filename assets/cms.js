@@ -223,12 +223,13 @@ function normalizeTherapist(doc) {
         ? Boolean(doc.medicationManagement)
         : Boolean(doc.medication_management),
     verification_status: doc.verificationStatus || doc.verification_status || "",
-    source_url: doc.sourceUrl || doc.source_url || "",
-    supporting_source_urls: Array.isArray(doc.supportingSourceUrls)
-      ? doc.supportingSourceUrls
-      : Array.isArray(doc.supporting_source_urls)
-        ? doc.supporting_source_urls
-        : [],
+    source_host: doc.sourceHost || doc.source_host || "",
+    supporting_source_count:
+      doc.supportingSourceCount !== undefined
+        ? Number(doc.supportingSourceCount) || 0
+        : doc.supporting_source_count !== undefined
+          ? Number(doc.supporting_source_count) || 0
+          : 0,
     source_reviewed_at: doc.sourceReviewedAt || doc.source_reviewed_at || "",
     source_health_status: doc.sourceHealthStatus || doc.source_health_status || "",
     source_health_checked_at: doc.sourceHealthCheckedAt || doc.source_health_checked_at || "",
@@ -254,13 +255,6 @@ function normalizeTherapist(doc) {
       insurance_accepted: fieldReviewStates.insuranceAccepted,
       telehealth_states: fieldReviewStates.telehealthStates,
       bipolar_years_experience: fieldReviewStates.bipolarYearsExperience,
-    },
-    field_trust_meta: doc.field_trust_meta || {
-      estimated_wait_time: (doc.fieldTrustMeta && doc.fieldTrustMeta.estimatedWaitTime) || null,
-      insurance_accepted: (doc.fieldTrustMeta && doc.fieldTrustMeta.insuranceAccepted) || null,
-      telehealth_states: (doc.fieldTrustMeta && doc.fieldTrustMeta.telehealthStates) || null,
-      bipolar_years_experience:
-        (doc.fieldTrustMeta && doc.fieldTrustMeta.bipolarYearsExperience) || null,
     },
     session_fee_min: doc.sessionFeeMin || doc.session_fee_min || null,
     session_fee_max: doc.sessionFeeMax || doc.session_fee_max || null,

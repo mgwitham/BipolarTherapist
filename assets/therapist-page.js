@@ -340,9 +340,6 @@ function buildTherapistJsonLd(t) {
         encodeURIComponent(t.license_number),
     );
   }
-  if (t.source_url && t.source_url.includes("psychologytoday.com")) {
-    sameAsLinks.push(t.source_url);
-  }
   var person = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -2573,10 +2570,8 @@ function renderProfile(t, therapistDirectory) {
     : [];
   var therapistReportedDate = formatSourceDate(t.therapist_reported_confirmed_at);
   var sourceReviewedDate = formatSourceDate(t.source_reviewed_at);
-  var sourceHost = getSourceHostLabel(t.source_url);
-  var supportingSourceCount = Array.isArray(t.supporting_source_urls)
-    ? t.supporting_source_urls.filter(Boolean).length
-    : 0;
+  var sourceHost = getSourceHostLabel(t.source_host);
+  var supportingSourceCount = Number(t.supporting_source_count || 0);
   var totalExperience = Number(t.years_experience || 0);
   var bipolarExperience = Number(t.bipolar_years_experience || 0);
   var quickFitItems = [];

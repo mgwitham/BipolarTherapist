@@ -20,6 +20,12 @@ const SENSITIVE_KEYS = new Set([
   "portal_last_seen_at",
   "reviewFollowUp",
   "review_follow_up",
+  "sourceUrl",
+  "source_url",
+  "supportingSourceUrls",
+  "supporting_source_urls",
+  "fieldTrustMeta",
+  "field_trust_meta",
 ]);
 
 function collectSensitiveKeys(value, found = []) {
@@ -92,7 +98,40 @@ test("public content API lists only live therapists and strips private fields", 
   assert.equal(response.payload.length, 1);
   assert.equal(response.payload[0].slug, "dr-public-boundary");
   assert.equal(response.payload[0].email, "public@example.com");
+  assert.equal("photo_source_type" in response.payload[0], false);
+  assert.equal("photo_reviewed_at" in response.payload[0], false);
+  assert.equal("photo_usage_permission_confirmed" in response.payload[0], false);
+  assert.equal("practice_name" in response.payload[0], false);
+  assert.equal("license_state" in response.payload[0], false);
+  assert.equal("source_host" in response.payload[0], false);
+  assert.equal("supporting_source_count" in response.payload[0], false);
+  assert.equal("field_trust_meta" in response.payload[0], false);
   assert.deepEqual(collectSensitiveKeys(response.payload), []);
+});
+
+test("public content API returns derived source metadata instead of raw source URLs", async function () {
+  const { client } = createMemoryClient({
+    public: publicTherapist({
+      sourceUrl: "https://www.psychologytoday.com/us/psychiatrists/public-boundary",
+      supportingSourceUrls: [
+        "https://example.com/provider/public-boundary",
+        "https://www.healthgrades.com/provider/public-boundary",
+      ],
+    }),
+  });
+  const handler = createPublicContentHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    headers: { host: "localhost:8787" },
+    method: "GET",
+    url: "/api/public/therapists/dr-public-boundary",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.source_host, "psychologytoday.com");
+  assert.equal(response.payload.supporting_source_count, 2);
+  assert.equal("source_url" in response.payload, false);
+  assert.equal("supporting_source_urls" in response.payload, false);
 });
 
 test("public content API returns 404 for hidden therapist slugs", async function () {
