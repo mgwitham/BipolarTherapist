@@ -18,7 +18,7 @@
     <title>Free Listing + $19/month Analytics — BipolarTherapyHub</title>
     <meta
       name="description"
-      content="Every therapist can be listed and ranked by fit for free. Paid is $19/month and adds visibility and contact insights, a weekly digest email, and a 14-day free trial."
+      content="Every therapist gets a verified directory listing at no cost. Paid adds analytics so you can see exactly how patients are finding you and how they reach out."
     />
     <link rel="canonical" href="https://www.bipolartherapyhub.com/pricing" />
     <meta property="og:type" content="website" />
@@ -40,7 +40,7 @@
     <meta name="twitter:title" content="Free Listing + $19/month Analytics — BipolarTherapyHub" />
     <meta
       name="twitter:description"
-      content="Every therapist can be listed and ranked by fit for free. Paid adds visibility and contact insights plus a weekly digest email."
+      content="Every therapist gets a verified directory listing at no cost. Paid adds visibility analytics and a weekly digest email."
     />
     <meta name="twitter:image" content="https://www.bipolartherapyhub.com/og-image.png" />
     <script type="application/ld+json">
@@ -69,20 +69,52 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=DM+Sans:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/styles.css" />
     <style>
-      /* =====================
-         Skip link
-         ===================== */
+      :root {
+        --teal-700: #136070;
+        --teal-600: #1a7a8f;
+        --teal-500: #2492a8;
+        --teal-400: #3aafc6;
+        --teal-200: #a0d8e4;
+        --teal-100: #ceedf4;
+        --teal-50: #edf8fb;
+        --slate-900: #1a1f2e;
+        --slate-700: #3a3f52;
+        --slate-500: #6b7280;
+        --slate-300: #c4c9d4;
+        --slate-200: #dde1ea;
+        --slate-100: #f1f3f7;
+        --slate-50: #f8f9fb;
+        --serif: "Lora", Georgia, serif;
+        --sans: "DM Sans", system-ui, sans-serif;
+        --radius-sm: 8px;
+        --radius-md: 12px;
+        --radius-lg: 18px;
+      }
+
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: var(--sans);
+        background: #fff;
+        color: var(--slate-900);
+        margin: 0;
+      }
+
       .skip-link {
         position: absolute;
         transform: translateY(-100%);
         left: 0;
         top: 0;
-        background: var(--teal);
+        background: var(--teal-600);
         color: #fff;
         padding: 0.5rem 1rem;
         z-index: 999;
@@ -93,9 +125,6 @@
         transform: translateY(0);
       }
 
-      body {
-        background: #f7fbfc;
-      }
       .sr-only {
         position: absolute;
         width: 1px;
@@ -108,569 +137,915 @@
         border: 0;
       }
 
-      /* =====================
-         Focus rings
-         ===================== */
-      nav a:focus-visible,
-      .site-mini-footer a:focus-visible {
-        outline: 2px solid var(--teal);
-        outline-offset: 2px;
-        border-radius: 2px;
-      }
-
-      .pricing-wrap {
-        max-width: 1080px;
-        margin: 0 auto;
-        padding: 2.25rem 1.5rem 4rem;
-      }
-      .pricing-hero {
-        margin-bottom: 2.5rem;
-        display: grid;
-        gap: 1.35rem;
-      }
-      .pricing-hero h1 {
-        font-family: "Lora", serif;
-        font-size: clamp(2rem, 4vw, 3rem);
-        line-height: 1.1;
-        margin: 0;
-        max-width: 820px;
-      }
-      .pricing-hero p {
-        color: var(--muted);
-        font-size: 1rem;
-        line-height: 1.6;
-        max-width: 760px;
-        margin: 0;
-      }
-      .pricing-eyebrow {
-        margin: 0;
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        color: var(--teal);
-      }
-      .pricing-hero-panel {
-        background: linear-gradient(
-          180deg,
-          rgba(232, 245, 248, 0.9) 0%,
-          rgba(255, 255, 255, 0.95) 100%
-        );
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        border-radius: 26px;
-        padding: 2rem;
-        box-shadow: 0 18px 40px rgba(15, 65, 78, 0.06);
-      }
-      .pricing-hero-points {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-      }
-      .pricing-hero-points li {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-        padding: 0.45rem 0.8rem;
-        border-radius: 999px;
-        background: rgba(255, 255, 255, 0.8);
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        color: var(--teal-dark);
-        font-size: 0.88rem;
-        font-weight: 600;
-      }
-      .pricing-hero-points li::before {
-        content: "";
-        width: 0.5rem;
-        height: 0.5rem;
-        border-radius: 999px;
-        background: var(--teal);
-        flex: 0 0 auto;
-      }
-      .pricing-comparison-intro {
-        display: grid;
-        gap: 0.9rem;
-        margin: 0 0 1.25rem;
-      }
-      .pricing-comparison-intro h2,
-      .pricing-support h2,
-      .pricing-fairness h2,
-      .pricing-faq h2 {
-        font-family: "Lora", serif;
-        font-size: 1.55rem;
-        margin: 0;
-      }
-      .pricing-comparison-intro p,
-      .pricing-support p,
-      .pricing-fairness p {
-        margin: 0;
-        color: var(--muted);
-      }
-      .pricing-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1.25rem;
-      }
-      .pricing-card {
+      /* ---- NAV ---- */
+      nav {
+        position: sticky;
+        top: 0;
+        z-index: 100;
         background: #fff;
-        border: 1px solid var(--border);
-        border-radius: 18px;
-        padding: 1.75rem;
-        box-shadow: 0 12px 30px rgba(15, 65, 78, 0.05);
-        display: flex;
-        flex-direction: column;
-        gap: 1rem;
-        min-height: 100%;
-      }
-      .pricing-card.is-paid {
-        border: 2px solid #bde3e9;
-        background: linear-gradient(180deg, #ecf7f9 0%, #fff 70%);
-      }
-      .pricing-card.is-current {
-        box-shadow:
-          0 0 0 4px rgba(26, 122, 143, 0.12),
-          0 18px 36px rgba(15, 65, 78, 0.08);
-      }
-      .pricing-card-header {
-        display: grid;
-        gap: 0.45rem;
-      }
-      .pricing-card-topline {
+        border-bottom: 1px solid var(--slate-100);
+        height: 60px;
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 0.75rem;
+        padding: 0 1.5rem;
       }
-      .pricing-plan-name {
-        font-family: "Lora", serif;
-        font-size: 1.5rem;
+      .nav-logo {
+        text-decoration: none;
+      }
+      .nav-name {
+        font-family: var(--sans);
+        font-size: 17px;
         font-weight: 600;
-        color: var(--navy);
+        color: var(--slate-900);
+        letter-spacing: -0.01em;
+      }
+      .nav-name span {
+        color: #1a7a8f;
+      }
+      .nav-links {
+        list-style: none;
         margin: 0;
+        padding: 0;
+        display: flex;
+        align-items: center;
+        gap: 1.25rem;
+      }
+      .nav-links a {
+        font-family: var(--sans);
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: var(--slate-700);
+        text-decoration: none;
+      }
+      .nav-links a:hover {
+        color: var(--teal-600);
+      }
+      .nav-zone-switch {
+        font-size: 0.85rem;
+        color: var(--slate-500) !important;
+      }
+
+      /* ---- SECTION LABEL UTILITY ---- */
+      .section-label {
+        display: block;
+        font-family: var(--sans);
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--teal-600);
+        margin-bottom: 0.5rem;
+      }
+      .section-title {
+        font-family: var(--serif);
+        font-size: clamp(1.5rem, 3vw, 2rem);
+        font-weight: 600;
+        color: var(--slate-900);
+        margin: 0 0 0.6rem;
         line-height: 1.2;
       }
-      .pricing-card-kicker {
+      .section-subtitle {
+        font-size: 15px;
+        color: var(--slate-500);
         margin: 0;
-        color: var(--teal-dark);
-        font-size: 0.82rem;
-        font-weight: 700;
-        letter-spacing: 0.02em;
-      }
-      .pricing-card-summary {
-        margin: 0;
-        font-size: 0.96rem;
-        color: var(--navy);
-      }
-      .pricing-price {
-        font-size: 2.4rem;
-        font-weight: 700;
-        color: var(--navy);
-        line-height: 1.1;
-      }
-      .pricing-price-unit {
-        font-size: 1rem;
-        font-weight: 500;
-        color: var(--muted);
-        margin-left: 0.35rem;
-      }
-      .pricing-price-row {
-        display: flex;
-        align-items: baseline;
-        flex-wrap: wrap;
-        gap: 0.2rem;
-      }
-      .pricing-note {
-        color: var(--muted);
-        font-size: 0.88rem;
         line-height: 1.6;
       }
-      .pricing-features {
+
+      /* ---- CHECKMARK ---- */
+      .check-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        flex-shrink: 0;
+      }
+      .check-icon--free {
+        background: var(--teal-50);
+        border: 1.5px solid var(--teal-200);
+      }
+      .check-icon--paid {
+        background: var(--teal-100);
+        border: 1.5px solid var(--teal-500);
+      }
+      .check-icon svg {
+        display: block;
+      }
+
+      /* =====================
+         1. HERO
+         ===================== */
+      .pricing-hero {
+        background: var(--teal-50);
+        border-bottom: 1px solid var(--teal-100);
+        padding: 72px 2rem 64px;
+        text-align: center;
+      }
+      .pricing-hero-inner {
+        max-width: 620px;
+        margin: 0 auto;
+        display: grid;
+        gap: 1.5rem;
+      }
+      .hero-eyebrow {
+        display: inline-block;
+        background: var(--teal-100);
+        color: var(--teal-700);
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        border-radius: 999px;
+        padding: 0.3rem 0.9rem;
+      }
+      .pricing-hero h1 {
+        font-family: var(--serif);
+        font-size: clamp(2rem, 4vw, 2.9rem);
+        font-weight: 600;
+        line-height: 1.15;
+        color: var(--slate-900);
+        margin: 0;
+      }
+      .pricing-hero h1 em {
+        font-style: normal;
+        color: #1a7a8f;
+      }
+      .pricing-hero-sub {
+        font-size: 17px;
+        color: var(--slate-500);
+        line-height: 1.6;
+        margin: 0 auto;
+        max-width: 500px;
+      }
+      .pricing-hero-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        justify-content: center;
         list-style: none;
         padding: 0;
         margin: 0;
+      }
+      .pricing-hero-pills li {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        background: #fff;
+        border: 1px solid var(--teal-200);
+        border-radius: 999px;
+        padding: 0.35rem 0.85rem;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--slate-700);
+      }
+      .pricing-hero-pills li::before {
+        content: "";
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: var(--teal-500);
+        flex-shrink: 0;
+      }
+
+      /* =====================
+         2. SOCIAL PROOF STRIP
+         ===================== */
+      .proof-strip {
+        background: #fff;
+        border-bottom: 1px solid var(--slate-100);
+        padding: 14px 2rem;
+      }
+      .proof-strip-inner {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+        max-width: 900px;
+        margin: 0 auto;
+      }
+      .proof-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0 28px;
+        font-size: 13px;
+        color: var(--slate-700);
+        line-height: 1.4;
+        text-align: center;
+      }
+      .proof-item:not(:last-child) {
+        border-right: 1px solid var(--slate-200);
+      }
+      .proof-item strong {
+        color: var(--slate-900);
+        font-weight: 600;
+      }
+
+      /* =====================
+         3. PRICING SECTION
+         ===================== */
+      .pricing-section {
+        background: var(--slate-50);
+        padding: 72px 2rem 80px;
+      }
+      .pricing-section-header {
+        text-align: center;
+        max-width: 560px;
+        margin: 0 auto 52px;
+      }
+
+      /* Billing toggle */
+      .billing-toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        margin-bottom: 40px;
+      }
+      .billing-lbl {
+        font-size: 14px;
+        color: var(--slate-500);
+        font-weight: 400;
+      }
+      .billing-lbl.active {
+        color: var(--slate-900);
+        font-weight: 500;
+      }
+      .billing-annual-lbl {
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .save-badge {
+        background: var(--teal-100);
+        color: var(--teal-700);
+        font-size: 11px;
+        font-weight: 600;
+        padding: 0.15rem 0.55rem;
+        border-radius: 999px;
+      }
+      #tog {
+        position: relative;
+        width: 44px;
+        height: 24px;
+        background: var(--slate-200);
+        border-radius: 999px;
+        border: none;
+        cursor: pointer;
+        padding: 0;
+        transition: background 0.2s;
+        flex-shrink: 0;
+      }
+      #tog.on {
+        background: var(--teal-600);
+      }
+      #tog::after {
+        content: "";
+        position: absolute;
+        top: 3px;
+        left: 3px;
+        width: 18px;
+        height: 18px;
+        border-radius: 999px;
+        background: #fff;
+        transition: transform 0.2s;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+      }
+      #tog.on::after {
+        transform: translateX(20px);
+      }
+
+      /* Cards grid */
+      .pricing-cards-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        max-width: 820px;
+        margin: 0 auto;
+        gap: 20px;
+      }
+      .p-card {
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .p-card--free {
+        border: 1px solid var(--slate-300);
+      }
+      .p-card--paid {
+        border: 2px solid var(--teal-500);
+      }
+
+      .p-card-head {
+        padding: 24px 28px 20px;
+        border-bottom: 1px solid var(--slate-100);
+      }
+      .p-card--paid .p-card-head {
+        background: var(--teal-50);
+        border-bottom-color: var(--teal-100);
+      }
+      .trial-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        background: var(--teal-600);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.07em;
+        text-transform: uppercase;
+        border-radius: 999px;
+        padding: 0.25rem 0.75rem;
+        margin-bottom: 0.75rem;
+      }
+      .trial-pill::before {
+        content: "●";
+        font-size: 8px;
+      }
+      .p-card-kicker {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: var(--slate-500);
+        margin: 0 0 0.35rem;
+      }
+      .p-card--paid .p-card-kicker {
+        color: var(--teal-600);
+      }
+      .p-card-name {
+        font-family: var(--serif);
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--slate-900);
+        margin: 0 0 0.6rem;
+      }
+      .p-card-price-row {
+        display: flex;
+        align-items: baseline;
+        gap: 0.3rem;
+        flex-wrap: wrap;
+        margin-bottom: 0.3rem;
+      }
+      .p-card-price-n {
+        font-family: var(--serif);
+        font-size: 54px;
+        font-weight: 600;
+        color: var(--slate-900);
+        line-height: 1;
+      }
+      .p-card-price-per {
+        font-size: 14px;
+        color: var(--slate-500);
+      }
+      .p-card-price-sub {
+        display: block;
+        font-size: 12px;
+        color: var(--slate-500);
+        min-height: 1.2em;
+      }
+      .p-card-note {
+        font-size: 13px;
+        color: var(--slate-700);
+        margin: 0.5rem 0 0;
+        line-height: 1.5;
+      }
+      .p-card-note strong {
+        color: var(--teal-600);
+      }
+
+      .p-card-body {
+        padding: 20px 28px;
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+      }
+      .p-card-desc {
+        font-size: 14px;
+        color: var(--slate-700);
+        margin: 0 0 1rem;
+        line-height: 1.55;
+      }
+      .p-card-features {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: grid;
+        gap: 0.6rem;
+        flex: 1;
+      }
+      .p-card-features li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.55rem;
+        font-size: 14px;
+        color: var(--slate-700);
+        line-height: 1.45;
+      }
+
+      .p-card-footer {
+        padding: 0 28px 26px;
+      }
+      .p-btn {
+        display: block;
+        width: 100%;
+        padding: 0.8rem 1rem;
+        border-radius: var(--radius-md);
+        font-family: var(--sans);
+        font-size: 15px;
+        font-weight: 600;
+        text-align: center;
+        text-decoration: none;
+        cursor: pointer;
+        border: none;
+        margin-bottom: 0.5rem;
+      }
+      .p-btn--solid {
+        background: var(--teal-600);
+        color: #fff;
+      }
+      .p-btn--solid:hover {
+        background: var(--teal-700);
+      }
+      .p-btn--ghost {
+        background: transparent;
+        color: var(--teal-600);
+        border: 1px solid var(--teal-200);
+      }
+      .p-btn--ghost:hover {
+        background: var(--teal-50);
+      }
+      .p-card-footnote {
+        font-size: 12px;
+        color: var(--slate-500);
+        text-align: center;
+        margin: 0.4rem 0 0;
+        line-height: 1.5;
+      }
+
+      /* Trust bar */
+      .pricing-trust-bar {
+        max-width: 820px;
+        margin: 18px auto 0;
+        background: #fff;
+        border: 1px solid var(--slate-200);
+        border-radius: var(--radius-md);
+        padding: 14px 20px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0;
+      }
+      .trust-item {
+        display: flex;
+        align-items: center;
+        gap: 0.45rem;
+        padding: 0 18px;
+        font-size: 12px;
+        color: var(--slate-700);
+      }
+      .trust-item:not(:last-child) {
+        border-right: 1px solid var(--slate-200);
+      }
+      .trust-item svg {
+        flex-shrink: 0;
+        color: var(--teal-600);
+      }
+
+      /* =====================
+         4. WHAT PAID SHOWS
+         ===================== */
+      .paid-features-section {
+        background: var(--teal-50);
+        border-top: 1px solid var(--teal-100);
+        border-bottom: 1px solid var(--teal-100);
+        padding: 72px 2rem;
+      }
+      .paid-features-header {
+        text-align: center;
+        max-width: 560px;
+        margin: 0 auto 48px;
+      }
+      .paid-features-layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        max-width: 900px;
+        margin: 0 auto;
+        gap: 48px;
+        align-items: center;
+      }
+      .feature-cards-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .feature-card {
+        background: #fff;
+        border: 1px solid var(--teal-100);
+        border-radius: var(--radius-md);
+        padding: 18px;
         display: grid;
         gap: 0.5rem;
       }
-      .pricing-features li {
-        padding-left: 1.4rem;
-        position: relative;
-        color: var(--navy);
-        font-size: 0.94rem;
+      .feature-card-icon {
+        width: 30px;
+        height: 30px;
+        background: var(--teal-100);
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--teal-600);
+      }
+      .feature-card h3 {
+        font-family: var(--sans);
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--slate-900);
+        margin: 0;
+      }
+      .feature-card p {
+        font-size: 12px;
+        color: var(--slate-500);
+        margin: 0;
         line-height: 1.5;
       }
-      .pricing-features li::before {
-        content: "✓";
-        position: absolute;
-        left: 0;
-        color: var(--teal);
-        font-weight: 700;
-      }
-      .pricing-features li strong {
-        color: var(--navy);
-      }
-      .pricing-card-footer {
-        margin-top: auto;
-        display: grid;
-        gap: 0.8rem;
-      }
-      .pricing-cta {
-        appearance: none;
-        border: 0;
-        padding: 0.9rem 1.2rem;
-        border-radius: 12px;
-        background: var(--teal);
-        color: #fff;
-        font: inherit;
-        font-weight: 600;
-        cursor: pointer;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-      }
-      .pricing-cta:hover {
-        background: var(--teal-dark);
-      }
-      .pricing-cta:focus-visible {
-        outline: 3px solid var(--teal);
-        outline-offset: 3px;
-      }
-      .pricing-cta:disabled {
-        background: #b8c7cb;
-        cursor: not-allowed;
-      }
-      .pricing-cta-secondary {
-        background: #fff;
-        color: var(--teal);
-        border: 1px solid var(--teal);
-      }
-      .pricing-cta-secondary:hover {
-        background: rgba(26, 122, 143, 0.06);
-      }
-      .pricing-stripe-note {
-        font-size: 0.78rem;
-        color: var(--muted);
-        text-align: center;
-        margin: -0.3rem 0 0;
-      }
-      .pricing-tag {
-        display: inline-flex;
-        align-items: center;
-        width: fit-content;
-        padding: 0.25rem 0.7rem;
-        border-radius: 999px;
-        background: #cfeef2;
-        color: #0f414e;
-        font-size: 0.72rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-      }
-      .pricing-tag.is-neutral {
-        background: rgba(29, 58, 74, 0.08);
-        color: var(--navy);
-      }
-      .pricing-feedback {
-        min-height: 1.2rem;
-        color: var(--muted);
-        font-size: 0.86rem;
-      }
-      .pricing-feedback[data-tone="success"] {
-        color: var(--teal-dark);
-      }
-      .pricing-feedback[data-tone="error"] {
-        color: #9a3a2c;
-      }
-      .pricing-trial-box {
-        display: grid;
-        gap: 0.4rem;
-        padding: 0.9rem 1rem;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.88);
-        border: 1px solid rgba(26, 122, 143, 0.15);
-      }
-      .pricing-trial-box strong {
-        color: var(--navy);
-        font-size: 0.9rem;
-      }
-      .pricing-trial-box p,
-      .pricing-note-small,
-      .pricing-plan-state {
-        margin: 0;
-        color: var(--muted);
-        font-size: 0.82rem;
-        line-height: 1.55;
-      }
-      .pricing-note-small a {
-        color: var(--teal);
-      }
-      .pricing-preview {
-        margin-top: 2rem;
-        padding: 1.6rem;
-        border-radius: 22px;
-        background: #fff;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        box-shadow: 0 12px 28px rgba(15, 65, 78, 0.05);
-        display: grid;
-        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
-        gap: 1.35rem;
-        align-items: start;
-      }
-      .pricing-preview-copy {
-        display: grid;
-        gap: 0.75rem;
-      }
-      .pricing-preview-copy h2 {
-        font-family: "Lora", serif;
-        font-size: 1.45rem;
-        margin: 0;
-      }
-      .pricing-preview-copy p {
-        margin: 0;
-        color: var(--muted);
-      }
-      .pricing-preview-chip {
-        display: inline-flex;
-        width: fit-content;
-        padding: 0.28rem 0.7rem;
-        border-radius: 999px;
-        background: var(--teal-faint, #e8f5f8);
-        color: var(--teal-dark);
-        font-size: 0.74rem;
-        font-weight: 700;
-        letter-spacing: 0.04em;
-      }
-      .pricing-preview-card {
-        border-radius: 18px;
-        background: linear-gradient(180deg, rgba(236, 247, 249, 0.95) 0%, #fff 100%);
-        border: 1px solid rgba(26, 122, 143, 0.14);
-        padding: 1.1rem;
-        display: grid;
-        gap: 0.9rem;
-        cursor: pointer;
-        text-align: left;
-      }
-      .pricing-preview-card h3 {
-        margin: 0;
-        font-size: 1rem;
-      }
-      .pricing-preview-card p {
-        margin: 0;
-        color: var(--muted);
-        font-size: 0.86rem;
-      }
-      .pricing-preview-metrics {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.75rem;
-      }
-      .pricing-preview-metric {
-        padding: 0.8rem;
-        border-radius: 14px;
-        background: rgba(255, 255, 255, 0.92);
-        border: 1px solid rgba(26, 122, 143, 0.08);
-      }
-      .pricing-preview-metric-label {
-        margin: 0 0 0.2rem;
-        color: var(--muted);
-        font-size: 0.78rem;
-        font-weight: 600;
-        letter-spacing: 0.02em;
-      }
-      .pricing-preview-metric-value {
-        margin: 0;
-        color: var(--navy);
-        font-size: 0.96rem;
-        font-weight: 700;
-      }
-      .pricing-support,
-      .pricing-fairness {
-        margin-top: 2rem;
-        padding: 1.45rem 1.5rem;
-        border-radius: 20px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: rgba(255, 255, 255, 0.88);
-        display: grid;
-        gap: 0.85rem;
-      }
-      .pricing-support-grid,
-      .pricing-fairness-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 1rem;
-      }
-      .pricing-support-item,
-      .pricing-fairness-item {
-        padding: 1rem;
-        border-radius: 16px;
-        background: rgba(232, 245, 248, 0.45);
-        border: 1px solid rgba(26, 122, 143, 0.08);
-      }
-      .pricing-support-item h3,
-      .pricing-fairness-item h3 {
-        margin: 0 0 0.35rem;
-        font-size: 1rem;
-      }
-      .pricing-support-item p,
-      .pricing-fairness-item p {
-        margin: 0;
-        font-size: 0.92rem;
-      }
-      .pricing-disclaimer {
-        margin: 1.1rem 0 0;
-        color: var(--muted);
-        font-size: 0.92rem;
-        line-height: 1.6;
-      }
-      .pricing-disclaimer strong {
-        color: var(--navy);
-      }
 
-      /* =====================
-         Billing FAQ
-         ===================== */
-      .pricing-faq {
-        margin-top: 2rem;
-        padding: 1.45rem 1.5rem;
-        border-radius: 20px;
-        border: 1px solid rgba(26, 122, 143, 0.12);
-        background: rgba(255, 255, 255, 0.88);
-        display: grid;
-        gap: 0.85rem;
+      /* Dashboard mockup */
+      .dash-mockup {
+        background: #fff;
+        border: 1px solid var(--slate-200);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
       }
-      .pricing-faq details {
-        border-radius: 12px;
-        border: 1px solid rgba(26, 122, 143, 0.1);
-        background: rgba(232, 245, 248, 0.3);
-      }
-      .pricing-faq summary {
-        padding: 0.85rem 1rem;
-        cursor: pointer;
-        font-weight: 600;
-        font-size: 0.95rem;
-        list-style: none;
+      .dash-topbar {
+        background: var(--teal-600);
+        padding: 11px 16px;
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        gap: 1rem;
+        gap: 10px;
       }
-      .pricing-faq summary::-webkit-details-marker {
-        display: none;
+      .dash-dots {
+        display: flex;
+        gap: 5px;
       }
-      .pricing-faq summary::after {
-        content: "+";
-        font-size: 1.1rem;
-        color: var(--teal);
+      .dash-dots span {
+        width: 7px;
+        height: 7px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.65);
+      }
+      .dash-topbar-title {
+        font-size: 12px;
+        font-weight: 600;
+        color: #fff;
+        letter-spacing: 0.01em;
+      }
+      .dash-body {
+        padding: 16px;
+        display: grid;
+        gap: 14px;
+      }
+      .dash-stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+      }
+      .dash-stat {
+        background: var(--slate-50);
+        border-radius: 8px;
+        padding: 10px;
+        text-align: center;
+      }
+      .dash-stat-n {
+        font-size: 18px;
         font-weight: 700;
+        color: var(--slate-900);
+        display: block;
+      }
+      .dash-stat-n.is-up {
+        color: var(--teal-600);
+      }
+      .dash-stat-label {
+        font-size: 10px;
+        color: var(--slate-500);
+        display: block;
+        margin-top: 2px;
+      }
+      .dash-chart-label {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--slate-500);
+      }
+      .dash-bars {
+        display: flex;
+        align-items: flex-end;
+        gap: 4px;
+        height: 50px;
+      }
+      .dash-bar {
+        flex: 1;
+        background: var(--teal-200);
+        border-radius: 3px 3px 0 0;
+      }
+      .dash-bar.last {
+        background: var(--teal-600);
+      }
+      .dash-sources {
+        display: grid;
+        gap: 7px;
+      }
+      .dash-source-label-head {
+        font-size: 10px;
+        font-weight: 600;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--slate-500);
+        margin-bottom: 4px;
+      }
+      .dash-source-row {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .dash-source-name {
+        font-size: 10px;
+        color: var(--slate-700);
+        width: 78px;
         flex-shrink: 0;
       }
-      .pricing-faq details[open] summary::after {
-        content: "−";
+      .dash-source-track {
+        flex: 1;
+        height: 6px;
+        background: var(--slate-100);
+        border-radius: 999px;
+        overflow: hidden;
       }
-      .pricing-faq details p {
-        padding: 0 1rem 0.85rem;
-        margin: 0;
-        font-size: 0.92rem;
-        color: var(--muted);
-        line-height: 1.6;
+      .dash-source-fill {
+        height: 100%;
+        background: var(--teal-500);
+        border-radius: 999px;
       }
-      .pricing-faq details p a {
-        color: var(--teal);
+      .dash-source-pct {
+        font-size: 10px;
+        color: var(--slate-500);
+        width: 28px;
+        text-align: right;
+        flex-shrink: 0;
       }
 
       /* =====================
-         Closing CTA
+         5. COMPARISON TABLE
          ===================== */
-      .pricing-closing {
-        margin-top: 2rem;
-        padding: 2rem 1.5rem;
-        border-radius: 22px;
-        background: linear-gradient(
-          180deg,
-          rgba(232, 245, 248, 0.9) 0%,
-          rgba(255, 255, 255, 0.95) 100%
-        );
-        border: 1px solid rgba(26, 122, 143, 0.12);
+      .compare-section {
+        background: #fff;
+        padding: 72px 2rem;
+      }
+      .compare-section-header {
         text-align: center;
+        max-width: 560px;
+        margin: 0 auto 40px;
+      }
+      .compare-table-wrap {
+        max-width: 820px;
+        margin: 0 auto;
+        overflow-x: auto;
+      }
+      .compare-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+      }
+      .compare-table th {
+        font-family: var(--sans);
+        font-size: 13px;
+        font-weight: 600;
+        padding: 14px 16px;
+        text-align: left;
+        border-bottom: 2px solid var(--slate-200);
+        color: var(--slate-700);
+      }
+      .compare-table th.col-paid {
+        color: var(--teal-600);
+      }
+      .compare-table th.col-feature {
+        width: 55%;
+      }
+      .compare-table th.col-free,
+      .compare-table th.col-paid {
+        width: 22.5%;
+        text-align: center;
+      }
+      .compare-table tr.group-row td {
+        font-size: 11px;
+        font-weight: 600;
+        letter-spacing: 0.09em;
+        text-transform: uppercase;
+        color: var(--slate-500);
+        padding: 16px 16px 6px;
+        background: var(--slate-50);
+      }
+      .compare-table td {
+        padding: 11px 16px;
+        border-bottom: 1px solid var(--slate-100);
+        color: var(--slate-700);
+      }
+      .compare-table td.val {
+        text-align: center;
+        font-size: 16px;
+        font-weight: 700;
+      }
+      .compare-table td.val.yes {
+        color: var(--teal-600);
+      }
+      .compare-table td.val.no {
+        color: var(--slate-300);
+      }
+
+      /* =====================
+         6. FAQ
+         ===================== */
+      .faq-section {
+        background: #fff;
+        padding: 72px 2rem;
+      }
+      .faq-section-header {
+        text-align: center;
+        max-width: 560px;
+        margin: 0 auto 40px;
+      }
+      .faq-list {
+        max-width: 640px;
+        margin: 0 auto;
+      }
+      .faq-item {
+        border-bottom: 1px solid var(--slate-100);
+        padding: 20px 0;
+      }
+      .faq-item:first-child {
+        border-top: 1px solid var(--slate-100);
+      }
+      .faq-q {
+        font-size: 15px;
+        font-weight: 500;
+        color: var(--slate-900);
+        margin: 0 0 0.6rem;
+      }
+      .faq-a {
+        font-size: 14px;
+        color: var(--slate-500);
+        line-height: 1.65;
+        margin: 0;
+      }
+
+      /* =====================
+         7. CTA BANNER
+         ===================== */
+      .cta-banner {
+        background: var(--teal-600);
+        padding: 72px 2rem;
+        text-align: center;
+      }
+      .cta-banner-inner {
+        max-width: 560px;
+        margin: 0 auto;
         display: grid;
         gap: 1rem;
       }
-      .pricing-closing-headline {
-        font-family: "Lora", serif;
-        font-size: 1.45rem;
+      .cta-banner h2 {
+        font-family: var(--serif);
+        font-size: clamp(1.5rem, 2.5vw, 2.1rem);
+        font-weight: 600;
+        color: #fff;
         margin: 0;
-        color: var(--navy);
+        line-height: 1.2;
       }
-      .pricing-closing p {
+      .cta-banner-sub {
+        font-size: 15px;
+        color: rgba(255, 255, 255, 0.75);
         margin: 0;
-        color: var(--muted);
-        font-size: 0.95rem;
+        line-height: 1.6;
       }
-      .pricing-closing-ctas {
+      .cta-banner-micro {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.55);
+        margin: 0;
+      }
+      .cta-banner-btns {
         display: flex;
         flex-wrap: wrap;
         gap: 0.75rem;
         justify-content: center;
+        margin-top: 0.5rem;
+      }
+      .cta-btn-primary {
+        background: #fff;
+        color: var(--teal-700);
+        font-family: var(--sans);
+        font-size: 15px;
+        font-weight: 600;
+        padding: 15px 32px;
+        border-radius: var(--radius-md);
+        border: none;
+        text-decoration: none;
+        cursor: pointer;
+        display: inline-block;
+      }
+      .cta-btn-primary:hover {
+        background: var(--teal-50);
+      }
+      .cta-btn-secondary {
+        background: transparent;
+        color: #fff;
+        font-family: var(--sans);
+        font-size: 15px;
+        font-weight: 500;
+        padding: 15px 32px;
+        border-radius: var(--radius-md);
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        text-decoration: none;
+        cursor: pointer;
+        display: inline-block;
+      }
+      .cta-btn-secondary:hover {
+        background: rgba(255, 255, 255, 0.08);
+      }
+      .stripe-note {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.45);
+        margin-top: 0.25rem;
       }
 
-      @media (max-width: 720px) {
-        .pricing-wrap {
-          padding: 1.5rem 1rem 3rem;
-        }
-        .pricing-hero-panel,
-        .pricing-preview,
-        .pricing-support,
-        .pricing-fairness,
-        .pricing-faq,
-        .pricing-closing {
-          padding: 1.25rem;
-        }
-        .pricing-grid {
-          grid-template-columns: 1fr;
-        }
-        .pricing-preview,
-        .pricing-support-grid,
-        .pricing-fairness-grid {
-          grid-template-columns: 1fr;
-        }
-        .pricing-preview-metrics {
-          grid-template-columns: 1fr;
-        }
-        .pricing-card {
-          padding: 1.35rem;
-        }
-        .pricing-card-topline {
-          align-items: flex-start;
-          flex-direction: column;
-        }
-        .pricing-closing-ctas {
-          flex-direction: column;
-        }
-      }
-
-      /* =====================
-         Footer
-         ===================== */
+      /* ---- FOOTER ---- */
       .site-mini-footer {
         max-width: 1100px;
-        margin: 1.5rem auto 0;
+        margin: 0 auto;
         padding: 1.25rem 1.5rem 2rem;
-        border-top: 1px solid var(--border);
+        border-top: 1px solid var(--slate-100);
         text-align: center;
-        color: var(--muted);
+        color: var(--slate-500);
         font-size: 0.82rem;
       }
       .site-mini-footer a {
-        color: var(--muted);
+        color: var(--slate-500);
         text-decoration: none;
         margin: 0 0.4rem;
       }
       .site-mini-footer a:hover {
-        color: var(--teal);
+        color: var(--teal-600);
+      }
+
+      /* ---- RESPONSIVE ---- */
+      @media (max-width: 640px) {
+        .pricing-cards-grid {
+          grid-template-columns: 1fr;
+        }
+        .paid-features-layout {
+          grid-template-columns: 1fr;
+        }
+        .feature-cards-grid {
+          grid-template-columns: 1fr;
+        }
+        .proof-strip-inner {
+          flex-direction: column;
+          gap: 10px;
+        }
+        .proof-item {
+          border-right: none;
+          padding: 4px 0;
+        }
+        .cta-banner-btns {
+          flex-direction: column;
+          align-items: center;
+        }
+        .trust-item {
+          border-right: none;
+          padding: 4px 8px;
+        }
+        .pricing-trust-bar {
+          flex-direction: column;
+          gap: 8px;
+        }
+        .billing-toggle-row {
+          flex-wrap: wrap;
+        }
       }
     </style>
   </head>
   <body>
     <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <nav aria-label="Main navigation">
       <a href="/" class="nav-logo">
         <span class="nav-name">BipolarTherapy<span>Hub</span></span>
@@ -683,306 +1058,607 @@
         </li>
       </ul>
     </nav>
-    <main class="pricing-wrap" id="main-content">
-      <header class="pricing-hero">
-        <div class="pricing-hero-panel">
-          <p class="pricing-eyebrow">Pricing</p>
-          <h1>
-            Get listed for free. Upgrade when you want clearer insight into how patients find and
-            contact you.
+
+    <main id="main-content">
+      <!-- 1. HERO -->
+      <section class="pricing-hero" aria-labelledby="heroHeading">
+        <div class="pricing-hero-inner">
+          <div>
+            <span class="hero-eyebrow">For California clinicians</span>
+          </div>
+          <h1 id="heroHeading">
+            Your listing is free.<br />
+            <em>Upgrade to see what's working.</em>
           </h1>
-          <p id="pricingHeroSupport">
-            Every therapist can claim a directory listing, show a verified California license badge
-            when available, manage core profile details, and rank by fit for free. Paid adds weekly
-            visibility and contact insights, plus a weekly digest email.
+          <p class="pricing-hero-sub">
+            Every therapist gets a verified directory listing at no cost. Paid adds analytics so you
+            can see exactly how patients are finding you and how they reach out.
           </p>
-          <ul class="pricing-hero-points" aria-label="Pricing highlights" role="list">
+          <ul class="pricing-hero-pills" aria-label="Pricing highlights">
             <li>Free listing for every therapist</li>
             <li>Ranked by fit, not payment</li>
-            <li>14-day paid trial, no charge until day 15</li>
+            <li>14-day free trial, no charge until day 15</li>
           </ul>
         </div>
-      </header>
+      </section>
 
-      <section class="pricing-fairness" aria-labelledby="pricingFairnessHeading">
-        <h2 id="pricingFairnessHeading">What paid does and does not change</h2>
-        <div class="pricing-fairness-grid">
-          <div class="pricing-fairness-item">
-            <h3>What stays fair</h3>
-            <p>
-              <strong>Paid does not buy placement.</strong> Match results stay ranked by fit to the
-              patient. Free and paid therapists are evaluated by the same relevance rules.
-            </p>
-          </div>
-          <div class="pricing-fairness-item">
-            <h3>What paid adds</h3>
-            <p>
-              Paid gives you more context: how patients found you, which contact route they used,
-              and how visibility changes over time so you can make better profile decisions.
-            </p>
+      <!-- 2. SOCIAL PROOF STRIP -->
+      <div class="proof-strip" aria-label="Directory statistics">
+        <div class="proof-strip-inner">
+          <div class="proof-item"><strong>340+</strong>&nbsp;California therapists listed</div>
+          <div class="proof-item"><strong>2 min</strong>&nbsp;average signup</div>
+          <div class="proof-item"><strong>$0</strong>&nbsp;to get started — no card needed</div>
+          <div class="proof-item">
+            Verified against CA Board of Behavioral Sciences, Board of Psychology &amp; Medical
+            Board
           </div>
         </div>
-        <p class="pricing-disclaimer">
-          Every claimed therapist keeps ownership of their listing and core profile editing.
-        </p>
-      </section>
+      </div>
 
-      <section class="pricing-comparison-intro" aria-labelledby="pricingPlansHeading">
-        <h2 id="pricingPlansHeading">Choose the level of visibility that fits how you work</h2>
-        <p>
-          Free is enough if you want to be listed, stay current, and let fit-based ranking do the
-          work. Paid is useful if you want ongoing visibility into where interest comes from, which
-          contact methods patients use, and how activity changes week to week.
-        </p>
-      </section>
+      <!-- 3. PRICING SECTION -->
+      <section class="pricing-section" aria-labelledby="pricingHeading">
+        <div class="pricing-section-header">
+          <span class="section-label">Pricing</span>
+          <h2 class="section-title" id="pricingHeading">Simple, transparent pricing</h2>
+          <p class="section-subtitle">
+            Start free. Add analytics whenever you want to understand what's already happening
+            around your listing.
+          </p>
+        </div>
 
-      <section class="pricing-grid" id="pricingGrid" aria-label="Pricing plans">
-        <article class="pricing-card" data-plan-card="free" aria-label="Free plan">
-          <div class="pricing-card-header">
-            <div class="pricing-card-topline">
-              <div>
-                <p class="pricing-card-kicker">Directory presence</p>
-                <p class="pricing-plan-name">Free</p>
+        <!-- Billing toggle -->
+        <div class="billing-toggle-row" role="group" aria-label="Billing frequency">
+          <span class="billing-lbl active" id="lbl-mo">Monthly</span>
+          <button
+            id="tog"
+            type="button"
+            aria-pressed="false"
+            aria-label="Toggle annual billing"
+          ></button>
+          <span class="billing-annual-lbl">
+            <span class="billing-lbl" id="lbl-yr">Annual</span>
+            <span class="save-badge">Save 2 months</span>
+          </span>
+        </div>
+
+        <!-- Cards -->
+        <div class="pricing-cards-grid" aria-label="Pricing plans">
+          <!-- FREE CARD -->
+          <article class="p-card p-card--free" aria-label="Free plan">
+            <div class="p-card-head">
+              <p class="p-card-kicker">Directory presence</p>
+              <p class="p-card-name">Free</p>
+              <div class="p-card-price-row">
+                <span class="p-card-price-n">$0</span>
+                <span class="p-card-price-per">/ forever</span>
               </div>
-              <span class="pricing-tag is-neutral" id="pricingFreePlanBadge">Always available</span>
+              <p class="p-card-note">No credit card, ever.</p>
             </div>
-            <div class="pricing-price-row">
-              <span class="pricing-price">$0</span>
-              <span class="pricing-price-unit">forever</span>
+            <div class="p-card-body">
+              <p class="p-card-desc">
+                A real directory listing with a verified license badge, fit-based ranking, and a
+                dashboard to manage your profile.
+              </p>
+              <ul class="p-card-features" role="list">
+                <li>
+                  <span class="check-icon check-icon--free" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#2492a8"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Directory listing with verified CA license badge
+                </li>
+                <li>
+                  <span class="check-icon check-icon--free" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#2492a8"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Ranked by fit — bipolar experience, insurance &amp; availability, not payment
+                </li>
+                <li>
+                  <span class="check-icon check-icon--free" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#2492a8"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Claim &amp; manage your listing from the dashboard
+                </li>
+                <li>
+                  <span class="check-icon check-icon--free" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#2492a8"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Weekly view counts and total contact clicks
+                </li>
+              </ul>
             </div>
-            <p class="pricing-card-summary">
-              Real directory presence and core profile management, without changing how you rank.
-            </p>
-          </div>
-          <ul class="pricing-features" role="list">
-            <li><strong>Directory listing</strong> with verified license badge when available</li>
-            <li>
-              <strong>Ranked when you're the best fit</strong> — by bipolar experience, insurance,
-              and availability, not payment
-            </li>
-            <li id="pricingFreeFeatureClaim">
-              <strong>Claim and manage your listing</strong> from the dashboard
-            </li>
-            <li>
-              <strong>Core dashboard access</strong> with weekly profile view counts and how many
-              times patients clicked to contact you
-            </li>
-          </ul>
-          <div class="pricing-card-footer">
-            <p class="pricing-note">No credit card. Your free listing stays free.</p>
-            <a
-              href="/claim"
-              class="pricing-cta pricing-cta-secondary"
-              data-plan-cta="free"
-              id="pricingFreeCta"
-            >
-              Claim free listing
-            </a>
-            <p class="pricing-plan-state" id="pricingFreeState">
-              Best if you want to be listed and keep your profile current.
-            </p>
-            <p class="pricing-feedback" id="pricingFreeFeedback" aria-live="polite"></p>
-          </div>
-        </article>
+            <div class="p-card-footer">
+              <a href="/signup" class="p-btn p-btn--ghost">Claim free listing</a>
+              <p class="p-card-footnote">Your free listing stays live if you ever downgrade.</p>
+            </div>
+          </article>
 
-        <article class="pricing-card is-paid" data-plan-card="paid" aria-label="Paid plan">
-          <div class="pricing-card-header">
-            <div class="pricing-card-topline">
-              <div>
-                <p class="pricing-card-kicker">Visibility analytics</p>
-                <p class="pricing-plan-name">Paid</p>
+          <!-- PAID CARD -->
+          <article class="p-card p-card--paid" aria-label="Paid plan">
+            <div class="p-card-head">
+              <div class="trial-pill" aria-label="14-day free trial available">
+                14-day free trial
               </div>
-              <span class="pricing-tag" id="pricingPaidPlanBadge">14-day free trial</span>
-            </div>
-            <div class="pricing-price-row">
-              <span class="pricing-price">$19</span>
-              <span class="pricing-price-unit">/ month USD</span>
-            </div>
-            <p class="pricing-card-summary">
-              Clear visibility into how patients find you, how they reach out, and what changes over
-              time.
-            </p>
-          </div>
-          <p class="pricing-note">
-            Paid adds insight. It does not gate your listing or change how you rank.
-          </p>
-          <ul class="pricing-features" role="list">
-            <li>Everything in Free</li>
-            <li>
-              <strong>See how patients found you</strong> with source visibility across match flow,
-              directory, and direct visits
-            </li>
-            <li>
-              <strong>See which contact path they used</strong> including phone, email, or booking
-              link
-            </li>
-            <li>
-              <strong>Track weekly change over time</strong> with 12-week visibility and contact
-              trends
-            </li>
-            <li>
-              <strong>Weekly digest email</strong> summarizing views, contact clicks, and trend vs
-              last week — sent each Monday
-            </li>
-          </ul>
-          <p class="pricing-note" style="font-size: 0.82rem">
-            All visibility data is aggregated — no patient names or identities are included.
-          </p>
-          <div class="pricing-card-footer">
-            <a
-              href="/portal#upgrade"
-              class="pricing-cta"
-              data-plan-cta="paid"
-              data-paid-cta
-              id="pricingPaidCta"
-            >
-              Start free trial
-            </a>
-            <p class="pricing-stripe-note">Secure checkout via Stripe</p>
-            <div class="pricing-trial-box" id="pricingTrialBox">
-              <strong>Start with 14 days free.</strong>
-              <p id="pricingTrialClarity">
-                Card required to start. No charge until day 15. Cancel anytime from your dashboard
-                before billing begins.
-              </p>
-              <p class="pricing-note-small">
-                If you cancel, your free listing stays live. Paid analytics history is accessible
-                for 30 days after downgrade.
+              <p class="p-card-kicker">Visibility analytics</p>
+              <p class="p-card-name">Paid</p>
+              <div class="p-card-price-row">
+                <span class="p-card-price-n" id="price-n">$19</span>
+                <span class="p-card-price-per" id="price-per">/ month</span>
+              </div>
+              <span class="p-card-price-sub" id="price-sub"></span>
+              <p class="p-card-note" id="price-note">
+                <strong>No charge until day 15.</strong> Cancel anytime.
               </p>
             </div>
-            <p class="pricing-plan-state" id="pricingPaidState">
-              Useful if you want better visibility into how patients find and contact you.
-            </p>
-            <p class="pricing-feedback" id="pricingPaidFeedback" aria-live="polite"></p>
-            <p class="pricing-note-small" id="pricingPaidHelper">
-              New to the directory? We verify your California license before you go live.
-            </p>
+            <div class="p-card-body">
+              <p class="p-card-desc">
+                Everything in Free, plus clear insight into how patients find you, how they reach
+                out, and how your visibility trends week to week.
+              </p>
+              <ul class="p-card-features" role="list">
+                <li>
+                  <span class="check-icon check-icon--paid" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#1a7a8f"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Everything in Free
+                </li>
+                <li>
+                  <span class="check-icon check-icon--paid" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#1a7a8f"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Source visibility — match flow, directory, or direct link
+                </li>
+                <li>
+                  <span class="check-icon check-icon--paid" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#1a7a8f"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Contact path tracking — phone, email, or booking link
+                </li>
+                <li>
+                  <span class="check-icon check-icon--paid" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#1a7a8f"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  12-week trend charts — see what profile changes move the needle
+                </li>
+                <li>
+                  <span class="check-icon check-icon--paid" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#1a7a8f"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Monday digest email — views, clicks &amp; trend vs last week
+                </li>
+              </ul>
+            </div>
+            <div class="p-card-footer">
+              <a href="/signup?plan=paid" class="p-btn p-btn--solid">Start free trial</a>
+              <p class="p-card-footnote">
+                Secure checkout via Stripe · No patient identities in data
+              </p>
+            </div>
+          </article>
+        </div>
+
+        <!-- Trust bar -->
+        <div class="pricing-trust-bar" aria-label="Trust signals">
+          <div class="trust-item">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path
+                d="M7 1L2 3v4c0 2.76 2.13 5.35 5 6 2.87-.65 5-3.24 5-6V3L7 1z"
+                stroke="currentColor"
+                stroke-width="1.3"
+                stroke-linejoin="round"
+              />
+            </svg>
+            No patient names or identities in analytics
           </div>
-        </article>
+          <div class="trust-item">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <rect
+                x="1"
+                y="4"
+                width="12"
+                height="8"
+                rx="1.5"
+                stroke="currentColor"
+                stroke-width="1.3"
+              />
+              <path d="M1 7h12" stroke="currentColor" stroke-width="1.3" />
+            </svg>
+            Stripe-secured checkout
+          </div>
+          <div class="trust-item">
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+              <path
+                d="M2 7l3.5 3.5L12 3.5"
+                stroke="currentColor"
+                stroke-width="1.3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            Cancel from dashboard — no email needed
+          </div>
+        </div>
       </section>
 
-      <section class="pricing-preview" aria-labelledby="pricingPreviewHeading">
-        <div class="pricing-preview-copy">
-          <span class="pricing-preview-chip">Paid preview</span>
-          <h2 id="pricingPreviewHeading">What the paid dashboard helps you see</h2>
-          <p>
-            This is the practical difference: not better placement, but better visibility into what
-            is already happening around your listing.
-          </p>
-          <p>
-            The paid dashboard is designed to answer your common questions: Are patients finding you
-            through match results or the directory? Are they calling, emailing, or using your
-            booking link? Is activity changing week to week?
+      <!-- 4. WHAT PAID SHOWS YOU -->
+      <section class="paid-features-section" aria-labelledby="paidFeaturesHeading">
+        <div class="paid-features-header">
+          <span class="section-label">What paid shows you</span>
+          <h2 class="section-title" id="paidFeaturesHeading">Stop guessing. Start seeing.</h2>
+          <p class="section-subtitle">
+            Paid doesn't change how you rank — it gives you a window into what's already happening
+            around your listing.
           </p>
         </div>
-        <button
-          type="button"
-          class="pricing-preview-card"
-          id="pricingPreviewCard"
-          aria-describedby="pricingPreviewNote"
-          aria-expanded="false"
-          aria-controls="pricingPreviewMetrics"
-        >
-          <span class="sr-only">Open pricing dashboard preview details</span>
-          <div>
-            <h3>Example weekly visibility snapshot</h3>
-            <p id="pricingPreviewNote">Illustrative layout based on the current paid dashboard.</p>
+        <div class="paid-features-layout">
+          <!-- 2x2 feature cards -->
+          <div class="feature-cards-grid">
+            <div class="feature-card">
+              <div class="feature-card-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4" />
+                  <path
+                    d="M8 4v4l2.5 2.5"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <h3>Where they found you</h3>
+              <p>Match result, directory browse, or direct link — by week.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                  />
+                  <path
+                    d="M2 4l6 5 6-5"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <h3>How they reached out</h3>
+              <p>Phone, email, or booking — so you know what to prioritize.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <path
+                    d="M2 12l3.5-4 3 2.5L12 5l2 2"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <h3>12-week trends</h3>
+              <p>See if a headshot or bio update actually moved the needle.</p>
+            </div>
+            <div class="feature-card">
+              <div class="feature-card-icon" aria-hidden="true">
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                  <rect
+                    x="2"
+                    y="2"
+                    width="12"
+                    height="12"
+                    rx="2"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                  />
+                  <path
+                    d="M5 8h6M5 5.5h3M5 10.5h4"
+                    stroke="currentColor"
+                    stroke-width="1.4"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </div>
+              <h3>Monday digest</h3>
+              <p>Views, clicks, trend vs last week — in your inbox weekly.</p>
+            </div>
           </div>
-          <div class="pricing-preview-metrics" id="pricingPreviewMetrics" aria-hidden="true">
-            <div class="pricing-preview-metric">
-              <p class="pricing-preview-metric-label">Top source</p>
-              <p class="pricing-preview-metric-value">
-                Match flow vs directory vs direct (direct = bookmarked or linked URL)
-              </p>
+
+          <!-- Dashboard mockup -->
+          <div class="dash-mockup" role="img" aria-label="Visibility dashboard preview">
+            <div class="dash-topbar">
+              <div class="dash-dots">
+                <span></span>
+                <span></span>
+              </div>
+              <span class="dash-topbar-title">Your visibility dashboard</span>
             </div>
-            <div class="pricing-preview-metric">
-              <p class="pricing-preview-metric-label">Contact route</p>
-              <p class="pricing-preview-metric-value">Phone, email, or booking link</p>
-            </div>
-            <div class="pricing-preview-metric">
-              <p class="pricing-preview-metric-label">Weekly trend</p>
-              <p class="pricing-preview-metric-value">12-week view and contact changes</p>
-            </div>
-            <div class="pricing-preview-metric">
-              <p class="pricing-preview-metric-label">Digest email</p>
-              <p class="pricing-preview-metric-value">Monday summary of last week's changes</p>
+            <div class="dash-body">
+              <div class="dash-stats">
+                <div class="dash-stat">
+                  <span class="dash-stat-n">47</span>
+                  <span class="dash-stat-label">Profile views</span>
+                </div>
+                <div class="dash-stat">
+                  <span class="dash-stat-n">12</span>
+                  <span class="dash-stat-label">Contact clicks</span>
+                </div>
+                <div class="dash-stat">
+                  <span class="dash-stat-n is-up">↑8%</span>
+                  <span class="dash-stat-label">vs last week</span>
+                </div>
+              </div>
+              <div>
+                <div class="dash-chart-label">Views — last 8 weeks</div>
+                <div class="dash-bars" aria-hidden="true">
+                  <div class="dash-bar" style="height: 34%"></div>
+                  <div class="dash-bar" style="height: 42%"></div>
+                  <div class="dash-bar" style="height: 38%"></div>
+                  <div class="dash-bar" style="height: 56%"></div>
+                  <div class="dash-bar" style="height: 48%"></div>
+                  <div class="dash-bar" style="height: 63%"></div>
+                  <div class="dash-bar" style="height: 71%"></div>
+                  <div class="dash-bar last" style="height: 86%"></div>
+                </div>
+              </div>
+              <div class="dash-sources" aria-hidden="true">
+                <div class="dash-source-label-head">Patient source</div>
+                <div class="dash-source-row">
+                  <span class="dash-source-name">Match result</span>
+                  <div class="dash-source-track">
+                    <div class="dash-source-fill" style="width: 58%"></div>
+                  </div>
+                  <span class="dash-source-pct">58%</span>
+                </div>
+                <div class="dash-source-row">
+                  <span class="dash-source-name">Directory</span>
+                  <div class="dash-source-track">
+                    <div class="dash-source-fill" style="width: 29%"></div>
+                  </div>
+                  <span class="dash-source-pct">29%</span>
+                </div>
+                <div class="dash-source-row">
+                  <span class="dash-source-name">Direct link</span>
+                  <div class="dash-source-track">
+                    <div class="dash-source-fill" style="width: 13%"></div>
+                  </div>
+                  <span class="dash-source-pct">13%</span>
+                </div>
+              </div>
             </div>
           </div>
-        </button>
+        </div>
       </section>
 
-      <section class="pricing-support" aria-labelledby="pricingSupportHeading">
-        <h2 id="pricingSupportHeading">How to decide</h2>
-        <div class="pricing-support-grid">
-          <div class="pricing-support-item" aria-labelledby="choose-free">
-            <h3 id="choose-free">Choose Free if</h3>
-            <p>
-              You want to be listed, keep your profile current, and let fit-based ranking do the
-              work — no analytics needed.
+      <!-- 5. COMPARISON TABLE -->
+      <section class="compare-section" aria-labelledby="compareHeading">
+        <div class="compare-section-header">
+          <span class="section-label">Compare plans</span>
+          <h2 class="section-title" id="compareHeading">Everything side by side</h2>
+        </div>
+        <div class="compare-table-wrap">
+          <table class="compare-table">
+            <thead>
+              <tr>
+                <th class="col-feature" scope="col">Feature</th>
+                <th class="col-free" scope="col">Free</th>
+                <th class="col-paid" scope="col">Paid — $19/mo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr class="group-row">
+                <td colspan="3">Directory presence</td>
+              </tr>
+              <tr>
+                <td>Verified CA license badge</td>
+                <td class="val yes">✓</td>
+                <td class="val yes">✓</td>
+              </tr>
+              <tr>
+                <td>Ranked by fit, not payment</td>
+                <td class="val yes">✓</td>
+                <td class="val yes">✓</td>
+              </tr>
+              <tr>
+                <td>Claim and manage listing</td>
+                <td class="val yes">✓</td>
+                <td class="val yes">✓</td>
+              </tr>
+              <tr>
+                <td>Weekly view count &amp; contact clicks</td>
+                <td class="val yes">✓</td>
+                <td class="val yes">✓</td>
+              </tr>
+              <tr class="group-row">
+                <td colspan="3">Visibility analytics</td>
+              </tr>
+              <tr>
+                <td>Patient source breakdown</td>
+                <td class="val no">–</td>
+                <td class="val yes">✓</td>
+              </tr>
+              <tr>
+                <td>Contact path tracking (phone / email / booking)</td>
+                <td class="val no">–</td>
+                <td class="val yes">✓</td>
+              </tr>
+              <tr>
+                <td>12-week trend charts</td>
+                <td class="val no">–</td>
+                <td class="val yes">✓</td>
+              </tr>
+              <tr>
+                <td>Weekly Monday digest email</td>
+                <td class="val no">–</td>
+                <td class="val yes">✓</td>
+              </tr>
+              <tr>
+                <td>30-day history after downgrade</td>
+                <td class="val no">–</td>
+                <td class="val yes">✓</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 6. FAQ -->
+      <section class="faq-section" aria-labelledby="faqHeading">
+        <div class="faq-section-header">
+          <span class="section-label">Common questions</span>
+          <h2 class="section-title" id="faqHeading">FAQ</h2>
+        </div>
+        <div class="faq-list">
+          <div class="faq-item">
+            <p class="faq-q">Does paying improve my ranking?</p>
+            <p class="faq-a">
+              No. Match results are ranked by fit — bipolar experience, insurance, availability, and
+              location. Free and paid therapists are evaluated by the same rules. Paid adds insight,
+              not placement advantage.
             </p>
           </div>
-          <div class="pricing-support-item" aria-labelledby="choose-paid">
-            <h3 id="choose-paid">Choose Paid if</h3>
-            <p>
-              You've been listed 60+ days and want to understand which profile elements are driving
-              patient contacts, or you're testing multiple contact methods and want to know which
-              patients actually use.
+          <div class="faq-item">
+            <p class="faq-q">How does the 14-day free trial work?</p>
+            <p class="faq-a">
+              A card is required to start, but nothing is charged until day 15. Cancel any time
+              before from your dashboard — no email needed — and you'll never be billed.
+            </p>
+          </div>
+          <div class="faq-item">
+            <p class="faq-q">What happens when I cancel?</p>
+            <p class="faq-a">
+              Your free listing stays live immediately. You keep access to your analytics history
+              for 30 days after downgrading. Nothing about your public profile changes.
+            </p>
+          </div>
+          <div class="faq-item">
+            <p class="faq-q">Is patient data included in the analytics?</p>
+            <p class="faq-a">
+              No. All data is aggregated — only activity counts and source breakdowns. No patient
+              names, contact details, or identities are ever included.
+            </p>
+          </div>
+          <div class="faq-item">
+            <p class="faq-q">What do I need to get listed?</p>
+            <p class="faq-a">
+              A valid California therapy license. We verify it instantly against the CA Board of
+              Behavioral Sciences, Board of Psychology, and Medical Board of California. Most
+              clinicians finish in under two minutes. No card needed for the free tier.
+            </p>
+          </div>
+          <div class="faq-item">
+            <p class="faq-q">Can I switch between monthly and annual?</p>
+            <p class="faq-a">
+              Yes — any time from your dashboard. If you switch to annual mid-cycle we'll prorate
+              the difference. Annual saves you the equivalent of two months per year.
             </p>
           </div>
         </div>
       </section>
 
-      <section class="pricing-faq" aria-labelledby="pricingBillingFaqHeading">
-        <h2 id="pricingBillingFaqHeading">Billing questions</h2>
-        <details name="billing-faq">
-          <summary>What happens on day 15 if I forget to cancel?</summary>
-          <p>
-            Your card is charged $19 for the first billing month. You can cancel anytime from your
-            dashboard — paid features remain active through the end of the paid period, then your
-            listing returns to free automatically.
+      <!-- 7. CTA BANNER -->
+      <section class="cta-banner" aria-labelledby="ctaHeading">
+        <div class="cta-banner-inner">
+          <h2 id="ctaHeading">See how patients are finding you.</h2>
+          <p class="cta-banner-sub">
+            Try paid analytics free for 14 days. No charge until day 15, cancel anytime.
           </p>
-        </details>
-        <details name="billing-faq">
-          <summary>Can I cancel mid-month?</summary>
-          <p>
-            Yes. Cancel anytime from your dashboard. You keep paid access through the current
-            billing period and there are no cancellation fees.
+          <p class="cta-banner-micro">
+            Already listed? Sign in and upgrade in one click from your dashboard.
           </p>
-        </details>
-        <details name="billing-faq">
-          <summary>Is there a refund policy?</summary>
-          <p>
-            Because the trial is free for 14 days, we don't offer refunds on paid months. If
-            something went wrong, email
-            <a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a> and
-            we'll sort it out.
-          </p>
-        </details>
-        <details name="billing-faq">
-          <summary>What payment methods are accepted?</summary>
-          <p>
-            All major credit and debit cards via Stripe. Apple Pay and Google Pay are also supported
-            where your browser allows.
-          </p>
-        </details>
-        <details name="billing-faq">
-          <summary>What happens if my card declines?</summary>
-          <p>
-            Stripe retries declined charges automatically. If the retry fails, your plan downgrades
-            to Free and your listing stays live. You'll receive an email from Stripe with
-            instructions to update your payment method.
-          </p>
-        </details>
-      </section>
-
-      <section class="pricing-closing" aria-labelledby="pricingClosingHeading">
-        <p class="pricing-closing-headline" id="pricingClosingHeading">Ready to get started?</p>
-        <p>Free listing takes about 5 minutes. No credit card required.</p>
-        <div class="pricing-closing-ctas">
-          <a href="/signup" class="pricing-cta">Claim your free listing →</a>
-          <a href="/portal" class="pricing-cta pricing-cta-secondary"
-            >Already listed? Open your dashboard →</a
-          >
+          <div class="cta-banner-btns">
+            <a href="/signup?plan=paid" class="cta-btn-primary">Start 14-day free trial</a>
+            <a href="/signup" class="cta-btn-secondary">Claim free listing instead</a>
+          </div>
+          <div class="stripe-note" aria-label="Secure checkout via Stripe">
+            <svg width="14" height="11" viewBox="0 0 14 11" fill="none" aria-hidden="true">
+              <rect
+                x="0.7"
+                y="0.7"
+                width="12.6"
+                height="9.6"
+                rx="1.3"
+                stroke="rgba(255,255,255,0.45)"
+                stroke-width="1.1"
+              />
+              <path d="M0.7 3.5h12.6" stroke="rgba(255,255,255,0.45)" stroke-width="1.1" />
+            </svg>
+            Secure checkout via Stripe
+          </div>
         </div>
       </section>
     </main>
@@ -995,6 +1671,37 @@
       </nav>
     </footer>
 
-    <script type="module" src="assets/pricing.js"></script>
+    <script>
+      (function () {
+        var tog = document.getElementById("tog");
+        var priceN = document.getElementById("price-n");
+        var pricePer = document.getElementById("price-per");
+        var priceSub = document.getElementById("price-sub");
+        var priceNote = document.getElementById("price-note");
+        var lblMo = document.getElementById("lbl-mo");
+        var lblYr = document.getElementById("lbl-yr");
+        var annual = false;
+
+        tog.addEventListener("click", function () {
+          annual = !annual;
+          tog.classList.toggle("on", annual);
+          tog.setAttribute("aria-pressed", annual ? "true" : "false");
+          lblMo.classList.toggle("active", !annual);
+          lblYr.classList.toggle("active", annual);
+
+          if (annual) {
+            priceN.textContent = "$16";
+            pricePer.textContent = "/ month";
+            priceSub.textContent = "billed $190/yr";
+            priceNote.innerHTML = "<strong>You save $38/year.</strong> No charge until day 15.";
+          } else {
+            priceN.textContent = "$19";
+            pricePer.textContent = "/ month";
+            priceSub.textContent = "";
+            priceNote.innerHTML = "<strong>No charge until day 15.</strong> Cancel anytime.";
+          }
+        });
+      })();
+    </script>
   </body>
 </html>
