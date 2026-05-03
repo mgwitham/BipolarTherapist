@@ -876,6 +876,21 @@ test("top-level review handler rejects invalid portal claim tokens", async funct
   assert.equal(response.payload.error, "Claim link is invalid or expired.");
 });
 
+test("top-level review handler does not accept portal claim tokens in query strings", async function () {
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/portal/claim-session?token=not-a-real-token",
+  });
+
+  assert.equal(response.statusCode, 404);
+});
+
 test("top-level review handler returns normalized candidate lists for authorized admins", async function () {
   const { client } = createMemoryClient({
     "candidate-list-1": {

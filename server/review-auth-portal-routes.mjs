@@ -2654,14 +2654,9 @@ export async function handleAuthAndPortalRoutes(context) {
     return true;
   }
 
-  if (
-    (request.method === "GET" || request.method === "POST") &&
-    routePath === "/portal/claim-session"
-  ) {
-    const body = request.method === "POST" ? await parseBody(request) : {};
-    const token = String(
-      request.method === "POST" ? body.token || "" : url.searchParams.get("token") || "",
-    ).trim();
+  if (request.method === "POST" && routePath === "/portal/claim-session") {
+    const body = await parseBody(request);
+    const token = String(body.token || "").trim();
     const payload = readPortalClaimToken(config, token);
     if (!payload) {
       sendJson(response, 401, { error: "Claim link is invalid or expired." }, origin, config);
