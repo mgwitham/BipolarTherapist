@@ -14,6 +14,7 @@
 
 import { readFileSync } from "fs";
 import { join } from "path";
+import { createClient } from "@sanity/client";
 import {
   normalizeDisplayRole,
   normalizeFieldReviewStates,
@@ -22,9 +23,11 @@ import { hasActiveFeatured } from "../../shared/therapist-subscription-domain.mj
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
-const PROJECT_ID = process.env.VITE_SANITY_PROJECT_ID;
-const DATASET = process.env.VITE_SANITY_DATASET || "production";
-const API_VERSION = process.env.VITE_SANITY_API_VERSION || "2026-04-02";
+const PROJECT_ID = process.env.SANITY_PROJECT_ID || process.env.VITE_SANITY_PROJECT_ID;
+const DATASET = process.env.SANITY_DATASET || process.env.VITE_SANITY_DATASET || "production";
+const API_VERSION =
+  process.env.SANITY_API_VERSION || process.env.VITE_SANITY_API_VERSION || "2026-04-02";
+const SANITY_API_TOKEN = process.env.SANITY_API_TOKEN || "";
 const ORIGIN = "https://www.bipolartherapyhub.com";
 
 const THERAPIST_GROQ = `*[_type == "therapist" && slug.current == $slug && listingActive == true && status == "active" && visibilityIntent == "listed"][0]{
@@ -41,20 +44,32 @@ const THERAPIST_GROQ = `*[_type == "therapist" && slug.current == $slug && listi
 
 // ─── Sanity fetch ─────────────────────────────────────────────────────────────
 
-async function fetchSanity(query, params = {}) {
-  if (!PROJECT_ID) return null;
-  const url = new URL(
-    `https://${PROJECT_ID}.apicdn.sanity.io/v${API_VERSION}/data/query/${DATASET}`,
-  );
-  url.searchParams.set("query", query);
-  for (const [k, v] of Object.entries(params)) {
-    url.searchParams.set(`$${k}`, JSON.stringify(v));
+let sanityClient = null;
+
+function getSanityClient() {
+  if (!PROJECT_ID || !DATASET) {
+    return null;
   }
+
+  if (!sanityClient) {
+    sanityClient = createClient({
+      projectId: PROJECT_ID,
+      dataset: DATASET,
+      apiVersion: API_VERSION,
+      token: SANITY_API_TOKEN,
+      useCdn: false,
+      perspective: "published",
+    });
+  }
+
+  return sanityClient;
+}
+
+async function fetchSanity(query, params = {}) {
+  const client = getSanityClient();
+  if (!client) return null;
   try {
-    const res = await fetch(url.toString(), { headers: { Accept: "application/json" } });
-    if (!res.ok) return null;
-    const json = await res.json();
-    return json.result ?? null;
+    return await client.fetch(query, params);
   } catch (_err) {
     return null;
   }

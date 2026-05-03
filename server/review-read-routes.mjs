@@ -114,11 +114,72 @@ export async function handleReadRoutes(context) {
     annotateMatchOutcomeForDisplay,
     annotateMatchRequestForDisplay,
     isAuthorized,
+    normalizeAdminTherapist,
     normalizeApplication,
     normalizeCandidate,
     normalizeReviewEvent,
     sendJson,
   } = deps;
+
+  const therapistByIdMatch = routePath.match(/^\/therapists\/([^/]+)\/admin$/);
+  if (request.method === "GET" && therapistByIdMatch) {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const doc = await client.fetch(
+      `*[_type == "therapist" && _id == $id][0]{
+        _id, _createdAt, _updatedAt, name, credentials, title, bio, bioPreview, "photo": photo{asset->{url}}, photoSourceType, photoReviewedAt, photoUsagePermissionConfirmed,
+        email, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl,
+        claimStatus, claimedByEmail, claimedAt, portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
+        practiceName, city, state, zip, country, licenseState, licenseNumber,
+        specialties, treatmentModalities, clientPopulations, insuranceAccepted, acceptsTelehealth, acceptsInPerson, acceptingNewPatients,
+        yearsExperience, bipolarYearsExperience, languages, telehealthStates, estimatedWaitTime, careApproach, medicationManagement,
+        verificationStatus, sourceUrl, supportingSourceUrls, sourceReviewedAt, therapistReportedFields, therapistReportedConfirmedAt,
+        fieldReviewStates, sessionFeeMin, sessionFeeMax, slidingScale, listingActive, status, lifecycle, visibilityIntent, notes, auditLog, "slug": slug.current
+      }`,
+      { id: decodeURIComponent(therapistByIdMatch[1]) },
+    );
+
+    if (!doc) {
+      sendJson(response, 404, { error: "Not found." }, origin, config);
+      return true;
+    }
+
+    sendJson(response, 200, normalizeAdminTherapist(doc), origin, config);
+    return true;
+  }
+
+  const therapistBySlugMatch = routePath.match(/^\/therapists\/by-slug\/([^/]+)\/admin$/);
+  if (request.method === "GET" && therapistBySlugMatch) {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const doc = await client.fetch(
+      `*[_type == "therapist" && slug.current == $slug][0]{
+        _id, _createdAt, _updatedAt, name, credentials, title, bio, bioPreview, "photo": photo{asset->{url}}, photoSourceType, photoReviewedAt, photoUsagePermissionConfirmed,
+        email, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl,
+        claimStatus, claimedByEmail, claimedAt, portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
+        practiceName, city, state, zip, country, licenseState, licenseNumber,
+        specialties, treatmentModalities, clientPopulations, insuranceAccepted, acceptsTelehealth, acceptsInPerson, acceptingNewPatients,
+        yearsExperience, bipolarYearsExperience, languages, telehealthStates, estimatedWaitTime, careApproach, medicationManagement,
+        verificationStatus, sourceUrl, supportingSourceUrls, sourceReviewedAt, therapistReportedFields, therapistReportedConfirmedAt,
+        fieldReviewStates, sessionFeeMin, sessionFeeMax, slidingScale, listingActive, status, lifecycle, visibilityIntent, notes, auditLog, "slug": slug.current
+      }`,
+      { slug: decodeURIComponent(therapistBySlugMatch[1]) },
+    );
+
+    if (!doc) {
+      sendJson(response, 404, { error: "Not found." }, origin, config);
+      return true;
+    }
+
+    sendJson(response, 200, normalizeAdminTherapist(doc), origin, config);
+    return true;
+  }
 
   if (request.method === "GET" && routePath === "/applications") {
     if (!isAuthorized(request, config)) {

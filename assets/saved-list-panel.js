@@ -14,9 +14,18 @@ import {
 } from "./saved-list.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 
-const env = (typeof import.meta !== "undefined" && import.meta.env) || {};
+function readBuildEnvValue(getValue) {
+  try {
+    return getValue() || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+const reviewApiUrl = readBuildEnvValue(() => import.meta.env.VITE_REVIEW_API_URL);
+
 function getReviewApiBase() {
-  if (env.VITE_REVIEW_API_URL) return env.VITE_REVIEW_API_URL;
+  if (reviewApiUrl) return reviewApiUrl;
   if (typeof window !== "undefined") {
     var host = window.location.hostname;
     if (host === "localhost" || host === "127.0.0.1") return "http://localhost:8787";

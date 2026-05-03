@@ -174,7 +174,8 @@ export function createMemoryClient(initialDocuments) {
         }
 
         if (
-          query.includes(`*[_type == "therapist" && slug.current == $slug][0]`) &&
+          query.includes(`*[_type == "therapist"`) &&
+          query.includes(`slug.current == $slug`) &&
           params &&
           typeof params.slug === "string"
         ) {
@@ -265,7 +266,7 @@ export function createMemoryClient(initialDocuments) {
           return match ? deepClone(match) : null;
         }
 
-        if (query.includes(`*[_type == "therapist"]`)) {
+        if (query.includes(`*[_type == "therapist"`)) {
           return Array.from(state.documents.values()).filter(function (document) {
             return document._type === "therapist";
           });

@@ -1,10 +1,18 @@
 import { normalizePortableApplication } from "../shared/application-domain.mjs";
 
-const env = (import.meta && import.meta.env) || {};
+function readBuildEnvValue(getValue) {
+  try {
+    return getValue() || "";
+  } catch (_error) {
+    return "";
+  }
+}
+
+const reviewApiUrl = readBuildEnvValue(() => import.meta.env.VITE_REVIEW_API_URL);
 
 function getDefaultReviewApiBaseUrl() {
-  if (env.VITE_REVIEW_API_URL) {
-    return env.VITE_REVIEW_API_URL;
+  if (reviewApiUrl) {
+    return reviewApiUrl;
   }
 
   if (typeof window !== "undefined") {
@@ -632,6 +640,40 @@ export async function fetchTherapistCandidates() {
   });
 
   return payload.map(sanitizeCandidate);
+}
+
+export async function fetchAdminTherapistById(id) {
+  if (!id) {
+    return null;
+  }
+  try {
+    return await request(`/therapists/${encodeURIComponent(id)}/admin`, {
+      method: "GET",
+      headers: getAdminHeaders(),
+    });
+  } catch (error) {
+    if (error && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
+}
+
+export async function fetchAdminTherapistBySlug(slug) {
+  if (!slug) {
+    return null;
+  }
+  try {
+    return await request(`/therapists/by-slug/${encodeURIComponent(slug)}/admin`, {
+      method: "GET",
+      headers: getAdminHeaders(),
+    });
+  } catch (error) {
+    if (error && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function fetchReviewEvents(options) {
