@@ -568,12 +568,10 @@ export async function handleAuthAndPortalRoutes(context) {
     getAuthorizedTherapist,
     getSecurityWarnings,
     normalizePortalRequest,
-    parseAuthorizationHeader,
     parseBody,
     readAdminSessionFromRequest,
     readListingRemovalToken,
     readPortalClaimToken,
-    readSignedSession,
     recordFailedLogin,
     sendJson,
     sendListingRemovalLink,
@@ -741,7 +739,7 @@ export async function handleAuthAndPortalRoutes(context) {
     const session =
       typeof readAdminSessionFromRequest === "function"
         ? readAdminSessionFromRequest(request, config)
-        : readSignedSession(parseAuthorizationHeader(request), config);
+        : null;
     if (!session) {
       sendJson(response, 401, { authenticated: false }, origin, config);
       return true;

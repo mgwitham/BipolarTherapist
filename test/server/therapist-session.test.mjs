@@ -52,14 +52,11 @@ test("therapist session: expired token is rejected", () => {
   assert.equal(readTherapistSession(token, config), null);
 });
 
-test("getAuthorizedTherapist returns payload when Authorization header is valid", () => {
+test("getAuthorizedTherapist ignores Authorization bearer tokens", () => {
   const config = createTestApiConfig();
   const token = createTherapistSession(config, { slug: "jamie", email: "e@e.com" });
   const request = { headers: { authorization: `Bearer ${token}` } };
-  const actor = getAuthorizedTherapist(request, config);
-  assert.ok(actor);
-  assert.equal(actor.slug, "jamie");
-  assert.equal(actor.email, "e@e.com");
+  assert.equal(getAuthorizedTherapist(request, config), null);
 });
 
 test("getAuthorizedTherapist returns payload from the HttpOnly session cookie", () => {
@@ -168,7 +165,7 @@ function buildClaimedTherapistFixture(overrides) {
 function authHeader(slug, email) {
   const config = createTestApiConfig();
   const token = createTherapistSession(config, { slug, email });
-  return { authorization: `Bearer ${token}` };
+  return { cookie: `${THERAPIST_SESSION_COOKIE}=${encodeURIComponent(token)}` };
 }
 
 test("PATCH /portal/therapist requires a session token", async () => {
@@ -762,7 +759,9 @@ test("/portal/analytics returns current-week engagement summary for the authenti
   });
 
   const response = await runHandlerRequest(handler, {
-    headers: standardHeaders({ authorization: `Bearer ${sessionToken}` }),
+    headers: standardHeaders({
+      cookie: `${THERAPIST_SESSION_COOKIE}=${encodeURIComponent(sessionToken)}`,
+    }),
     method: "GET",
     url: "/portal/analytics",
   });
@@ -795,7 +794,9 @@ test("/portal/analytics returns null current summary when no engagement has been
   });
 
   const response = await runHandlerRequest(handler, {
-    headers: standardHeaders({ authorization: `Bearer ${sessionToken}` }),
+    headers: standardHeaders({
+      cookie: `${THERAPIST_SESSION_COOKIE}=${encodeURIComponent(sessionToken)}`,
+    }),
     method: "GET",
     url: "/portal/analytics",
   });

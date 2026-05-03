@@ -38,7 +38,7 @@ function formatCsvCell(value) {
 function buildTextResponseHeaders(origin, config, contentType) {
   const headers = {
     "Content-Type": contentType,
-    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
     "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
     Vary: "Origin",
   };

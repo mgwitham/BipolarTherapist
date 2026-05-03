@@ -70,17 +70,11 @@ test("auth routes create a signed session on valid login", async function () {
       normalizePortalRequest(value) {
         return value;
       },
-      parseAuthorizationHeader() {
-        return "";
-      },
       async parseBody() {
         parsedBodyCount += 1;
         return { username: "architect", password: "secret-pass" };
       },
       readPortalClaimToken() {
-        return null;
-      },
-      readSignedSession() {
         return null;
       },
       recordFailedLogin() {},
