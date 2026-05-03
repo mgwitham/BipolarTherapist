@@ -122,7 +122,7 @@ export function normalizeRoutePath(pathname) {
 export function sendJson(response, statusCode, payload, origin, config) {
   const headers = {
     "Content-Type": "application/json; charset=utf-8",
-    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key, Authorization",
+    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
     "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
     "Cache-Control": "no-store",
     Vary: "Origin",
@@ -135,16 +135,6 @@ export function sendJson(response, statusCode, payload, origin, config) {
 
   response.writeHead(statusCode, headers);
   response.end(JSON.stringify(payload));
-}
-
-export function parseAuthorizationHeader(request) {
-  const header = request.headers.authorization;
-  if (!header || typeof header !== "string") {
-    return "";
-  }
-
-  const match = header.match(/^Bearer\s+(.+)$/i);
-  return match ? match[1] : "";
 }
 
 export const ADMIN_SESSION_COOKIE = "bt_admin_session";
@@ -176,7 +166,7 @@ function parseCookieHeader(request) {
 }
 
 function readSessionToken(request, cookieName) {
-  return parseAuthorizationHeader(request) || parseCookieHeader(request)[cookieName] || "";
+  return parseCookieHeader(request)[cookieName] || "";
 }
 
 function isSecureCookieRequest(request) {
