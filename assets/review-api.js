@@ -29,7 +29,7 @@ const reviewApiBaseUrl = getDefaultReviewApiBaseUrl();
 const adminSessionKey = "bt_review_admin_key_v1";
 const adminActorIdKey = "bt_review_admin_actor_id_v1";
 const adminActorKey = "bt_review_admin_actor_v1";
-const therapistSessionKey = "bt_therapist_session_v1";
+const therapistSessionHintKey = "bt_therapist_session_hint_v1";
 
 function sanitizeApplication(application) {
   return normalizePortableApplication(application || {});
@@ -94,6 +94,7 @@ async function request(path, options) {
         "Content-Type": "application/json",
         ...(options && options.headers ? options.headers : {}),
       },
+      credentials: "include",
       ...options,
     });
   } catch (error) {
@@ -122,6 +123,7 @@ async function requestText(path, options) {
       headers: {
         ...(options && options.headers ? options.headers : {}),
       },
+      credentials: "include",
       ...options,
     });
   } catch (error) {
@@ -160,7 +162,7 @@ export function getAdminSessionToken() {
     return "";
   }
 
-  return window.sessionStorage.getItem(adminSessionKey) || "";
+  return window.sessionStorage.getItem(adminSessionKey) ? "cookie" : "";
 }
 
 export function setAdminSessionToken(adminSessionToken) {
@@ -168,7 +170,11 @@ export function setAdminSessionToken(adminSessionToken) {
     return;
   }
 
-  window.sessionStorage.setItem(adminSessionKey, adminSessionToken);
+  if (adminSessionToken) {
+    window.sessionStorage.setItem(adminSessionKey, "1");
+  } else {
+    window.sessionStorage.removeItem(adminSessionKey);
+  }
 }
 
 export function getAdminActorName() {
@@ -215,7 +221,7 @@ export function getTherapistSessionToken() {
   if (!canUseLocalStorage()) {
     return "";
   }
-  return window.localStorage.getItem(therapistSessionKey) || "";
+  return window.localStorage.getItem(therapistSessionHintKey) ? "cookie" : "";
 }
 
 export function setTherapistSessionToken(token) {
@@ -223,9 +229,9 @@ export function setTherapistSessionToken(token) {
     return;
   }
   if (token) {
-    window.localStorage.setItem(therapistSessionKey, token);
+    window.localStorage.setItem(therapistSessionHintKey, "1");
   } else {
-    window.localStorage.removeItem(therapistSessionKey);
+    window.localStorage.removeItem(therapistSessionHintKey);
   }
 }
 
@@ -234,8 +240,7 @@ export function clearTherapistSessionToken() {
 }
 
 function getTherapistHeaders() {
-  const token = getTherapistSessionToken();
-  return token ? { Authorization: `Bearer ${token}` } : {};
+  return {};
 }
 
 export async function fetchTherapistMe() {
@@ -296,12 +301,7 @@ export async function signOutTherapistSession() {
 }
 
 function getAdminHeaders() {
-  const sessionToken = getAdminSessionToken();
-  return sessionToken
-    ? {
-        Authorization: `Bearer ${sessionToken}`,
-      }
-    : {};
+  return {};
 }
 
 export async function signInAdmin(credentials) {
@@ -309,6 +309,9 @@ export async function signInAdmin(credentials) {
     method: "POST",
     body: JSON.stringify(credentials),
   });
+  if (payload && payload.ok) {
+    setAdminSessionToken("cookie");
+  }
   if (payload && (payload.actorName || payload.actorId)) {
     setAdminActorIdentity({
       id: payload.actorId || "",
@@ -536,8 +539,8 @@ export async function acceptTherapistClaim(token) {
     method: "POST",
     body: JSON.stringify({ token }),
   });
-  if (result && result.therapist_session_token) {
-    setTherapistSessionToken(result.therapist_session_token);
+  if (result && result.ok) {
+    setTherapistSessionToken("cookie");
   }
   return result;
 }

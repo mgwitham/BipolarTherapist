@@ -7,6 +7,7 @@ import { handleCandidateRoutes } from "../../server/review-candidate-routes.mjs"
 import { handleMatchRoutes } from "../../server/review-match-routes.mjs";
 import { handleOpsRoutes } from "../../server/review-ops-routes.mjs";
 import { createReviewApiHandler } from "../../server/review-handler.mjs";
+import { ADMIN_SESSION_COOKIE } from "../../server/review-http-auth.mjs";
 import {
   createJsonRequest,
   createMemoryClient,
@@ -804,7 +805,42 @@ test("top-level review handler dispatches auth routes before falling through", a
   assert.equal(response.statusCode, 200);
   assert.equal(response.payload.ok, true);
   assert.equal(typeof response.payload.sessionToken, "string");
+  assert.match(String(response.headers["Set-Cookie"] || ""), /bt_admin_session=/);
+  assert.match(String(response.headers["Set-Cookie"] || ""), /HttpOnly/);
   assert.equal(response.payload.authMode, "password");
+});
+
+test("top-level review handler accepts admin auth from the HttpOnly session cookie", async function () {
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const loginResponse = await runHandlerRequest(handler, {
+    body: {
+      username: "architect",
+      password: "secret-pass",
+    },
+    headers: {
+      host: "localhost:8787",
+    },
+    method: "POST",
+    url: "/auth/login",
+  });
+
+  assert.equal(loginResponse.statusCode, 200);
+  const cookieValue = String(loginResponse.headers["Set-Cookie"] || "").split(";")[0];
+  assert.match(cookieValue, new RegExp(`^${ADMIN_SESSION_COOKIE}=`));
+
+  const sessionResponse = await runHandlerRequest(handler, {
+    headers: {
+      cookie: cookieValue,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/auth/session",
+  });
+
+  assert.equal(sessionResponse.statusCode, 200);
+  assert.equal(sessionResponse.payload.authenticated, true);
 });
 
 test("top-level review handler supports authenticated portal request creation and listing", async function () {

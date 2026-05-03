@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { sendPortalContactEmail, sendPortalCompletenessNudge } from "./review-email.mjs";
+import { ADMIN_SESSION_COOKIE, THERAPIST_SESSION_COOKIE } from "./review-http-auth.mjs";
 
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
@@ -557,6 +558,8 @@ export async function handleAuthAndPortalRoutes(context) {
   const { client, config, deps, origin, request, response, routePath, url } = context;
 
   const {
+    buildExpiredSessionCookie,
+    buildSessionCookie,
     canAttemptLogin,
     clearFailedLogins,
     createFeaturedCheckoutSession,
@@ -567,6 +570,7 @@ export async function handleAuthAndPortalRoutes(context) {
     normalizePortalRequest,
     parseAuthorizationHeader,
     parseBody,
+    readAdminSessionFromRequest,
     readListingRemovalToken,
     readPortalClaimToken,
     readSignedSession,
@@ -577,6 +581,20 @@ export async function handleAuthAndPortalRoutes(context) {
     sendPortalWelcomeEmail,
     updatePortalRequestFields,
   } = deps;
+
+  function setSessionCookie(name, token, maxAgeSeconds) {
+    if (typeof buildSessionCookie !== "function") {
+      return;
+    }
+    response.setHeader("Set-Cookie", buildSessionCookie(request, name, token, maxAgeSeconds));
+  }
+
+  function clearSessionCookie(name) {
+    if (typeof buildExpiredSessionCookie !== "function") {
+      return;
+    }
+    response.setHeader("Set-Cookie", buildExpiredSessionCookie(request, name));
+  }
 
   // Dev-only login bypass. See comment block above DEV_LOGIN_ALLOWED_EMAILS.
   // Placed first so it short-circuits before any other auth path, and so
@@ -651,6 +669,11 @@ export async function handleAuthAndPortalRoutes(context) {
       slug,
       email: therapist.claimedByEmail || email,
     });
+    setSessionCookie(
+      THERAPIST_SESSION_COOKIE,
+      sessionToken,
+      Number(config.therapistSessionTtlMs) / 1000,
+    );
     sendJson(
       response,
       200,
@@ -699,6 +722,7 @@ export async function handleAuthAndPortalRoutes(context) {
       username: usingUserPass ? username || config.adminUsername : "legacy-admin-key",
     });
     const actorId = usingUserPass ? username || config.adminUsername : "legacy-admin-key";
+    setSessionCookie(ADMIN_SESSION_COOKIE, sessionToken, Number(config.sessionTtlMs) / 1000);
     sendJson(
       response,
       200,
@@ -716,7 +740,10 @@ export async function handleAuthAndPortalRoutes(context) {
   }
 
   if (request.method === "GET" && routePath === "/auth/session") {
-    const session = readSignedSession(parseAuthorizationHeader(request), config);
+    const session =
+      typeof readAdminSessionFromRequest === "function"
+        ? readAdminSessionFromRequest(request, config)
+        : readSignedSession(parseAuthorizationHeader(request), config);
     if (!session) {
       sendJson(response, 401, { authenticated: false }, origin, config);
       return true;
@@ -738,6 +765,7 @@ export async function handleAuthAndPortalRoutes(context) {
   }
 
   if (request.method === "POST" && routePath === "/auth/logout") {
+    clearSessionCookie(ADMIN_SESSION_COOKIE);
     sendJson(response, 200, { ok: true }, origin, config);
     return true;
   }
@@ -2793,6 +2821,11 @@ export async function handleAuthAndPortalRoutes(context) {
       slug: therapist.slug,
       email: payload.email,
     });
+    setSessionCookie(
+      THERAPIST_SESSION_COOKIE,
+      therapistSessionToken,
+      Number(config.therapistSessionTtlMs) / 1000,
+    );
 
     sendJson(
       response,
@@ -2816,6 +2849,7 @@ export async function handleAuthAndPortalRoutes(context) {
     // a session table (for "sign out of all devices"). Funnel event is
     // already tracked client-side before this call; no server logging
     // needed here.
+    clearSessionCookie(THERAPIST_SESSION_COOKIE);
     sendJson(response, 200, { ok: true }, origin, config);
     return true;
   }

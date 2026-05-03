@@ -130,6 +130,7 @@ export function sendJson(response, statusCode, payload, origin, config) {
   const allowedOrigin = getAllowedOrigin(origin, config);
   if (allowedOrigin) {
     headers["Access-Control-Allow-Origin"] = allowedOrigin;
+    headers["Access-Control-Allow-Credentials"] = "true";
   }
 
   response.writeHead(statusCode, headers);
@@ -144,6 +145,75 @@ export function parseAuthorizationHeader(request) {
 
   const match = header.match(/^Bearer\s+(.+)$/i);
   return match ? match[1] : "";
+}
+
+export const ADMIN_SESSION_COOKIE = "bt_admin_session";
+export const THERAPIST_SESSION_COOKIE = "bt_therapist_session";
+
+function parseCookieHeader(request) {
+  const header = request && request.headers ? request.headers.cookie : "";
+  if (!header || typeof header !== "string") {
+    return {};
+  }
+
+  return header.split(";").reduce(function (cookies, entry) {
+    const separatorIndex = entry.indexOf("=");
+    if (separatorIndex === -1) {
+      return cookies;
+    }
+    const name = entry.slice(0, separatorIndex).trim();
+    const value = entry.slice(separatorIndex + 1).trim();
+    if (!name) {
+      return cookies;
+    }
+    try {
+      cookies[name] = decodeURIComponent(value);
+    } catch (_error) {
+      cookies[name] = value;
+    }
+    return cookies;
+  }, {});
+}
+
+function readSessionToken(request, cookieName) {
+  return parseAuthorizationHeader(request) || parseCookieHeader(request)[cookieName] || "";
+}
+
+function isSecureCookieRequest(request) {
+  const headers = (request && request.headers) || {};
+  const proto = String(headers["x-forwarded-proto"] || "")
+    .split(",")[0]
+    .trim();
+  if (proto) {
+    return proto === "https";
+  }
+  const host = String(headers.host || "").toLowerCase();
+  return (
+    host &&
+    host !== "localhost:8787" &&
+    !host.startsWith("localhost:") &&
+    !host.startsWith("127.0.0.1:")
+  );
+}
+
+export function buildSessionCookie(request, name, token, maxAgeSeconds) {
+  const parts = [
+    `${name}=${encodeURIComponent(token || "")}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Lax",
+  ];
+  if (Number.isFinite(maxAgeSeconds)) {
+    parts.push(`Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}`);
+  }
+  if (isSecureCookieRequest(request)) {
+    parts.push("Secure");
+  }
+  return parts.join("; ");
+}
+
+export function buildExpiredSessionCookie(request, name) {
+  return buildSessionCookie(request, name, "", 0);
 }
 
 export function createSignedSession(config, claims) {
@@ -198,6 +268,10 @@ export function readSignedSession(token, config) {
   return payload;
 }
 
+export function readAdminSessionFromRequest(request, config) {
+  return readSignedSession(readSessionToken(request, ADMIN_SESSION_COOKIE), config);
+}
+
 // 14-day absolute TTL. Therapists edit listings monthly at best, so a
 // shorter window bounds risk from shared devices / lost tablets without
 // forcing frequent re-auth during normal use. Sliding refresh can be
@@ -233,7 +307,7 @@ export function readTherapistSession(token, config) {
 }
 
 export function getAuthorizedTherapist(request, config) {
-  const payload = readTherapistSession(parseAuthorizationHeader(request), config);
+  const payload = readTherapistSession(readSessionToken(request, THERAPIST_SESSION_COOKIE), config);
   if (!payload) {
     return null;
   }
@@ -246,7 +320,7 @@ export function getAuthorizedTherapist(request, config) {
 }
 
 export function isAuthorized(request, config) {
-  const sessionPayload = readSignedSession(parseAuthorizationHeader(request), config);
+  const sessionPayload = readAdminSessionFromRequest(request, config);
   if (sessionPayload) {
     return true;
   }
@@ -260,7 +334,7 @@ export function isAuthorized(request, config) {
 }
 
 export function getAuthorizedActor(request, config) {
-  const sessionPayload = readSignedSession(parseAuthorizationHeader(request), config);
+  const sessionPayload = readAdminSessionFromRequest(request, config);
   if (sessionPayload) {
     return String(sessionPayload.username || sessionPayload.actorName || "admin").trim() || "admin";
   }

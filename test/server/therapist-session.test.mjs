@@ -5,6 +5,7 @@ import {
   createTherapistSession,
   getAuthorizedTherapist,
   readTherapistSession,
+  THERAPIST_SESSION_COOKIE,
 } from "../../server/review-http-auth.mjs";
 import { createReviewApiHandler } from "../../server/review-handler.mjs";
 import { createMemoryClient, createTestApiConfig, runHandlerRequest } from "./test-helpers.mjs";
@@ -56,6 +57,18 @@ test("getAuthorizedTherapist returns payload when Authorization header is valid"
   assert.equal(actor.email, "e@e.com");
 });
 
+test("getAuthorizedTherapist returns payload from the HttpOnly session cookie", () => {
+  const config = createTestApiConfig();
+  const token = createTherapistSession(config, { slug: "jamie", email: "e@e.com" });
+  const request = {
+    headers: { cookie: `${THERAPIST_SESSION_COOKIE}=${encodeURIComponent(token)}` },
+  };
+  const actor = getAuthorizedTherapist(request, config);
+  assert.ok(actor);
+  assert.equal(actor.slug, "jamie");
+  assert.equal(actor.email, "e@e.com");
+});
+
 test("getAuthorizedTherapist returns null when header missing", () => {
   const config = createTestApiConfig();
   assert.equal(getAuthorizedTherapist({ headers: {} }, config), null);
@@ -98,6 +111,8 @@ test("/portal/claim-accept issues a therapist session token and /portal/me retur
   assert.equal(acceptResponse.statusCode, 200);
   assert.equal(acceptResponse.payload.ok, true);
   assert.equal(typeof acceptResponse.payload.therapist_session_token, "string");
+  assert.match(String(acceptResponse.headers["Set-Cookie"] || ""), /bt_therapist_session=/);
+  assert.match(String(acceptResponse.headers["Set-Cookie"] || ""), /HttpOnly/);
 
   const sessionToken = acceptResponse.payload.therapist_session_token;
 
