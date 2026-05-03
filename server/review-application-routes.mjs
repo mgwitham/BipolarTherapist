@@ -64,7 +64,9 @@ export async function handleApplicationRoutes(context) {
     const body = await parseBody(request);
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim();
-    const licenseNumber = String(body.license_number || "").trim().replace(/\s+/g, "");
+    const licenseNumber = String(body.license_number || "")
+      .trim()
+      .replace(/\s+/g, "");
     const treatsBipolar =
       body.treats_bipolar === true || body.treats_bipolar === "true" || body.treats_bipolar === 1;
 
@@ -837,7 +839,9 @@ function isDevBypassEnabled(config) {
 // Builds a fake passing verification result whose licenseeName is derived
 // from the submitted name so the name-match gate passes automatically.
 function buildSentinelVerification(fullName) {
-  const parts = String(fullName || "Dev Tester").trim().split(/\s+/);
+  const parts = String(fullName || "Dev Tester")
+    .trim()
+    .split(/\s+/);
   return {
     verified: true,
     isActive: true,
