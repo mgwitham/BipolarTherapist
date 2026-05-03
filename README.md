@@ -113,16 +113,9 @@ For the review API, add these local-only secrets to `.env`:
 
 ```sh
 SANITY_API_TOKEN=your_write_enabled_sanity_token
-REVIEW_API_ADMIN_KEY=choose-a-strong-admin-password
-```
-
-Recommended upgrade:
-
-```sh
 REVIEW_API_ADMIN_USERNAME=admin
 REVIEW_API_ADMIN_PASSWORD=choose-a-strong-admin-password
 REVIEW_API_SESSION_SECRET=choose-a-long-random-session-secret
-REVIEW_API_ALLOW_LEGACY_KEY=false
 ```
 
 Production-shaped review API settings:
@@ -314,13 +307,11 @@ Current behavior:
 - the public signup form can create Sanity therapist application documents through the local review API
 - the admin review queue requires login through the review API
 - publish/reject actions from `admin.html` are protected by a server-issued admin session
-- the old `REVIEW_API_ADMIN_KEY` path still works as a fallback during migration
 - admin sessions now expire automatically
 - login attempts are rate-limited per client
 - allowed browser origins are explicitly configurable
 - the same review API handler now works locally and on a hosted `/api/review/*` route
 - email notifications can be enabled for new submissions and approval/rejection updates
-- legacy `X-Admin-Key` auth is now disabled by default and must be explicitly re-enabled
 
 Still to come:
 
@@ -400,14 +391,12 @@ For a stronger local or hosted setup, make these changes in your real `.env`:
 ```sh
 REVIEW_API_ADMIN_PASSWORD=replace-the-placeholder-password
 REVIEW_API_SESSION_SECRET=replace-with-a-long-random-secret
-REVIEW_API_ALLOW_LEGACY_KEY=false
 ```
 
 Recommended next cleanup:
 
 - rotate `SANITY_API_TOKEN`
 - stop using the placeholder value `Password`
-- remove `REVIEW_API_ADMIN_KEY` entirely once you no longer need the fallback
 
 ## Node Version
 

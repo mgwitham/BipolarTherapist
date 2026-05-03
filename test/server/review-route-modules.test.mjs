@@ -48,8 +48,6 @@ test("auth routes create a signed session on valid login", async function () {
     config: {
       adminUsername: "architect",
       adminPassword: "secret-pass",
-      allowLegacyKey: false,
-      adminKey: "",
       sessionTtlMs: 60000,
     },
     deps: {

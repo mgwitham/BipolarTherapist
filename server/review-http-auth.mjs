@@ -91,14 +91,8 @@ function purgeExpiredLoginWindows(config) {
 export function getSecurityWarnings(config) {
   const warnings = [];
 
-  if (
-    !(config.adminUsername && config.adminPassword) &&
-    !(config.allowLegacyKey && config.adminKey)
-  ) {
+  if (!(config.adminUsername && config.adminPassword)) {
     warnings.push("Review API admin credentials are not configured.");
-  }
-  if (config.allowLegacyKey && config.adminKey) {
-    warnings.push("Legacy x-admin-key authentication remains enabled.");
   }
   return warnings;
 }
@@ -122,7 +116,7 @@ export function normalizeRoutePath(pathname) {
 export function sendJson(response, statusCode, payload, origin, config) {
   const headers = {
     "Content-Type": "application/json; charset=utf-8",
-    "Access-Control-Allow-Headers": "Content-Type, X-Admin-Key",
+    "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
     "Cache-Control": "no-store",
     Vary: "Origin",
@@ -315,25 +309,13 @@ export function isAuthorized(request, config) {
     return true;
   }
 
-  if (!config.allowLegacyKey || !config.adminKey) {
-    return false;
-  }
-
-  const requestKey = request.headers["x-admin-key"];
-  return typeof requestKey === "string" && requestKey === config.adminKey;
+  return false;
 }
 
 export function getAuthorizedActor(request, config) {
   const sessionPayload = readAdminSessionFromRequest(request, config);
   if (sessionPayload) {
     return String(sessionPayload.username || sessionPayload.actorName || "admin").trim() || "admin";
-  }
-
-  if (config.allowLegacyKey && config.adminKey) {
-    const requestKey = request.headers["x-admin-key"];
-    if (typeof requestKey === "string" && requestKey === config.adminKey) {
-      return "legacy-admin-key";
-    }
   }
 
   return "";
