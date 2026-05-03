@@ -7,6 +7,10 @@ const portalJs = readFileSync(
   fileURLToPath(new URL("../../assets/portal.js", import.meta.url)),
   "utf8",
 );
+const reviewApiJs = readFileSync(
+  fileURLToPath(new URL("../../assets/review-api.js", import.meta.url)),
+  "utf8",
+);
 const portalHtml = readFileSync(
   fileURLToPath(new URL("../../portal.html", import.meta.url)),
   "utf8",
@@ -67,6 +71,16 @@ test("sign-in view: validates email format client-side before submit", () => {
 test("sign-in view: preserves anti-enumeration success copy", () => {
   assert.match(portalJs, /matches a claimed profile/);
   assert.match(portalJs, /Check your inbox\./);
+});
+
+test("portal claim session lookup posts magic-link tokens in the request body", () => {
+  const start = reviewApiJs.indexOf("export async function fetchTherapistClaimSession");
+  assert.notEqual(start, -1);
+  const snippet = reviewApiJs.slice(start, start + 260);
+  assert.match(snippet, /request\("\/portal\/claim-session"/);
+  assert.match(snippet, /method:\s*"POST"/);
+  assert.match(snippet, /body:\s*JSON\.stringify\(\{\s*token\s*\}\)/);
+  assert.doesNotMatch(snippet, /claim-session\?token=/);
 });
 
 test("portal.html: sign-in card styles exist and are responsive", () => {

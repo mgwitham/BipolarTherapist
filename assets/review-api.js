@@ -525,8 +525,9 @@ export async function sendClaimLinkToSlug(slug) {
 }
 
 export async function fetchTherapistClaimSession(token) {
-  return request(`/portal/claim-session?token=${encodeURIComponent(token)}`, {
-    method: "GET",
+  return request("/portal/claim-session", {
+    method: "POST",
+    body: JSON.stringify({ token }),
   });
 }
 

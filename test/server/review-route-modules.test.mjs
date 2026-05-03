@@ -864,11 +864,12 @@ test("top-level review handler rejects invalid portal claim tokens", async funct
   const handler = createReviewApiHandler(createTestApiConfig(), client);
 
   const response = await runHandlerRequest(handler, {
+    body: { token: "not-a-real-token" },
     headers: {
       host: "localhost:8787",
     },
-    method: "GET",
-    url: "/portal/claim-session?token=not-a-real-token",
+    method: "POST",
+    url: "/portal/claim-session",
   });
 
   assert.equal(response.statusCode, 401);
