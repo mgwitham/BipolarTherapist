@@ -13,6 +13,8 @@ var slugParam = String(searchParams.get("slug") || "").trim();
 var emailParam = String(searchParams.get("email") || "").trim();
 var therapistSessionToken = getTherapistSessionToken();
 
+var therapistCountEl = document.getElementById("pricingTherapistCount");
+
 var freeCard = document.querySelector('[data-plan-card="free"]');
 var paidCard = document.querySelector('[data-plan-card="paid"]');
 var freeCta = document.getElementById("pricingFreeCta");
@@ -443,3 +445,35 @@ if (previewCard) {
 
 applyLoggedOutState();
 resolveSignedInState();
+
+async function fetchLiveTherapistCount() {
+  try {
+    var projectId = import.meta.env.VITE_SANITY_PROJECT_ID;
+    var dataset = import.meta.env.VITE_SANITY_DATASET || "production";
+    var apiVersion = import.meta.env.VITE_SANITY_API_VERSION || "2026-04-02";
+    var query = encodeURIComponent(
+      'count(*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"])',
+    );
+    var url =
+      "https://" +
+      projectId +
+      ".apicdn.sanity.io/v" +
+      apiVersion +
+      "/data/query/" +
+      dataset +
+      "?query=" +
+      query;
+    var res = await fetch(url);
+    if (!res.ok) return;
+    var data = await res.json();
+    var count = data.result;
+    if (typeof count === "number" && count > 0 && therapistCountEl) {
+      var rounded = Math.floor(count / 10) * 10;
+      therapistCountEl.textContent = rounded + "+";
+    }
+  } catch (_e) {
+    // silently fail — static fallback remains
+  }
+}
+
+fetchLiveTherapistCount();
