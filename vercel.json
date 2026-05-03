@@ -17,6 +17,7 @@
     }
   ],
   "rewrites": [
+    { "source": "/api/public/(.*)", "destination": "/api/public/[...path]" },
     { "source": "/api/review/(.*)", "destination": "/api/review/[...path]" },
     { "source": "/therapists/:slug", "destination": "/api/therapists/:slug" }
   ],
@@ -36,7 +37,7 @@
         { "key": "Reporting-Endpoints", "value": "csp-endpoint=\"/api/csp-report\"" },
         {
           "key": "Content-Security-Policy",
-          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.sanity.io https://*.cdn.sanity.io https://www.google-analytics.com; connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://*.apicdn.sanity.io https://*.api.sanity.io https://ipapi.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; report-to csp-endpoint"
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://va.vercel-scripts.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://cdn.sanity.io https://*.cdn.sanity.io https://www.google-analytics.com; connect-src 'self' https://www.google-analytics.com https://analytics.google.com https://stats.g.doubleclick.net https://ipapi.co; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; report-to csp-endpoint"
         }
       ]
     },

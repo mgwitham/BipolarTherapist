@@ -103,6 +103,7 @@ import {
   createTherapistConfirmedFieldReviewStates,
   mapFieldReviewStatesToCamelCase,
   mapFieldReviewStatesToSnakeCase,
+  normalizeDisplayRole,
   normalizeFieldReviewStates,
   normalizeLower,
   normalizeText,
@@ -432,6 +433,89 @@ function normalizeCandidate(doc) {
   });
 }
 
+function normalizeAdminTherapist(doc) {
+  const fieldReviewStates = normalizeFieldReviewStates(doc && doc.fieldReviewStates, {
+    keyStyle: "camelCase",
+  });
+  return {
+    id: doc._id || doc.id || "",
+    name: doc.name || "",
+    credentials: doc.credentials || "",
+    title: normalizeDisplayRole(doc.title || ""),
+    bio: normalizeDisplayRole(doc.bio || ""),
+    bio_preview: normalizeDisplayRole(doc.bioPreview || doc.bio || ""),
+    photo_url:
+      doc.photo_url ||
+      (doc.photo && doc.photo.asset && doc.photo.asset.url) ||
+      (doc.photo && doc.photo.url) ||
+      null,
+    photo_source_type: doc.photoSourceType || "",
+    photo_reviewed_at: doc.photoReviewedAt || "",
+    photo_usage_permission_confirmed: Boolean(doc.photoUsagePermissionConfirmed),
+    email: doc.email || "",
+    phone: doc.phone || "",
+    website: doc.website || null,
+    preferred_contact_method: doc.preferredContactMethod || "",
+    preferred_contact_label: doc.preferredContactLabel || "",
+    contact_guidance: doc.contactGuidance || "",
+    first_step_expectation: doc.firstStepExpectation || "",
+    booking_url: doc.bookingUrl || null,
+    claim_status: doc.claimStatus || "unclaimed",
+    claimed_by_email: doc.claimedByEmail || "",
+    claimed_at: doc.claimedAt || "",
+    portal_last_seen_at: doc.portalLastSeenAt || "",
+    listing_pause_requested_at: doc.listingPauseRequestedAt || "",
+    listing_removal_requested_at: doc.listingRemovalRequestedAt || "",
+    practice_name: doc.practiceName || "",
+    city: doc.city || "",
+    state: doc.state || "",
+    zip: doc.zip || "",
+    country: doc.country || "US",
+    license_state: doc.licenseState || "",
+    license_number: doc.licenseNumber || "",
+    specialties: Array.isArray(doc.specialties) ? doc.specialties : [],
+    treatment_modalities: Array.isArray(doc.treatmentModalities) ? doc.treatmentModalities : [],
+    client_populations: Array.isArray(doc.clientPopulations) ? doc.clientPopulations : [],
+    insurance_accepted: Array.isArray(doc.insuranceAccepted) ? doc.insuranceAccepted : [],
+    accepts_telehealth: Boolean(doc.acceptsTelehealth),
+    accepts_in_person: Boolean(doc.acceptsInPerson),
+    accepting_new_patients:
+      doc.acceptingNewPatients === true ? true : doc.acceptingNewPatients === false ? false : null,
+    years_experience: doc.yearsExperience || null,
+    bipolar_years_experience: doc.bipolarYearsExperience || null,
+    languages: Array.isArray(doc.languages) && doc.languages.length ? doc.languages : ["English"],
+    telehealth_states: Array.isArray(doc.telehealthStates) ? doc.telehealthStates : [],
+    estimated_wait_time: doc.estimatedWaitTime || "",
+    care_approach: doc.careApproach || "",
+    medication_management: Boolean(doc.medicationManagement),
+    verification_status: doc.verificationStatus || "",
+    source_url: doc.sourceUrl || "",
+    supporting_source_urls: Array.isArray(doc.supportingSourceUrls) ? doc.supportingSourceUrls : [],
+    source_reviewed_at: doc.sourceReviewedAt || "",
+    therapist_reported_fields: Array.isArray(doc.therapistReportedFields)
+      ? doc.therapistReportedFields
+      : [],
+    therapist_reported_confirmed_at: doc.therapistReportedConfirmedAt || "",
+    field_review_states: {
+      estimated_wait_time: fieldReviewStates.estimatedWaitTime,
+      insurance_accepted: fieldReviewStates.insuranceAccepted,
+      telehealth_states: fieldReviewStates.telehealthStates,
+      bipolar_years_experience: fieldReviewStates.bipolarYearsExperience,
+    },
+    session_fee_min: doc.sessionFeeMin || null,
+    session_fee_max: doc.sessionFeeMax || null,
+    sliding_scale: Boolean(doc.slidingScale),
+    listing_active: doc.listingActive !== false,
+    status: doc.status || "active",
+    lifecycle: doc.lifecycle || "",
+    visibility_intent: doc.visibilityIntent || "",
+    notes: doc.notes || "",
+    audit_log: Array.isArray(doc.auditLog) ? doc.auditLog : [],
+    slug: typeof doc.slug === "string" ? doc.slug : (doc.slug && doc.slug.current) || "",
+    has_paid_subscription: false,
+  };
+}
+
 function normalizeReviewEvent(doc) {
   return {
     id: doc._id,
@@ -749,6 +833,7 @@ function createReviewRouteModules() {
         annotateMatchOutcomeForDisplay,
         annotateMatchRequestForDisplay,
         isAuthorized,
+        normalizeAdminTherapist,
         normalizeApplication,
         normalizeCandidate,
         normalizeReviewEvent,

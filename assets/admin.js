@@ -7,11 +7,7 @@ import {
   rejectApplication,
   updateApplicationReviewMetadata,
 } from "./store.js";
-import {
-  fetchAdminTherapistById,
-  fetchAdminTherapistBySlug,
-  fetchPublicTherapists,
-} from "./cms.js";
+import { fetchPublicTherapists } from "./cms.js";
 
 async function fetchMatchedTherapistForCandidate(candidate) {
   if (!candidate) return null;
@@ -41,6 +37,8 @@ import {
   decideTherapistCandidate,
   decideLicensureOps,
   decideTherapistOps,
+  fetchAdminTherapistById,
+  fetchAdminTherapistBySlug,
   exportReviewEvents,
   fetchAdminSession,
   fetchReviewEvents,

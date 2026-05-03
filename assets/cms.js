@@ -1,15 +1,42 @@
 import { normalizeDisplayRole, normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
-import { hasActiveFeatured } from "../shared/therapist-subscription-domain.mjs";
 import { getStats as getLocalStats, getTherapistBySlug, getTherapists } from "./store.js";
 
-const env = (import.meta && import.meta.env) || {};
-const projectId = env.VITE_SANITY_PROJECT_ID;
-const dataset = env.VITE_SANITY_DATASET;
-const apiVersion = env.VITE_SANITY_API_VERSION || "2026-04-02";
-const useCdn = env.VITE_SANITY_USE_CDN !== "false";
+function readBuildEnvValue(getValue, fallback) {
+  try {
+    return getValue() || fallback || "";
+  } catch (_error) {
+    return fallback || "";
+  }
+}
 
-export const cmsEnabled = Boolean(projectId && dataset);
-export const cmsStudioUrl = env.VITE_SANITY_STUDIO_URL || "http://localhost:3333";
+const publicContentApiUrl = readBuildEnvValue(() => import.meta.env.VITE_PUBLIC_CONTENT_API_URL);
+const publicContentApiDisabled = readBuildEnvValue(
+  () => import.meta.env.VITE_PUBLIC_CONTENT_API_DISABLED,
+);
+const sanityStudioUrl = readBuildEnvValue(
+  () => import.meta.env.VITE_SANITY_STUDIO_URL,
+  "http://localhost:3333",
+);
+
+function getDefaultPublicContentApiBaseUrl() {
+  if (publicContentApiUrl) {
+    return publicContentApiUrl.replace(/\/+$/, "");
+  }
+
+  if (typeof window !== "undefined") {
+    const hostname = window.location.hostname;
+    if (hostname === "localhost" || hostname === "127.0.0.1") {
+      return "http://localhost:8787/api/public";
+    }
+  }
+
+  return "/api/public";
+}
+
+const publicContentApiBaseUrl = getDefaultPublicContentApiBaseUrl();
+
+export const cmsEnabled = publicContentApiDisabled !== "true";
+export const cmsStudioUrl = sanityStudioUrl;
 
 const cmsState = {
   source: cmsEnabled ? "sanity" : "seed",
@@ -112,264 +139,145 @@ function normalizeSiteSettings(doc) {
   return { ...doc };
 }
 
-const therapistProjection = `{
-  _id,
-  name,
-  credentials,
-  title,
-  bio,
-  bioPreview,
-  "photo_url": photo.asset->url,
-  photoSourceType,
-  photoReviewedAt,
-  photoUsagePermissionConfirmed,
-  email,
-  phone,
-  website,
-  preferredContactMethod,
-  preferredContactLabel,
-  contactGuidance,
-  firstStepExpectation,
-  bookingUrl,
-  claimStatus,
-  claimedByEmail,
-  claimedAt,
-  portalLastSeenAt,
-  listingPauseRequestedAt,
-  listingRemovalRequestedAt,
-  practiceName,
-  city,
-  state,
-  zip,
-  country,
-  licenseState,
-  licenseNumber,
-  specialties,
-  treatmentModalities,
-  clientPopulations,
-  insuranceAccepted,
-  acceptsTelehealth,
-  acceptsInPerson,
-  acceptingNewPatients,
-  yearsExperience,
-  bipolarYearsExperience,
-  languages,
-  telehealthStates,
-  estimatedWaitTime,
-  careApproach,
-  medicationManagement,
-  verificationStatus,
-  sourceUrl,
-  supportingSourceUrls,
-  sourceReviewedAt,
-  therapistReportedFields,
-  therapistReportedConfirmedAt,
-  fieldReviewStates,
-  sessionFeeMin,
-  sessionFeeMax,
-  slidingScale,
-  listingActive,
-  status,
-  lifecycle,
-  visibilityIntent,
-  auditLog,
-  "slug": slug.current
-}`;
-
-const publicTherapistProjection = `{
-  _id,
-  name,
-  credentials,
-  title,
-  bio,
-  bioPreview,
-  "photo_url": photo.asset->url,
-  photoSourceType,
-  photoReviewedAt,
-  photoUsagePermissionConfirmed,
-  email,
-  phone,
-  website,
-  preferredContactMethod,
-  preferredContactLabel,
-  contactGuidance,
-  firstStepExpectation,
-  bookingUrl,
-  claimStatus,
-  practiceName,
-  city,
-  state,
-  zip,
-  country,
-  licenseState,
-  licenseNumber,
-  specialties,
-  treatmentModalities,
-  clientPopulations,
-  insuranceAccepted,
-  acceptsTelehealth,
-  acceptsInPerson,
-  acceptingNewPatients,
-  yearsExperience,
-  bipolarYearsExperience,
-  languages,
-  telehealthStates,
-  estimatedWaitTime,
-  careApproach,
-  medicationManagement,
-  verificationStatus,
-  sourceUrl,
-  supportingSourceUrls,
-  sourceReviewedAt,
-  therapistReportedFields,
-  therapistReportedConfirmedAt,
-  fieldReviewStates,
-  sessionFeeMin,
-  sessionFeeMax,
-  slidingScale,
-  listingActive,
-  status,
-  lifecycle,
-  visibilityIntent,
-  "slug": slug.current
-}`;
-
-const directoryTherapistProjection = `{
-  _id,
-  name,
-  credentials,
-  title,
-  bio,
-  bioPreview,
-  "photo_url": photo.asset->url,
-  email,
-  phone,
-  website,
-  preferredContactMethod,
-  preferredContactLabel,
-  bookingUrl,
-  city,
-  state,
-  zip,
-  specialties,
-  treatmentModalities,
-  clientPopulations,
-  insuranceAccepted,
-  acceptsTelehealth,
-  acceptsInPerson,
-  acceptingNewPatients,
-  yearsExperience,
-  bipolarYearsExperience,
-  estimatedWaitTime,
-  careApproach,
-  medicationManagement,
-  verificationStatus,
-  sourceReviewedAt,
-  therapistReportedFields,
-  therapistReportedConfirmedAt,
-  fieldReviewStates,
-  sessionFeeMin,
-  sessionFeeMax,
-  slidingScale,
-  listingActive,
-  status,
-  "slug": slug.current
-}`;
-
 function normalizeTherapist(doc) {
   const fieldReviewStates = normalizeFieldReviewStates(doc.fieldReviewStates, {
     keyStyle: "camelCase",
   });
 
   return {
-    id: doc._id,
+    id: doc._id || doc.id || "",
     name: doc.name || "",
     credentials: doc.credentials || "",
     title: normalizeDisplayRole(doc.title || ""),
     bio: normalizeDisplayRole(doc.bio || ""),
-    bio_preview: normalizeDisplayRole(doc.bioPreview || doc.bio || ""),
+    bio_preview: normalizeDisplayRole(doc.bioPreview || doc.bio_preview || doc.bio || ""),
     photo_url: doc.photo_url || null,
-    photo_source_type: doc.photoSourceType || "",
-    photo_reviewed_at: doc.photoReviewedAt || "",
-    photo_usage_permission_confirmed: Boolean(doc.photoUsagePermissionConfirmed),
+    photo_source_type: doc.photoSourceType || doc.photo_source_type || "",
+    photo_reviewed_at: doc.photoReviewedAt || doc.photo_reviewed_at || "",
+    photo_usage_permission_confirmed: Boolean(
+      doc.photoUsagePermissionConfirmed || doc.photo_usage_permission_confirmed,
+    ),
     email: doc.email || "",
     phone: doc.phone || "",
     website: doc.website || null,
-    preferred_contact_method: doc.preferredContactMethod || "",
-    preferred_contact_label: doc.preferredContactLabel || "",
-    contact_guidance: doc.contactGuidance || "",
-    first_step_expectation: doc.firstStepExpectation || "",
-    booking_url: doc.bookingUrl || null,
-    claim_status: doc.claimStatus || "unclaimed",
+    preferred_contact_method: doc.preferredContactMethod || doc.preferred_contact_method || "",
+    preferred_contact_label: doc.preferredContactLabel || doc.preferred_contact_label || "",
+    contact_guidance: doc.contactGuidance || doc.contact_guidance || "",
+    first_step_expectation: doc.firstStepExpectation || doc.first_step_expectation || "",
+    booking_url: doc.bookingUrl || doc.booking_url || null,
+    claim_status: doc.claimStatus || doc.claim_status || "unclaimed",
     claimed_by_email: doc.claimedByEmail || "",
     claimed_at: doc.claimedAt || "",
     portal_last_seen_at: doc.portalLastSeenAt || "",
     listing_pause_requested_at: doc.listingPauseRequestedAt || "",
     listing_removal_requested_at: doc.listingRemovalRequestedAt || "",
-    practice_name: doc.practiceName || "",
+    practice_name: doc.practiceName || doc.practice_name || "",
     city: doc.city || "",
     state: doc.state || "",
     zip: doc.zip || "",
     country: doc.country || "US",
-    license_state: doc.licenseState || "",
-    license_number: doc.licenseNumber || "",
+    license_state: doc.licenseState || doc.license_state || "",
+    license_number: doc.licenseNumber || doc.license_number || "",
     specialties: Array.isArray(doc.specialties) ? doc.specialties : [],
-    treatment_modalities: Array.isArray(doc.treatmentModalities) ? doc.treatmentModalities : [],
-    client_populations: Array.isArray(doc.clientPopulations) ? doc.clientPopulations : [],
-    insurance_accepted: Array.isArray(doc.insuranceAccepted) ? doc.insuranceAccepted : [],
-    accepts_telehealth: Boolean(doc.acceptsTelehealth),
-    accepts_in_person: Boolean(doc.acceptsInPerson),
+    treatment_modalities: Array.isArray(doc.treatmentModalities)
+      ? doc.treatmentModalities
+      : Array.isArray(doc.treatment_modalities)
+        ? doc.treatment_modalities
+        : [],
+    client_populations: Array.isArray(doc.clientPopulations)
+      ? doc.clientPopulations
+      : Array.isArray(doc.client_populations)
+        ? doc.client_populations
+        : [],
+    insurance_accepted: Array.isArray(doc.insuranceAccepted)
+      ? doc.insuranceAccepted
+      : Array.isArray(doc.insurance_accepted)
+        ? doc.insurance_accepted
+        : [],
+    accepts_telehealth:
+      doc.acceptsTelehealth !== undefined
+        ? Boolean(doc.acceptsTelehealth)
+        : Boolean(doc.accepts_telehealth),
+    accepts_in_person:
+      doc.acceptsInPerson !== undefined
+        ? Boolean(doc.acceptsInPerson)
+        : Boolean(doc.accepts_in_person),
     accepting_new_patients:
-      doc.acceptingNewPatients === true ? true : doc.acceptingNewPatients === false ? false : null,
-    years_experience: doc.yearsExperience || null,
-    bipolar_years_experience: doc.bipolarYearsExperience || null,
+      doc.acceptingNewPatients === true || doc.accepting_new_patients === true
+        ? true
+        : doc.acceptingNewPatients === false || doc.accepting_new_patients === false
+          ? false
+          : null,
+    years_experience: doc.yearsExperience || doc.years_experience || null,
+    bipolar_years_experience: doc.bipolarYearsExperience || doc.bipolar_years_experience || null,
     languages: Array.isArray(doc.languages) && doc.languages.length ? doc.languages : ["English"],
-    telehealth_states: Array.isArray(doc.telehealthStates) ? doc.telehealthStates : [],
-    estimated_wait_time: doc.estimatedWaitTime || "",
-    care_approach: doc.careApproach || "",
-    medication_management: Boolean(doc.medicationManagement),
-    verification_status: doc.verificationStatus || "",
-    source_url: doc.sourceUrl || "",
-    supporting_source_urls: Array.isArray(doc.supportingSourceUrls) ? doc.supportingSourceUrls : [],
-    source_reviewed_at: doc.sourceReviewedAt || "",
-    source_health_status: doc.sourceHealthStatus || "",
-    source_health_checked_at: doc.sourceHealthCheckedAt || "",
+    telehealth_states: Array.isArray(doc.telehealthStates)
+      ? doc.telehealthStates
+      : Array.isArray(doc.telehealth_states)
+        ? doc.telehealth_states
+        : [],
+    estimated_wait_time: doc.estimatedWaitTime || doc.estimated_wait_time || "",
+    care_approach: doc.careApproach || doc.care_approach || "",
+    medication_management:
+      doc.medicationManagement !== undefined
+        ? Boolean(doc.medicationManagement)
+        : Boolean(doc.medication_management),
+    verification_status: doc.verificationStatus || doc.verification_status || "",
+    source_url: doc.sourceUrl || doc.source_url || "",
+    supporting_source_urls: Array.isArray(doc.supportingSourceUrls)
+      ? doc.supportingSourceUrls
+      : Array.isArray(doc.supporting_source_urls)
+        ? doc.supporting_source_urls
+        : [],
+    source_reviewed_at: doc.sourceReviewedAt || doc.source_reviewed_at || "",
+    source_health_status: doc.sourceHealthStatus || doc.source_health_status || "",
+    source_health_checked_at: doc.sourceHealthCheckedAt || doc.source_health_checked_at || "",
     source_health_status_code:
-      typeof doc.sourceHealthStatusCode === "number" ? doc.sourceHealthStatusCode : null,
-    source_health_final_url: doc.sourceHealthFinalUrl || "",
-    source_health_error: doc.sourceHealthError || "",
-    source_drift_signals: Array.isArray(doc.sourceDriftSignals) ? doc.sourceDriftSignals : [],
+      typeof doc.sourceHealthStatusCode === "number"
+        ? doc.sourceHealthStatusCode
+        : typeof doc.source_health_status_code === "number"
+          ? doc.source_health_status_code
+          : null,
+    source_health_final_url: doc.sourceHealthFinalUrl || doc.source_health_final_url || "",
+    source_health_error: doc.sourceHealthError || doc.source_health_error || "",
+    source_drift_signals: Array.isArray(doc.sourceDriftSignals)
+      ? doc.sourceDriftSignals
+      : Array.isArray(doc.source_drift_signals)
+        ? doc.source_drift_signals
+        : [],
     therapist_reported_fields: Array.isArray(doc.therapistReportedFields)
       ? doc.therapistReportedFields
       : [],
     therapist_reported_confirmed_at: doc.therapistReportedConfirmedAt || "",
-    field_review_states: {
+    field_review_states: doc.field_review_states || {
       estimated_wait_time: fieldReviewStates.estimatedWaitTime,
       insurance_accepted: fieldReviewStates.insuranceAccepted,
       telehealth_states: fieldReviewStates.telehealthStates,
       bipolar_years_experience: fieldReviewStates.bipolarYearsExperience,
     },
-    field_trust_meta: {
+    field_trust_meta: doc.field_trust_meta || {
       estimated_wait_time: (doc.fieldTrustMeta && doc.fieldTrustMeta.estimatedWaitTime) || null,
       insurance_accepted: (doc.fieldTrustMeta && doc.fieldTrustMeta.insuranceAccepted) || null,
       telehealth_states: (doc.fieldTrustMeta && doc.fieldTrustMeta.telehealthStates) || null,
       bipolar_years_experience:
         (doc.fieldTrustMeta && doc.fieldTrustMeta.bipolarYearsExperience) || null,
     },
-    session_fee_min: doc.sessionFeeMin || null,
-    session_fee_max: doc.sessionFeeMax || null,
-    sliding_scale: Boolean(doc.slidingScale),
-    listing_active: doc.listingActive !== false,
+    session_fee_min: doc.sessionFeeMin || doc.session_fee_min || null,
+    session_fee_max: doc.sessionFeeMax || doc.session_fee_max || null,
+    sliding_scale:
+      doc.slidingScale !== undefined ? Boolean(doc.slidingScale) : Boolean(doc.sliding_scale),
+    listing_active:
+      doc.listingActive !== undefined ? doc.listingActive !== false : doc.listing_active !== false,
     status: doc.status || "active",
     lifecycle: doc.lifecycle || "",
-    visibility_intent: doc.visibilityIntent || "",
+    visibility_intent: doc.visibilityIntent || doc.visibility_intent || "",
     audit_log: Array.isArray(doc.auditLog) ? doc.auditLog : [],
     slug: doc.slug || "",
     // Default to false. The caller (e.g. fetchPublicTherapistBySlug)
     // can overwrite this when it has looked up the therapist's
     // subscription document. Used by the therapist-page renderer to
     // unlock the enhanced-profile treatment for paid subscribers.
-    has_paid_subscription: false,
+    has_paid_subscription: Boolean(doc.has_paid_subscription),
   };
 }
 
@@ -489,46 +397,33 @@ export function getCmsState() {
   };
 }
 
-// Direct HTTP fetch against Sanity's public query API — avoids
-// dynamic-importing @sanity/client, which some browser extensions
-// block. Reads are unauthenticated and restricted to the "published"
-// perspective by default for public datasets.
-//
-// fresh=true routes through the non-CDN host (api.sanity.io) because
-// apicdn.sanity.io can serve up-to-60s stale reads, which causes the
-// admin "Mark reviewed" flow to appear to revert on hard refresh.
-async function fetchFromSanity(query, params, options) {
+async function fetchPublicContentJson(path, options) {
   if (!cmsEnabled) {
-    throw new Error("Sanity client not configured");
+    throw new Error("Public content API is disabled.");
   }
 
   const fresh = Boolean(options && options.fresh);
-  const host = fresh || !useCdn ? "api.sanity.io" : "apicdn.sanity.io";
-  const base = `https://${projectId}.${host}/v${apiVersion}/data/query/${dataset}`;
-
-  const url = new URL(base);
-  url.searchParams.set("query", query);
-  url.searchParams.set("perspective", "published");
-  if (params && typeof params === "object") {
-    for (const key of Object.keys(params)) {
-      url.searchParams.set(`$${key}`, JSON.stringify(params[key]));
-    }
-  }
-
-  const response = await fetch(url.toString(), {
+  const response = await fetch(`${publicContentApiBaseUrl}${path}`, {
     method: "GET",
+    cache: fresh ? "no-store" : "default",
     headers: { Accept: "application/json" },
   });
 
-  if (!response.ok) {
-    const text = await response.text().catch(function () {
-      return "";
-    });
-    throw new Error(`Sanity query failed: ${response.status} ${text}`);
+  const text = await response.text();
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch (_error) {
+    payload = null;
   }
 
-  const payload = await response.json();
-  return payload && "result" in payload ? payload.result : payload;
+  if (!response.ok) {
+    const message =
+      payload && payload.error ? payload.error : `Public content API failed: ${response.status}`;
+    throw new Error(message);
+  }
+
+  return payload;
 }
 
 export async function fetchPublicTherapists(options) {
@@ -554,12 +449,8 @@ export async function fetchPublicTherapists(options) {
   }
 
   try {
-    const fetchPromise = fetchFromSanity(
-      `*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"] | order(name asc) ${publicTherapistProjection}`,
-      null,
-      { fresh },
-    ).then(function (docs) {
-      const normalized = docs.map(normalizeTherapist);
+    const fetchPromise = fetchPublicContentJson("/therapists", { fresh }).then(function (docs) {
+      const normalized = Array.isArray(docs) ? docs.map(normalizeTherapist) : [];
       if (!fresh) {
         writePublicTherapistsCache(normalized);
       }
@@ -595,53 +486,15 @@ export async function fetchFoundingSpotsRemaining() {
     return { cap: FOUNDING_SLOT_CAP, claimed: 0, remaining: FOUNDING_SLOT_CAP };
   }
   try {
-    const result = await fetchFromSanity(
-      `count(*[_type == "therapistSubscription" && tier == "founding" && status in ["trialing", "active"]])`,
-    );
-    const claimed = Number.isFinite(result) ? result : Number(result) || 0;
-    const remaining = Math.max(0, FOUNDING_SLOT_CAP - claimed);
-    return { cap: FOUNDING_SLOT_CAP, claimed, remaining };
+    const result = await fetchPublicContentJson("/founding-spots");
+    return {
+      cap: Number(result && result.cap) || FOUNDING_SLOT_CAP,
+      claimed: Number(result && result.claimed) || 0,
+      remaining: Number(result && result.remaining) || FOUNDING_SLOT_CAP,
+    };
   } catch (error) {
-    console.error("Failed to load founding spot count from Sanity.", error);
+    console.error("Failed to load founding spot count from public content API.", error);
     return { cap: FOUNDING_SLOT_CAP, claimed: 0, remaining: FOUNDING_SLOT_CAP };
-  }
-}
-
-// Admin-only fetch that ignores listingActive/status so the candidate compare
-// modal can still show a therapist that's in draft, paused, or archived state.
-export async function fetchAdminTherapistById(id) {
-  if (!cmsEnabled || !id) {
-    return null;
-  }
-  try {
-    const doc = await fetchFromSanity(
-      `*[_id == $id][0] ${therapistProjection}`,
-      { id: String(id) },
-      { fresh: true },
-    );
-    if (!doc) return null;
-    return normalizeTherapist(doc);
-  } catch (error) {
-    console.error("Failed to load admin therapist by id from Sanity.", error);
-    return null;
-  }
-}
-
-export async function fetchAdminTherapistBySlug(slug) {
-  if (!cmsEnabled || !slug) {
-    return null;
-  }
-  try {
-    const doc = await fetchFromSanity(
-      `*[_type == "therapist" && slug.current == $slug][0] ${therapistProjection}`,
-      { slug: String(slug) },
-      { fresh: true },
-    );
-    if (!doc) return null;
-    return normalizeTherapist(doc);
-  } catch (error) {
-    console.error("Failed to load admin therapist by slug from Sanity.", error);
-    return null;
   }
 }
 
@@ -651,46 +504,23 @@ export async function fetchPublicTherapistBySlug(slug) {
   }
 
   try {
-    const doc = await fetchFromSanity(
-      `*[_type == "therapist" && slug.current == $slug && listingActive == true && status == "active" && visibilityIntent == "listed"][0] ${publicTherapistProjection}`,
-      { slug: slug },
-    );
+    const doc = await fetchPublicContentJson(`/therapists/${encodeURIComponent(slug || "")}`);
     setCmsState("sanity", null);
     if (!doc) {
       return getTherapistBySlug(slug);
     }
-    // Pull the subscription document for this therapist so the page
-    // renderer can gate enhanced-profile treatment (e.g. full-bio
-    // presentation) on an active paid subscription. We use the
-    // deterministic subscription id to avoid a scanning query.
-    const subscriptionId = `therapistSubscription-${String(slug || "")
-      .trim()
-      .toLowerCase()}`;
-    let subscription = null;
-    try {
-      subscription = await fetchFromSanity(`*[_id == $id][0]{_id, plan, status}`, {
-        id: subscriptionId,
-      });
-    } catch (_error) {
-      // Subscription lookup is optional — if it fails, fall back to
-      // treating the therapist as non-paid. Better to render the
-      // standard collapsed bio than to fail the whole profile load.
-      subscription = null;
-    }
     const normalized = normalizeTherapist(doc);
-    normalized.has_paid_subscription = hasActiveFeatured(subscription);
     return normalized;
   } catch (error) {
-    console.error("Failed to load therapist profile from Sanity.", error);
+    console.error("Failed to load therapist profile from public content API.", error);
     setCmsState("error", error);
     return getTherapistBySlug(slug);
   }
 }
 
 export async function fetchHomePageContent() {
-  const therapists = await fetchPublicTherapists();
-
   if (!cmsEnabled) {
+    const therapists = await fetchPublicTherapists();
     setCmsState("seed", null);
     return {
       therapists: therapists,
@@ -701,88 +531,25 @@ export async function fetchHomePageContent() {
   }
 
   try {
-    const result = await fetchFromSanity(`{
-      "homePage": *[_type == "homePage"][0]{
-        heroBadge,
-        heroTitle,
-        heroDescription,
-        searchLabel,
-        searchPlaceholder,
-        locationLabel,
-        locationPlaceholder,
-        searchButtonLabel,
-        sections[]{
-          _type,
-          sectionKey,
-          eyebrow,
-          title,
-          description,
-          cards[]{
-            icon,
-            stepLabel,
-            title,
-            description
-          },
-          buttonLabel,
-          buttonUrl,
-          therapists[]->${publicTherapistProjection},
-          items[]{
-            stars,
-            quote,
-            author,
-            role
-          },
-          primaryLabel,
-          primaryUrl,
-          secondaryLabel,
-          secondaryUrl
-        },
-        featuredEyebrow,
-        featuredTitle,
-        featuredDescription,
-        featuredButtonLabel,
-        featuredButtonUrl,
-        whyEyebrow,
-        whyTitle,
-        whyDescription,
-        whyCards,
-        stepsEyebrow,
-        stepsTitle,
-        stepsCards,
-        testimonialsEyebrow,
-        testimonialsTitle,
-        testimonials,
-        ctaTitle,
-        ctaDescription,
-        ctaPrimaryLabel,
-        ctaPrimaryUrl,
-        ctaSecondaryLabel,
-        ctaSecondaryUrl
-      },
-      "siteSettings": *[_type == "siteSettings"][0]{
-        siteTitle,
-        supportEmail,
-        browseLabel,
-        therapistCtaLabel,
-        therapistCtaUrl,
-        footerTagline
-      }
-    }`);
+    const result = await fetchPublicContentJson("/home");
+    const therapists =
+      result && Array.isArray(result.therapists)
+        ? result.therapists.map(normalizeTherapist)
+        : getTherapists();
 
-    const doc = result && result.homePage ? result.homePage : null;
-    const siteSettings = normalizeSiteSettings(
-      result && result.siteSettings ? result.siteSettings : null,
-    );
-
+    setCmsState("sanity", null);
     return {
       therapists: therapists,
-      stats: deriveStats(therapists),
-      homePage: doc,
-      siteSettings: siteSettings,
+      stats: result && result.stats ? result.stats : deriveStats(therapists),
+      homePage: result && result.homePage ? result.homePage : null,
+      siteSettings: normalizeSiteSettings(
+        result && result.siteSettings ? result.siteSettings : null,
+      ),
     };
   } catch (error) {
-    console.error("Failed to load homepage content from Sanity.", error);
+    console.error("Failed to load homepage content from public content API.", error);
     setCmsState("error", error);
+    const therapists = await fetchPublicTherapists();
     return {
       therapists: therapists,
       stats: deriveStats(therapists),
@@ -805,47 +572,7 @@ export async function fetchDirectoryPageContent() {
   }
 
   try {
-    const result = await fetchFromSanity(`{
-      "therapists": *[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"] | order(name asc) ${directoryTherapistProjection},
-      "directoryPage": *[_type == "directoryPage"][0]{
-        heroTitle,
-        heroDescription,
-        searchPanelTitle,
-        searchLabel,
-        searchPlaceholder,
-        locationPanelTitle,
-        stateLabel,
-        stateAllLabel,
-        cityLabel,
-        cityPlaceholder,
-        specialtyPanelTitle,
-        specialtyLabel,
-        specialtyAllLabel,
-        insurancePanelTitle,
-        insuranceLabel,
-        insuranceAllLabel,
-        optionsPanelTitle,
-        telehealthLabel,
-        inPersonLabel,
-        acceptingLabel,
-        applyButtonLabel,
-        resetButtonLabel,
-        resultsSuffix,
-        emptyStateTitle,
-        emptyStateDescription,
-        curatedStates,
-        curatedSpecialties,
-        curatedInsurance
-      },
-      "siteSettings": *[_type == "siteSettings"][0]{
-        siteTitle,
-        supportEmail,
-        browseLabel,
-        therapistCtaLabel,
-        therapistCtaUrl,
-        footerTagline
-      }
-    }`);
+    const result = await fetchPublicContentJson("/directory");
 
     setCmsState("sanity", null);
     return {
@@ -859,7 +586,7 @@ export async function fetchDirectoryPageContent() {
       ),
     };
   } catch (error) {
-    console.error("Failed to load directory page content from Sanity.", error);
+    console.error("Failed to load directory page content from public content API.", error);
     setCmsState("error", error);
     return {
       therapists: seededTherapists,
@@ -876,18 +603,11 @@ export async function fetchPublicSiteSettings() {
   }
 
   try {
-    const doc = await fetchFromSanity(`*[_type == "siteSettings"][0]{
-      siteTitle,
-      supportEmail,
-      browseLabel,
-      therapistCtaLabel,
-      therapistCtaUrl,
-      footerTagline
-    }`);
+    const doc = await fetchPublicContentJson("/site-settings");
     setCmsState("sanity", null);
     return normalizeSiteSettings(doc || null);
   } catch (error) {
-    console.error("Failed to load site settings from Sanity.", error);
+    console.error("Failed to load site settings from public content API.", error);
     setCmsState("error", error);
     return null;
   }

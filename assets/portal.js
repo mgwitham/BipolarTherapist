@@ -18,7 +18,6 @@ import {
   clearTherapistSessionToken,
   createStripeBillingPortalSession,
   createStripeFeaturedCheckoutSession,
-  devLoginAsTherapist,
   fetchPortalAnalytics,
   fetchTherapistClaimSession,
   fetchTherapistMe,
@@ -27,7 +26,6 @@ import {
   patchTherapistProfile,
   requestTherapistClaimLink,
   requestTherapistSignIn,
-  setTherapistSessionToken,
   signOutTherapistSession,
   submitTherapistPortalRequest,
 } from "./review-api.js";
@@ -4344,39 +4342,6 @@ function renderPortal(therapist, options) {
 }
 
 (async function init() {
-  // Dev-only login bypass. Triggered by ?dev_login=<email>. Calls the
-  // server's /portal/dev-login endpoint, which is guarded server-side
-  // by NODE_ENV + ALLOW_DEV_LOGIN + an email allowlist + an inactive-
-  // listing assertion. On success we install the returned session and
-  // redirect to a clean ?slug=<slug> URL.
-  //
-  // The whole block is wrapped in `if (import.meta.env.DEV)` so Vite
-  // statically replaces it with `if (false)` in production builds and
-  // tree-shakes the body out of the shipped bundle. The server-side
-  // guards are the authoritative security boundary; this wrapper is
-  // belt-and-braces so zero dev-login code ever reaches end users.
-  if (import.meta.env && import.meta.env.DEV) {
-    var devLoginEmail = new URLSearchParams(window.location.search).get("dev_login") || "";
-    if (devLoginEmail) {
-      try {
-        clearTherapistSessionToken();
-        var devResult = await devLoginAsTherapist(devLoginEmail);
-        if (devResult && devResult.therapist_session_token) {
-          setTherapistSessionToken(devResult.therapist_session_token);
-          var nextParams = new URLSearchParams();
-          if (devResult.slug) nextParams.set("slug", devResult.slug);
-          window.location.replace(
-            window.location.pathname + (nextParams.toString() ? "?" + nextParams.toString() : ""),
-          );
-          return;
-        }
-      } catch (_devLoginError) {
-        // Fall through — server returned 404 (env not allowed, allowlist
-        // miss, or inactive-listing assertion refused the match).
-      }
-    }
-  }
-
   renderStripeReturnBanner();
 
   if (token) {

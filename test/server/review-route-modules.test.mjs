@@ -198,6 +198,46 @@ test("read routes persist reviewer directory updates for authorized admins", asy
   ]);
 });
 
+test("read routes expose private therapist comparison data only to authorized admins", async function () {
+  const { client } = createMemoryClient({
+    "therapist-admin-lookup": {
+      _id: "therapist-admin-lookup",
+      _type: "therapist",
+      name: "Dr. Admin Lookup",
+      email: "public@example.com",
+      claimedByEmail: "owner@example.com",
+      notes: "Internal note",
+      auditLog: [{ message: "private audit" }],
+      slug: { current: "dr-admin-lookup" },
+      listingActive: false,
+      status: "paused",
+      visibilityIntent: "hidden",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const unauthorized = await runHandlerRequest(handler, {
+    headers: { host: "localhost:8787" },
+    method: "GET",
+    url: "/therapists/therapist-admin-lookup/admin",
+  });
+  assert.equal(unauthorized.statusCode, 401);
+
+  const sessionToken = await loginAsAdmin(handler);
+  const authorized = await runHandlerRequest(handler, {
+    headers: {
+      authorization: `Bearer ${sessionToken}`,
+      host: "localhost:8787",
+    },
+    method: "GET",
+    url: "/therapists/therapist-admin-lookup/admin",
+  });
+
+  assert.equal(authorized.statusCode, 200);
+  assert.equal(authorized.payload.claimed_by_email, "owner@example.com");
+  assert.deepEqual(authorized.payload.audit_log, [{ message: "private audit" }]);
+});
+
 test("application routes reject duplicate therapist submissions with conflict details", async function () {
   const response = createResponseCapture();
 
