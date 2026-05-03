@@ -83,7 +83,6 @@ export function getReviewApiConfig() {
       studioEnv.SANITY_STUDIO_DATASET,
     apiVersion: process.env.SANITY_API_VERSION || rootEnv.VITE_SANITY_API_VERSION || API_VERSION,
     token: process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || "",
-    adminKey: process.env.REVIEW_API_ADMIN_KEY || rootEnv.REVIEW_API_ADMIN_KEY || "",
     adminUsername: process.env.REVIEW_API_ADMIN_USERNAME || rootEnv.REVIEW_API_ADMIN_USERNAME || "",
     adminPassword: process.env.REVIEW_API_ADMIN_PASSWORD || rootEnv.REVIEW_API_ADMIN_PASSWORD || "",
     explicitSessionSecret:
@@ -104,10 +103,6 @@ export function getReviewApiConfig() {
       process.env.REVIEW_API_LOGIN_MAX_ATTEMPTS ||
         rootEnv.REVIEW_API_LOGIN_MAX_ATTEMPTS ||
         DEFAULT_LOGIN_MAX_ATTEMPTS,
-    ),
-    allowLegacyKey: parseBooleanEnv(
-      process.env.REVIEW_API_ALLOW_LEGACY_KEY || rootEnv.REVIEW_API_ALLOW_LEGACY_KEY,
-      false,
     ),
     // Dev-only login bypass flag. Read through this parser (not just
     // process.env) so the project's .env pattern works the same way the
@@ -161,21 +156,20 @@ export function getReviewApiConfig() {
       "https://www.bipolartherapyhub.com",
   };
 
-  config.sessionSecret =
-    config.explicitSessionSecret || config.adminPassword || config.adminKey || "";
+  config.sessionSecret = config.explicitSessionSecret || config.adminPassword || "";
 
   if (!config.projectId || !config.dataset || !config.token) {
     throw new Error("Missing Sanity config or SANITY_API_TOKEN for review API.");
   }
 
-  if (!config.adminKey && !(config.adminUsername && config.adminPassword)) {
+  if (!(config.adminUsername && config.adminPassword)) {
     throw new Error(
-      "Missing admin auth config for review API. Set REVIEW_API_ADMIN_KEY or REVIEW_API_ADMIN_USERNAME/REVIEW_API_ADMIN_PASSWORD.",
+      "Missing admin auth config for review API. Set REVIEW_API_ADMIN_USERNAME and REVIEW_API_ADMIN_PASSWORD.",
     );
   }
 
   if (!config.sessionSecret) {
-    throw new Error("Missing REVIEW_API_SESSION_SECRET or admin password/key to sign sessions.");
+    throw new Error("Missing REVIEW_API_SESSION_SECRET or admin password to sign sessions.");
   }
 
   if (process.env.NODE_ENV === "production" && !config.explicitSessionSecret) {

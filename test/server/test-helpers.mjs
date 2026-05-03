@@ -414,8 +414,6 @@ export function createTestApiConfig() {
     token: "",
     adminUsername: "architect",
     adminPassword: "secret-pass",
-    allowLegacyKey: false,
-    adminKey: "",
     sessionTtlMs: 60000,
     allowedOrigins: [],
     sessionSecret: "test-secret",

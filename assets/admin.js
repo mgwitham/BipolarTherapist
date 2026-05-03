@@ -7925,7 +7925,7 @@ async function loadData() {
   }
 }
 
-const adminPasswordField = document.getElementById("adminKey");
+const adminPasswordField = document.getElementById("adminPassword");
 const adminPasswordToggle = document.getElementById("adminPasswordToggle");
 const adminUsernameField = document.getElementById("adminUsername");
 const adminAuthError = document.getElementById("authError");

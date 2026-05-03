@@ -702,11 +702,9 @@ export async function handleAuthAndPortalRoutes(context) {
     const username = String(body.username || "").trim();
     const password = String(body.password || "");
     const usingUserPass = config.adminUsername && config.adminPassword;
-    const usingLegacyKey = config.allowLegacyKey && config.adminKey;
 
     const valid =
-      (usingUserPass && username === config.adminUsername && password === config.adminPassword) ||
-      (usingLegacyKey && password === config.adminKey);
+      usingUserPass && username === config.adminUsername && password === config.adminPassword;
 
     if (!valid) {
       recordFailedLogin(request, config);
@@ -716,9 +714,9 @@ export async function handleAuthAndPortalRoutes(context) {
 
     clearFailedLogins(request);
     const sessionToken = createSignedSession(config, {
-      username: usingUserPass ? username || config.adminUsername : "legacy-admin-key",
+      username: username || config.adminUsername,
     });
-    const actorId = usingUserPass ? username || config.adminUsername : "legacy-admin-key";
+    const actorId = username || config.adminUsername;
     setSessionCookie(ADMIN_SESSION_COOKIE, sessionToken, Number(config.sessionTtlMs) / 1000);
     sendJson(
       response,
@@ -727,7 +725,7 @@ export async function handleAuthAndPortalRoutes(context) {
         ok: true,
         actorId,
         actorName: actorId,
-        authMode: usingUserPass ? "password" : "legacy-key",
+        authMode: "password",
       },
       origin,
       config,
@@ -772,9 +770,8 @@ export async function handleAuthAndPortalRoutes(context) {
       200,
       {
         ok: true,
-        authMode: config.adminUsername && config.adminPassword ? "password" : "legacy-key",
+        authMode: "password",
         sessionTtlMs: config.sessionTtlMs,
-        legacyKeyEnabled: config.allowLegacyKey && Boolean(config.adminKey),
         securityWarnings: getSecurityWarnings(config),
       },
       origin,
