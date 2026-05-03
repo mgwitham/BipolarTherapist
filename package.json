@@ -16,6 +16,7 @@
     "cms:dev": "npm --prefix studio run dev",
     "cms:build": "npm --prefix studio run build",
     "cms:snapshot:emails": "node scripts/generate-email-snapshots.mjs",
+    "dev:cleanup": "node scripts/dev-cleanup-test-docs.mjs",
     "cms:check:therapists": "node scripts/check-therapist-import-readiness.mjs",
     "cms:check:therapists:strict": "node scripts/check-therapist-import-readiness.mjs --max-strong-warnings=0",
     "cms:check:therapists:write": "node scripts/check-therapist-import-readiness.mjs --write-queue=data/import/generated-import-warning-queue.csv",

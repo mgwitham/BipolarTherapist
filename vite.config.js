@@ -9,6 +9,12 @@ export default defineConfig({
   server: {
     host: "127.0.0.1",
     port: 5200,
+    proxy: {
+      "/api/review": {
+        target: "http://localhost:8787",
+        changeOrigin: true,
+      },
+    },
     // Serve therapist.html for /therapists/:slug paths in dev (prod uses the SSR function)
     fs: { strict: true },
   },

@@ -18,9 +18,12 @@ const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 // Function approach).
 const SUBMIT_RATE_KEY = "bth_intake_submissions_v1";
 const SUBMIT_RATE_WINDOW_MS = 10 * 60 * 1000;
-const SUBMIT_RATE_MAX = 3;
+const SUBMIT_RATE_MAX = 10;
 
 function checkSubmitRateLimit() {
+  if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") {
+    return true;
+  }
   try {
     const store = window.sessionStorage;
     const raw = store.getItem(SUBMIT_RATE_KEY);
@@ -309,12 +312,16 @@ async function submitIntake(form, status) {
     return;
   }
 
+  const zipTable = await loadZipTable();
+  const city = (zipTable && zipTable[zip] && zipTable[zip].city) || "";
+
   const payload = {
     name: fullName,
     email,
     license_number: licenseNumber,
     license_state: "CA",
     state: "CA",
+    city,
     zip,
     treats_bipolar: true,
     intake_source: "signup_short_form",
@@ -382,15 +389,16 @@ async function submitIntake(form, status) {
         trackFunnelEvent("signup_duplicate_redirect_to_claim", {
           duplicate_slug: data.duplicate_slug,
         });
-        setStatus(
-          status,
-          "Looks like you're already listed. Taking you to claim your profile...",
-          "success",
-        );
         const target = "/claim?slug=" + encodeURIComponent(data.duplicate_slug);
-        window.setTimeout(function () {
-          window.location.href = target;
-        }, 900);
+        const card = document.getElementById("newListingDuplicateCard");
+        const nameEl = document.getElementById("newListingDuplicateName");
+        const ctaEl = document.getElementById("newListingDuplicateCta");
+        if (nameEl) nameEl.textContent = data.duplicate_name || "your profile";
+        if (ctaEl) ctaEl.href = target;
+        if (card) {
+          card.hidden = false;
+          card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
         return;
       }
       const msg =
