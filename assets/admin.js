@@ -106,6 +106,7 @@ import {
 } from "./admin-candidate-edit.js";
 import { initAdminProfileSearch } from "./admin-profile-search.js";
 import { bindResolveDuplicate, openResolveDuplicate } from "./admin-duplicate-resolve.js";
+import { normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
 
 if (typeof document !== "undefined" && document.documentElement) {
   document.documentElement.setAttribute("data-admin-boot", "script-loaded");
@@ -1286,11 +1287,36 @@ function getFieldTrustValue(entry, camelKey, snakeKey) {
 
 function getFieldTrustEntries(item) {
   const fieldTrust = item && item.field_trust_meta ? item.field_trust_meta : {};
+  const fieldReviewStates = normalizeFieldReviewStates(item && item.field_review_states, {
+    keyStyle: "snake_case",
+  });
+  const editorialReviewedAt = item && item.source_reviewed_at ? item.source_reviewed_at : "";
+  const therapistConfirmedAt =
+    item && item.therapist_reported_confirmed_at ? item.therapist_reported_confirmed_at : "";
   return FIELD_TRUST_META_KEYS.map(function (key) {
+    const metaFromPayload = fieldTrust[key] || null;
+    const reviewState = fieldReviewStates[key] || "unknown";
+    const derivedMeta = {
+      reviewState: reviewState,
+      confidenceScore:
+        reviewState === "editorially_verified"
+          ? 90
+          : reviewState === "therapist_confirmed"
+            ? 70
+            : reviewState === "needs_reconfirmation"
+              ? 40
+              : 0,
+      verifiedAt:
+        reviewState === "editorially_verified"
+          ? editorialReviewedAt
+          : reviewState === "therapist_confirmed"
+            ? therapistConfirmedAt
+            : "",
+    };
     return {
       key: key,
       label: formatFieldLabel(key),
-      meta: fieldTrust[key] || null,
+      meta: metaFromPayload || derivedMeta,
     };
   });
 }
