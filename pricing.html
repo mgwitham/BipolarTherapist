@@ -368,67 +368,6 @@
         margin: 0 auto 52px;
       }
 
-      /* Billing toggle */
-      .billing-toggle-row {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        gap: 0.75rem;
-        margin-bottom: 40px;
-      }
-      .billing-lbl {
-        font-size: 14px;
-        color: var(--slate-500);
-        font-weight: 400;
-      }
-      .billing-lbl.active {
-        color: var(--slate-900);
-        font-weight: 500;
-      }
-      .billing-annual-lbl {
-        display: flex;
-        align-items: center;
-        gap: 0.4rem;
-      }
-      .save-badge {
-        background: var(--teal-100);
-        color: var(--teal-700);
-        font-size: 11px;
-        font-weight: 600;
-        padding: 0.15rem 0.55rem;
-        border-radius: 999px;
-      }
-      #tog {
-        position: relative;
-        width: 44px;
-        height: 24px;
-        background: var(--slate-200);
-        border-radius: 999px;
-        border: none;
-        cursor: pointer;
-        padding: 0;
-        transition: background 0.2s;
-        flex-shrink: 0;
-      }
-      #tog.on {
-        background: var(--teal-600);
-      }
-      #tog::after {
-        content: "";
-        position: absolute;
-        top: 3px;
-        left: 3px;
-        width: 18px;
-        height: 18px;
-        border-radius: 999px;
-        background: #fff;
-        transition: transform 0.2s;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
-      }
-      #tog.on::after {
-        transform: translateX(20px);
-      }
-
       /* Cards grid */
       .pricing-cards-grid {
         display: grid;
@@ -1120,9 +1059,6 @@
           flex-direction: column;
           gap: 8px;
         }
-        .billing-toggle-row {
-          flex-wrap: wrap;
-        }
       }
     </style>
   </head>
@@ -1189,21 +1125,6 @@
             cost. Add analytics whenever you want to understand what's already happening around your
             listing.
           </p>
-        </div>
-
-        <!-- Billing toggle -->
-        <div class="billing-toggle-row" role="group" aria-label="Billing frequency">
-          <span class="billing-lbl active" id="lbl-mo">Monthly</span>
-          <button
-            id="tog"
-            type="button"
-            aria-pressed="false"
-            aria-label="Toggle annual billing"
-          ></button>
-          <span class="billing-annual-lbl">
-            <span class="billing-lbl" id="lbl-yr">Annual</span>
-            <span class="save-badge">Save 2 months</span>
-          </span>
         </div>
 
         <!-- Cards -->
@@ -1299,10 +1220,9 @@
               <p class="p-card-kicker">Visibility analytics</p>
               <p class="p-card-name">Paid</p>
               <div class="p-card-price-row">
-                <span class="p-card-price-n" id="price-n">$19</span>
-                <span class="p-card-price-per" id="price-per">/ month</span>
+                <span class="p-card-price-n">$19</span>
+                <span class="p-card-price-per">/ month</span>
               </div>
-              <span class="p-card-price-sub" id="price-sub"></span>
               <!-- prettier-ignore -->
               <p class="p-card-note" id="price-note">Start with 14 days free. Card required to start. No charge until day 15. Cancel anytime from your dashboard
               before billing begins.</p>
@@ -1756,13 +1676,6 @@
               clinicians finish in under two minutes. No card needed for the free tier.
             </p>
           </div>
-          <div class="faq-item">
-            <p class="faq-q">Can I switch between monthly and annual?</p>
-            <p class="faq-a">
-              Yes — any time from your dashboard. If you switch to annual mid-cycle we'll prorate
-              the difference. Annual saves you the equivalent of two months per year.
-            </p>
-          </div>
         </div>
       </section>
 
@@ -1800,44 +1713,8 @@
     </main>
 
     <footer class="site-mini-footer">
-      <nav aria-label="Footer navigation">
-        <a href="/signup">List Your Practice</a> · <a href="/portal">Sign In</a> ·
-        <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
-        <a href="mailto:support@bipolartherapyhub.com">Contact</a>
-      </nav>
+      <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
+      <a href="mailto:support@bipolartherapyhub.com">Contact</a>
     </footer>
-
-    <script>
-      (function () {
-        var tog = document.getElementById("tog");
-        var priceN = document.getElementById("price-n");
-        var pricePer = document.getElementById("price-per");
-        var priceSub = document.getElementById("price-sub");
-        var priceNote = document.getElementById("price-note");
-        var lblMo = document.getElementById("lbl-mo");
-        var lblYr = document.getElementById("lbl-yr");
-        var annual = false;
-
-        tog.addEventListener("click", function () {
-          annual = !annual;
-          tog.classList.toggle("on", annual);
-          tog.setAttribute("aria-pressed", annual ? "true" : "false");
-          lblMo.classList.toggle("active", !annual);
-          lblYr.classList.toggle("active", annual);
-
-          if (annual) {
-            priceN.textContent = "$16";
-            pricePer.textContent = "/ month";
-            priceSub.textContent = "billed $190/yr";
-            priceNote.innerHTML = "<strong>You save $38/year.</strong> No charge until day 15.";
-          } else {
-            priceN.textContent = "$19";
-            pricePer.textContent = "/ month";
-            priceSub.textContent = "";
-            priceNote.innerHTML = "<strong>No charge until day 15.</strong> Cancel anytime.";
-          }
-        });
-      })();
-    </script>
   </body>
 </html>
