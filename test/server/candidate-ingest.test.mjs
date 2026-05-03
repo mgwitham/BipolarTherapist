@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createReviewApiHandler } from "../../server/review-handler.mjs";
-import { createMemoryClient, createTestApiConfig, runHandlerRequest } from "./test-helpers.mjs";
+import { ADMIN_SESSION_COOKIE } from "../../server/review-http-auth.mjs";
+import {
+  createMemoryClient,
+  createTestApiConfig,
+  readSetCookieHeader,
+  runHandlerRequest,
+} from "./test-helpers.mjs";
 
 async function loginAsAdmin(handler) {
   const response = await runHandlerRequest(handler, {
@@ -12,15 +18,18 @@ async function loginAsAdmin(handler) {
     url: "/auth/login",
   });
   assert.equal(response.statusCode, 200);
-  return response.payload.sessionToken;
+  const cookie = readSetCookieHeader(response, ADMIN_SESSION_COOKIE);
+  assert.ok(cookie);
+  assert.equal(response.payload.sessionToken, undefined);
+  return cookie;
 }
 
-function ingest(handler, token, body) {
+function ingest(handler, sessionCookie, body) {
   return runHandlerRequest(handler, {
     body,
     headers: {
       host: "localhost:8787",
-      authorization: `Bearer ${token}`,
+      cookie: sessionCookie,
     },
     method: "POST",
     url: "/candidates/ingest",

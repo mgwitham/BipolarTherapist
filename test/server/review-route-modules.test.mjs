@@ -15,6 +15,7 @@ import {
   createSendJson,
   createTestApiConfig,
   createTransactionSpy,
+  readSetCookieHeader,
   runHandlerRequest,
 } from "./test-helpers.mjs";
 
@@ -32,8 +33,10 @@ async function loginAsAdmin(handler) {
   });
 
   assert.equal(response.statusCode, 200);
-  assert.equal(typeof response.payload.sessionToken, "string");
-  return response.payload.sessionToken;
+  const cookie = readSetCookieHeader(response, ADMIN_SESSION_COOKIE);
+  assert.ok(cookie);
+  assert.equal(response.payload.sessionToken, undefined);
+  return cookie;
 }
 
 test("auth routes create a signed session on valid login", async function () {
@@ -100,7 +103,6 @@ test("auth routes create a signed session on valid login", async function () {
   assert.equal(response.statusCode, 200);
   assert.deepEqual(response.payload, {
     ok: true,
-    sessionToken: "signed-session-token",
     actorId: "architect",
     actorName: "architect",
     authMode: "password",
@@ -145,7 +147,7 @@ test("read routes return a shared reviewer roster for authorized admins", async 
   const sessionToken = await loginAsAdmin(handler);
   const response = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "GET",
@@ -179,7 +181,7 @@ test("read routes persist reviewer directory updates for authorized admins", asy
       ],
     },
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "PATCH",
@@ -227,7 +229,7 @@ test("read routes expose private therapist comparison data only to authorized ad
   const sessionToken = await loginAsAdmin(handler);
   const authorized = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "GET",
@@ -804,7 +806,7 @@ test("top-level review handler dispatches auth routes before falling through", a
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.payload.ok, true);
-  assert.equal(typeof response.payload.sessionToken, "string");
+  assert.equal(response.payload.sessionToken, undefined);
   assert.match(String(response.headers["Set-Cookie"] || ""), /bt_admin_session=/);
   assert.match(String(response.headers["Set-Cookie"] || ""), /HttpOnly/);
   assert.equal(response.payload.authMode, "password");
@@ -827,7 +829,7 @@ test("top-level review handler accepts admin auth from the HttpOnly session cook
   });
 
   assert.equal(loginResponse.statusCode, 200);
-  const cookieValue = String(loginResponse.headers["Set-Cookie"] || "").split(";")[0];
+  const cookieValue = readSetCookieHeader(loginResponse, ADMIN_SESSION_COOKIE);
   assert.match(cookieValue, new RegExp(`^${ADMIN_SESSION_COOKIE}=`));
 
   const sessionResponse = await runHandlerRequest(handler, {
@@ -859,8 +861,8 @@ test("top-level review handler supports authenticated portal request creation an
     url: "/auth/login",
   });
 
-  const sessionToken = loginResponse.payload.sessionToken;
-  assert.equal(typeof sessionToken, "string");
+  const sessionCookie = readSetCookieHeader(loginResponse, ADMIN_SESSION_COOKIE);
+  assert.ok(sessionCookie);
 
   const createResponse = await runHandlerRequest(handler, {
     body: {
@@ -883,7 +885,7 @@ test("top-level review handler supports authenticated portal request creation an
 
   const listResponse = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionCookie,
       host: "localhost:8787",
     },
     method: "GET",
@@ -959,7 +961,7 @@ test("top-level review handler returns normalized candidate lists for authorized
 
   const response = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${loginResponse.payload.sessionToken}`,
+      cookie: readSetCookieHeader(loginResponse, ADMIN_SESSION_COOKIE),
       host: "localhost:8787",
     },
     method: "GET",
@@ -998,7 +1000,7 @@ test("top-level review handler returns normalized review events for authorized a
 
   const response = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "GET",
@@ -1049,7 +1051,7 @@ test("top-level review handler exports filtered review events as csv for authori
 
   const response = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "GET",
@@ -1097,7 +1099,7 @@ test("top-level review handler supports authenticated application approval", asy
   const approveResponse = await runHandlerRequest(handler, {
     body: {},
     headers: {
-      authorization: `Bearer ${loginResponse.payload.sessionToken}`,
+      cookie: readSetCookieHeader(loginResponse, ADMIN_SESSION_COOKIE),
       host: "localhost:8787",
     },
     method: "POST",
@@ -1232,7 +1234,7 @@ test("top-level review handler supports authenticated candidate publish decision
       notes: "Ready for launch",
     },
     headers: {
-      authorization: `Bearer ${loginResponse.payload.sessionToken}`,
+      cookie: readSetCookieHeader(loginResponse, ADMIN_SESSION_COOKIE),
       host: "localhost:8787",
     },
     method: "POST",
@@ -1352,7 +1354,7 @@ test("top-level review handler returns authenticated match requests and outcomes
 
   const matchRequestsResponse = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${loginResponse.payload.sessionToken}`,
+      cookie: readSetCookieHeader(loginResponse, ADMIN_SESSION_COOKIE),
       host: "localhost:8787",
     },
     method: "GET",
@@ -1360,7 +1362,7 @@ test("top-level review handler returns authenticated match requests and outcomes
   });
   const matchOutcomesResponse = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${loginResponse.payload.sessionToken}`,
+      cookie: readSetCookieHeader(loginResponse, ADMIN_SESSION_COOKIE),
       host: "localhost:8787",
     },
     method: "GET",
@@ -1407,7 +1409,7 @@ test("top-level review handler exports authenticated match analytics as csv", as
 
   const requestsExportResponse = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "GET",
@@ -1415,7 +1417,7 @@ test("top-level review handler exports authenticated match analytics as csv", as
   });
   const outcomesExportResponse = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "GET",
@@ -1456,7 +1458,7 @@ test("top-level review handler returns and exports provider observations for aut
 
   const observationsResponse = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "GET",
@@ -1464,7 +1466,7 @@ test("top-level review handler returns and exports provider observations for aut
   });
   const exportResponse = await runHandlerRequest(handler, {
     headers: {
-      authorization: `Bearer ${sessionToken}`,
+      cookie: sessionToken,
       host: "localhost:8787",
     },
     method: "GET",

@@ -8,7 +8,12 @@ import {
   THERAPIST_SESSION_COOKIE,
 } from "../../server/review-http-auth.mjs";
 import { createReviewApiHandler } from "../../server/review-handler.mjs";
-import { createMemoryClient, createTestApiConfig, runHandlerRequest } from "./test-helpers.mjs";
+import {
+  createMemoryClient,
+  createTestApiConfig,
+  readSetCookieHeader,
+  runHandlerRequest,
+} from "./test-helpers.mjs";
 
 function standardHeaders(extra) {
   return { host: "localhost:8787", ...(extra || {}) };
@@ -110,14 +115,15 @@ test("/portal/claim-accept issues a therapist session token and /portal/me retur
 
   assert.equal(acceptResponse.statusCode, 200);
   assert.equal(acceptResponse.payload.ok, true);
-  assert.equal(typeof acceptResponse.payload.therapist_session_token, "string");
+  assert.equal(acceptResponse.payload.therapist_session_token, undefined);
   assert.match(String(acceptResponse.headers["Set-Cookie"] || ""), /bt_therapist_session=/);
   assert.match(String(acceptResponse.headers["Set-Cookie"] || ""), /HttpOnly/);
 
-  const sessionToken = acceptResponse.payload.therapist_session_token;
+  const sessionCookie = readSetCookieHeader(acceptResponse, THERAPIST_SESSION_COOKIE);
+  assert.ok(sessionCookie);
 
   const meResponse = await runHandlerRequest(handler, {
-    headers: standardHeaders({ authorization: `Bearer ${sessionToken}` }),
+    headers: standardHeaders({ cookie: sessionCookie }),
     method: "GET",
     url: "/portal/me",
   });
@@ -571,11 +577,12 @@ test("POST /portal/dev-login issues a valid session when all three guards pass",
     });
     assert.equal(response.statusCode, 200);
     assert.equal(response.payload.slug, "dev-test-complete");
-    const sessionToken = response.payload.therapist_session_token;
-    assert.equal(typeof sessionToken, "string");
+    assert.equal(response.payload.therapist_session_token, undefined);
+    const sessionCookie = readSetCookieHeader(response, THERAPIST_SESSION_COOKIE);
+    assert.ok(sessionCookie);
 
     const meResponse = await runHandlerRequest(handler, {
-      headers: standardHeaders({ authorization: `Bearer ${sessionToken}` }),
+      headers: standardHeaders({ cookie: sessionCookie }),
       method: "GET",
       url: "/portal/me",
     });
