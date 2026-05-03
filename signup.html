@@ -763,6 +763,53 @@
       .new-listing-recovery-cta:hover {
         text-decoration: underline;
       }
+      .new-listing-duplicate-card[hidden] {
+        display: none;
+      }
+      .new-listing-duplicate-card {
+        padding: 1.4rem 1.25rem;
+        background: var(--white);
+        border: 1.5px solid var(--teal);
+        border-radius: 12px;
+        display: grid;
+        gap: 0.6rem;
+      }
+      .new-listing-duplicate-headline {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--navy);
+        margin: 0;
+      }
+      .new-listing-duplicate-body {
+        font-size: 0.92rem;
+        color: var(--slate);
+        margin: 0;
+        line-height: 1.55;
+      }
+      .new-listing-duplicate-cta {
+        display: block;
+        margin-top: 0.35rem;
+        padding: 0.75rem 1rem;
+        background: var(--teal-dark);
+        color: #fff;
+        font-size: 0.97rem;
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+        border-radius: 10px;
+      }
+      .new-listing-duplicate-cta:hover {
+        opacity: 0.9;
+      }
+      .new-listing-duplicate-note {
+        font-size: 0.82rem;
+        color: var(--muted);
+        text-align: center;
+        margin: 0;
+      }
+      .new-listing-duplicate-note a {
+        color: var(--muted);
+      }
 
       /* =========================
          Trust strip (boards)
@@ -1521,6 +1568,20 @@
                   <a class="new-listing-recovery-cta" id="newListingRecoveryCta" href="/claim"
                     >Claim an existing listing →</a
                   >
+                </div>
+                <div class="new-listing-duplicate-card" id="newListingDuplicateCard" hidden>
+                  <p class="new-listing-duplicate-headline">You're already listed.</p>
+                  <p class="new-listing-duplicate-body">
+                    We found a profile for <strong id="newListingDuplicateName"></strong>. Claim it
+                    to start managing your listing for free.
+                  </p>
+                  <a class="new-listing-duplicate-cta" id="newListingDuplicateCta" href="/claim"
+                    >Claim my listing →</a
+                  >
+                  <p class="new-listing-duplicate-note">
+                    Not you?
+                    <a href="/signup">Start a new listing instead.</a>
+                  </p>
                 </div>
               </form>
             </section>

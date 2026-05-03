@@ -64,7 +64,9 @@ export async function handleApplicationRoutes(context) {
     const body = await parseBody(request);
     const name = String(body.name || "").trim();
     const email = String(body.email || "").trim();
-    const licenseNumber = String(body.license_number || "").trim();
+    const licenseNumber = String(body.license_number || "")
+      .trim()
+      .replace(/\s+/g, "");
     const treatsBipolar =
       body.treats_bipolar === true || body.treats_bipolar === "true" || body.treats_bipolar === 1;
 
@@ -151,11 +153,35 @@ export async function handleApplicationRoutes(context) {
     // types in parallel and take the first verified hit. ~1-2s end to
     // end vs ~2-3 day human review the old flow had.
     let verification;
-    try {
-      verification = await verifyLicenseAcrossCaTypes(config, licenseNumber);
-    } catch (error) {
-      console.error("DCA verification threw at intake", error);
-      verification = { verified: false, error: "dca_unreachable" };
+    if (licenseNumber === DEV_SENTINEL_LICENSE) {
+      // Dev-only sentinel license bypass. Mirrors the /portal/dev-login pattern.
+      // In production: log the probe attempt and fall through to a normal 422.
+      // In dev without ALLOW_DEV_LOGIN: also reject so the sentinel never
+      // accidentally passes in a misconfigured environment.
+      if (process.env.NODE_ENV === "production") {
+        const probeIp =
+          (request.socket && request.socket.remoteAddress) ||
+          request.headers["x-forwarded-for"] ||
+          "unknown";
+        console.warn(
+          `[DEV SENTINEL] TEST-0000 submitted in production from ${probeIp} at ${new Date().toISOString()}`,
+        );
+        verification = { verified: false, error: "not_found" };
+      } else if (!isDevBypassEnabled(config)) {
+        verification = { verified: false, error: "not_found" };
+      } else {
+        console.warn(
+          `[DEV BYPASS] Sentinel license TEST-0000 used at intake — skipping DCA verification`,
+        );
+        verification = buildSentinelVerification(name);
+      }
+    } else {
+      try {
+        verification = await verifyLicenseAcrossCaTypes(config, licenseNumber);
+      } catch (error) {
+        console.error("DCA verification threw at intake", error);
+        verification = { verified: false, error: "dca_unreachable" };
+      }
     }
     if (!verification.verified) {
       sendJson(
@@ -799,6 +825,34 @@ export async function handleApplicationRoutes(context) {
   }
 
   return false;
+}
+
+// Sentinel license for dev-only bypass. Matches what the intake handler checks.
+const DEV_SENTINEL_LICENSE = "TEST-0000";
+
+function isDevBypassEnabled(config) {
+  if (process.env.NODE_ENV !== "development") return false;
+  if (config && config.allowDevLogin === true) return true;
+  return process.env.ALLOW_DEV_LOGIN === "true";
+}
+
+// Builds a fake passing verification result whose licenseeName is derived
+// from the submitted name so the name-match gate passes automatically.
+function buildSentinelVerification(fullName) {
+  const parts = String(fullName || "Dev Tester")
+    .trim()
+    .split(/\s+/);
+  return {
+    verified: true,
+    isActive: true,
+    hasDiscipline: false,
+    licenseeName: {
+      firstName: parts[0] || "Dev",
+      lastName: parts.slice(1).join(" ") || "Tester",
+    },
+    licensureVerification: { primaryStatus: "ACTIVE", licenseType: "DEV_TEST" },
+    licenseTypeLabel: "DEV_TEST",
+  };
 }
 
 async function runDcaVerification(client, config, application, body) {

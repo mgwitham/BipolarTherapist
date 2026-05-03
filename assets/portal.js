@@ -3648,7 +3648,7 @@ function renderPortal(therapist, options) {
       '<div style="flex:1">' +
       '<p class="portal-eyebrow" style="color:#155f70;margin:0 0 0.3rem">Listing created</p>' +
       '<h2 style="margin:0 0 0.4rem;font-size:1.1rem">Add a bio to go live</h2>' +
-      '<p class="portal-subtle" style="margin:0 0 0.75rem">Your listing is already searchable. Featured placement puts you first in "bipolar therapist [city]" results and unlocks patient-match analytics when traffic data is available.</p>' +
+      '<p class="portal-subtle" style="margin:0 0 0.75rem">Know how patients find you and how they reach out. Visibility analytics shows your source breakdown, contact clicks, and 12-week trends, sent to your inbox every Monday.</p>' +
       '<button class="btn-primary" type="button" id="portalWelcomeUpsellCta">Start 14-day free trial →</button>' +
       "</div>" +
       '<button type="button" id="portalWelcomeUpsellDismiss" aria-label="Dismiss" style="background:none;border:none;cursor:pointer;color:#6b8290;font-size:1.3rem;line-height:1;padding:0;flex-shrink:0">×</button>' +
