@@ -1,3 +1,12 @@
+import {
+  renderRoundAvatar,
+  renderSpecialtyPills,
+  getCardLocationLabel,
+  getFeeLabel,
+  getInsuranceLabel,
+  renderAvailabilityBadge,
+} from "./card-content.js";
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -5,6 +14,57 @@ function escapeHtml(value) {
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#39;");
+}
+
+var DIR_REASON_GENERIC = {
+  "bipolar disorder": true,
+  "bipolar i": true,
+  "bipolar ii": true,
+  "bipolar 1": true,
+  "bipolar 2": true,
+  "mood disorder": true,
+  "mood disorders": true,
+  psychosis: true,
+};
+
+function buildDirectoryReasonLine(therapist) {
+  var t = therapist || {};
+  var years = Number(t.bipolar_years_experience || 0);
+  if (years > 0) {
+    return years + " yr" + (years === 1 ? "" : "s") + " bipolar experience";
+  }
+  var specs = Array.isArray(t.specialties) ? t.specialties : [];
+  for (var i = 0; i < specs.length; i++) {
+    var s = String(specs[i] || "").trim();
+    if (/bipolar|cycl|mixed/i.test(s) && !DIR_REASON_GENERIC[s.toLowerCase()]) {
+      return s + " specialist";
+    }
+  }
+  return "";
+}
+
+function buildDirectoryInfoRow(therapist) {
+  var t = therapist || {};
+  var parts = [];
+
+  var locLabel = getCardLocationLabel(t, {});
+  if (locLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(locLabel) + "</span>");
+
+  var feeLabel = getFeeLabel(t);
+  if (feeLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(feeLabel) + "</span>");
+
+  var availHtml = renderAvailabilityBadge(t);
+  if (availHtml) parts.push('<span class="bth-card-info-item">' + availHtml + "</span>");
+
+  var insLabel = getInsuranceLabel(t);
+  if (insLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(insLabel) + "</span>");
+
+  if (!parts.length) return "";
+  return (
+    '<div class="bth-card-info">' +
+    parts.join('<span class="bth-card-info-dot" aria-hidden="true">·</span>') +
+    "</div>"
+  );
 }
 
 function buildTherapistProfileHref(slug, source) {
@@ -241,20 +301,7 @@ export function renderBackupCardMarkup(options) {
 export function renderCardMarkup(options) {
   var model = options.model;
   var therapist = model.therapist;
-  var initials = therapist.name
-    .split(" ")
-    .map(function (part) {
-      return part.charAt(0);
-    })
-    .join("")
-    .slice(0, 2);
-  var avatar = therapist.photo_url
-    ? '<img src="' +
-      escapeHtml(therapist.photo_url) +
-      '" alt="' +
-      escapeHtml(therapist.name) +
-      '" loading="lazy" decoding="async" />'
-    : escapeHtml(initials);
+  var reasonLine = buildDirectoryReasonLine(therapist);
   var primaryAction = model.contactRoute
     ? '<a href="' +
       escapeHtml(model.contactRoute.href) +
@@ -291,18 +338,23 @@ export function renderCardMarkup(options) {
     '" aria-hidden="true"><path d="M4 2h8a1 1 0 0 1 1 1v10.5l-5-3-5 3V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
     "</button>" +
     '<div class="t-card-body">' +
-    '<div class="t-card-head"><div class="t-avatar">' +
-    avatar +
-    '</div><div class="t-info"><div class="t-name">' +
+    '<div class="t-card-head">' +
+    '<div class="t-avatar">' +
+    renderRoundAvatar(therapist, "card") +
+    "</div>" +
+    '<div class="t-info">' +
+    '<div class="t-name">' +
     escapeHtml(getTherapistDisplayName(therapist.name)) +
-    '</div><div class="t-creds">' +
+    "</div>" +
+    '<div class="t-creds">' +
     escapeHtml(therapist.credentials || "") +
     (therapist.title ? " · " + escapeHtml(therapist.title) : "") +
-    "</div></div></div>" +
-    (model.metaLine ? '<div class="t-meta-line">' + escapeHtml(model.metaLine) + "</div>" : "") +
-    (model.voiceQuote
-      ? '<p class="t-card-quote">&ldquo;' + escapeHtml(model.voiceQuote) + "&rdquo;</p>"
-      : "") +
+    "</div>" +
+    (reasonLine ? '<div class="t-reason">' + escapeHtml(reasonLine) + "</div>" : "") +
+    "</div>" +
+    "</div>" +
+    renderSpecialtyPills(therapist) +
+    buildDirectoryInfoRow(therapist) +
     '<div class="t-card-actions">' +
     primaryAction +
     "</div>" +
