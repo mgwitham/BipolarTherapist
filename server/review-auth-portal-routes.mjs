@@ -2557,7 +2557,7 @@ export async function handleAuthAndPortalRoutes(context) {
     const GENERIC_SUCCESS = {
       ok: true,
       message:
-        "If that email matches a claimed profile, we just sent a sign-in link. The link expires in 15 minutes.",
+        "If that email matches a claimed profile, we just sent a sign-in link. Valid for 24 hours.",
     };
 
     if (!requesterEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(requesterEmail)) {
