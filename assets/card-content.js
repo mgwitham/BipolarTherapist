@@ -93,11 +93,18 @@ export function renderRoundAvatar(therapist, sizeKey) {
 //     treat it. The matching engine still uses these signals — only the
 //     card display drops them.
 var GENERIC_SPECIALTIES = {
+  bipolar: true,
   "bipolar disorder": true,
   "bipolar i": true,
   "bipolar ii": true,
+  "bipolar i & ii": true,
+  "bipolar i and ii": true,
   "bipolar 1": true,
   "bipolar 2": true,
+  "bipolar 1 & 2": true,
+  "bipolar 1 and 2": true,
+  "bipolar spectrum": true,
+  "bipolar spectrum disorder": true,
   "mood disorder": true,
   "mood disorders": true,
   psychosis: true,
@@ -113,20 +120,15 @@ function getDisplaySpecialties(therapist) {
 }
 
 // Zone 1 — specialty pills. Cap at 3 visible, "+N" overflow.
-// First pill matching a bipolar-specific term gets the teal accent;
-// all remaining pills use the neutral gray style.
+// All bipolar terms are stripped before this point; every pill uses neutral gray.
 export function renderSpecialtyPills(therapist) {
   var pills = getDisplaySpecialties(therapist);
   if (!pills.length) return "";
   var visible = pills.slice(0, 3);
   var overflow = pills.length - visible.length;
-  var tealUsed = false;
   var html = visible
     .map(function (label) {
-      var isBipolar = !tealUsed && /bipolar|cycl|mixed/i.test(String(label));
-      if (isBipolar) tealUsed = true;
-      var cls = isBipolar ? "bth-pill" : "bth-pill bth-pill-neutral";
-      return '<span class="' + cls + '">' + escapeHtml(label) + "</span>";
+      return '<span class="bth-pill bth-pill-neutral">' + escapeHtml(label) + "</span>";
     })
     .join("");
   if (overflow > 0) {
