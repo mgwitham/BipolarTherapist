@@ -312,9 +312,9 @@ export function renderFallbackRecommendation(profile, entries, options) {
     settings.escapeHtml(fallback.therapist.name) +
     '</div><div class="first-contact-meta">' +
     settings.escapeHtml(settings.formatTherapistLocationLine(fallback.therapist) || "") +
-    '</div></div><a href="therapist.html?slug=' +
+    '</div></div><a href="/therapists/' +
     encodeURIComponent(fallback.therapist.slug) +
-    '" class="btn-secondary" style="width:auto" data-match-profile-link="' +
+    '/?ref=match" class="btn-secondary" style="width:auto" data-match-profile-link="' +
     settings.escapeHtml(fallback.therapist.slug) +
     '" data-profile-link-context="fallback">Review profile</a></div><div class="first-contact-body"><p><strong>Why this backup:</strong> ' +
     settings.escapeHtml(fallback.rationale) +
@@ -447,9 +447,9 @@ export function renderFirstContactRecommendation(profile, entries, options) {
     settings.escapeHtml(recommendation.therapist.name) +
     '</div><div class="first-contact-meta">' +
     settings.escapeHtml(settings.formatTherapistLocationLine(recommendation.therapist) || "") +
-    '</div></div><a href="therapist.html?slug=' +
+    '</div></div><a href="/therapists/' +
     encodeURIComponent(recommendation.therapist.slug) +
-    '" class="btn-secondary" style="width:auto" data-match-profile-link="' +
+    '/?ref=match" class="btn-secondary" style="width:auto" data-match-profile-link="' +
     settings.escapeHtml(recommendation.therapist.slug) +
     '" data-profile-link-context="first-contact">Review profile</a></div><div class="first-contact-body"><p><strong>Why this one:</strong> ' +
     settings.escapeHtml(recommendation.rationale) +
@@ -675,9 +675,9 @@ export function renderOutreachPanel(entries, options) {
             : "") +
           '<button type="button" class="btn-secondary" data-copy-entry-draft="' +
           settings.escapeHtml(therapist.slug) +
-          '">Copy script</button><a class="btn-secondary" href="therapist.html?slug=' +
+          '">Copy script</button><a class="btn-secondary" href="/therapists/' +
           encodeURIComponent(therapist.slug) +
-          '" data-match-profile-link="' +
+          '/?ref=match" data-match-profile-link="' +
           settings.escapeHtml(therapist.slug) +
           '" data-profile-link-context="outreach-card">View profile</a></div><div class="first-contact-tracker"><div class="first-contact-tracker-title">Update outcome</div><div class="first-contact-tracker-actions">' +
           settings.outreachOutcomeOptions
