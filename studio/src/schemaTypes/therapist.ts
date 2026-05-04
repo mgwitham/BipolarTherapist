@@ -47,6 +47,19 @@ export const therapistType = defineType({
       validation: (rule) => rule.required(),
     }),
     defineField({
+      name: "gender",
+      title: "Gender",
+      type: "string",
+      group: "profile",
+      options: {
+        list: [
+          { title: "Male", value: "male" },
+          { title: "Female", value: "female" },
+        ],
+        layout: "radio",
+      },
+    }),
+    defineField({
       name: "title",
       title: "Professional title",
       type: "string",

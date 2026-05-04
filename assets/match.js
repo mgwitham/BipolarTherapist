@@ -80,6 +80,9 @@ import {
   renderVoiceCascade,
   getLocationModalityLabel,
   getCostLabel,
+  getCardLocationLabel,
+  getFeeLabel,
+  getInsuranceLabel,
   renderAvailabilityBadge,
 } from "./card-content.js";
 import {
@@ -4896,64 +4899,32 @@ function buildIntakeMirrorSentence(profile) {
   return parts.join(". ") + ".";
 }
 
-function buildMatchReasonLine(therapist, profile) {
+// Generic bipolar terms too broad to use as a card reason label.
+var REASON_LINE_GENERIC = {
+  "bipolar disorder": true,
+  "bipolar i": true,
+  "bipolar ii": true,
+  "bipolar 1": true,
+  "bipolar 2": true,
+  "mood disorder": true,
+  "mood disorders": true,
+  psychosis: true,
+};
+
+function buildMatchReasonLine(therapist) {
   var t = therapist || {};
-  var parts = [];
-  // Specialty
-  if (t.bipolar_years_experience && Number(t.bipolar_years_experience) > 0) {
-    parts.push("Bipolar specialist");
-  } else if (
-    Array.isArray(t.specialties) &&
-    t.specialties.some(function (s) {
-      return /bipolar/i.test(String(s || ""));
-    })
-  ) {
-    parts.push("Bipolar focus");
-  } else if (t.credentials && /\b(MD|DO|PMHNP)\b/i.test(String(t.credentials || ""))) {
-    parts.push("Psychiatry");
+  var years = Number(t.bipolar_years_experience || 0);
+  if (years > 0) {
+    return years + " yr" + (years === 1 ? "" : "s") + " bipolar experience";
   }
-  // Location (city or distance if in-person)
-  var userZip = profile && profile.location_query ? String(profile.location_query) : "";
-  var teleSelected = Boolean(profile && profile.care_format === "Telehealth");
-  if (!teleSelected && userZip && t.zip) {
-    var dist = getZipDistance(userZip, t.zip);
-    if (Number.isFinite(dist) && dist <= 60) {
-      parts.push(Math.round(dist) + " mi away");
-    } else if (t.city) {
-      parts.push(t.city);
-    }
-  } else if (t.city) {
-    parts.push(t.city);
-  }
-  // Availability
-  if (t.accepting_new_patients === true) {
-    var wait = String(t.estimated_wait_time || "").trim();
-    if (wait && !/waitlist/i.test(wait)) {
-      parts.push(wait);
-    } else {
-      parts.push("openings available");
+  var specs = Array.isArray(t.specialties) ? t.specialties : [];
+  for (var i = 0; i < specs.length; i++) {
+    var s = String(specs[i] || "").trim();
+    if (/bipolar|cycl|mixed/i.test(s) && !REASON_LINE_GENERIC[s.toLowerCase()]) {
+      return s + " specialist";
     }
   }
-  return parts.join(" · ");
-}
-
-function renderMatchCardQuote(therapist) {
-  var t = therapist || {};
-  var claimed = t.claim_status === "claimed";
-  if (!claimed || !t.care_approach || !String(t.care_approach).trim()) return "";
-  var raw = String(t.care_approach).trim();
-  // Extract first sentence (split on ". " or end of string)
-  var sentenceEnd = raw.search(/\.\s/);
-  var sentence = sentenceEnd > 0 ? raw.slice(0, sentenceEnd + 1) : raw;
-  if (sentence.length > 200) sentence = sentence.slice(0, 197) + "…";
-  return '<blockquote class="mx-card-quote">“' + escapeHtml(sentence) + "”</blockquote>";
-}
-
-function renderMatchCardAvail(therapist) {
-  var t = therapist || {};
-  var wait = String(t.estimated_wait_time || "").trim();
-  if (!wait || /waitlist/i.test(wait) || wait.toLowerCase() === "accepting now") return "";
-  return '<p class="mx-card-avail">Next opening: ' + escapeHtml(wait) + "</p>";
+  return "";
 }
 
 function getCareFormatLabel(therapist) {
@@ -5109,15 +5080,50 @@ function renderSaveButton(slug, variant) {
   );
 }
 
+// Slots 2–5: location · fee · availability · insurance.
+// Distance is computed here so the slot renderer stays pure.
+function buildCardInfoRow(therapist) {
+  var t = therapist || {};
+  var userZip = latestProfile ? String(latestProfile.location_query || "") : "";
+  var teleSelected = Boolean(latestProfile && latestProfile.care_format === "Telehealth");
+  var distanceMiles = null;
+  if (!teleSelected && userZip && t.zip) {
+    var d = getZipDistance(userZip, t.zip);
+    if (Number.isFinite(d) && d <= 60) distanceMiles = d;
+  }
+
+  var parts = [];
+
+  var locLabel = getCardLocationLabel(t, {
+    distanceMiles: distanceMiles,
+    teleSelected: teleSelected,
+  });
+  if (locLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(locLabel) + "</span>");
+
+  var feeLabel = getFeeLabel(t);
+  if (feeLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(feeLabel) + "</span>");
+
+  var availHtml = renderAvailabilityBadge(t);
+  if (availHtml) parts.push('<span class="bth-card-info-item">' + availHtml + "</span>");
+
+  var insLabel = getInsuranceLabel(t);
+  if (insLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(insLabel) + "</span>");
+
+  if (!parts.length) return "";
+  return (
+    '<div class="bth-card-info">' +
+    parts.join('<span class="bth-card-info-dot" aria-hidden="true">·</span>') +
+    "</div>"
+  );
+}
+
 function renderLeadResultCard(entry, _backupName, options) {
   var settings = options || {};
   var therapist = entry.therapist || {};
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
   var ctaLabel = getPersonalizedCtaLabel(routeType);
-  var reasonLine = buildMatchReasonLine(therapist, latestProfile);
-  var quoteHtml = renderMatchCardQuote(therapist);
-  var availHtml = renderMatchCardAvail(therapist);
+  var reasonLine = buildMatchReasonLine(therapist);
 
   var topMatchLabel = settings.showBestBadge
     ? '<span class="mx-top-match-label">Top match for you</span>'
@@ -5141,8 +5147,8 @@ function renderLeadResultCard(entry, _backupName, options) {
     "</div>" +
     renderSaveButton(therapist.slug || "", "card") +
     "</div>" +
-    quoteHtml +
-    availHtml +
+    renderSpecialtyPills(therapist) +
+    buildCardInfoRow(therapist) +
     '<div class="bth-card-actions">' +
     (preferredRoute
       ? '<a href="' +
@@ -5171,11 +5177,7 @@ function renderSupportingResultCard(entry, _rank, options) {
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
   var ctaLabel = getPersonalizedCtaLabel(routeType);
-  var reasonLine = buildMatchReasonLine(therapist, latestProfile);
-  var quoteHtml = renderMatchCardQuote(therapist);
-  var availHtml = renderMatchCardAvail(therapist);
-  var contextLabel = settings.context === "bank" ? "bank-card" : "supporting-card";
-
+  var reasonLine = buildMatchReasonLine(therapist);
   return (
     '<article class="bth-card">' +
     '<div class="bth-card-header">' +
@@ -5193,8 +5195,8 @@ function renderSupportingResultCard(entry, _rank, options) {
     "</div>" +
     renderSaveButton(therapist.slug || "", "card") +
     "</div>" +
-    quoteHtml +
-    availHtml +
+    renderSpecialtyPills(therapist) +
+    buildCardInfoRow(therapist) +
     '<div class="bth-card-actions">' +
     (preferredRoute
       ? '<a href="' +

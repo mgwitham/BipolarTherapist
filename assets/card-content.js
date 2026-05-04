@@ -113,14 +113,20 @@ function getDisplaySpecialties(therapist) {
 }
 
 // Zone 1 — specialty pills. Cap at 3 visible, "+N" overflow.
+// First pill matching a bipolar-specific term gets the teal accent;
+// all remaining pills use the neutral gray style.
 export function renderSpecialtyPills(therapist) {
   var pills = getDisplaySpecialties(therapist);
   if (!pills.length) return "";
   var visible = pills.slice(0, 3);
   var overflow = pills.length - visible.length;
+  var tealUsed = false;
   var html = visible
     .map(function (label) {
-      return '<span class="bth-pill">' + escapeHtml(label) + "</span>";
+      var isBipolar = !tealUsed && /bipolar|cycl|mixed/i.test(String(label));
+      if (isBipolar) tealUsed = true;
+      var cls = isBipolar ? "bth-pill" : "bth-pill bth-pill-neutral";
+      return '<span class="' + cls + '">' + escapeHtml(label) + "</span>";
     })
     .join("");
   if (overflow > 0) {
@@ -136,17 +142,16 @@ function trimQuote(text, max) {
 }
 
 // Zone 2 — voice cascade. First non-empty wins. Pills already show
-// specialties, so skip the "filtered specialties" rung when pills are
+// specialties, so skip the “filtered specialties” rung when pills are
 // rendered — falling through to populations / languages / fallback gives
 // the card a second, distinct line of signal.
 export function renderVoiceCascade(therapist) {
   var t = therapist || {};
-  var claimed = t.claim_status === "claimed";
 
-  // 1. Clinician's own words
-  if (claimed && t.care_approach && String(t.care_approach).trim()) {
+  // 1. Clinician's own words (shown whenever present, regardless of source)
+  if (t.care_approach && String(t.care_approach).trim()) {
     var quote = trimQuote(t.care_approach, 220);
-    return '<p class="bth-voice bth-voice-quote">“' + escapeHtml(quote) + "”</p>";
+    return "<p class=”bth-voice bth-voice-quote”>&ldquo;" + escapeHtml(quote) + "&rdquo;</p>";
   }
 
   // 2. Populations served
@@ -259,17 +264,19 @@ export function getCostLabel(therapist) {
   return "";
 }
 
-// Availability — green dot, amber dot, or no dot per spec.
+// Availability — green / amber / red dot. Returns null when
+// accepting_new_patients is null/undefined (slot is hidden entirely).
 export function getAvailabilityState(therapist) {
   var t = therapist || {};
   if (t.accepting_new_patients === true) {
-    return { tone: "now", dot: "#0F6E56", label: "Accepting now" };
-  }
-  if (t.estimated_wait_time && String(t.estimated_wait_time).trim()) {
-    return { tone: "wait", dot: "#BA7517", label: String(t.estimated_wait_time).trim() };
+    var wait = String(t.estimated_wait_time || "").trim();
+    if (wait) {
+      return { tone: "wait", dot: "#BA7517", label: wait };
+    }
+    return { tone: "now", dot: "#0F6E56", label: "Available now" };
   }
   if (t.accepting_new_patients === false) {
-    return { tone: "full", dot: "", label: "Currently full" };
+    return { tone: "full", dot: "#C0392B", label: "Not accepting new patients" };
   }
   return null;
 }
@@ -288,4 +295,48 @@ export function renderAvailabilityBadge(therapist) {
     escapeHtml(state.label) +
     "</span>"
   );
+}
+
+// Fee label for card slot 3 — fee + sliding scale only, no insurance mixing.
+export function getFeeLabel(therapist) {
+  var t = therapist || {};
+  var min = Number(t.session_fee_min);
+  var max = Number(t.session_fee_max);
+  var slide = t.sliding_scale === true;
+  if (Number.isFinite(min) && min > 0 && Number.isFinite(max) && max > 0) {
+    var range = min === max ? "$" + min : "$" + min + "–$" + max;
+    return slide ? range + " · Sliding scale" : range;
+  }
+  if (Number.isFinite(min) && min > 0) {
+    return slide ? "From $" + min + " · Sliding scale" : "From $" + min;
+  }
+  if (slide) return "Sliding scale available";
+  return "";
+}
+
+// Insurance label for card slot 5 — up to 3 names, then "+N more".
+export function getInsuranceLabel(therapist) {
+  var t = therapist || {};
+  var ins = Array.isArray(t.insurance_accepted) ? t.insurance_accepted.filter(Boolean) : [];
+  if (!ins.length) return "";
+  var visible = ins.slice(0, 3);
+  var overflow = ins.length - visible.length;
+  return overflow > 0 ? visible.join(", ") + " +" + overflow + " more" : visible.join(", ");
+}
+
+// Location label for card slot 2 — spec format (no city/state, just modality + distance).
+// options: { distanceMiles: number|null, teleSelected: boolean }
+export function getCardLocationLabel(therapist, options) {
+  var t = therapist || {};
+  var opts = options || {};
+  var inPerson = Boolean(t.accepts_in_person);
+  var tele = Boolean(t.accepts_telehealth);
+  if (!inPerson && !tele) return "";
+  if (tele && !inPerson) return "Telehealth available";
+  var distLabel =
+    !opts.teleSelected && Number.isFinite(opts.distanceMiles) && opts.distanceMiles !== null
+      ? " · " + formatDistanceMiles(opts.distanceMiles)
+      : "";
+  if (inPerson && tele) return "In-person & telehealth" + distLabel;
+  return "In-person" + distLabel;
 }

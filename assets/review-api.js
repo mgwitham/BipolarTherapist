@@ -243,6 +243,13 @@ export async function fetchTherapistMe() {
   });
 }
 
+export async function fetchPortalDevLogin(email) {
+  return request("/portal/dev-login", {
+    method: "POST",
+    body: JSON.stringify({ email }),
+  });
+}
+
 export async function patchTherapistProfile(updates) {
   return request("/portal/therapist", {
     method: "PATCH",

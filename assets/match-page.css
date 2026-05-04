@@ -6529,6 +6529,10 @@ img.bth-avatar {
   border-radius: 100px;
   line-height: 1.4;
 }
+.bth-pill-neutral {
+  background: #eef0f2;
+  color: #4a5568;
+}
 .bth-pill-overflow {
   background: #eef6f3;
   color: #3d6b4a;

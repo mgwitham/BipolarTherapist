@@ -59,6 +59,18 @@ export const therapistApplicationType = defineType({
       type: "string",
     }),
     defineField({
+      name: "gender",
+      title: "Gender",
+      type: "string",
+      options: {
+        list: [
+          { title: "Male", value: "male" },
+          { title: "Female", value: "female" },
+        ],
+        layout: "radio",
+      },
+    }),
+    defineField({
       name: "title",
       title: "Professional title",
       type: "string",
