@@ -69,8 +69,8 @@ test("sign-in view: validates email format client-side before submit", () => {
 });
 
 test("sign-in view: preserves anti-enumeration success copy", () => {
-  assert.match(portalJs, /matches a claimed profile/);
-  assert.match(portalJs, /Check your inbox\./);
+  assert.match(portalJs, /linked to a claimed profile/);
+  assert.match(portalJs, /check your inbox/i);
 });
 
 test("portal claim session lookup posts magic-link tokens in the request body", () => {
