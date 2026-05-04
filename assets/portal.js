@@ -774,7 +774,7 @@ function renderSignInFlash(kind) {
     return (
       '<section class="portal-signin-flash portal-signin-flash--warn" role="alert">' +
       "<p><strong>That sign-in link is expired or already used.</strong></p>" +
-      "<p>Enter your email below and we'll send a fresh link. Links expire 15 minutes after sending.</p>" +
+      "<p>Enter your email below and we'll send a fresh link. Valid for 24 hours.</p>" +
       "</section>"
     );
   }
@@ -818,7 +818,7 @@ function renderLookupState(options) {
     "We'll email a secure sign-in link to the address on your listing. It usually arrives within a minute." +
     "</p>" +
     '<p class="portal-signin-security">' +
-    "No password needed — we'll email you a secure one-time link. Links expire after 60 minutes." +
+    "No password needed. We'll email you a sign-in link, valid for 24 hours." +
     "</p>" +
     '<button class="btn-primary portal-signin-submit" type="submit" id="portalSignInSubmit">' +
     "Email me a sign-in link" +
@@ -914,7 +914,7 @@ function renderLookupState(options) {
         setFeedback(
           "Check your inbox. If " +
             email +
-            " matches a claimed profile, we just sent a sign-in link. It usually arrives within a minute and expires in 15 minutes.",
+            " matches a claimed profile, a sign-in link is on its way. Usually arrives within a minute, valid for 24 hours.",
           "success",
         );
         trackFunnelEvent("portal_signin_link_sent", {});

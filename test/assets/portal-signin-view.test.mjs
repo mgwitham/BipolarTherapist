@@ -30,9 +30,9 @@ test("sign-in view: primary CTA uses clear magic-link copy", () => {
 });
 
 test("sign-in view: explains magic-link flow and security", () => {
-  assert.match(portalJs, /secure sign-in link/);
+  assert.match(portalJs, /sign-in link/);
   assert.match(portalJs, /No password needed/);
-  assert.match(portalJs, /expire.{0,12}60 minutes/i);
+  assert.match(portalJs, /valid for 24 hours/i);
 });
 
 test("sign-in view: keeps claim and recovery in a secondary help section", () => {

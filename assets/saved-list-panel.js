@@ -66,9 +66,9 @@ var PANEL_STYLES = [
   ".saved-list-panel-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.75rem; padding: 1.25rem 1.25rem 0.75rem; border-bottom: 1px solid #e6eef0; }",
   ".saved-list-panel-title { margin: 0 0 0.2rem; font-size: 1.15rem; font-weight: 700; color: #0f2a31; }",
   ".saved-list-panel-sub { margin: 0; font-size: 0.85rem; color: #52707c; }",
-  ".saved-list-panel-close { background: transparent; border: 1px solid #d2dde0; border-radius: 999px; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; color: #52707c; cursor: pointer; flex-shrink: 0; transition: border-color 0.15s ease, color 0.15s ease; }",
-  ".saved-list-panel-close:hover { border-color: #1a7a8f; color: #155f70; }",
-  ".saved-list-panel-close svg { width: 14px; height: 14px; }",
+  ".saved-list-panel-close { background: #fff; border: 1px solid rgba(14,77,95,0.18); border-radius: 999px; width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; color: #0f2a31; cursor: pointer; flex-shrink: 0; transition: background 0.15s ease, border-color 0.15s ease; }",
+  ".saved-list-panel-close:hover { background: rgba(26,122,143,0.08); border-color: rgba(14,77,95,0.35); }",
+  ".saved-list-panel-close svg { width: 14px; height: 14px; stroke-width: 2.5; }",
   ".saved-list-panel-body { flex: 1; overflow-y: auto; padding: 1rem 1.25rem 1.5rem; }",
   ".saved-list-panel-cards { display: flex; flex-direction: column; gap: 0.75rem; }",
   ".saved-list-panel-empty { padding: 2.25rem 1rem; text-align: center; color: #52707c; }",
@@ -85,9 +85,9 @@ var PANEL_STYLES = [
   ".saved-list-card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; }",
   ".saved-list-card-name { margin: 0; font-size: 0.98rem; font-weight: 600; color: #0f2a31; line-height: 1.25; }",
   ".saved-list-card-meta { margin: 0.1rem 0 0; font-size: 0.8rem; color: #52707c; }",
-  ".saved-list-card-remove { background: transparent; border: none; color: #98a8af; cursor: pointer; padding: 0.25rem; border-radius: 6px; transition: color 0.15s ease, background 0.15s ease; }",
+  ".saved-list-card-remove { background: transparent; border: none; color: #7a9aa5; cursor: pointer; padding: 0.25rem; border-radius: 6px; transition: color 0.15s ease, background 0.15s ease; }",
   ".saved-list-card-remove:hover { color: #b14040; background: #fbecec; }",
-  ".saved-list-card-remove svg { width: 14px; height: 14px; }",
+  ".saved-list-card-remove svg { width: 14px; height: 14px; stroke-width: 2.5; }",
   ".saved-list-card-note-label { font-size: 0.75rem; font-weight: 600; color: #52707c; text-transform: uppercase; letter-spacing: 0.04em; }",
   ".saved-list-card-note { width: 100%; resize: vertical; min-height: 44px; padding: 0.5rem 0.6rem; border: 1px solid #d2dde0; border-radius: 8px; font-family: inherit; font-size: 0.85rem; color: #0f2a31; transition: border-color 0.15s ease; box-sizing: border-box; }",
   ".saved-list-card-note:focus { outline: none; border-color: #1a7a8f; }",
@@ -100,16 +100,21 @@ var PANEL_STYLES = [
   ".saved-list-panel-link:hover { color: #1a7a8f; text-decoration: underline; }",
   ".saved-list-panel-status { position: absolute; left: 1.25rem; bottom: 1rem; font-size: 0.8rem; color: #155f70; background: #e6f4f6; padding: 0.4rem 0.7rem; border-radius: 999px; opacity: 0; transform: translateY(0.3rem); transition: opacity 0.15s ease, transform 0.15s ease; pointer-events: none; }",
   ".saved-list-panel-status.is-visible { opacity: 1; transform: translateY(0); }",
-  ".saved-list-panel-email { display: flex; flex-direction: column; gap: 0.4rem; padding: 0.75rem; border: 1px dashed #d2dde0; border-radius: 10px; background: #f9fbfb; }",
-  ".saved-list-panel-email-form { display: flex; flex-direction: column; gap: 0.4rem; }",
-  ".saved-list-panel-email-row { display: flex; gap: 0.4rem; }",
-  ".saved-list-panel-email-row input { flex: 1; min-width: 0; padding: 0.55rem 0.7rem; border: 1px solid #d2dde0; border-radius: 8px; font-size: 0.9rem; font-family: inherit; box-sizing: border-box; }",
+  ".saved-list-panel-email { display: flex; flex-direction: column; gap: 0; border-radius: 12px; overflow: hidden; border: 1.5px solid #c3d8dd; background: #fff; box-shadow: 0 2px 8px rgba(26,122,143,0.07); }",
+  ".saved-list-panel-email-toggle { display: flex; align-items: center; justify-content: center; gap: 0.5rem; width: 100%; padding: 0.7rem 1rem; background: #fff; border: none; cursor: pointer; font-size: 0.9rem; font-weight: 600; color: #1a7a8f; font-family: inherit; transition: background 0.15s ease, color 0.15s ease; }",
+  ".saved-list-panel-email-toggle:hover { background: #f0f8fa; color: #155f70; }",
+  ".saved-list-panel-email-toggle svg { flex-shrink: 0; }",
+  ".saved-list-panel-email-expand { padding: 0.9rem; border-top: 1.5px solid #c3d8dd; background: linear-gradient(160deg, #f4fbfc 0%, #eaf5f7 100%); display: flex; flex-direction: column; gap: 0.65rem; }",
+  ".saved-list-panel-email-label { font-size: 0.7rem; font-weight: 700; color: #52707c; text-transform: uppercase; letter-spacing: 0.07em; }",
+  ".saved-list-panel-email-row { display: flex; gap: 0.5rem; }",
+  ".saved-list-panel-email-row input { flex: 1; min-width: 0; padding: 0.6rem 0.85rem; border: 1.5px solid #c3d8dd; border-radius: 999px; font-size: 0.9rem; font-family: inherit; background: #fff; box-sizing: border-box; transition: border-color 0.15s ease; }",
   ".saved-list-panel-email-row input:focus { outline: none; border-color: #1a7a8f; }",
-  ".saved-list-panel-cta-compact { padding: 0 0.95rem; font-size: 0.85rem; height: auto; }",
+  ".saved-list-panel-email-row input::placeholder { color: #a0b5bb; }",
+  ".saved-list-panel-cta-compact { padding: 0.6rem 1.1rem; font-size: 0.88rem; }",
   ".saved-list-panel-cta:disabled { background: #98a8af; cursor: progress; }",
-  ".saved-list-panel-email-status { font-size: 0.8rem; color: #52707c; min-height: 1em; }",
+  ".saved-list-panel-email-status { font-size: 0.8rem; color: #52707c; min-height: 1em; padding: 0 0.1rem; }",
   ".saved-list-panel-email-status-error { color: #b14040; }",
-  ".saved-list-panel-email-status-success { color: #1a7a8f; }",
+  ".saved-list-panel-email-status-success { color: #1a7a8f; font-weight: 600; }",
   "@media (max-width: 520px) { .saved-list-panel { width: 100%; box-shadow: none; } }",
 ].join("\n");
 
@@ -184,7 +189,7 @@ function buildPanelMarkup() {
     '<p class="saved-list-panel-sub" data-saved-list-sub>Therapists you have saved to revisit.</p>' +
     "</div>" +
     '<button type="button" class="saved-list-panel-close" data-saved-list-close="button" aria-label="Close saved list">' +
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6l-6 12"/></svg>' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
     "</button>" +
     "</header>" +
     '<div class="saved-list-panel-body" data-saved-list-body></div>' +
@@ -481,7 +486,7 @@ function renderCard(entry, therapist) {
     '" aria-label="Remove ' +
     escapeHtml(name) +
     ' from your list">' +
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M6 6l12 12M18 6l-6 12"/></svg>' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>' +
     "</button>" +
     "</div>" +
     '<label class="saved-list-card-note-label" for="savedListNote-' +
@@ -509,13 +514,13 @@ function renderCard(entry, therapist) {
 function renderEmailForm() {
   return (
     '<div class="saved-list-panel-email" data-saved-list-email-form>' +
-    '<button type="button" class="saved-list-panel-link" data-saved-list-email-toggle>' +
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" style="width:14px;height:14px;vertical-align:-2px;margin-right:6px;">' +
-    '<path d="M4 5h16v14H4z"/><path d="M4 5l8 7 8-7"/></svg>' +
+    '<button type="button" class="saved-list-panel-email-toggle" data-saved-list-email-toggle>' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="16" height="16">' +
+    '<rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 7l10 7 10-7"/></svg>' +
     "Send to my email" +
     "</button>" +
-    '<div class="saved-list-panel-email-form" data-saved-list-email-fields hidden>' +
-    '<label class="saved-list-card-note-label" for="savedListEmailInput">Your email</label>' +
+    '<div class="saved-list-panel-email-expand" data-saved-list-email-fields hidden>' +
+    '<label class="saved-list-panel-email-label" for="savedListEmailInput">Your email</label>' +
     '<div class="saved-list-panel-email-row">' +
     '<input id="savedListEmailInput" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" data-saved-list-email-input />' +
     '<button type="button" class="saved-list-panel-cta saved-list-panel-cta-compact" data-saved-list-email-send>Send</button>' +
