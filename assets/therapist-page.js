@@ -2229,10 +2229,15 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
 }
 
 (async function init() {
+  var wrap = document.getElementById("profileWrap");
+  function reveal() {
+    wrap.classList.add("is-loaded");
+  }
   try {
     if (!slug) {
-      document.getElementById("profileWrap").innerHTML =
+      wrap.innerHTML =
         '<div class="not-found"><h2>Choose a therapist to review</h2><p>Open a profile from the directory to compare bipolar-care fit, practical details, and the best next step in one place.</p><a href="/directory" class="back-link">← Back to Directory</a></div>';
+      reveal();
       return;
     }
 
@@ -2246,8 +2251,9 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
         : await resolveTherapistForProfile(slug, therapistDirectoryPromise);
     var therapistDirectory = await therapistDirectoryPromise;
     if (!therapist) {
-      document.getElementById("profileWrap").innerHTML =
+      wrap.innerHTML =
         '<div class="not-found"><h2>This profile is not available right now</h2><p>The link may be out of date, or the therapist may no longer be listed. You can return to the directory to compare other bipolar-informed options.</p><a href="/directory" class="back-link">← Back to Directory</a></div>';
+      reveal();
       return;
     }
 
@@ -2262,14 +2268,16 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
     recordProfileViewSafely(therapist.slug || slug);
     renderProfile(therapist, therapistDirectory);
     initValuePillPopover();
+    reveal();
   } catch (error) {
     console.error("Therapist profile failed to load.", error);
-    document.getElementById("profileWrap").innerHTML =
+    wrap.innerHTML =
       '<div class="not-found"><h2>We could not load this profile</h2><p>Something went wrong while opening the therapist page. Please go back to the directory and try again.</p><a href="/directory" class="back-link">← Back to Directory</a></div>';
     var breadcrumbName = document.getElementById("breadcrumbName");
     if (breadcrumbName) {
       breadcrumbName.textContent = "Profile unavailable";
     }
+    reveal();
   }
 })();
 

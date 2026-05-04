@@ -12,6 +12,11 @@ html {
   max-width: 1120px;
   margin: 1.25rem auto 3rem;
   padding: 0 1.25rem;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.profile-wrap.is-loaded {
+  opacity: 1;
 }
 @media (max-width: 860px) {
   .profile-wrap {
