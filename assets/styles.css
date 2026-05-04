@@ -1464,9 +1464,101 @@ nav {
   margin-top: 0.28rem;
 }
 
+.t-reason {
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
 .profile-role {
   font-size: 0.95rem;
   margin-top: 0.15rem;
+}
+
+/* Shared bth-card primitives (also defined in match-page.css for match view) */
+.bth-avatar {
+  display: block;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.bth-avatar-card {
+  width: 48px;
+  height: 48px;
+  font-size: 1rem;
+}
+.bth-avatar-initials {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+.bth-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 0.5rem;
+}
+.bth-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #e1f5ee;
+  color: #085041;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 100px;
+  line-height: 1.4;
+}
+.bth-pill-neutral {
+  background: #eef0f2;
+  color: #4a5568;
+}
+.bth-pill-overflow {
+  background: #eef6f3;
+  color: #3d6b4a;
+}
+.bth-card-info {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.86rem;
+  color: #4d6671;
+  line-height: 1.4;
+  margin-top: 0.5rem;
+}
+.bth-card-info-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.bth-card-info-dot {
+  color: #4d6671;
+  opacity: 0.35;
+  font-weight: 700;
+}
+.bth-avail {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 500;
+}
+.bth-avail-now {
+  color: #0f6e56;
+}
+.bth-avail-wait {
+  color: #ba7517;
+}
+.bth-avail-full {
+  color: #6f8089;
+}
+.bth-avail-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .t-loc,
