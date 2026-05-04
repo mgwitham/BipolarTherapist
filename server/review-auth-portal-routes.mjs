@@ -378,6 +378,20 @@ function validatePortalTherapistUpdates(body) {
     touchedBodyKeys.add("bio");
   }
 
+  // Enum: gender.
+  if ("gender" in body) {
+    const raw = String(body.gender || "").trim();
+    if (!raw) {
+      unsetFields.push("gender");
+      touchedBodyKeys.add("gender");
+    } else if (!["male", "female"].includes(raw)) {
+      return { error: "gender must be male or female.", field: "gender" };
+    } else {
+      setFields.gender = raw;
+      touchedBodyKeys.add("gender");
+    }
+  }
+
   // Enum: preferredContactMethod.
   if ("preferred_contact_method" in body) {
     const raw = String(body.preferred_contact_method || "").trim();

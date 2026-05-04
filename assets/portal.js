@@ -19,6 +19,7 @@ import {
   createStripeBillingPortalSession,
   createStripeFeaturedCheckoutSession,
   fetchPortalAnalytics,
+  fetchPortalDevLogin,
   fetchTherapistClaimSession,
   fetchTherapistMe,
   fetchTherapistSubscription,
@@ -26,12 +27,14 @@ import {
   patchTherapistProfile,
   requestTherapistClaimLink,
   requestTherapistSignIn,
+  setTherapistSessionToken,
   signOutTherapistSession,
   submitTherapistPortalRequest,
 } from "./review-api.js";
 
 var slug = new URLSearchParams(window.location.search).get("slug") || "";
 var token = new URLSearchParams(window.location.search).get("token") || "";
+var devLoginEmail = new URLSearchParams(window.location.search).get("dev_login") || "";
 var claimSessionState = null;
 
 function escapeHtml(value) {
@@ -2271,6 +2274,7 @@ function getProjectedTherapist(baseTherapist, form) {
     booking_url: str("booking_url") || baseTherapist.booking_url || "",
     bio: str("bio") || baseTherapist.bio || "",
     credentials: str("credentials") || baseTherapist.credentials || "",
+    gender: str("gender") || baseTherapist.gender || "",
     practice_name: str("practice_name") || baseTherapist.practice_name || "",
     care_approach: str("care_approach") || baseTherapist.care_approach || "",
     contact_guidance: str("contact_guidance") || baseTherapist.contact_guidance || "",
@@ -2707,6 +2711,19 @@ function buildEditProfileHtml(therapist) {
     textInput("credentials", "Credentials", t.credentials, {
       hint: 'Short form like "LMFT, PhD". Shown next to your name across the directory.',
     }) +
+    '<div class="portal-field-group">' +
+    '<label class="portal-label" for="gender">Gender</label>' +
+    '<select id="gender" name="gender" class="portal-input">' +
+    '<option value="">Prefer not to say</option>' +
+    '<option value="male"' +
+    (t.gender === "male" ? " selected" : "") +
+    ">Male</option>" +
+    '<option value="female"' +
+    (t.gender === "female" ? " selected" : "") +
+    ">Female</option>" +
+    "</select>" +
+    '<p class="portal-hint">Shown on your public profile. Patients may use this to find a provider they feel comfortable with.</p>' +
+    "</div>" +
     textInput("practice_name", "Practice name", t.practice_name, {
       hint: "Optional. Leave blank if you practice under your own name.",
     }) +
@@ -2887,6 +2904,7 @@ function collectEditProfileUpdates(form) {
   [
     "bio",
     "credentials",
+    "gender",
     "practice_name",
     "email",
     "phone",
@@ -4343,6 +4361,22 @@ function renderPortal(therapist, options) {
 
 (async function init() {
   renderStripeReturnBanner();
+
+  if (devLoginEmail) {
+    try {
+      var devResult = await fetchPortalDevLogin(devLoginEmail);
+      if (devResult && devResult.ok) {
+        setTherapistSessionToken("cookie");
+        var devParams = new URLSearchParams(window.location.search);
+        devParams.delete("dev_login");
+        devParams.set("slug", devResult.slug);
+        window.location.replace(window.location.pathname + "?" + devParams.toString());
+        return;
+      }
+    } catch (_devError) {
+      // API not running with ALLOW_DEV_LOGIN=true — fall through to normal flow.
+    }
+  }
 
   if (token) {
     // Auto-accept on magic-link arrival. Email receipt is already proof
