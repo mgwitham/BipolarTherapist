@@ -217,9 +217,21 @@ function escapeHtml(value) {
     .replace(/'/g, "&#39;");
 }
 
-function buildTherapistProfileHref(slug) {
-  var cleanSlug = String(slug || "").trim();
-  return cleanSlug ? "/therapists/" + encodeURIComponent(cleanSlug) + "/?ref=match" : "/directory";
+function slugifyForProfile(text) {
+  return String(text || "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function buildTherapistProfileHref(therapist) {
+  var name = String((therapist && therapist.name) || "").trim();
+  var city = String((therapist && therapist.city) || "").trim();
+  var state = String((therapist && therapist.state) || "CA").trim();
+  if (!name) return "/directory";
+  var slug = slugifyForProfile([name, city, state].join(" "));
+  return slug ? "/therapists/" + slug + "/?ref=match" : "/directory";
 }
 
 function startZipcodesPreload() {
@@ -1612,7 +1624,7 @@ function buildPrimaryResultAction(entry) {
             : "Open " + therapist.name + "'s profile";
 
   return {
-    href: preferredRoute ? preferredRoute.href : buildTherapistProfileHref(therapist.slug),
+    href: preferredRoute ? preferredRoute.href : buildTherapistProfileHref(therapist),
     label: label,
     external: Boolean(preferredRoute && preferredRoute.external),
     therapistSlug: therapist.slug || "",
@@ -2402,8 +2414,8 @@ function renderCompareDecisionCards(topEntries, profile) {
           '">' +
           escapeHtml(role) +
           '</span><a class="compare-decision-link" href="' +
-          escapeHtml(buildTherapistProfileHref(therapist.slug)) +
-          '">View profile</a></div><div class="compare-decision-name">' +
+          escapeHtml(buildTherapistProfileHref(therapist)) +
+          '">See full profile</a></div><div class="compare-decision-name">' +
           escapeHtml(therapist.name) +
           '</div><div class="compare-decision-meta">' +
           escapeHtml(formatTherapistLocationLine(therapist)) +
@@ -4852,17 +4864,12 @@ function getFirstName(name) {
   return words[0] || "";
 }
 
-function getPersonalizedCtaLabel(routeType, firstName, routeHref) {
-  var name = firstName || "therapist";
-  if (routeType === "booking") return "Book with " + name;
-  if (routeType === "phone") return "Call " + name;
-  if (routeType === "email") return "Email " + name;
-  if (routeType === "website") {
-    var href = String(routeHref || "");
-    if (href.indexOf("psychologytoday.com") !== -1) return "View on Psychology Today";
-    return "View profile";
-  }
-  return "Contact " + name;
+function getPersonalizedCtaLabel(routeType) {
+  if (routeType === "website") return "Visit their website";
+  if (routeType === "booking") return "Book a session";
+  if (routeType === "email") return "Email therapist";
+  if (routeType === "phone") return "Call therapist";
+  return "";
 }
 
 function buildIntakeMirrorSentence(profile) {
@@ -5107,12 +5114,7 @@ function renderLeadResultCard(entry, _backupName, options) {
   var therapist = entry.therapist || {};
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
-  var firstName = getFirstName(therapist.name || "");
-  var ctaLabel = getPersonalizedCtaLabel(
-    routeType,
-    firstName,
-    preferredRoute && preferredRoute.href,
-  );
+  var ctaLabel = getPersonalizedCtaLabel(routeType);
   var reasonLine = buildMatchReasonLine(therapist, latestProfile);
   var quoteHtml = renderMatchCardQuote(therapist);
   var availHtml = renderMatchCardAvail(therapist);
@@ -5155,11 +5157,9 @@ function renderLeadResultCard(entry, _backupName, options) {
         escapeHtml(ctaLabel) +
         "</a>"
       : "") +
-    (!preferredRoute || ctaLabel !== "View profile"
-      ? '<a href="' +
-        escapeHtml(buildTherapistProfileHref(therapist.slug)) +
-        '" class="mx-profile-link">View profile</a>'
-      : "") +
+    '<a href="' +
+    escapeHtml(buildTherapistProfileHref(therapist)) +
+    '" class="mx-profile-link">See full profile</a>' +
     "</div>" +
     "</article>"
   );
@@ -5170,12 +5170,7 @@ function renderSupportingResultCard(entry, _rank, options) {
   var therapist = entry.therapist || {};
   var preferredRoute = getPreferredOutreach(entry);
   var routeType = getPreferredRouteType(entry);
-  var firstName = getFirstName(therapist.name || "");
-  var ctaLabel = getPersonalizedCtaLabel(
-    routeType,
-    firstName,
-    preferredRoute && preferredRoute.href,
-  );
+  var ctaLabel = getPersonalizedCtaLabel(routeType);
   var reasonLine = buildMatchReasonLine(therapist, latestProfile);
   var quoteHtml = renderMatchCardQuote(therapist);
   var availHtml = renderMatchCardAvail(therapist);
@@ -5214,11 +5209,9 @@ function renderSupportingResultCard(entry, _rank, options) {
         escapeHtml(ctaLabel) +
         "</a>"
       : "") +
-    (!preferredRoute || ctaLabel !== "View profile"
-      ? '<a href="' +
-        escapeHtml(buildTherapistProfileHref(therapist.slug)) +
-        '" class="mx-profile-link">View profile</a>'
-      : "") +
+    '<a href="' +
+    escapeHtml(buildTherapistProfileHref(therapist)) +
+    '" class="mx-profile-link">See full profile</a>' +
     "</div>" +
     "</article>"
   );
@@ -5693,10 +5686,10 @@ function renderDetailsBody(entry) {
 
   var teaserHtml =
     '<a href="' +
-    escapeHtml(buildTherapistProfileHref(therapist.slug) + "#outreach") +
+    escapeHtml(buildTherapistProfileHref(therapist) + "#outreach") +
     '" class="bth-modal-teaser" data-modal-outreach-link="' +
     escapeHtml(therapist.slug || "") +
-    '">View profile + outreach script →</a>';
+    '">See full profile + outreach script →</a>';
 
   return (
     '<div class="bth-modal-header">' +
@@ -5816,9 +5809,9 @@ function buildModalPrimaryCta(therapist, entry) {
     };
   }
   return {
-    href: buildTherapistProfileHref(therapist.slug),
-    label: "View full profile →",
-    routeLabel: "View profile",
+    href: buildTherapistProfileHref(therapist),
+    label: "See full profile →",
+    routeLabel: "See full profile",
     routeKey: "profile",
     external: false,
   };
