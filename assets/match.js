@@ -5471,6 +5471,16 @@ function renderPrimaryMatchCards(entries, profile) {
         surface: "match_card",
         therapist_slug: slug,
       });
+      if (!emailNudgeShownThisSession) {
+        var alreadyDismissed = false;
+        try {
+          alreadyDismissed = !!window.sessionStorage.getItem("mxEmailNudge");
+        } catch (_) {}
+        if (!alreadyDismissed) {
+          emailNudgeShownThisSession = true;
+          showMatchEmailNudge(root);
+        }
+      }
     });
   });
 
@@ -5693,13 +5703,17 @@ function safeRenderResults(entries, profile) {
 }
 
 var matchEntriesBySlug = Object.create(null);
+var currentMatchSlugs = [];
+var emailNudgeShownThisSession = false;
 
 function rememberEntriesForDetails(entries) {
   matchEntriesBySlug = Object.create(null);
+  currentMatchSlugs = [];
   var missingContact = [];
   (entries || []).forEach(function (entry) {
     if (entry && entry.therapist && entry.therapist.slug) {
       matchEntriesBySlug[entry.therapist.slug] = entry;
+      currentMatchSlugs.push(entry.therapist.slug);
       if (!getContactRoutes(entry).length) {
         missingContact.push(entry.therapist.slug + " (" + (entry.therapist.name || "?") + ")");
       }
@@ -5711,6 +5725,89 @@ function rememberEntriesForDetails(entries) {
       missingContact,
     );
   }
+}
+
+function showMatchEmailNudge(root) {
+  if (document.getElementById("matchEmailNudge")) return;
+  var slugs = currentMatchSlugs.slice(0, 5);
+  if (!slugs.length) return;
+
+  var nudge = document.createElement("div");
+  nudge.className = "mx-email-nudge";
+  nudge.id = "matchEmailNudge";
+  nudge.innerHTML =
+    '<p class="mx-email-nudge-heading">Email yourself this shortlist</p>' +
+    '<form class="mx-email-nudge-form" id="matchEmailNudgeForm" novalidate>' +
+    '<input type="email" class="mx-email-nudge-input" placeholder="you@example.com" autocomplete="email" aria-label="Your email address" />' +
+    '<button type="submit" class="mx-email-nudge-btn">Send</button>' +
+    "</form>" +
+    '<p class="mx-email-nudge-status" id="matchEmailNudgeStatus"></p>' +
+    '<button type="button" class="mx-email-nudge-dismiss" id="matchEmailNudgeDismiss">No thanks</button>';
+
+  var anchor =
+    root.querySelector(".mx-compare-trigger-wrap") || root.querySelector(".mx-no-fit-link-wrap");
+  if (anchor && anchor.parentNode) {
+    anchor.parentNode.insertBefore(nudge, anchor);
+  } else {
+    var panel = root.querySelector(".results-panel");
+    if (panel) panel.appendChild(nudge);
+  }
+
+  trackFunnelEvent("match_email_nudge_shown", { slug_count: slugs.length });
+
+  document.getElementById("matchEmailNudgeDismiss").addEventListener("click", function () {
+    nudge.remove();
+    try {
+      window.sessionStorage.setItem("mxEmailNudge", "1");
+    } catch (_) {}
+    trackFunnelEvent("match_email_nudge_dismissed", {});
+  });
+
+  document.getElementById("matchEmailNudgeForm").addEventListener("submit", async function (event) {
+    event.preventDefault();
+    var input = nudge.querySelector(".mx-email-nudge-input");
+    var btn = nudge.querySelector(".mx-email-nudge-btn");
+    var status = document.getElementById("matchEmailNudgeStatus");
+    var email = String((input && input.value) || "").trim();
+    if (!email) {
+      status.textContent = "Enter your email address.";
+      status.className = "mx-email-nudge-status mx-email-nudge-status--error";
+      if (input) input.focus();
+      return;
+    }
+    btn.disabled = true;
+    status.textContent = "";
+    status.className = "mx-email-nudge-status";
+    trackFunnelEvent("match_email_nudge_send_attempted", { slug_count: slugs.length });
+    try {
+      var response = await window.fetch("/api/review/saved-list/email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email,
+          items: slugs.map(function (s) {
+            return { slug: s, note: "" };
+          }),
+        }),
+      });
+      var payload = await response.json().catch(function () {
+        return {};
+      });
+      if (!response.ok) {
+        throw new Error((payload && payload.error) || "Could not send the email.");
+      }
+      nudge.innerHTML =
+        '<p class="mx-email-nudge-status mx-email-nudge-status--success" style="margin:0;padding:0.2rem 0;">Sent — check your inbox.</p>';
+      try {
+        window.sessionStorage.setItem("mxEmailNudge", "1");
+      } catch (_) {}
+      trackFunnelEvent("match_email_nudge_sent", { slug_count: slugs.length });
+    } catch (error) {
+      status.textContent = (error && error.message) || "Could not send. Try again.";
+      status.className = "mx-email-nudge-status mx-email-nudge-status--error";
+      btn.disabled = false;
+    }
+  });
 }
 
 function renderDetailsBody(entry) {
