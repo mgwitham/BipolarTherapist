@@ -999,6 +999,18 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     var basePath = window.location.pathname.replace(/\/$/, "") || "/directory";
     var next = query ? basePath + "?" + query : basePath;
     window.history.replaceState({}, "", next);
+    // Noindex when filters beyond defaults are applied — keeps the canonical
+    // /directory (and the always-default state=CA) indexable while avoiding
+    // duplicate-content sprawl on filtered URLs Google might encounter.
+    var meaningfulFilters = Object.keys(filters).some(function (key) {
+      if (skipKeys.has(key)) return false;
+      if (!filters[key]) return false;
+      return filters[key] !== defaultFilters[key];
+    });
+    var robotsMeta = document.getElementById("dirRobots");
+    if (robotsMeta) {
+      robotsMeta.setAttribute("content", meaningfulFilters ? "noindex,follow" : "index,follow");
+    }
   }
   function getFilteredWithFilters(filterState) {
     var cacheKey = buildFilterCacheKey(filterState);
