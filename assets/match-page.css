@@ -7268,3 +7268,71 @@ img.bth-avatar {
     scroll-behavior: auto !important;
   }
 }
+
+/* -- Match card "How to reach out" disclosure ---------- */
+.mx-outreach {
+  margin-top: 0.7rem;
+  border-top: 1px solid var(--border);
+  padding-top: 0.65rem;
+}
+
+.mx-outreach-summary {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 10px;
+  background: rgba(26, 122, 143, 0.04);
+  border: 1px solid rgba(26, 122, 143, 0.14);
+  cursor: pointer;
+  list-style: none;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+
+.mx-outreach-summary::-webkit-details-marker {
+  display: none;
+}
+
+.mx-outreach-summary:hover {
+  background: rgba(26, 122, 143, 0.07);
+  border-color: rgba(26, 122, 143, 0.22);
+}
+
+.mx-outreach-summary:focus-visible {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.mx-outreach-summary-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--navy);
+}
+
+.mx-outreach-summary-helper {
+  flex: 1;
+  font-size: 0.78rem;
+  color: var(--muted);
+  opacity: 0.8;
+}
+
+.mx-outreach-chevron {
+  flex-shrink: 0;
+  color: var(--teal);
+  transition: transform 0.18s ease;
+}
+
+.mx-outreach[open] .mx-outreach-chevron {
+  transform: rotate(-180deg);
+}
+
+.mx-outreach[open] .mx-outreach-summary {
+  background: rgba(26, 122, 143, 0.07);
+  border-color: rgba(26, 122, 143, 0.22);
+}
+
+.mx-outreach-body {
+  padding: 0.85rem 0.4rem 0.2rem;
+}
