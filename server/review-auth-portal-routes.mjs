@@ -205,6 +205,7 @@ function shapePortalTherapist(therapist) {
       ? therapist.treatmentModalities
       : [],
     languages: Array.isArray(therapist.languages) ? therapist.languages : [],
+    gender: therapist.gender || "",
     care_approach: scrubIntakeStub(therapist.careApproach),
     estimated_wait_time: therapist.estimatedWaitTime || "",
     years_experience:
@@ -258,9 +259,9 @@ function computePortalCompletenessSnapshot(t) {
     { key: "location", pts: 4, done: Boolean(str(t.city) && str(t.state)) },
     { key: "years", pts: 4, done: num(t.bipolarYearsExperience) > 0 },
     { key: "full_bio", pts: 6, done: Boolean(str(t.bio)) },
-    { key: "practice_name", pts: 3, done: Boolean(str(t.practiceName)) },
+    { key: "practice_name", pts: 2, done: Boolean(str(t.practiceName)) },
     { key: "website", pts: 3, done: Boolean(str(t.website)) },
-    { key: "languages", pts: 3, done: arr(t.languages).length > 0 },
+    { key: "languages", pts: 2, done: arr(t.languages).length > 0 },
     {
       key: "fee",
       pts: 7,
@@ -273,7 +274,12 @@ function computePortalCompletenessSnapshot(t) {
     { key: "first_step", pts: 4, done: Boolean(str(t.firstStepExpectation)) },
     { key: "specialties", pts: 5, done: arr(t.specialties).length > 0 },
     { key: "populations", pts: 7, done: arr(t.clientPopulations).length > 0 },
-    { key: "total_years", pts: 3, done: num(t.yearsExperience) > 0 },
+    { key: "total_years", pts: 2, done: num(t.yearsExperience) > 0 },
+    {
+      key: "gender",
+      pts: 3,
+      done: str(t.gender) === "male" || str(t.gender) === "female",
+    },
   ];
   let score = 0;
   const missingFields = [];

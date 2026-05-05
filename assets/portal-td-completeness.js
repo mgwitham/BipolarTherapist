@@ -119,6 +119,10 @@ function isSpecialtiesComplete(t) {
 function isTotalYearsComplete(t) {
   return Number(t && t.years_experience) > 0;
 }
+function isGenderComplete(t) {
+  var g = String((t && t.gender) || "").trim();
+  return g === "male" || g === "female";
+}
 
 // ─── Field registry ──────────────────────────────────────────────────
 
@@ -194,8 +198,8 @@ var FIELD_REGISTRY = [
     key: "practice_name",
     section: "profile",
     title: "Practice name",
-    pts: 3,
-    badge: "+3 pts",
+    pts: 2,
+    badge: "+2 pts",
     hint: "If you practice under a group or clinic name",
     isComplete: isPracticeNameComplete,
   },
@@ -212,8 +216,8 @@ var FIELD_REGISTRY = [
     key: "languages",
     section: "profile",
     title: "Languages",
-    pts: 3,
-    badge: "+3 pts",
+    pts: 2,
+    badge: "+2 pts",
     hint: "Patients filter by language — bilingual therapists are in high demand",
     isComplete: isLanguagesComplete,
   },
@@ -298,10 +302,19 @@ var FIELD_REGISTRY = [
     key: "total_years",
     section: "audience",
     title: "Total years in practice",
-    pts: 3,
-    badge: "+3 pts",
+    pts: 2,
+    badge: "+2 pts",
     hint: "General experience shown on your full profile",
     isComplete: isTotalYearsComplete,
+  },
+  {
+    key: "gender",
+    section: "profile",
+    title: "Gender",
+    pts: 3,
+    badge: "+3 pts",
+    hint: "Patients often search by therapist gender — completing this improves your match rate",
+    isComplete: isGenderComplete,
   },
 ];
 

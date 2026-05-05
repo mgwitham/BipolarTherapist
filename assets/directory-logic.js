@@ -88,6 +88,7 @@ export function matchesDirectoryFilters(filterState, therapist) {
   ) {
     return false;
   }
+  if (filterState.gender && therapist.gender !== filterState.gender) return false;
   if (filterState.therapist && !filterState.psychiatrist && isPsychiatrist) return false;
   if (filterState.psychiatrist && !filterState.therapist && !isPsychiatrist) return false;
   if (filterState.telehealth && therapist.accepts_telehealth === false) return false;
