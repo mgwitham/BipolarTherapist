@@ -775,6 +775,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   function populateSelect(id, items) {
     var select = getElement(id);
+    if (!select) return;
     items.forEach(function (item) {
       var option = document.createElement("option");
       option.value = item.value;
