@@ -153,27 +153,34 @@ Requires Node.js 22 (see `.nvmrc`).
 
 ### Branch Structure
 
-- `main` - stable, deployable code only
-- `dev` - integration branch, all features merge here first
-- `feature/[name]` - one branch per feature, branched off dev
+- `main` - stable, deployable code only; all PRs merge here
+- `feat/`, `fix/`, `chore/` branches - one per task, always branched off `main`
 
 ### Rules
 
-- NEVER commit directly to main or dev
+- NEVER commit directly to main
 - ALWAYS create a feature branch before making any changes
 - One task per branch, keep branches short-lived
 
 ### Before Starting Any Task
 
-1. Confirm current branch with `git status`
-2. If not on dev, switch to dev and pull latest: `git checkout dev && git pull`
-3. Create a feature branch: `git checkout -b feat/[descriptive-name]`
-4. State the branch name before beginning work
+1. Fetch and confirm base: `git fetch origin main`
+2. Always branch off `main`, never off a previous feature branch:
+   ```sh
+   git checkout main && git pull && git checkout -b feat/[descriptive-name]
+   ```
+3. State the branch name before beginning work
 
 ### During Work
 
 - Commit logical chunks, not everything at the end
 - Follow existing commit format: `type: short description`
+
+### Before Opening a PR
+
+1. Run `git log --oneline origin/main..HEAD` and verify every listed commit is intentional — no leftover commits from previous branches
+2. Run `git fetch origin main && git rebase origin/main` to incorporate any merges that landed while you were working
+3. Force-push if rebase rewrote history: `git push --force-with-lease`
 
 ### Before Ending Any Session
 
@@ -183,8 +190,18 @@ Requires Node.js 22 (see `.nvmrc`).
 4. Push the branch: `git push origin [branch-name]`
 5. Summarize what was completed and what is still in progress
 
+### After a PR Merges
+
+1. `git fetch origin main` — bring main up to date locally
+2. Start the next task from main, not from the merged branch:
+   ```sh
+   git checkout main && git pull && git checkout -b feat/[next-name]
+   ```
+3. Never cherry-pick commits from old feature branches — if something was missed in a squash merge, re-implement it directly on the new branch
+
 ### Never Do
 
 - Do not modify files outside the scope of the current task
 - Do not delete or overwrite files without explicit confirmation
 - Do not merge branches without user approval
+- Do not branch off a feature branch that has already been merged (stale commits ride along and cause conflicts)

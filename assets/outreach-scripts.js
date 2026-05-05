@@ -230,5 +230,10 @@ export function renderOutreachPanelMarkup(options) {
       "</section>";
   }
 
-  return emailBlock + phoneBlock;
+  var closeButton =
+    '<div class="outreach-script-close-row">' +
+    '<button type="button" class="outreach-script-close" data-outreach-close>Close</button>' +
+    "</div>";
+
+  return emailBlock + phoneBlock + closeButton;
 }

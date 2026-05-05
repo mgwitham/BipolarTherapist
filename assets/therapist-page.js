@@ -3247,9 +3247,11 @@ function renderProfile(t, therapistDirectory) {
         escapeHtml(t.email) +
         '" class="profile-contact-row" aria-label="Email ' +
         escapeHtml(t.name) +
+        '" data-copy-email="' +
+        escapeHtml(t.email) +
         '"><span class="profile-contact-icon" aria-hidden="true">✉️</span><span class="profile-contact-value">' +
         escapeHtml(t.email) +
-        "</span></a>"
+        '</span><span class="profile-contact-copy-hint">Copy</span></a>'
       : "") +
     (t.website && websiteHealthy
       ? '<a href="' +
@@ -3383,6 +3385,45 @@ function renderProfile(t, therapistDirectory) {
         });
       });
     });
+  document.querySelectorAll("[data-copy-email]").forEach(function (link) {
+    link.addEventListener("click", function (event) {
+      var email = link.getAttribute("data-copy-email") || "";
+      if (!email) return;
+      var valueEl = link.querySelector(".profile-contact-value");
+      var copyHint = link.querySelector(".profile-contact-copy-hint");
+      var original = valueEl ? valueEl.textContent : "";
+      function flash() {
+        if (valueEl) valueEl.textContent = "Copied!";
+        if (copyHint) copyHint.textContent = "✓";
+        window.setTimeout(function () {
+          if (valueEl) valueEl.textContent = original;
+          if (copyHint) copyHint.textContent = "Copy";
+        }, 2000);
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        event.preventDefault();
+        navigator.clipboard.writeText(email).then(flash, function () {
+          window.location.href = "mailto:" + email;
+        });
+      } else {
+        try {
+          var ta = document.createElement("textarea");
+          ta.value = email;
+          ta.style.position = "fixed";
+          ta.style.opacity = "0";
+          document.body.appendChild(ta);
+          ta.select();
+          document.execCommand("copy");
+          document.body.removeChild(ta);
+          event.preventDefault();
+          flash();
+        } catch (_e) {
+          // fall through to mailto:
+        }
+      }
+    });
+  });
+
   var contactSection = document.querySelector("[data-profile-contact-section]");
   var contactSectionTracked = false;
   if (contactSection && typeof window.IntersectionObserver === "function") {

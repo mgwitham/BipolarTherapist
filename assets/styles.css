@@ -4080,6 +4080,91 @@ body.dir-vb .dir-vb-section-body .filter-group input[type="text"]::placeholder {
   color: rgba(14, 77, 95, 0.4);
 }
 
+/* ── Insurance typeahead ─────────────────────────────────────────────── */
+.ins-ta-wrap {
+  position: relative;
+}
+
+.ins-ta-input {
+  padding-right: 2.2rem;
+}
+
+.ins-ta-input.has-value {
+  border-color: var(--teal);
+  background-color: rgba(26, 122, 143, 0.04);
+}
+
+.ins-ta-clear {
+  position: absolute;
+  right: 0.65rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: rgba(14, 77, 95, 0.45);
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition:
+    color 0.12s ease,
+    background 0.12s ease;
+  line-height: 1;
+}
+
+.ins-ta-clear:hover {
+  color: var(--teal);
+  background: rgba(26, 122, 143, 0.08);
+}
+
+.ins-ta-list {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid rgba(26, 122, 143, 0.2);
+  border-radius: 10px;
+  box-shadow: 0 6px 20px rgba(14, 77, 95, 0.13);
+  overflow: hidden;
+  max-height: 220px;
+  overflow-y: auto;
+  z-index: 200;
+}
+
+.ins-ta-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  color: var(--navy);
+  transition: background 0.1s ease;
+}
+
+.ins-ta-option:hover,
+.ins-ta-option.is-active {
+  background: rgba(26, 122, 143, 0.07);
+  color: var(--teal);
+}
+
+.ins-ta-option-count {
+  font-size: 0.75rem;
+  color: rgba(14, 77, 95, 0.4);
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+.ins-ta-empty {
+  padding: 0.7rem 0.8rem;
+  font-size: 0.84rem;
+  color: rgba(14, 77, 95, 0.45);
+  font-style: italic;
+}
+
 @media (max-width: 540px) {
   body.dir-vb .dir-vb-modal-body .sidebar {
     grid-template-columns: 1fr;
@@ -4095,11 +4180,18 @@ body.dir-vb .dir-vb-modal-foot {
   border-top: 1px solid rgba(26, 122, 143, 0.08);
   background: #ffffff;
   display: flex;
-  justify-content: stretch;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+body.dir-vb .dir-vb-modal-clear {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 body.dir-vb .dir-vb-modal-apply {
-  width: 100%;
+  flex: 1 1 auto;
+  width: auto;
   padding: 0.85rem 1.5rem;
   border: none;
   border-radius: 12px;
@@ -4858,6 +4950,27 @@ body.dir-vb .dir-vb-modal-apply:hover {
 
 .outreach-script-call:hover {
   background: var(--teal-dark);
+}
+
+.outreach-script-close-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.outreach-script-close {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 5px 14px;
+}
+
+.outreach-script-close:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
 }
 
 /* -- Match card outreach disclosure container ------------- */
