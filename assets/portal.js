@@ -912,10 +912,10 @@ function renderLookupState(options) {
         lastSentAt = Date.now();
         setBusy(false, email);
         setFeedback(
-          "Check your inbox. If " +
+          "If " +
             email +
-            " matches a claimed profile, a sign-in link is on its way. Usually arrives within a minute, valid for 24 hours.",
-          "success",
+            " is linked to a claimed profile, a sign-in link is on its way. Check your inbox in a moment. Valid for 24 hours.",
+          "info",
         );
         trackFunnelEvent("portal_signin_link_sent", {});
       })

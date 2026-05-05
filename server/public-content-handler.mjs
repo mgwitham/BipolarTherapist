@@ -58,6 +58,7 @@ const PUBLIC_THERAPIST_PROJECTION = `{
   sessionFeeMin,
   sessionFeeMax,
   slidingScale,
+  gender,
   listingActive,
   status,
   lifecycle,
@@ -211,6 +212,7 @@ export function normalizePublicTherapist(doc, options = {}) {
       telehealth_states: fieldReviewStates.telehealthStates,
       bipolar_years_experience: fieldReviewStates.bipolarYearsExperience,
     },
+    gender: doc.gender || "",
     session_fee_min: doc.sessionFeeMin || doc.session_fee_min || null,
     session_fee_max: doc.sessionFeeMax || doc.session_fee_max || null,
     sliding_scale:

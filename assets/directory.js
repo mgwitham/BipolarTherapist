@@ -89,6 +89,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     population: "",
     bipolar_experience: "",
     insurance: "",
+    gender: "",
     therapist: false,
     psychiatrist: false,
     telehealth: false,
@@ -584,6 +585,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
     if (filters.insurance) {
       chips.push({ key: "insurance", label: filters.insurance });
+    }
+    if (filters.gender) {
+      chips.push({
+        key: "gender",
+        label: filters.gender === "male" ? "Male therapist" : "Female therapist",
+      });
     }
     if (filters.therapist) {
       chips.push({ key: "therapist", label: "Therapist" });

@@ -299,6 +299,7 @@ export function readCurrentIntakeProfile(options) {
     preferred_modalities: settings.collectCheckedValues(form, "preferred_modalities"),
     population_fit: settings.collectCheckedValues(form, "population_fit"),
     language_preferences: settings.splitCommaSeparated(readFieldValue("language_preferences")),
+    therapist_gender_preference: readFieldValue("therapist_gender_preference"),
   });
   profile.location_query = locationQuery;
   return profile;
@@ -342,6 +343,7 @@ export function restoreProfileFromUrl(options) {
     "preferred_modalities",
     "population_fit",
     "language_preferences",
+    "therapist_gender_preference",
   ];
 
   var hasIntakeParams = intakeKeys.some(function (key) {
@@ -366,6 +368,7 @@ export function restoreProfileFromUrl(options) {
     preferred_modalities: settings.splitCommaSeparated(params.get("preferred_modalities") || ""),
     population_fit: settings.splitCommaSeparated(params.get("population_fit") || ""),
     language_preferences: settings.splitCommaSeparated(params.get("language_preferences") || ""),
+    therapist_gender_preference: params.get("therapist_gender_preference") || "",
   });
   profile.location_query = locationQuery;
   return profile;
@@ -420,6 +423,7 @@ export function hydrateForm(profile, options) {
   }
   setFieldValue("priority_mode", profile.priority_mode || "Best overall fit");
   setFieldValue("language_preferences", (profile.language_preferences || []).join(", "));
+  setFieldValue("therapist_gender_preference", profile.therapist_gender_preference || "");
 
   ["bipolar_focus", "preferred_modalities", "population_fit"].forEach(function (name) {
     var selected = new Set(profile[name] || []);

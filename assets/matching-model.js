@@ -126,6 +126,14 @@ export const MATCH_INTAKE_QUESTIONS = [
     required: false,
     category: "soft_signal",
   },
+  {
+    id: "therapist_gender_preference",
+    prompt: "Do you have a preference for your therapist's gender?",
+    type: "radio",
+    required: false,
+    options: ["", "female", "male"],
+    category: "soft_signal",
+  },
 ];
 
 const WAIT_TIME_PRIORITY = {
@@ -937,6 +945,7 @@ export function buildUserMatchProfile(input) {
     population_fit: normalizeList(input.population_fit),
     language_preferences: normalizeList(input.language_preferences),
     cultural_preferences: normalizeText(input.cultural_preferences),
+    therapist_gender_preference: normalizeText(input.therapist_gender_preference) || "",
   };
 }
 
@@ -1240,6 +1249,19 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
   } else if (profile.language_preferences.length) {
     breakdown.clinical -= 8;
     cautions.push("Preferred language match is unclear.");
+  }
+
+  if (profile.therapist_gender_preference) {
+    if (therapist.gender === profile.therapist_gender_preference) {
+      breakdown.practical += 10;
+      reasons.push({
+        text: "Matches preferred therapist gender.",
+        weight: 10,
+      });
+    } else if (therapist.gender) {
+      breakdown.practical -= 10;
+      cautions.push("Therapist gender does not match preference.");
+    }
   }
 
   breakdown.trust += Math.min(Number(therapist.bipolar_years_experience || 0) * 1.6, 24);

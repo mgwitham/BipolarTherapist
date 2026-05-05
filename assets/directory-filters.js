@@ -6,6 +6,7 @@ export var FILTER_VALUE_KEYS = [
   "population",
   "bipolar_experience",
   "insurance",
+  "gender",
   "sortBy",
 ];
 
