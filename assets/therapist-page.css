@@ -368,6 +368,19 @@ nav {
 .profile-contact-value {
   min-width: 0;
   overflow-wrap: anywhere;
+  flex: 1;
+}
+.profile-contact-copy-hint {
+  margin-left: auto;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: var(--teal);
+  opacity: 0;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+}
+.profile-contact-row:hover .profile-contact-copy-hint {
+  opacity: 1;
 }
 .profile-contact-empty {
   font-size: 0.82rem;
