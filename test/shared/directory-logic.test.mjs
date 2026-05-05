@@ -7,6 +7,7 @@ import {
   compareTherapistsWithFilters,
   matchesDirectoryFilters,
 } from "../../assets/directory-logic.js";
+import { insuranceMatches, resolveInsuranceName } from "../../shared/therapist-picker-options.mjs";
 import { preloadZipcodes } from "../../assets/zip-lookup.js";
 
 const zipUrl = new URL("../../assets/ca-zipcodes.json", import.meta.url);
@@ -168,4 +169,83 @@ test("compareTherapistsWithFilters uses ranking zip as a soft proximity boost", 
   };
 
   assert.ok(compareTherapistsWithFilters(filters, nearTherapist, farTherapist) < 0);
+});
+
+// Insurance normalization — resolveInsuranceName
+
+test("resolveInsuranceName returns canonical name for exact match", function () {
+  assert.equal(resolveInsuranceName("Aetna"), "Aetna");
+  assert.equal(resolveInsuranceName("UnitedHealthcare"), "UnitedHealthcare");
+});
+
+test("resolveInsuranceName is case-insensitive for exact canonical names", function () {
+  assert.equal(resolveInsuranceName("aetna"), "Aetna");
+  assert.equal(resolveInsuranceName("CIGNA"), "Cigna");
+});
+
+test("resolveInsuranceName maps common aliases to canonical values", function () {
+  assert.equal(resolveInsuranceName("Blue Cross"), "Anthem Blue Cross");
+  assert.equal(resolveInsuranceName("blue cross"), "Anthem Blue Cross");
+  assert.equal(resolveInsuranceName("BCBS"), "Anthem Blue Cross");
+  assert.equal(resolveInsuranceName("Anthem"), "Anthem Blue Cross");
+  assert.equal(resolveInsuranceName("Blue Shield"), "Blue Shield of California");
+  assert.equal(resolveInsuranceName("United"), "UnitedHealthcare");
+  assert.equal(resolveInsuranceName("UHC"), "UnitedHealthcare");
+  assert.equal(resolveInsuranceName("Kaiser"), "Kaiser Permanente");
+  assert.equal(resolveInsuranceName("Medicaid"), "Medi-Cal");
+  assert.equal(resolveInsuranceName("Oscar"), "Oscar Health");
+});
+
+test("resolveInsuranceName returns trimmed original for unrecognized input", function () {
+  assert.equal(resolveInsuranceName("  Premera  "), "Premera");
+  assert.equal(resolveInsuranceName(""), "");
+});
+
+// Insurance normalization — insuranceMatches
+
+test("insuranceMatches returns true for exact canonical match", function () {
+  assert.equal(insuranceMatches("Aetna", ["Aetna", "Cigna"]), true);
+  assert.equal(insuranceMatches("Cigna", ["Aetna", "Cigna"]), true);
+});
+
+test("insuranceMatches returns false when no match", function () {
+  assert.equal(insuranceMatches("Aetna", ["Cigna", "Kaiser Permanente"]), false);
+  assert.equal(insuranceMatches("Aetna", []), false);
+  assert.equal(insuranceMatches("", ["Aetna"]), false);
+});
+
+test("insuranceMatches resolves aliases — Blue Cross matches Anthem Blue Cross", function () {
+  assert.equal(insuranceMatches("Blue Cross", ["Anthem Blue Cross"]), true);
+  assert.equal(insuranceMatches("blue cross", ["Anthem Blue Cross"]), true);
+  assert.equal(insuranceMatches("BCBS", ["Anthem Blue Cross"]), true);
+  assert.equal(insuranceMatches("Anthem", ["Anthem Blue Cross"]), true);
+});
+
+test("insuranceMatches resolves aliases — Blue Shield matches Blue Shield of California", function () {
+  assert.equal(insuranceMatches("Blue Shield", ["Blue Shield of California"]), true);
+});
+
+test("insuranceMatches resolves aliases — United matches UnitedHealthcare", function () {
+  assert.equal(insuranceMatches("United", ["UnitedHealthcare"]), true);
+  assert.equal(insuranceMatches("UHC", ["UnitedHealthcare"]), true);
+});
+
+test("insuranceMatches resolves aliases — Kaiser matches Kaiser Permanente", function () {
+  assert.equal(insuranceMatches("Kaiser", ["Kaiser Permanente"]), true);
+});
+
+test("insuranceMatches resolves aliases — Medicaid matches Medi-Cal", function () {
+  assert.equal(insuranceMatches("Medicaid", ["Medi-Cal"]), true);
+});
+
+test("insuranceMatches directory filter: Blue Cross patient sees Anthem Blue Cross therapist", function () {
+  const filters = { insurance: "Blue Cross" };
+  const therapist = { insurance_accepted: ["Anthem Blue Cross", "Cigna"] };
+  assert.equal(matchesDirectoryFilters(filters, therapist), true);
+});
+
+test("insuranceMatches directory filter: exact plan still works", function () {
+  const filters = { insurance: "Aetna" };
+  assert.equal(matchesDirectoryFilters(filters, { insurance_accepted: ["Aetna"] }), true);
+  assert.equal(matchesDirectoryFilters(filters, { insurance_accepted: ["Cigna"] }), false);
 });

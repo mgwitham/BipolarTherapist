@@ -1,4 +1,5 @@
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
+import { insuranceMatches } from "../shared/therapist-picker-options.mjs";
 
 function normalizeExternalUrl(value) {
   var raw = String(value || "").trim();
@@ -320,7 +321,7 @@ export function hasInsuranceClarity(profile, therapist) {
   if (!profile || !profile.insurance) {
     return false;
   }
-  return (therapist.insurance_accepted || []).includes(profile.insurance);
+  return insuranceMatches(profile.insurance, therapist.insurance_accepted);
 }
 
 export function hasCostClarity(therapist) {
