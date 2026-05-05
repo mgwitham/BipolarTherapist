@@ -25,7 +25,21 @@ export function renderAdaptiveGuidanceSection(options) {
   }
 
   var items = settings.items || [];
-  var escapeHtml = settings.escapeHtml || String;
+  var escapeHtml =
+    settings.escapeHtml ||
+    function (value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+        return ch === "&"
+          ? "&amp;"
+          : ch === "<"
+            ? "&lt;"
+            : ch === ">"
+              ? "&gt;"
+              : ch === '"'
+                ? "&quot;"
+                : "&#39;";
+      });
+    };
 
   if (!items.length) {
     root.innerHTML = "";

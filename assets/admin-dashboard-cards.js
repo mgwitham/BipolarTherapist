@@ -3,7 +3,17 @@ export function createAdminDashboardCardBuilders(config) {
   const escapeHtml =
     options.escapeHtml ||
     function (value) {
-      return String(value || "");
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+        return ch === "&"
+          ? "&amp;"
+          : ch === "<"
+            ? "&lt;"
+            : ch === ">"
+              ? "&gt;"
+              : ch === '"'
+                ? "&quot;"
+                : "&#39;";
+      });
     };
   function buildPassiveStatCard(value, label, meta) {
     return (
