@@ -1140,8 +1140,14 @@ body.match-refine-drawer-open .refine-priority-opts {
   gap: 0.5rem;
 }
 body.match-refine-drawer-open .refine-priority-card {
-  padding: 0.7rem 0.85rem;
-  font-size: 0.88rem;
+  padding: 0.75rem 0.9rem;
+  min-height: 3.8rem;
+}
+body.match-refine-drawer-open .refine-priority-card-label {
+  font-size: 0.9rem;
+}
+body.match-refine-drawer-open .refine-priority-card-sub {
+  font-size: 0.72rem;
 }
 .match-refine-drawer-header {
   display: none;
@@ -4845,6 +4851,7 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 }
 .refine-priority-card {
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
@@ -4863,6 +4870,17 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   min-height: 2.4rem;
   user-select: none;
   cursor: pointer;
+  gap: 0.15rem;
+}
+.refine-priority-card-label {
+  font-weight: 600;
+  font-size: 0.8rem;
+}
+.refine-priority-card-sub {
+  font-size: 0.68rem;
+  font-weight: 400;
+  opacity: 0.7;
+  line-height: 1.25;
 }
 .refine-priority-opt:hover .refine-priority-card {
   background: rgba(26, 122, 143, 0.07);
@@ -4873,11 +4891,20 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   background: #1a7a8f;
   color: #fff;
   border-color: #1a7a8f;
-  font-weight: 600;
+}
+.refine-priority-opt input[type="radio"]:checked + .refine-priority-card .refine-priority-card-sub {
+  opacity: 0.82;
 }
 .refine-priority-opt:focus-within .refine-priority-card {
   outline: 2px solid rgba(26, 122, 143, 0.38);
   outline-offset: 2px;
+}
+.refine-priority-auto-note {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: rgba(85, 104, 118, 0.6);
+  font-style: italic;
+  margin-left: auto;
 }
 
 /* Cost & access 2-col row */
