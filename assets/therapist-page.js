@@ -23,6 +23,7 @@ import {
 } from "./funnel-analytics.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 import { submitTherapistCtaClick, submitTherapistProfileView } from "./review-api.js";
+import { buildCallScript, buildOutreachScript } from "./outreach-scripts.js";
 import { renderValuePillRow, initValuePillPopover } from "./therapist-pills.js";
 import {
   MAX_ENTRIES as SAVED_LIST_MAX,
@@ -974,109 +975,7 @@ function buildProfileEntryState(source, therapist, backupState) {
   };
 }
 
-function buildCallScript(therapist) {
-  var formatLine = "";
-  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
-    formatLine = "Either telehealth or in-person would work for me.";
-  } else if (therapist.accepts_telehealth) {
-    formatLine = "I'm hoping for telehealth if that's available.";
-  } else if (therapist.accepts_in_person) {
-    formatLine = "I'm hoping for in-person care if that's available.";
-  }
-  var medicationLine = therapist.medication_management
-    ? "Medication support or coordination may also be part of the picture."
-    : "";
-  var insuranceLine =
-    therapist.insurance_accepted && therapist.insurance_accepted.length
-      ? "I'd also love to confirm insurance or fee details before going further."
-      : "I'd also love to briefly confirm fees or payment options.";
-
-  var liveOpener =
-    "Hi, my name is [your name]. I found your profile on BipolarTherapyHub and I'm looking for a therapist who works with bipolar disorder. Are you currently taking new clients?";
-
-  var liveContextParts = [formatLine, medicationLine, insuranceLine].filter(Boolean);
-  var liveContext = liveContextParts.length ? "If they are: " + liveContextParts.join(" ") : "";
-
-  var voicemail =
-    "Hi, my name is [your name] and my number is [your number]. I found your profile on BipolarTherapyHub and I'm looking for a therapist experienced with bipolar disorder. Please give me a call back when you have a moment. Thank you so much.";
-
-  return {
-    liveOpener: liveOpener,
-    liveContext: liveContext,
-    voicemail: voicemail,
-  };
-}
-
-function buildOutreachScript(therapist, contactStrategy) {
-  var route = contactStrategy && contactStrategy.route ? contactStrategy.route : "profile";
-
-  var firstName = (therapist.name || "").split(" ")[0];
-  var greeting = firstName ? "Hi " + firstName + "," : "Hi,";
-
-  var intro =
-    "I found your profile on BipolarTherapyHub and wanted to see if you might be a good fit for bipolar-focused support.";
-
-  var contextParts = [];
-  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
-    contextParts.push("I'm open to either telehealth or in-person care");
-  } else if (therapist.accepts_telehealth) {
-    contextParts.push("I'm hoping for telehealth");
-  } else if (therapist.accepts_in_person) {
-    contextParts.push("I'm hoping for in-person care");
-  }
-  if (therapist.medication_management) {
-    contextParts.push("medication support or coordination may also be part of the picture");
-  }
-  if (therapist.insurance_accepted && therapist.insurance_accepted.length) {
-    contextParts.push("and I'd love to confirm insurance or cost details before going further");
-  }
-  var contextLine = contextParts.length
-    ? contextParts.join(", ").replace(/, and /g, " and ") + "."
-    : "";
-  if (contextLine) {
-    contextLine = contextLine.charAt(0).toUpperCase() + contextLine.slice(1);
-  }
-
-  var questions = ["Are you currently taking new clients?"];
-  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
-    questions.push("Would you recommend starting with telehealth or in-person care?");
-  } else if (therapist.accepts_telehealth) {
-    questions.push("Are you offering telehealth openings right now?");
-  } else if (therapist.accepts_in_person) {
-    questions.push("Are you offering in-person openings right now?");
-  }
-  if (therapist.insurance_accepted && therapist.insurance_accepted.length) {
-    questions.push(
-      "Anything I should know about insurance, fees, or out-of-pocket costs before scheduling?",
-    );
-  }
-  var closingQuestion;
-  if (route === "booking") {
-    closingQuestion = "If it seems like a fit, is the booking link the best place to start?";
-  } else if (route === "email") {
-    closingQuestion = "If it seems like a fit, is email the best way to begin?";
-  } else if (route === "phone") {
-    closingQuestion = "If it seems like a fit, is a phone call still the best way to begin?";
-  } else if (route === "website") {
-    closingQuestion =
-      "If it seems like a fit, is the website inquiry form the best place to start?";
-  } else {
-    closingQuestion = "If it seems like a fit, what's the best first step?";
-  }
-  questions.push(closingQuestion);
-
-  var questionsBlock =
-    "A few quick questions:\n\n" +
-    questions
-      .map(function (q) {
-        return "• " + q;
-      })
-      .join("\n\n");
-
-  var closing = "Thanks so much,";
-
-  return [greeting, intro, contextLine, questionsBlock, closing].filter(Boolean).join("\n\n");
-}
+// buildCallScript and buildOutreachScript are imported from ./outreach-scripts.js
 
 function getFirstMeaningfulSentence(value) {
   var text = String(value || "").trim();

@@ -1569,6 +1569,39 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         }
         return;
       }
+
+      // Outreach: copy the drafted first message to clipboard
+      var copyBtn = event.target.closest("[data-outreach-copy-message]");
+      if (copyBtn) {
+        var messageBody = copyBtn
+          .closest(".outreach-script-shell")
+          ?.querySelector("[data-outreach-message-body]");
+        var text = messageBody ? messageBody.textContent || "" : "";
+        if (!text) return;
+        var label = copyBtn.querySelector("span");
+        var originalLabel = label ? label.textContent : "";
+        var markCopied = function (success) {
+          if (label) label.textContent = success ? "Copied" : "Copy failed";
+          copyBtn.classList.toggle("is-copied", Boolean(success));
+          window.setTimeout(function () {
+            if (label) label.textContent = originalLabel || "Copy first message";
+            copyBtn.classList.remove("is-copied");
+          }, 1800);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(
+            function () {
+              markCopied(true);
+            },
+            function () {
+              markCopied(false);
+            },
+          );
+        } else {
+          markCopied(false);
+        }
+        return;
+      }
     });
 
     // Insurance live search filter

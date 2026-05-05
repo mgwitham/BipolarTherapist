@@ -6,6 +6,7 @@ import {
   getInsuranceLabel,
   renderAvailabilityBadge,
 } from "./card-content.js";
+import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
 
 function escapeHtml(value) {
   return String(value || "")
@@ -302,6 +303,16 @@ export function renderCardMarkup(options) {
   var model = options.model;
   var therapist = model.therapist;
   var reasonLine = buildDirectoryReasonLine(therapist);
+  var profileSecondaryHref = buildTherapistProfileHref(therapist.slug, "card_secondary");
+  var profileSecondaryLink =
+    '<a href="' +
+    escapeHtml(profileSecondaryHref) +
+    '" class="card-action-secondary" data-card-profile-link="' +
+    escapeHtml(therapist.slug) +
+    '" data-cta-tier="browse">See full profile' +
+    '<svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true"><path d="M2 9L9 2M9 2H5M9 2V6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+    "</a>";
+
   var primaryAction = model.contactRoute
     ? '<a href="' +
       escapeHtml(model.contactRoute.href) +
@@ -311,7 +322,8 @@ export function renderCardMarkup(options) {
       escapeHtml(therapist.slug) +
       '" data-cta-tier="browse">' +
       escapeHtml(model.contactLabel || "Contact therapist") +
-      "</a>"
+      "</a>" +
+      profileSecondaryLink
     : '<a href="' +
       escapeHtml(buildTherapistProfileHref(therapist.slug, "card_primary")) +
       '" class="card-action-primary" data-primary-cta="' +
@@ -863,13 +875,39 @@ export function renderBottomSheetMarkup(options) {
     bshInsuranceHtml(plans, slug) +
     "</div>";
 
-  // Actions — contact is primary when available; View profile is always present
+  // Outreach disclosure — collapsed by default; reveals draft message + phone script
+  var outreachInner = renderOutreachPanelMarkup({
+    therapist: therapist,
+    contactStrategy: model.contactRoute
+      ? { route: model.contactRoute.kind || model.contactRoute.type || "" }
+      : null,
+    escapeHtml: escapeHtml,
+  });
+  var outreachHtml = "";
+  if (outreachInner) {
+    outreachHtml =
+      '<div class="bsh-divider"></div>' +
+      '<details class="bsh-outreach" data-bsh-outreach="' +
+      escapeHtml(slug) +
+      '">' +
+      '<summary class="bsh-outreach-summary">' +
+      '<span class="bsh-outreach-summary-label">How to reach out</span>' +
+      '<span class="bsh-outreach-summary-helper">We\'ve drafted a message for you</span>' +
+      '<svg class="bsh-outreach-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      "</summary>" +
+      '<div class="bsh-outreach-body outreach-script-shell">' +
+      outreachInner +
+      "</div>" +
+      "</details>";
+  }
+
+  // Actions — View full profile is the primary; the contact action is secondary
   var profileHref = model.profileHref || "/therapists/" + encodeURIComponent(slug) + "/";
 
   var profileCta =
     '<a href="' +
     escapeHtml(profileHref) +
-    '" class="bsh-cta-secondary" target="_blank" rel="noopener" data-primary-cta="' +
+    '" class="bsh-cta-primary" target="_blank" rel="noopener" data-primary-cta="' +
     escapeHtml(slug) +
     '" data-cta-tier="bottom-sheet">View full profile' +
     '<svg class="bsh-cta-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 12L12 2M12 2H7M12 2V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
@@ -884,7 +922,7 @@ export function renderBottomSheetMarkup(options) {
       escapeHtml(contactHref) +
       '"' +
       (model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
-      ' class="bsh-cta-primary" data-primary-cta="' +
+      ' class="bsh-cta-secondary" data-primary-cta="' +
       escapeHtml(slug) +
       '" data-cta-tier="bottom-sheet">' +
       contactIcon +
@@ -899,10 +937,19 @@ export function renderBottomSheetMarkup(options) {
   var actionsHtml =
     '<div class="bsh-divider"></div>' +
     '<div class="bsh-actions">' +
-    contactCtaHtml +
     profileCta +
+    contactCtaHtml +
     footnoteHtml +
     "</div>";
 
-  return topbarHtml + headerHtml + bioHtml + bipolarHtml + specsHtml + insuranceHtml + actionsHtml;
+  return (
+    topbarHtml +
+    headerHtml +
+    bioHtml +
+    bipolarHtml +
+    specsHtml +
+    insuranceHtml +
+    outreachHtml +
+    actionsHtml
+  );
 }
