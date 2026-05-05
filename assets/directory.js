@@ -520,16 +520,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
     var stateSelect = getElement("state");
     var specialtySelect = getElement("specialty");
-    var insuranceSelect = getElement("insurance");
 
     if (stateSelect && directoryPage.stateAllLabel) {
       stateSelect.querySelector("option").textContent = directoryPage.stateAllLabel;
     }
     if (specialtySelect && directoryPage.specialtyAllLabel) {
       specialtySelect.querySelector("option").textContent = directoryPage.specialtyAllLabel;
-    }
-    if (insuranceSelect && directoryPage.insuranceAllLabel) {
-      insuranceSelect.querySelector("option").textContent = directoryPage.insuranceAllLabel;
     }
   }
 
@@ -628,6 +624,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
     visibleCount = 24;
     syncFilterControlsFromState(filters, getElement);
+    syncInsuranceDisplay();
     render();
   }
 
@@ -780,10 +777,156 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
   }
 
+  function syncInsuranceDisplay() {
+    var hidden = getElement("insurance");
+    var display = getElement("insuranceDisplay");
+    var clearBtn = getElement("insuranceClearBtn");
+    if (!display) return;
+    var val = hidden ? hidden.value : "";
+    display.value = val;
+    display.classList.toggle("has-value", Boolean(val));
+    if (clearBtn) clearBtn.hidden = !val;
+  }
+
+  function initInsuranceTypeahead(items) {
+    var display = getElement("insuranceDisplay");
+    var hidden = getElement("insurance");
+    var list = getElement("insuranceSuggestions");
+    var clearBtn = getElement("insuranceClearBtn");
+    if (!display || !hidden || !list) return;
+
+    var activeIndex = -1;
+
+    function filtered(query) {
+      var q = (query || "").toLowerCase().trim();
+      if (!q) return items;
+      return items.filter(function (item) {
+        return item.value.toLowerCase().indexOf(q) !== -1;
+      });
+    }
+
+    function renderList(results) {
+      if (!results.length) {
+        list.innerHTML = '<div class="ins-ta-empty">No matching plans</div>';
+      } else {
+        list.innerHTML = results
+          .map(function (item, i) {
+            return (
+              '<div class="ins-ta-option" role="option" data-value="' +
+              escapeHtml(item.value) +
+              '" data-idx="' +
+              i +
+              '">' +
+              "<span>" +
+              escapeHtml(item.value) +
+              "</span>" +
+              (item.count ? '<span class="ins-ta-option-count">' + item.count + "</span>" : "") +
+              "</div>"
+            );
+          })
+          .join("");
+      }
+      activeIndex = -1;
+    }
+
+    function openList() {
+      renderList(filtered(display.value));
+      list.hidden = false;
+      display.setAttribute("aria-expanded", "true");
+    }
+
+    function closeList() {
+      list.hidden = true;
+      display.setAttribute("aria-expanded", "false");
+      activeIndex = -1;
+    }
+
+    function commit(value) {
+      hidden.value = value;
+      display.value = value;
+      display.classList.toggle("has-value", Boolean(value));
+      if (clearBtn) clearBtn.hidden = !value;
+      closeList();
+      applyFiltersLive();
+    }
+
+    function updateActive() {
+      var options = list.querySelectorAll(".ins-ta-option");
+      options.forEach(function (o, i) {
+        o.classList.toggle("is-active", i === activeIndex);
+      });
+      if (activeIndex >= 0 && options[activeIndex]) {
+        options[activeIndex].scrollIntoView({ block: "nearest" });
+      }
+    }
+
+    display.addEventListener("focus", openList);
+
+    display.addEventListener("input", function () {
+      renderList(filtered(display.value));
+      list.hidden = false;
+      display.setAttribute("aria-expanded", "true");
+      // If user typed, clear the confirmed selection until they pick again
+      if (display.value !== hidden.value) {
+        hidden.value = "";
+        display.classList.remove("has-value");
+        if (clearBtn) clearBtn.hidden = true;
+        applyFiltersLive();
+      }
+    });
+
+    display.addEventListener("keydown", function (e) {
+      var options = list.querySelectorAll(".ins-ta-option");
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        activeIndex = Math.min(activeIndex + 1, options.length - 1);
+        updateActive();
+      } else if (e.key === "ArrowUp") {
+        e.preventDefault();
+        activeIndex = Math.max(activeIndex - 1, 0);
+        updateActive();
+      } else if (e.key === "Enter") {
+        e.preventDefault();
+        if (activeIndex >= 0 && options[activeIndex]) {
+          commit(options[activeIndex].getAttribute("data-value"));
+        }
+      } else if (e.key === "Escape") {
+        closeList();
+        display.blur();
+      }
+    });
+
+    display.addEventListener("blur", function () {
+      window.setTimeout(function () {
+        closeList();
+        // Revert display to last confirmed value if user typed but didn't pick
+        display.value = hidden.value;
+        display.classList.toggle("has-value", Boolean(hidden.value));
+        if (clearBtn) clearBtn.hidden = !hidden.value;
+      }, 160);
+    });
+
+    list.addEventListener("mousedown", function (e) {
+      var option = e.target.closest(".ins-ta-option");
+      if (option) {
+        e.preventDefault();
+        commit(option.getAttribute("data-value"));
+      }
+    });
+
+    if (clearBtn) {
+      clearBtn.addEventListener("mousedown", function (e) {
+        e.preventDefault();
+        commit("");
+        display.focus();
+      });
+    }
+  }
+
   function initializeFilters() {
     populateSelect("state", getConfiguredItems("curatedStates", false));
     populateSelect("specialty", getConfiguredItems("curatedSpecialties", true));
-    populateSelect("insurance", getConfiguredItems("curatedInsurance", true));
+    initInsuranceTypeahead(getConfiguredItems("curatedInsurance", true));
     populateSelect("modality", uniqueCounts("treatment_modalities", true));
     populateSelect("population", uniqueCounts("client_populations", true));
 
@@ -816,6 +959,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
 
     syncFilterControlsFromState(filters, getElement);
+    syncInsuranceDisplay();
     syncRankingLocationFromUserZip();
   }
 
@@ -1273,6 +1417,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     filters = nextState.filters;
     visibleCount = 24;
     syncFilterControlsFromState(filters, getElement);
+    syncInsuranceDisplay();
     syncRankingLocationFromUserZip();
     render();
     ensureIpRankingLocation().then(function (didUpdate) {

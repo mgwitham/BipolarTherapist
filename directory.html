@@ -369,10 +369,46 @@
             </div>
             <div class="dir-vb-section-body">
               <div class="filter-group">
-                <label for="insurance" id="insuranceLabelText">Insurance</label>
-                <select id="insurance">
-                  <option value="">All insurance</option>
-                </select>
+                <label for="insuranceDisplay" id="insuranceLabelText">Insurance</label>
+                <div class="ins-ta-wrap">
+                  <input
+                    type="text"
+                    id="insuranceDisplay"
+                    class="ins-ta-input"
+                    autocomplete="off"
+                    spellcheck="false"
+                    placeholder="Search insurance…"
+                    role="combobox"
+                    aria-autocomplete="list"
+                    aria-expanded="false"
+                    aria-controls="insuranceSuggestions"
+                    aria-haspopup="listbox"
+                  />
+                  <button
+                    type="button"
+                    class="ins-ta-clear"
+                    id="insuranceClearBtn"
+                    aria-label="Clear insurance filter"
+                    hidden
+                  >
+                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                      <path
+                        d="M9 3L3 9M3 3l6 6"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                      />
+                    </svg>
+                  </button>
+                  <div
+                    id="insuranceSuggestions"
+                    class="ins-ta-list"
+                    hidden
+                    role="listbox"
+                    aria-label="Insurance options"
+                  ></div>
+                </div>
+                <input type="hidden" id="insurance" />
               </div>
             </div>
           </section>
