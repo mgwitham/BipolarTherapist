@@ -10,6 +10,13 @@ const intakeAttemptStore = new Map();
 const INTAKE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const INTAKE_MAX_ATTEMPTS = 5;
 
+// IP-level rate limit for portal auth endpoints (sign-in, claim-link, OTP,
+// recovery requests). Keyed by IP. More lenient than admin login — a real
+// therapist might retry a few times, but 10 attempts per 15 min is plenty.
+const portalAttemptStore = new Map();
+const PORTAL_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const PORTAL_MAX_ATTEMPTS = 10;
+
 function getClientAddress(request) {
   // x-forwarded-for may be a comma-separated chain; take the first entry.
   const xff = request.headers && request.headers["x-forwarded-for"];
@@ -44,6 +51,36 @@ export function recordIntakeAttempt(request) {
     intakeAttemptStore.set(ip, { count: 1, windowStartedAt: Date.now() });
   } else {
     intakeAttemptStore.set(ip, {
+      count: existing.count + 1,
+      windowStartedAt: existing.windowStartedAt,
+    });
+  }
+}
+
+function purgeExpiredPortalWindows() {
+  const now = Date.now();
+  for (const [key, value] of portalAttemptStore.entries()) {
+    if (!value || now - value.windowStartedAt > PORTAL_WINDOW_MS) {
+      portalAttemptStore.delete(key);
+    }
+  }
+}
+
+export function canAttemptPortalAuth(request) {
+  purgeExpiredPortalWindows();
+  const ip = getClientAddress(request);
+  const record = portalAttemptStore.get(ip);
+  return !record || record.count < PORTAL_MAX_ATTEMPTS;
+}
+
+export function recordPortalAuthAttempt(request) {
+  purgeExpiredPortalWindows();
+  const ip = getClientAddress(request);
+  const existing = portalAttemptStore.get(ip);
+  if (!existing) {
+    portalAttemptStore.set(ip, { count: 1, windowStartedAt: Date.now() });
+  } else {
+    portalAttemptStore.set(ip, {
       count: existing.count + 1,
       windowStartedAt: existing.windowStartedAt,
     });

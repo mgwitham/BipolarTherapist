@@ -581,6 +581,7 @@ export async function handleAuthAndPortalRoutes(context) {
     buildExpiredSessionCookie,
     buildSessionCookie,
     canAttemptLogin,
+    canAttemptPortalAuth,
     clearFailedLogins,
     createFeaturedCheckoutSession,
     createSignedSession,
@@ -593,6 +594,7 @@ export async function handleAuthAndPortalRoutes(context) {
     readListingRemovalToken,
     readPortalClaimToken,
     recordFailedLogin,
+    recordPortalAuthAttempt,
     sendJson,
     sendListingRemovalLink,
     sendPortalClaimLink,
@@ -851,6 +853,12 @@ export async function handleAuthAndPortalRoutes(context) {
   // "pending" state and fires a notification to admin. Rate-limited
   // to 3 pending per license to prevent flooding.
   if (request.method === "POST" && routePath === "/portal/recovery-request") {
+    if (typeof canAttemptPortalAuth === "function" && !canAttemptPortalAuth(request)) {
+      sendJson(response, 429, { error: "Too many requests. Try again later." }, origin, config);
+      return true;
+    }
+    if (typeof recordPortalAuthAttempt === "function") recordPortalAuthAttempt(request);
+
     const body = await parseBody(request);
     const fullName = String(body.full_name || "").trim();
     const licenseNumber = String(body.license_number || "").trim();
@@ -2555,6 +2563,12 @@ export async function handleAuthAndPortalRoutes(context) {
   // by /portal/claim-link so a determined attacker can't multiply the
   // budget by spreading across endpoints.
   if (request.method === "POST" && routePath === "/portal/sign-in") {
+    if (typeof canAttemptPortalAuth === "function" && !canAttemptPortalAuth(request)) {
+      sendJson(response, 429, { error: "Too many requests. Try again later." }, origin, config);
+      return true;
+    }
+    if (typeof recordPortalAuthAttempt === "function") recordPortalAuthAttempt(request);
+
     const body = await parseBody(request);
     const requesterEmail = String(body.email || "")
       .trim()
@@ -2619,6 +2633,12 @@ export async function handleAuthAndPortalRoutes(context) {
   }
 
   if (request.method === "POST" && routePath === "/portal/claim-link") {
+    if (typeof canAttemptPortalAuth === "function" && !canAttemptPortalAuth(request)) {
+      sendJson(response, 429, { error: "Too many requests. Try again later." }, origin, config);
+      return true;
+    }
+    if (typeof recordPortalAuthAttempt === "function") recordPortalAuthAttempt(request);
+
     const body = await parseBody(request);
     const therapistSlug = String(body.therapist_slug || "").trim();
     const requesterEmail = String(body.requester_email || "")

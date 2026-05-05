@@ -116,7 +116,17 @@ export function createCandidateCompareModal(config) {
   const escapeHtml =
     options.escapeHtml ||
     function (value) {
-      return String(value == null ? "" : value);
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+        return ch === "&"
+          ? "&amp;"
+          : ch === "<"
+            ? "&lt;"
+            : ch === ">"
+              ? "&gt;"
+              : ch === '"'
+                ? "&quot;"
+                : "&#39;";
+      });
     };
   const getQueueRoot =
     options.getQueueRoot ||

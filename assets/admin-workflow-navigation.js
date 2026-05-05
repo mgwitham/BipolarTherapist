@@ -3,7 +3,17 @@ export function createAdminWorkflowNavigator(config) {
   const escapeHtml =
     options.escapeHtml ||
     function (value) {
-      return String(value || "");
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+        return ch === "&"
+          ? "&amp;"
+          : ch === "<"
+            ? "&lt;"
+            : ch === ">"
+              ? "&gt;"
+              : ch === '"'
+                ? "&quot;"
+                : "&#39;";
+      });
     };
   const ensureSectionRendered = options.ensureSectionRendered || function () {};
   const setActiveView = options.setActiveView || null;

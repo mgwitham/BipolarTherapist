@@ -127,7 +127,21 @@ export function syncMatchStartState(options) {
   var button = settings.button || document.getElementById("matchSearchButton");
   var helper = settings.helper || document.getElementById("matchStartHelper");
   var careField = settings.careField || document.querySelector("[data-match-care-field]");
-  var escapeHtml = settings.escapeHtml || String;
+  var escapeHtml =
+    settings.escapeHtml ||
+    function (value) {
+      return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
+        return ch === "&"
+          ? "&amp;"
+          : ch === "<"
+            ? "&lt;"
+            : ch === ">"
+              ? "&gt;"
+              : ch === '"'
+                ? "&quot;"
+                : "&#39;";
+      });
+    };
 
   if (!form) {
     return;
