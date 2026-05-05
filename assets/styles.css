@@ -4095,11 +4095,18 @@ body.dir-vb .dir-vb-modal-foot {
   border-top: 1px solid rgba(26, 122, 143, 0.08);
   background: #ffffff;
   display: flex;
-  justify-content: stretch;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+body.dir-vb .dir-vb-modal-clear {
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 body.dir-vb .dir-vb-modal-apply {
-  width: 100%;
+  flex: 1 1 auto;
+  width: auto;
   padding: 0.85rem 1.5rem;
   border: none;
   border-radius: 12px;
