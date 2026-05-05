@@ -4897,6 +4897,13 @@ function buildIntakeMirrorSentence(profile) {
   if (medMgmt === "No") parts.push("No medication management");
   else if (medMgmt === "Yes") parts.push("With medication management");
   if (profile.insurance) parts.push(profile.insurance + " insurance");
+  var priorityLabels = {
+    "Soonest availability": "Ranked by shortest wait",
+    "Lowest cost": "Ranked by lowest cost",
+    "Highest specialization": "Ranked by most experience",
+  };
+  var priorityMode = String(profile.priority_mode || "").trim();
+  if (priorityLabels[priorityMode]) parts.push(priorityLabels[priorityMode]);
   return parts.join(". ") + ".";
 }
 
