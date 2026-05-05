@@ -153,13 +153,12 @@ Requires Node.js 22 (see `.nvmrc`).
 
 ### Branch Structure
 
-- `main` - stable, deployable code only
-- `dev` - integration branch, all features merge here first
-- `feature/[name]` - one branch per feature, branched off dev
+- `main` - stable, deployable code only; all PRs merge here
+- `feat/`, `fix/`, `chore/` branches - one per task, always branched off `main`
 
 ### Rules
 
-- NEVER commit directly to main or dev
+- NEVER commit directly to main
 - ALWAYS create a feature branch before making any changes
 - One task per branch, keep branches short-lived
 
