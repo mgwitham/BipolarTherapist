@@ -728,7 +728,13 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         ? optionIndexes.modality
         : field === "client_populations"
           ? optionIndexes.population
-          : new Map();
+          : field === "insurance_accepted"
+            ? optionIndexes.insurance
+            : field === "specialties"
+              ? optionIndexes.specialty
+              : field === "state"
+                ? optionIndexes.state
+                : new Map();
 
     return Array.from(counts.entries())
       .sort(function (a, b) {
