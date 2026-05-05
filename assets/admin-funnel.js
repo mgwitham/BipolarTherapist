@@ -526,6 +526,8 @@ function renderOutreachEngagement(events) {
     { key: "outreach_message_copied", label: "Messages copied" },
     { key: "outreach_call_clicked", label: "Calls initiated" },
     { key: "match_contact_completed", label: "Contact actions (all surfaces)" },
+    { key: "match_email_nudge_shown", label: "Email nudge shown" },
+    { key: "match_email_nudge_sent", label: "Email sent from nudge" },
   ];
   const surfaces = [
     { key: "drawer", label: "Drawer" },
