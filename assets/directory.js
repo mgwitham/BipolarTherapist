@@ -1573,6 +1573,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       // Outreach: copy the drafted first message to clipboard
       var copyBtn = event.target.closest("[data-outreach-copy-message]");
       if (copyBtn) {
+        var outreachWrap = copyBtn.closest("[data-bsh-outreach]");
+        var copySlug = outreachWrap ? outreachWrap.getAttribute("data-bsh-outreach") : "";
         var messageBody = copyBtn
           .closest(".outreach-script-shell")
           ?.querySelector("[data-outreach-message-body]");
@@ -1592,6 +1594,10 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
           navigator.clipboard.writeText(text).then(
             function () {
               markCopied(true);
+              trackFunnelEvent("outreach_message_copied", {
+                surface: "drawer",
+                therapist_slug: copySlug,
+              });
             },
             function () {
               markCopied(false);
@@ -1602,6 +1608,41 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         }
         return;
       }
+
+      // Outreach: tel: link click in the phone script
+      var callLink = event.target.closest(".outreach-script-call");
+      if (callLink && event.target.closest("[data-bsh-outreach]")) {
+        var callSlug = event.target
+          .closest("[data-bsh-outreach]")
+          .getAttribute("data-bsh-outreach");
+        trackFunnelEvent("outreach_call_clicked", {
+          surface: "drawer",
+          therapist_slug: callSlug,
+        });
+        // do not preventDefault — let the tel: link open
+      }
+    });
+
+    // Outreach: track when the disclosure is opened
+    detailsBody.addEventListener("toggle", function (event) {
+      var details = event.target;
+      if (!details || !details.matches || !details.matches("[data-bsh-outreach]")) return;
+      if (!details.open) return;
+      var slug = details.getAttribute("data-bsh-outreach") || "";
+      trackFunnelEvent("outreach_panel_opened", {
+        surface: "drawer",
+        therapist_slug: slug,
+      });
+    });
+
+    // See full profile (collapsed card secondary link)
+    document.addEventListener("click", function (event) {
+      var seeProfileLink = event.target.closest("[data-card-profile-link]");
+      if (!seeProfileLink) return;
+      trackFunnelEvent("directory_see_profile_clicked", {
+        therapist_slug: seeProfileLink.getAttribute("data-card-profile-link") || "",
+        source: "card_secondary",
+      });
     });
 
     // Insurance live search filter

@@ -803,10 +803,10 @@ export function renderOutreachPanel(entries, options) {
         if (labelEl) labelEl.textContent = "Copied";
         copyBtn.classList.add("is-copied");
         if (slug) {
-          settings.trackFunnelEvent(
-            "match_entry_draft_copied",
-            settings.buildMatchTrackingPayload(slug, { source: "how_to_reach_out" }),
-          );
+          settings.trackFunnelEvent("outreach_message_copied", {
+            surface: "match_card",
+            therapist_slug: slug,
+          });
         }
       } catch (_error) {
         if (labelEl) labelEl.textContent = "Copy failed";
@@ -815,6 +815,28 @@ export function renderOutreachPanel(entries, options) {
         if (labelEl) labelEl.textContent = originalLabel || "Copy first message";
         copyBtn.classList.remove("is-copied");
       }, 1800);
+    });
+  });
+
+  root.querySelectorAll("[data-match-outreach]").forEach(function (details) {
+    details.addEventListener("toggle", function () {
+      if (!details.open) return;
+      var slug = details.getAttribute("data-match-outreach") || "";
+      settings.trackFunnelEvent("outreach_panel_opened", {
+        surface: "match_card",
+        therapist_slug: slug,
+      });
+    });
+  });
+
+  root.querySelectorAll("[data-match-outreach] .outreach-script-call").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var details = link.closest("[data-match-outreach]");
+      var slug = details ? details.getAttribute("data-match-outreach") : "";
+      settings.trackFunnelEvent("outreach_call_clicked", {
+        surface: "match_card",
+        therapist_slug: slug,
+      });
     });
   });
 
