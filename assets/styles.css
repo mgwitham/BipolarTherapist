@@ -3948,19 +3948,26 @@ body.dir-vb .dir-vb-modal-close:hover {
 }
 
 body.dir-vb .dir-vb-modal-clear {
-  border: none;
+  border: 1px solid rgba(26, 122, 143, 0.2);
   background: transparent;
-  padding: 0.4rem 0.6rem;
+  padding: 0.72rem 1.1rem;
+  border-radius: 10px;
   font-family: inherit;
-  font-size: 0.82rem;
-  font-weight: 700;
+  font-size: 0.84rem;
+  font-weight: 600;
   color: var(--teal-dark);
   cursor: pointer;
-  text-decoration: underline;
-  text-underline-offset: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 
 body.dir-vb .dir-vb-modal-clear:hover {
+  background: rgba(26, 122, 143, 0.05);
+  border-color: rgba(26, 122, 143, 0.35);
   color: var(--navy);
 }
 
@@ -4091,16 +4098,17 @@ body.dir-vb .dir-vb-section-body .filter-group input[type="text"]::placeholder {
 }
 
 body.dir-vb .dir-vb-modal-foot {
-  padding: 0.95rem 1.25rem 1.1rem;
+  padding: 0.85rem 1.25rem 1rem;
   border-top: 1px solid rgba(26, 122, 143, 0.08);
   background: #ffffff;
   display: flex;
-  justify-content: stretch;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 body.dir-vb .dir-vb-modal-apply {
-  width: 100%;
-  padding: 0.85rem 1.5rem;
+  flex: 1 1 auto;
+  padding: 0.78rem 1.5rem;
   border: none;
   border-radius: 12px;
   font-size: 0.92rem;
@@ -4351,6 +4359,23 @@ body.dir-vb .dir-vb-modal-apply:hover {
 
 .dir-chips-row > .dir-vb-chips::-webkit-scrollbar {
   display: none;
+}
+
+.dir-location-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.42rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(26, 122, 143, 0.07);
+  border: 1px solid rgba(26, 122, 143, 0.14);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--teal);
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .dir-sort-zip-row {
