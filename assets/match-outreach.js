@@ -1,3 +1,5 @@
+import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
+
 function buildJourneyState(latestOutcome, options) {
   var settings = options || {};
   if (!latestOutcome) {
@@ -628,6 +630,36 @@ export function renderOutreachPanel(entries, options) {
           .buildEntryOutreachDraft(entry, settings.profile)
           .replace(/\n+/g, " ")
           .trim();
+        var preferredRouteKind = preferredRoute
+          ? String(preferredRoute.label || "").toLowerCase()
+          : "";
+        var contactStrategyKind =
+          preferredRouteKind.indexOf("email") >= 0
+            ? "email"
+            : preferredRouteKind.indexOf("call") >= 0 || preferredRouteKind.indexOf("phone") >= 0
+              ? "phone"
+              : preferredRouteKind.indexOf("book") >= 0
+                ? "booking"
+                : preferredRouteKind.indexOf("website") >= 0
+                  ? "website"
+                  : "";
+        var matchOutreachInner = renderOutreachPanelMarkup({
+          therapist: therapist,
+          contactStrategy: contactStrategyKind ? { route: contactStrategyKind } : null,
+          escapeHtml: settings.escapeHtml,
+        });
+        var matchOutreachDetailsHtml = matchOutreachInner
+          ? '<details class="match-outreach-details" data-match-outreach="' +
+            settings.escapeHtml(therapist.slug) +
+            '"><summary class="match-outreach-summary">' +
+            '<span class="match-outreach-summary-label">How to reach out</span>' +
+            '<span class="match-outreach-summary-helper">Draft message + phone script</span>' +
+            '<svg class="match-outreach-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+            "</summary>" +
+            '<div class="match-outreach-body outreach-script-shell">' +
+            matchOutreachInner +
+            "</div></details>"
+          : "";
         return (
           '<article class="outreach-carousel-card"' +
           (index === focusIndex ? "" : " hidden") +
@@ -679,7 +711,9 @@ export function renderOutreachPanel(entries, options) {
           encodeURIComponent(therapist.slug) +
           '/?ref=match" data-match-profile-link="' +
           settings.escapeHtml(therapist.slug) +
-          '" data-profile-link-context="outreach-card">View profile</a></div><div class="first-contact-tracker"><div class="first-contact-tracker-title">Update outcome</div><div class="first-contact-tracker-actions">' +
+          '" data-profile-link-context="outreach-card">View profile</a></div>' +
+          matchOutreachDetailsHtml +
+          '<div class="first-contact-tracker"><div class="first-contact-tracker-title">Update outcome</div><div class="first-contact-tracker-actions">' +
           settings.outreachOutcomeOptions
             .map(function (option) {
               return (
@@ -751,6 +785,58 @@ export function renderOutreachPanel(entries, options) {
       } catch (_error) {
         settings.setActionState(true, "Unable to copy the tailored outreach draft automatically.");
       }
+    });
+  });
+
+  root.querySelectorAll("[data-outreach-copy-message]").forEach(function (copyBtn) {
+    copyBtn.addEventListener("click", async function () {
+      var shell = copyBtn.closest(".outreach-script-shell");
+      var body = shell ? shell.querySelector("[data-outreach-message-body]") : null;
+      var text = body ? body.textContent || "" : "";
+      if (!text) return;
+      var labelEl = copyBtn.querySelector("span");
+      var originalLabel = labelEl ? labelEl.textContent : "";
+      var card = copyBtn.closest("[data-outreach-card]");
+      var slug = card ? card.getAttribute("data-outreach-card") : "";
+      try {
+        await navigator.clipboard.writeText(text);
+        if (labelEl) labelEl.textContent = "Copied";
+        copyBtn.classList.add("is-copied");
+        if (slug) {
+          settings.trackFunnelEvent("outreach_message_copied", {
+            surface: "match_card",
+            therapist_slug: slug,
+          });
+        }
+      } catch (_error) {
+        if (labelEl) labelEl.textContent = "Copy failed";
+      }
+      window.setTimeout(function () {
+        if (labelEl) labelEl.textContent = originalLabel || "Copy first message";
+        copyBtn.classList.remove("is-copied");
+      }, 1800);
+    });
+  });
+
+  root.querySelectorAll("[data-match-outreach]").forEach(function (details) {
+    details.addEventListener("toggle", function () {
+      if (!details.open) return;
+      var slug = details.getAttribute("data-match-outreach") || "";
+      settings.trackFunnelEvent("outreach_panel_opened", {
+        surface: "match_card",
+        therapist_slug: slug,
+      });
+    });
+  });
+
+  root.querySelectorAll("[data-match-outreach] .outreach-script-call").forEach(function (link) {
+    link.addEventListener("click", function () {
+      var details = link.closest("[data-match-outreach]");
+      var slug = details ? details.getAttribute("data-match-outreach") : "";
+      settings.trackFunnelEvent("outreach_call_clicked", {
+        surface: "match_card",
+        therapist_slug: slug,
+      });
     });
   });
 

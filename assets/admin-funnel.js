@@ -91,6 +91,17 @@ function countEventsWithin(events, millisAgo, type) {
   }).length;
 }
 
+function countEventsBySurface(events, millisAgo, type, surface) {
+  const cutoff = Date.now() - millisAgo;
+  return events.filter(function (event) {
+    if (event.type !== type) return false;
+    const payload = parsePayload(event.payload);
+    if (payload.surface !== surface) return false;
+    const at = new Date(event.occurredAt || 0).getTime();
+    return Number.isFinite(at) && at >= cutoff;
+  }).length;
+}
+
 function buildFunnelRow(events, steps, window) {
   const cells = steps.map(function (step) {
     return {
@@ -503,6 +514,72 @@ function renderRecentEvents(events) {
   );
 }
 
+function renderOutreachEngagement(events) {
+  const windows = [
+    { label: "24 hours", ms: 24 * 60 * 60 * 1000 },
+    { label: "7 days", ms: 7 * 24 * 60 * 60 * 1000 },
+    { label: "30 days", ms: 30 * 24 * 60 * 60 * 1000 },
+  ];
+  const metrics = [
+    { key: "outreach_panel_opened", label: "Panel opens" },
+    { key: "outreach_message_copied", label: "Messages copied" },
+    { key: "outreach_call_clicked", label: "Calls initiated" },
+  ];
+  const surfaces = [
+    { key: "drawer", label: "Drawer" },
+    { key: "match_card", label: "Match card" },
+  ];
+  const seeProfileWindows = windows.map(function (w) {
+    return countEventsWithin(events, w.ms, "directory_see_profile_clicked");
+  });
+  return (
+    '<div class="admin-funnel-headline-grid">' +
+    windows
+      .map(function (window) {
+        const rows = metrics
+          .map(function (metric) {
+            const total = countEventsWithin(events, window.ms, metric.key);
+            const drawer = countEventsBySurface(events, window.ms, metric.key, "drawer");
+            const matchCard = countEventsBySurface(events, window.ms, metric.key, "match_card");
+            const breakdown =
+              total > 0
+                ? '<small style="opacity:0.7;font-weight:400;display:block;line-height:1.4">' +
+                  surfaces
+                    .map(function (s) {
+                      const c = s.key === "drawer" ? drawer : matchCard;
+                      return escapeHtml(s.label) + ": " + c;
+                    })
+                    .join(" · ") +
+                  "</small>"
+                : "";
+            return "<dt>" + escapeHtml(metric.label) + "</dt><dd>" + total + breakdown + "</dd>";
+          })
+          .join("");
+        return (
+          '<div class="admin-funnel-headline-card">' +
+          '<h4 class="admin-funnel-headline-card-title">Last ' +
+          escapeHtml(window.label) +
+          "</h4>" +
+          '<dl class="admin-funnel-headline-stats">' +
+          rows +
+          "</dl>" +
+          "</div>"
+        );
+      })
+      .join("") +
+    "</div>" +
+    '<p class="admin-funnel-caption">' +
+    "&quot;See full profile&quot; clicks (collapsed cards): " +
+    "24h " +
+    seeProfileWindows[0] +
+    " · 7d " +
+    seeProfileWindows[1] +
+    " · 30d " +
+    seeProfileWindows[2] +
+    "</p>"
+  );
+}
+
 function renderDashboard(container, logData) {
   const events = Array.isArray(logData.events) ? logData.events : [];
   const lastSevenDays = { ms: 7 * 24 * 60 * 60 * 1000 };
@@ -518,6 +595,9 @@ function renderDashboard(container, logData) {
   container.innerHTML =
     '<section class="admin-funnel-section"><h3>At a glance</h3>' +
     renderHeadlineCounts(events) +
+    "</section>" +
+    '<section class="admin-funnel-section"><h3>Outreach engagement</h3>' +
+    renderOutreachEngagement(events) +
     "</section>" +
     '<section class="admin-funnel-section"><h3>Patient match funnel — last 7 days</h3>' +
     renderFunnelTable("% shown relative to patients who started from home", patientRows) +
