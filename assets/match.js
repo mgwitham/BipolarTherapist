@@ -5512,6 +5512,13 @@ function renderPrimaryMatchCards(entries, profile) {
     });
   });
 
+  root.querySelectorAll("[data-mx-outreach] [data-outreach-close]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var details = btn.closest("details");
+      if (details) details.open = false;
+    });
+  });
+
   var summaryPrimaryAction = document.getElementById("startWithLeadButton");
   if (summaryPrimaryAction) {
     summaryPrimaryAction.addEventListener("click", function () {

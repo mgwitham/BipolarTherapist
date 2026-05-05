@@ -1621,6 +1621,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         });
         // do not preventDefault — let the tel: link open
       }
+
+      // Outreach: close button collapses the disclosure
+      if (event.target.closest("[data-outreach-close]")) {
+        var closeDetails = event.target.closest("details");
+        if (closeDetails) closeDetails.open = false;
+      }
     });
 
     // Outreach: track when the disclosure is opened

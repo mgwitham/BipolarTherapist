@@ -4860,6 +4860,27 @@ body.dir-vb .dir-vb-modal-apply:hover {
   background: var(--teal-dark);
 }
 
+.outreach-script-close-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.outreach-script-close {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 0.8rem;
+  padding: 5px 14px;
+}
+
+.outreach-script-close:hover {
+  border-color: var(--text-muted);
+  color: var(--text);
+}
+
 /* -- Match card outreach disclosure container ------------- */
 .match-outreach-details {
   margin-top: 0.5rem;
