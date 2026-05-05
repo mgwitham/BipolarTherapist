@@ -350,7 +350,53 @@ function buildJsonLd(therapist) {
   ];
 }
 
-function buildFallbackProfileHtml(therapist) {
+// Up to 4 other published therapists in the same city, preferring those
+// accepting new patients. Returns [] when no same-city peers exist —
+// don't pad with distant providers, that's worse than no block.
+function findSimilarTherapists(target, all) {
+  if (!target || !target.city) return [];
+  const targetCity = String(target.city).trim().toLowerCase();
+  const peers = (all || []).filter(
+    (t) =>
+      t &&
+      t.slug &&
+      t.slug !== target.slug &&
+      t.city &&
+      String(t.city).trim().toLowerCase() === targetCity,
+  );
+  peers.sort((a, b) => {
+    const aOpen = a.acceptingNewPatients === true ? 0 : a.acceptingNewPatients === false ? 2 : 1;
+    const bOpen = b.acceptingNewPatients === true ? 0 : b.acceptingNewPatients === false ? 2 : 1;
+    if (aOpen !== bOpen) return aOpen - bOpen;
+    return String(a.name || "").localeCompare(String(b.name || ""));
+  });
+  return peers.slice(0, 4);
+}
+
+function buildSimilarTherapistsBlock(similar, sourceCity) {
+  if (!similar.length) return "";
+  const items = similar
+    .map((peer) => {
+      const fullName = peer.credentials ? `${peer.name}, ${peer.credentials}` : peer.name;
+      const role = peer.title || "Therapist";
+      const open = peer.acceptingNewPatients === true ? "Accepting new patients" : "";
+      return `<li class="seo-similar-card">
+            <a href="${escapeAttribute(buildProfilePath(peer.slug))}">
+              <span class="seo-similar-name">${escapeHtml(fullName)}</span>
+              <span class="seo-similar-role">${escapeHtml(role)}</span>
+              ${open ? `<span class="seo-similar-status">${escapeHtml(open)}</span>` : ""}
+            </a>
+          </li>`;
+    })
+    .join("");
+  const cityLabel = sourceCity ? `in ${escapeHtml(sourceCity)}` : "nearby";
+  return `<section class="profile-section seo-similar">
+          <h2>Other bipolar-informed therapists ${cityLabel}</h2>
+          <ul class="seo-similar-list">${items}</ul>
+        </section>`;
+}
+
+function buildFallbackProfileHtml(therapist, similar) {
   const name = therapist.name || "Therapist";
   const credentials = therapist.credentials ? `, ${therapist.credentials}` : "";
   const location = [therapist.city, therapist.state].filter(Boolean).join(", ");
@@ -359,6 +405,7 @@ function buildFallbackProfileHtml(therapist) {
   const insurance = listItems(therapist.insuranceAccepted);
   const populations = listItems(therapist.clientPopulations);
   const bio = stripHtml(therapist.bio || therapist.bioPreview || "");
+  const similarBlock = buildSimilarTherapistsBlock(similar || [], therapist.city);
 
   return `<div class="seo-profile-fallback" data-static-seo-profile>
         <section class="profile-hero">
@@ -409,6 +456,7 @@ function buildFallbackProfileHtml(therapist) {
             ? `<section class="profile-section"><h2>Insurance</h2><ul>${insurance}</ul></section>`
             : ""
         }
+        ${similarBlock}
       </div>`;
 }
 
@@ -448,7 +496,7 @@ function buildHeadTags(therapist) {
   ].join("\n    ");
 }
 
-function injectSeo(template, therapist) {
+function injectSeo(template, therapist, similar) {
   const withHead = template
     .replace(/<title>[\s\S]*?<\/title>/, buildHeadTags(therapist))
     .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
@@ -458,7 +506,7 @@ function injectSeo(template, therapist) {
 
   return withHead.replace(
     /<div class="profile-wrap" id="profileWrap">[\s\S]*?<\/div>\s*(?=<footer>)/,
-    `<div class="profile-wrap" id="profileWrap">\n      ${buildFallbackProfileHtml(therapist)}\n    </div>\n\n    `,
+    `<div class="profile-wrap" id="profileWrap">\n      ${buildFallbackProfileHtml(therapist, similar)}\n    </div>\n\n    `,
   );
 }
 
@@ -517,9 +565,14 @@ async function main() {
   let count = 0;
   for (const therapist of therapists || []) {
     if (!therapist || !therapist.slug) continue;
+    const similar = findSimilarTherapists(therapist, therapists);
     const outputDir = path.join(PROFILE_OUTPUT_DIR, String(therapist.slug));
     fs.mkdirSync(outputDir, { recursive: true });
-    fs.writeFileSync(path.join(outputDir, "index.html"), injectSeo(template, therapist), "utf8");
+    fs.writeFileSync(
+      path.join(outputDir, "index.html"),
+      injectSeo(template, therapist, similar),
+      "utf8",
+    );
     count += 1;
   }
   console.log(
