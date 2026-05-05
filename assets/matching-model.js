@@ -1187,17 +1187,37 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     }
   }
 
-  if (profile.priority_mode === "Soonest availability" && therapist.estimated_wait_time) {
-    breakdown.practical += Math.max(0, 12 - getWaitPriority(therapist.estimated_wait_time) * 3);
+  if (profile.priority_mode === "Soonest availability") {
+    // Primary: estimated_wait_time when available (2% of therapists)
+    if (therapist.estimated_wait_time) {
+      breakdown.practical += Math.max(0, 18 - getWaitPriority(therapist.estimated_wait_time) * 4);
+    }
+    // Proxy: accepting_new_patients (96% populated) — strongly favor confirmed-open listings
+    if (therapist.accepting_new_patients === true) {
+      breakdown.practical += 12;
+    } else if (therapist.accepting_new_patients === false) {
+      breakdown.practical -= 20;
+    }
   }
   if (profile.priority_mode === "Lowest cost") {
     var feeFloor = getFeeFloor(therapist);
     if (feeFloor) {
       breakdown.practical += clamp(18 - Math.round(feeFloor / 25), 0, 18);
     }
+    // Proxy: sliding scale and unknown fee still get a small boost over high listed fees
+    if (!feeFloor && therapist.sliding_scale) {
+      breakdown.practical += 8;
+    }
   }
   if (profile.priority_mode === "Highest specialization") {
-    breakdown.clinical += clamp(Number(therapist.bipolar_years_experience || 0), 0, 18);
+    // Primary: bipolar_years_experience when available (1% of therapists)
+    breakdown.clinical += clamp(Number(therapist.bipolar_years_experience || 0), 0, 12);
+    // Proxy: breadth of bipolar specialties listed (98% populated)
+    var specialtyCount = (therapist.specialties || []).length;
+    breakdown.clinical += clamp(specialtyCount * 3, 0, 12);
+    // Proxy: number of treatment modalities (85% populated) — more = deeper toolbox
+    var modalityCount = (therapist.treatment_modalities || []).length;
+    breakdown.clinical += clamp(modalityCount * 1.5, 0, 6);
   }
 
   if (therapist.accepting_new_patients === false) {
