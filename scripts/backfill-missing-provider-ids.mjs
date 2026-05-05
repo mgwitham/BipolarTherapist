@@ -77,7 +77,9 @@ async function main() {
     const state = doc.licenseState || "CA";
     const providerId = buildProviderId(state, doc.licenseNumber);
     if (!providerId) {
-      console.log(`  SKIP ${doc._id} — cannot mint providerId (state=${state}, license=${doc.licenseNumber})`);
+      console.log(
+        `  SKIP ${doc._id} — cannot mint providerId (state=${state}, license=${doc.licenseNumber})`,
+      );
       continue;
     }
     const patch = { providerId };
@@ -95,7 +97,9 @@ async function main() {
   }
 
   if (dryRun) {
-    console.log(`\nDRY RUN — ${ops.length} docs would be patched. Re-run without --dry-run to commit.`);
+    console.log(
+      `\nDRY RUN — ${ops.length} docs would be patched. Re-run without --dry-run to commit.`,
+    );
     return;
   }
 
