@@ -1,4 +1,5 @@
 import { normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
+import { resolveInsuranceName } from "../shared/therapist-picker-options.mjs";
 
 export const MATCH_INTAKE_QUESTIONS = [
   {
@@ -936,7 +937,7 @@ export function buildUserMatchProfile(input) {
     care_intent: normalizeText(input.care_intent) || "Either",
     needs_medication_management:
       normalizeText(input.needs_medication_management) || "Open to either",
-    insurance: normalizeText(input.insurance),
+    insurance: resolveInsuranceName(normalizeText(input.insurance)),
     budget_max: Number(input.budget_max || 0) || null,
     priority_mode: normalizeText(input.priority_mode) || "Best overall fit",
     urgency: normalizeText(input.urgency) || "Flexible",

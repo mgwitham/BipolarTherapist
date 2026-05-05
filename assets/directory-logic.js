@@ -9,6 +9,7 @@ import {
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 import { getInPersonProximityBonus, getZipDistanceMiles } from "./zip-lookup.js";
+import { insuranceMatches } from "../shared/therapist-picker-options.mjs";
 
 var responsivenessRankCache = new WeakMap();
 var freshnessBadgeCache = new WeakMap();
@@ -84,7 +85,7 @@ export function matchesDirectoryFilters(filterState, therapist) {
   }
   if (
     filterState.insurance &&
-    !(therapist.insurance_accepted || []).includes(filterState.insurance)
+    !insuranceMatches(filterState.insurance, therapist.insurance_accepted)
   ) {
     return false;
   }
@@ -560,7 +561,7 @@ export function buildCardFitSummary(filterState, therapist) {
   }
   if (
     filterState.insurance &&
-    (therapist.insurance_accepted || []).includes(filterState.insurance)
+    insuranceMatches(filterState.insurance, therapist.insurance_accepted)
   ) {
     reasons.push("accepts " + filterState.insurance);
   }
@@ -628,7 +629,7 @@ export function getMatchScore(filterState, therapist) {
   }
   if (
     filterState.insurance &&
-    (therapist.insurance_accepted || []).includes(filterState.insurance)
+    insuranceMatches(filterState.insurance, therapist.insurance_accepted)
   ) {
     score += 12;
   }

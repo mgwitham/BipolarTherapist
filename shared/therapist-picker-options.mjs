@@ -25,6 +25,58 @@ export const INSURANCE_OPTIONS = Object.freeze([
   "Out-of-network with superbill",
 ]);
 
+// Maps common patient-typed variants to canonical INSURANCE_OPTIONS values.
+// Keys are lowercase. Used by resolveInsuranceName and insuranceMatches.
+const INSURANCE_ALIASES = new Map([
+  ["anthem", "Anthem Blue Cross"],
+  ["anthem bcbs", "Anthem Blue Cross"],
+  ["bcbs", "Anthem Blue Cross"],
+  ["blue cross", "Anthem Blue Cross"],
+  ["blue cross blue shield", "Anthem Blue Cross"],
+  ["bluecross", "Anthem Blue Cross"],
+  ["blue shield", "Blue Shield of California"],
+  ["blueshield", "Blue Shield of California"],
+  ["kaiser", "Kaiser Permanente"],
+  ["medicaid", "Medi-Cal"],
+  ["medi cal", "Medi-Cal"],
+  ["oscar", "Oscar Health"],
+  ["uhc", "UnitedHealthcare"],
+  ["united", "UnitedHealthcare"],
+  ["united health", "UnitedHealthcare"],
+  ["unitedhealthcare", "UnitedHealthcare"],
+]);
+
+// Resolves a patient-typed insurance value to its canonical spelling.
+// Falls back to the trimmed original for unrecognized inputs.
+export function resolveInsuranceName(value) {
+  if (!value) return "";
+  var trimmed = String(value).trim();
+  var lower = trimmed.toLowerCase();
+  if (INSURANCE_ALIASES.has(lower)) return INSURANCE_ALIASES.get(lower);
+  var exact = INSURANCE_OPTIONS.find(function (opt) {
+    return opt.toLowerCase() === lower;
+  });
+  return exact || trimmed;
+}
+
+// Returns true when a patient's insurance query matches any value in a
+// therapist's insurance_accepted array. Checks:
+//   1. Alias-resolved canonical equality (case-insensitive)
+//   2. Substring containment in either direction (handles partial names)
+export function insuranceMatches(userQuery, therapistValues) {
+  if (!userQuery) return false;
+  var resolved = resolveInsuranceName(userQuery).toLowerCase();
+  return (therapistValues || []).some(function (tv) {
+    var tvLower = String(tv || "").toLowerCase();
+    var tvResolved = resolveInsuranceName(tv).toLowerCase();
+    return (
+      tvResolved === resolved ||
+      tvLower.indexOf(resolved) !== -1 ||
+      resolved.indexOf(tvLower) !== -1
+    );
+  });
+}
+
 export const BIPOLAR_SPECIALTY_OPTIONS = Object.freeze([
   "Bipolar I",
   "Bipolar II",
