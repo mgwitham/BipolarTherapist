@@ -5491,6 +5491,11 @@ function renderPrimaryMatchCards(entries, profile) {
           surface: "match_card",
           therapist_slug: slug,
         });
+        trackFunnelEvent("match_contact_completed", {
+          slug: slug,
+          method: "message_copied",
+          surface: "match_card",
+        });
       } catch (_error) {
         if (labelEl) labelEl.textContent = "Copy failed";
       }
@@ -5508,6 +5513,11 @@ function renderPrimaryMatchCards(entries, profile) {
       trackFunnelEvent("outreach_call_clicked", {
         surface: "match_card",
         therapist_slug: slug,
+      });
+      trackFunnelEvent("match_contact_completed", {
+        slug: slug,
+        method: "call_clicked",
+        surface: "match_card",
       });
     });
   });
@@ -6111,6 +6121,11 @@ function bindContactDialogActions(entry) {
         trackFunnelEvent("match_contact_modal_copy_message", {
           slug: therapist.slug || "",
         });
+        trackFunnelEvent("match_contact_completed", {
+          slug: therapist.slug || "",
+          method: "message_copied",
+          surface: "contact_modal",
+        });
       }
     });
   }
@@ -6131,6 +6146,11 @@ function bindContactDialogActions(entry) {
       trackFunnelEvent("match_contact_modal_send_email", {
         slug: therapist.slug || "",
       });
+      trackFunnelEvent("match_contact_completed", {
+        slug: therapist.slug || "",
+        method: "email_clicked",
+        surface: "contact_modal",
+      });
       var a = document.createElement("a");
       a.href = href;
       document.body.appendChild(a);
@@ -6143,6 +6163,12 @@ function bindContactDialogActions(entry) {
     link.addEventListener("click", function () {
       trackFunnelEvent("match_contact_modal_other_route", {
         slug: therapist.slug || "",
+        route: link.getAttribute("data-contact-other-route") || "",
+      });
+      trackFunnelEvent("match_contact_completed", {
+        slug: therapist.slug || "",
+        method: "other_route",
+        surface: "contact_modal",
         route: link.getAttribute("data-contact-other-route") || "",
       });
     });
