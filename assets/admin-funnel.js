@@ -51,6 +51,7 @@ const PATIENT_STEPS = [
   { key: "match_results_viewed", label: "Saw shortlist" },
   { key: "match_result_profile_opened", label: "Opened a profile" },
   { key: "match_contact_modal_opened", label: "Opened contact modal" },
+  { key: "match_contact_completed", label: "Completed contact action" },
 ];
 
 // Portal edit-form funnel. Tracks the post-claim path a therapist
@@ -524,6 +525,7 @@ function renderOutreachEngagement(events) {
     { key: "outreach_panel_opened", label: "Panel opens" },
     { key: "outreach_message_copied", label: "Messages copied" },
     { key: "outreach_call_clicked", label: "Calls initiated" },
+    { key: "match_contact_completed", label: "Contact actions (all surfaces)" },
   ];
   const surfaces = [
     { key: "drawer", label: "Drawer" },
@@ -536,20 +538,30 @@ function renderOutreachEngagement(events) {
     '<div class="admin-funnel-headline-grid">' +
     windows
       .map(function (window) {
+        const panelOpens = countEventsWithin(events, window.ms, "outreach_panel_opened");
+        const messagesCopied = countEventsWithin(events, window.ms, "outreach_message_copied");
+        const convRate =
+          panelOpens > 0
+            ? " (" + Math.round((messagesCopied / panelOpens) * 100) + "% of opens)"
+            : "";
         const rows = metrics
           .map(function (metric) {
             const total = countEventsWithin(events, window.ms, metric.key);
             const drawer = countEventsBySurface(events, window.ms, metric.key, "drawer");
             const matchCard = countEventsBySurface(events, window.ms, metric.key, "match_card");
-            const breakdown =
-              total > 0
+            const hasSurfaceBreakdown = metric.key !== "match_contact_completed" && total > 0;
+            const breakdown = hasSurfaceBreakdown
+              ? '<small style="opacity:0.7;font-weight:400;display:block;line-height:1.4">' +
+                surfaces
+                  .map(function (s) {
+                    const c = s.key === "drawer" ? drawer : matchCard;
+                    return escapeHtml(s.label) + ": " + c;
+                  })
+                  .join(" · ") +
+                "</small>"
+              : metric.key === "outreach_message_copied" && total > 0
                 ? '<small style="opacity:0.7;font-weight:400;display:block;line-height:1.4">' +
-                  surfaces
-                    .map(function (s) {
-                      const c = s.key === "drawer" ? drawer : matchCard;
-                      return escapeHtml(s.label) + ": " + c;
-                    })
-                    .join(" · ") +
+                  convRate +
                   "</small>"
                 : "";
             return "<dt>" + escapeHtml(metric.label) + "</dt><dd>" + total + breakdown + "</dd>";
