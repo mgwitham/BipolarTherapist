@@ -190,6 +190,86 @@ function buildDescription(therapist) {
   );
 }
 
+function buildFAQItems(therapist) {
+  const name = therapist.name || "This therapist";
+  const first = (therapist.name || "").split(" ")[0] || "They";
+  const phone = therapist.phone || null;
+  const website = therapist.website || therapist.bookingUrl || null;
+  const contactPath = [phone ? `calling ${phone}` : null, website ? "visiting their website" : null]
+    .filter(Boolean)
+    .join(" or ");
+  const contact = contactPath || "using the contact details on this page";
+  const ins = (therapist.insuranceAccepted || []).filter(Boolean);
+  const accepting = Boolean(therapist.acceptingNewPatients);
+  const city = therapist.city || "their area";
+  const modalities = (therapist.treatmentModalities || []).filter(Boolean);
+
+  const items = [];
+  items.push({
+    q: `Is ${name} currently accepting new patients?`,
+    a: accepting
+      ? `${first} is currently accepting new patients. Reach them by ${contact} to schedule an initial appointment.`
+      : `${first} is not currently accepting new patients. Use the directory to find similar bipolar disorder specialists nearby.`,
+  });
+  if (ins.length) {
+    items.push({
+      q: `What insurance does ${name} accept?`,
+      a: `${first} accepts ${ins.join(", ")}. Coverage varies by plan — confirm your benefits directly with ${first} or your carrier before your first appointment.`,
+    });
+  } else {
+    items.push({
+      q: `Does ${name} accept insurance?`,
+      a: `Insurance information is not currently listed. Contact ${first} directly to ask about accepted plans and out-of-pocket rates.`,
+    });
+  }
+  if (therapist.sessionFeeMin) {
+    const feeRange =
+      therapist.sessionFeeMax && therapist.sessionFeeMax !== therapist.sessionFeeMin
+        ? `$${therapist.sessionFeeMin}–$${therapist.sessionFeeMax}`
+        : `$${therapist.sessionFeeMin}`;
+    items.push({
+      q: `How much does ${name} charge per session?`,
+      a:
+        `${first}'s session fee is ${feeRange}/session.` +
+        (therapist.slidingScale ? " A sliding scale fee is available for qualifying clients." : ""),
+    });
+  } else {
+    items.push({
+      q: `How much does ${name} charge per session?`,
+      a: `Session fee information is not listed. Contact ${first} directly to ask about rates.`,
+    });
+  }
+  if (therapist.acceptsTelehealth && therapist.acceptsInPerson) {
+    items.push({
+      q: `Does ${name} offer online therapy or telehealth?`,
+      a: `Yes, ${first} offers both telehealth (secure video) and in-person appointments in ${city}.`,
+    });
+  } else if (therapist.acceptsTelehealth) {
+    items.push({
+      q: `Does ${name} offer online therapy or telehealth?`,
+      a: `Yes, ${first} offers telehealth sessions via secure video.`,
+    });
+  } else {
+    items.push({
+      q: `Does ${name} offer online therapy or telehealth?`,
+      a: `${first} currently offers in-person sessions in ${city}.`,
+    });
+  }
+  const modalityNote =
+    modalities.length > 0
+      ? ` drawing on ${modalities.slice(0, 3).join(", ")}${modalities.length > 3 ? ", and more" : ""}.`
+      : ".";
+  items.push({
+    q: `What makes ${name} a bipolar disorder specialist?`,
+    a: `${first} lists bipolar disorder as a primary specialty and uses evidence-based approaches recognized for mood stabilization${modalityNote} ${first} is listed on Bipolar Therapy Hub, a directory focused exclusively on therapists with verified bipolar expertise.`,
+  });
+  items.push({
+    q: `How do I schedule an appointment with ${name}?`,
+    a: `Reach ${first} by ${contact}. Mention you found their profile on Bipolar Therapy Hub and briefly describe what you're hoping to work on.`,
+  });
+  return items;
+}
+
 function buildJsonLd(therapist) {
   const canonicalUrl = buildCanonicalUrl(therapist);
   const nameWithCreds = `${therapist.name || ""}${therapist.credentials ? `, ${therapist.credentials}` : ""}`;
@@ -243,6 +323,29 @@ function buildJsonLd(therapist) {
             },
           }
         : {}),
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/` },
+        {
+          "@type": "ListItem",
+          position: 2,
+          name: "Directory",
+          item: `${SITE_URL}/directory.html`,
+        },
+        { "@type": "ListItem", position: 3, name: nameWithCreds, item: canonicalUrl },
+      ],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      mainEntity: buildFAQItems(therapist).map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      })),
     },
   ];
 }
@@ -327,7 +430,21 @@ function buildHeadTags(therapist) {
     `<meta name="twitter:card" content="summary" />`,
     `<meta name="twitter:title" content="${escapeAttribute(buildTitle(therapist))}" />`,
     `<meta name="twitter:description" content="${escapeAttribute(description)}" />`,
-    `<script type="application/ld+json" id="therapist-jsonld">${JSON.stringify(buildJsonLd(therapist))}</script>`,
+    ...(() => {
+      const ids = [
+        "therapist-jsonld",
+        "therapist-jsonld-business",
+        "therapist-jsonld-breadcrumb",
+        "therapist-jsonld-faq",
+      ];
+      return buildJsonLd(therapist).map(
+        (schema, i) =>
+          `<script type="application/ld+json" id="${ids[i]}">${JSON.stringify(schema).replace(
+            /<\/script>/gi,
+            "<\\/script>",
+          )}</script>`,
+      );
+    })(),
   ].join("\n    ");
 }
 
