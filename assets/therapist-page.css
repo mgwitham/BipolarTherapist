@@ -1222,6 +1222,46 @@ nav {
   line-height: 1.5;
   color: var(--muted);
 }
+
+/* Primary action elevated into the contact card. Replaces the old
+   .profile-hero-actions block that sat below the fold. */
+.profile-contact-primary {
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  margin-bottom: 0.15rem;
+  border-radius: 16px;
+  background: linear-gradient(180deg, rgba(26, 122, 143, 0.08) 0%, rgba(26, 122, 143, 0.03) 100%);
+  border: 1px solid rgba(26, 122, 143, 0.18);
+  position: relative;
+}
+.profile-contact-primary .btn-contact {
+  margin: 0;
+}
+.profile-contact-primary-caption {
+  font-size: 0.78rem;
+  line-height: 1.5;
+  color: var(--muted);
+  text-align: center;
+}
+.profile-contact-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(26, 122, 143, 0.7);
+  margin: 0.35rem 0 0.1rem;
+}
+.profile-contact-divider::before,
+.profile-contact-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: rgba(26, 122, 143, 0.18);
+}
 .profile-secondary-actions {
   display: grid;
   gap: 0.55rem;
