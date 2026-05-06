@@ -220,15 +220,15 @@ function applySignedInPaidState(me, subscription) {
     freeBadge.textContent = "Included now";
   }
   if (paidBadge) {
-    paidBadge.textContent = isTrial ? "Trial active" : "Paid active";
+    paidBadge.textContent = isTrial ? "Trial active" : "Insights active";
   }
   if (freeState) {
     freeState.textContent = "Your listing still keeps its free controls and fit-based ranking.";
   }
   if (paidState) {
     paidState.textContent = isTrial
-      ? "Your paid trial is active. Keep it, or cancel before billing begins."
-      : "Your paid plan is active. Open billing to update payment details or cancel.";
+      ? "Your Insights trial is active. Keep it, or cancel before billing begins."
+      : "Your Insights plan is active. Open billing to update payment details or cancel.";
   }
   if (paidHelper) {
     paidHelper.textContent = isTrial
