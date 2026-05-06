@@ -538,7 +538,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     var navCtaLink = getElement("navCtaLink");
     var footerTagline = getElement("footerTagline");
 
-    if (navBrowseLink && siteSettings.browseLabel) {
+    if (
+      navBrowseLink &&
+      siteSettings.browseLabel &&
+      !(navBrowseLink.dataset && navBrowseLink.dataset.matchNavManaged)
+    ) {
       navBrowseLink.textContent = siteSettings.browseLabel;
     }
 
