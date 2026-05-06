@@ -20,7 +20,7 @@ test("pricing page: headline and supporting copy explain free vs paid concretely
   );
   assert.match(pricingHtml, /Every therapist can claim a directory listing/);
   assert.match(pricingHtml, /Ranked by fit, not payment/);
-  assert.match(pricingHtml, /Paid does not buy placement\./);
+  assert.match(pricingHtml, /Insights does not buy placement\./);
 });
 
 test("pricing page: free and paid CTA labels are parallel and easy to compare", () => {
@@ -38,17 +38,17 @@ test("pricing page: paid card keeps trial and billing clarity next to the CTA", 
 });
 
 test("pricing page: fairness and fit-based ranking remain explicit", () => {
-  assert.match(pricingHtml, /Paid does not buy placement\./);
+  assert.match(pricingHtml, /Insights does not buy placement\./);
   assert.match(pricingHtml, /Match results stay ranked by fit to the\s+patient\./);
   assert.match(pricingHtml, /Every claimed therapist keeps ownership of their listing/);
 });
 
 test("pricing page: includes decision support and a paid-value preview", () => {
   assert.match(pricingHtml, /Choose Free if/);
-  assert.match(pricingHtml, /Choose Paid if/);
-  assert.match(pricingHtml, /What the paid dashboard helps you see/);
+  assert.match(pricingHtml, /Choose Insights if/);
+  assert.match(pricingHtml, /What the Insights dashboard helps you see/);
   assert.match(pricingHtml, /Example weekly visibility snapshot/);
-  assert.match(pricingHtml, /Illustrative layout based on the current paid dashboard\./);
+  assert.match(pricingHtml, /Illustrative layout based on the current Insights dashboard\./);
 });
 
 test("pricing page: mobile comparison stays single-column and preview remains responsive", () => {

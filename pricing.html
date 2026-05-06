@@ -16,16 +16,16 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
-    <title>Free Listing + $19/month Analytics · BipolarTherapyHub</title>
+    <title>See where your patients come from · BipolarTherapyHub</title>
     <meta
       name="description"
-      content="Every therapist gets a verified directory listing at no cost. Paid adds analytics so you can see exactly how patients are finding you and how they reach out."
+      content="Every therapist gets a verified directory listing at no cost. Insights adds analytics so you can see exactly how patients are finding you and how they reach out."
     />
     <link rel="canonical" href="https://www.bipolartherapyhub.com/pricing" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="BipolarTherapyHub" />
     <meta property="og:url" content="https://www.bipolartherapyhub.com/pricing" />
-    <meta property="og:title" content="Free Listing + $19/month Analytics · BipolarTherapyHub" />
+    <meta property="og:title" content="See where your patients come from · BipolarTherapyHub" />
     <meta
       property="og:description"
       content="Get listed for free. Upgrade for clearer insight into how patients find and contact you. $19/month with a 14-day free trial."
@@ -38,10 +38,10 @@
       content="BipolarTherapyHub pricing · free listing for every therapist, $19/month for visibility analytics"
     />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Free Listing + $19/month Analytics · BipolarTherapyHub" />
+    <meta name="twitter:title" content="See where your patients come from · BipolarTherapyHub" />
     <meta
       name="twitter:description"
-      content="Every therapist gets a verified directory listing at no cost. Paid adds visibility analytics and a weekly digest email."
+      content="Every therapist gets a verified directory listing at no cost. Insights adds visibility analytics and a weekly digest email."
     />
     <meta name="twitter:image" content="https://www.bipolartherapyhub.com/og-image.png" />
     <script type="application/ld+json">
@@ -58,10 +58,10 @@
           },
           {
             "@type": "Offer",
-            "name": "BipolarTherapyHub Paid",
+            "name": "BipolarTherapyHub Insights",
             "price": "19",
             "priceCurrency": "USD",
-            "description": "Weekly visibility and contact analytics for listed therapists. Paid does not affect ranking or listing access.",
+            "description": "Weekly visibility and contact analytics for listed therapists. Insights does not affect ranking or listing access.",
             "seller": { "@id": "https://www.bipolartherapyhub.com/#organization" }
           }
         ]
@@ -388,6 +388,46 @@
       }
       .p-card--paid {
         border: 2px solid var(--teal-500);
+        box-shadow: 0 14px 36px rgba(19, 96, 112, 0.14);
+        position: relative;
+        overflow: visible;
+      }
+      .p-card--paid .p-card-head {
+        border-top-left-radius: calc(var(--radius-lg) - 2px);
+        border-top-right-radius: calc(var(--radius-lg) - 2px);
+      }
+      .popular-ribbon {
+        position: absolute;
+        top: -12px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: var(--teal-700);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 0.3rem 0.85rem;
+        border-radius: 999px;
+        white-space: nowrap;
+        box-shadow: 0 4px 12px rgba(19, 96, 112, 0.25);
+      }
+      .trial-lead {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--teal-700);
+        margin: 0 0 0.2rem;
+        letter-spacing: 0.01em;
+      }
+      .p-card-roi {
+        font-size: 13px;
+        color: var(--slate-700);
+        margin: 0.45rem 0 0;
+        line-height: 1.5;
+        font-weight: 500;
+      }
+      .p-card-roi strong {
+        color: var(--teal-700);
       }
 
       .p-card-head {
@@ -583,10 +623,10 @@
       }
       .paid-features-layout {
         display: grid;
-        grid-template-columns: 1fr 1fr;
-        max-width: 900px;
+        grid-template-columns: 1fr;
+        max-width: 520px;
         margin: 0 auto;
-        gap: 48px;
+        gap: 16px;
         align-items: center;
       }
       .feature-cards-grid {
@@ -928,6 +968,20 @@
       .cta-btn-secondary:hover {
         background: rgba(255, 255, 255, 0.08);
       }
+      .cta-banner-alt {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.7);
+        margin: 0.4rem 0 0;
+      }
+      .cta-banner-alt a {
+        color: #fff;
+        text-decoration: underline;
+        text-underline-offset: 3px;
+        font-weight: 500;
+      }
+      .cta-banner-alt a:hover {
+        color: var(--teal-50);
+      }
       .stripe-note {
         display: flex;
         align-items: center;
@@ -1034,6 +1088,12 @@
         .pricing-cards-grid {
           grid-template-columns: 1fr;
         }
+        .p-card--paid {
+          order: -1;
+        }
+        .p-card--free {
+          order: 0;
+        }
         .paid-features-layout {
           grid-template-columns: 1fr;
         }
@@ -1087,18 +1147,15 @@
           <div>
             <span class="hero-eyebrow">For California clinicians</span>
           </div>
-          <h1 id="heroHeading">
-            Get listed for free.<br />
-            <em>Upgrade to see what's working.</em>
-          </h1>
+          <h1 id="heroHeading">Know where your <em>next patient</em> came from.</h1>
           <p class="pricing-hero-sub">
-            Upgrade when you want clearer insight into how patients find and contact you. Every
-            therapist gets a verified directory listing at no cost.
+            Get listed for free. Upgrade when you want clearer insight into how patients find and
+            contact you.
           </p>
           <ul class="pricing-hero-pills" aria-label="Pricing highlights">
-            <li>Free listing for every therapist</li>
+            <li>License-verified instantly</li>
             <li>Ranked by fit, not payment</li>
-            <li>14-day free trial, no charge until day 15</li>
+            <li>14-day free trial · cancel anytime</li>
           </ul>
         </div>
       </section>
@@ -1191,20 +1248,6 @@
                   </span>
                   Claim &amp; manage your listing from the dashboard
                 </li>
-                <li>
-                  <span class="check-icon check-icon--free" aria-hidden="true">
-                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                      <path
-                        d="M1 4l2.5 2.5L9 1"
-                        stroke="#2492a8"
-                        stroke-width="1.5"
-                        stroke-linecap="round"
-                        stroke-linejoin="round"
-                      />
-                    </svg>
-                  </span>
-                  Weekly view counts and total contact clicks
-                </li>
               </ul>
             </div>
             <div class="p-card-footer">
@@ -1215,19 +1258,21 @@
           </article>
 
           <!-- PAID CARD -->
-          <article class="p-card p-card--paid" aria-label="Paid plan">
+          <article class="p-card p-card--paid" aria-label="Insights plan">
+            <div class="popular-ribbon" aria-label="Most popular plan">Most popular</div>
             <div class="p-card-head">
-              <div class="trial-pill" aria-label="14-day free trial available">
-                14-day free trial
-              </div>
               <p class="p-card-kicker">Visibility analytics</p>
-              <p class="p-card-name">Paid</p>
+              <p class="p-card-name">Insights</p>
+              <p class="trial-lead">Free for 14 days, then</p>
               <div class="p-card-price-row">
                 <span class="p-card-price-n">$19</span>
                 <span class="p-card-price-per">/ month</span>
               </div>
+              <p class="p-card-roi">
+                Less than <strong>$0.65/day</strong>. One new client pays for the year.
+              </p>
               <!-- prettier-ignore -->
-              <p class="p-card-note" id="price-note">Start with 14 days free. Card required to start. No charge until day 15. Cancel anytime from your dashboard
+              <p class="p-card-note" id="price-note">Start with 14 days free. Card required to start. No charge until day 15. We email you 3 days before your first charge. Cancel anytime from your dashboard
               before billing begins.</p>
             </div>
             <div class="p-card-body">
@@ -1249,6 +1294,20 @@
                     </svg>
                   </span>
                   Everything in Free
+                </li>
+                <li>
+                  <span class="check-icon check-icon--paid" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#1a7a8f"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Weekly profile views and contact clicks
                 </li>
                 <li>
                   <span class="check-icon check-icon--paid" aria-hidden="true">
@@ -1329,7 +1388,7 @@
             </ul>
           </div>
           <div class="support-card">
-            <p class="support-card-heading">Choose Paid if</p>
+            <p class="support-card-heading">Choose Insights if</p>
             <ul>
               <li>You want to know where patients are finding you</li>
               <li>You want to see which profile updates move the needle</li>
@@ -1384,90 +1443,14 @@
       <!-- 4. WHAT PAID SHOWS YOU -->
       <section class="paid-features-section" aria-labelledby="paidFeaturesHeading">
         <div class="paid-features-header">
-          <span class="section-label">What the paid dashboard helps you see</span>
+          <span class="section-label">What the Insights dashboard helps you see</span>
           <h2 class="section-title" id="paidFeaturesHeading">Stop guessing. Start seeing.</h2>
           <p class="section-subtitle">
-            Paid doesn't change how you rank — it gives you a window into what's already happening
-            around your listing.
+            Insights doesn't change how you rank — it gives you a window into what's already
+            happening around your listing.
           </p>
         </div>
         <div class="paid-features-layout pricing-preview">
-          <!-- 2x2 feature cards -->
-          <div class="feature-cards-grid">
-            <div class="feature-card">
-              <div class="feature-card-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4" />
-                  <path
-                    d="M8 4v4l2.5 2.5"
-                    stroke="currentColor"
-                    stroke-width="1.4"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </div>
-              <h3>Where they found you</h3>
-              <p>Match result, directory browse, or direct link — by week.</p>
-            </div>
-            <div class="feature-card">
-              <div class="feature-card-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M2 4h12v8a1 1 0 01-1 1H3a1 1 0 01-1-1V4z"
-                    stroke="currentColor"
-                    stroke-width="1.4"
-                  />
-                  <path
-                    d="M2 4l6 5 6-5"
-                    stroke="currentColor"
-                    stroke-width="1.4"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </div>
-              <h3>How they reached out</h3>
-              <p>Phone, email, or booking — so you know what to prioritize.</p>
-            </div>
-            <div class="feature-card">
-              <div class="feature-card-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M2 12l3.5-4 3 2.5L12 5l2 2"
-                    stroke="currentColor"
-                    stroke-width="1.4"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              </div>
-              <h3>12-week trends</h3>
-              <p>See if a headshot or bio update actually moved the needle.</p>
-            </div>
-            <div class="feature-card">
-              <div class="feature-card-icon" aria-hidden="true">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <rect
-                    x="2"
-                    y="2"
-                    width="12"
-                    height="12"
-                    rx="2"
-                    stroke="currentColor"
-                    stroke-width="1.4"
-                  />
-                  <path
-                    d="M5 8h6M5 5.5h3M5 10.5h4"
-                    stroke="currentColor"
-                    stroke-width="1.4"
-                    stroke-linecap="round"
-                  />
-                </svg>
-              </div>
-              <h3>Monday digest</h3>
-              <p>Views, clicks, trend vs last week — in your inbox weekly.</p>
-            </div>
-          </div>
-
           <!-- Dashboard mockup -->
           <div>
             <p class="dash-chart-label" style="margin-bottom: 8px">
@@ -1536,7 +1519,7 @@
               </div>
             </div>
             <p class="dash-chart-label" style="margin-top: 8px; text-align: center">
-              Illustrative layout based on the current paid dashboard.
+              Illustrative layout based on the current Insights dashboard.
             </p>
           </div>
         </div>
@@ -1554,35 +1537,17 @@
               <tr>
                 <th class="col-feature" scope="col">Feature</th>
                 <th class="col-free" scope="col">Free</th>
-                <th class="col-paid" scope="col">Paid — $19/mo</th>
+                <th class="col-paid" scope="col">Insights — $19/mo</th>
               </tr>
             </thead>
             <tbody>
               <tr class="group-row">
-                <td colspan="3">Directory presence</td>
-              </tr>
-              <tr>
-                <td>Verified CA license badge</td>
-                <td class="val yes">✓</td>
-                <td class="val yes">✓</td>
-              </tr>
-              <tr>
-                <td>Ranked by fit, not payment</td>
-                <td class="val yes">✓</td>
-                <td class="val yes">✓</td>
-              </tr>
-              <tr>
-                <td>Claim and manage listing</td>
-                <td class="val yes">✓</td>
-                <td class="val yes">✓</td>
-              </tr>
-              <tr>
-                <td>Weekly view count &amp; contact clicks</td>
-                <td class="val yes">✓</td>
-                <td class="val yes">✓</td>
-              </tr>
-              <tr class="group-row">
                 <td colspan="3">Visibility analytics</td>
+              </tr>
+              <tr>
+                <td>Weekly profile views &amp; contact clicks</td>
+                <td class="val no">–</td>
+                <td class="val yes">✓</td>
               </tr>
               <tr>
                 <td>Patient source breakdown</td>
@@ -1609,6 +1574,24 @@
                 <td class="val no">–</td>
                 <td class="val yes">✓</td>
               </tr>
+              <tr class="group-row">
+                <td colspan="3">Directory presence (in both plans)</td>
+              </tr>
+              <tr>
+                <td>Verified CA license badge</td>
+                <td class="val yes">✓</td>
+                <td class="val yes">✓</td>
+              </tr>
+              <tr>
+                <td>Ranked by fit, not payment</td>
+                <td class="val yes">✓</td>
+                <td class="val yes">✓</td>
+              </tr>
+              <tr>
+                <td>Claim and manage listing</td>
+                <td class="val yes">✓</td>
+                <td class="val yes">✓</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -1622,15 +1605,13 @@
         </div>
         <div class="pricing-fairness-grid">
           <div class="fairness-item">
-            <p>Paid does not buy placement. Match results stay ranked by fit to the patient.</p>
+            <p>Insights does not buy placement. Match results stay ranked by fit to the patient.</p>
           </div>
           <div class="fairness-item">
             <p>Every claimed therapist keeps ownership of their listing regardless of plan.</p>
           </div>
           <div class="fairness-item">
-            <p>
-              Paid adds insight into how patients find you — it never changes who they see first.
-            </p>
+            <p>Insights shows you how patients find you — it never changes who they see first.</p>
           </div>
         </div>
       </section>
@@ -1643,18 +1624,35 @@
         </div>
         <div class="faq-list">
           <div class="faq-item">
+            <p class="faq-q">Can I upgrade or downgrade later?</p>
+            <p class="faq-a">
+              Yes. Upgrade in one click from your dashboard whenever you want — your free listing
+              stays exactly as it is. Downgrade anytime and your listing keeps running, no
+              interruption.
+            </p>
+          </div>
+          <div class="faq-item">
+            <p class="faq-q">What if I'm just starting out and don't have many inquiries yet?</p>
+            <p class="faq-a">
+              Start free. Once patients begin finding you, the dashboard tells you which channels
+              are working so you can lean into them. Most clinicians upgrade after their first few
+              inquiries, when there's something real to learn from.
+            </p>
+          </div>
+          <div class="faq-item">
             <p class="faq-q">Does paying improve my ranking?</p>
             <p class="faq-a">
               No. Match results are ranked by fit — bipolar experience, insurance, availability, and
-              location. Free and paid therapists are evaluated by the same rules. Paid adds insight,
-              not placement advantage.
+              location. Free and Insights subscribers are evaluated by the same rules. Insights adds
+              visibility, not placement advantage.
             </p>
           </div>
           <div class="faq-item">
             <p class="faq-q">How does the 14-day free trial work?</p>
             <p class="faq-a">
-              A card is required to start, but nothing is charged until day 15. Cancel any time
-              before from your dashboard — no email needed — and you'll never be billed.
+              A card is required to start, but nothing is charged until day 15. We'll email you 3
+              days before your first charge so it never sneaks up on you. Cancel any time before
+              from your dashboard — no email needed — and you'll never be billed.
             </p>
           </div>
           <div class="faq-item">
@@ -1687,15 +1685,17 @@
         <div class="cta-banner-inner">
           <h2 id="ctaHeading">See how patients are finding you.</h2>
           <p class="cta-banner-sub">
-            Try paid analytics free for 14 days. No charge until day 15, cancel anytime.
+            Try Insights free for 14 days. No charge until day 15, cancel anytime.
           </p>
           <p class="cta-banner-micro">
             Already listed? Sign in and upgrade in one click from your dashboard.
           </p>
           <div class="cta-banner-btns">
             <a href="/signup?plan=paid" class="cta-btn-primary">Start 14-day free trial</a>
-            <a href="/signup" class="cta-btn-secondary">Claim free listing instead</a>
           </div>
+          <p class="cta-banner-alt">
+            Not ready? <a href="/signup">Claim your free listing instead →</a>
+          </p>
           <div class="stripe-note" aria-label="Secure checkout via Stripe">
             <svg width="14" height="11" viewBox="0 0 14 11" fill="none" aria-hidden="true">
               <rect
