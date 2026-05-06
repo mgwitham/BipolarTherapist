@@ -913,6 +913,7 @@ function maybeLiveRecompute(event) {
     }
     setLiveStatus(message, false);
     pulseLiveStatus();
+    setRefineSubmitLabel(count);
     lastLiveCount = count;
     lastLiveTopSlug = topSlug;
     trackFunnelEvent("match_live_filter_applied", {
@@ -920,6 +921,24 @@ function maybeLiveRecompute(event) {
       result_count: count,
     });
   }, 120);
+}
+
+// Update the drawer's commit button to reflect the live result count.
+// "Show 11 matches" doubles as both a count indicator and the action
+// label — taps commit + close the drawer.
+function setRefineSubmitLabel(count) {
+  var btn = document.querySelector(".refine-bottom-submit");
+  if (!btn) return;
+  if (count === 0) {
+    btn.textContent = "No matches — try fewer filters";
+    btn.disabled = false;
+  } else if (count === 1) {
+    btn.textContent = "Show 1 match";
+    btn.disabled = false;
+  } else {
+    btn.textContent = "Show " + count + " matches";
+    btn.disabled = false;
+  }
 }
 
 function setLiveStatus(message, isUpdating) {
@@ -1085,6 +1104,11 @@ function setRefineDrawerOpen(open) {
       moreBtn.setAttribute("aria-expanded", "true");
       moreBtn.classList.add("is-expanded");
     }
+    // Seed the commit-button label with the count of currently-rendered
+    // matches, so the user sees "Show 8 matches" immediately on open
+    // rather than the generic "Show matches" until they tweak something.
+    var initialCount = Array.isArray(latestEntries) ? latestEntries.length : 0;
+    if (initialCount > 0) setRefineSubmitLabel(initialCount);
     // Focus the close button so keyboard users land in the drawer
     // instead of being stuck on the underlying toggle.
     window.requestAnimationFrame(function () {
@@ -6451,6 +6475,13 @@ var MATCH_LOADING_SKELETON_HTML =
 
 async function handleSubmit(event) {
   event.preventDefault();
+  // If the submit was fired from inside the open drawer (the bottom
+  // commit button), close the drawer before running so the user actually
+  // sees the new results — otherwise the drawer occludes them.
+  var drawerWasOpen = document.body.classList.contains("match-refine-drawer-open");
+  if (drawerWasOpen) {
+    setRefineDrawerOpen(false);
+  }
   var profile = readCurrentIntakeProfile();
 
   var root = getMatchShellRefs().resultsRoot;
@@ -6678,10 +6709,13 @@ function refreshIntakeUiFromForm() {
   var matchForm = refs.form;
   matchForm.addEventListener("submit", handleSubmit);
   matchForm.addEventListener("input", function (event) {
+    // Mirror text input values across drawer/primary fields and warm the
+    // ZIP cache, but do NOT fire live recompute on every keystroke.
+    // Typed inputs (ZIP, insurance) commit on `change` (blur). Tap-toggles
+    // (priority cards, format buttons, checkboxes) fire `change` natively.
     syncMirroredFieldValues(event.target);
     maybeWarmZipcodesForValue(matchForm.elements.location_query.value);
     refreshIntakeUiFromForm();
-    maybeLiveRecompute(event);
   });
   matchForm.addEventListener("change", function (event) {
     syncMirroredFieldValues(event.target);

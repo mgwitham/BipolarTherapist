@@ -1273,8 +1273,54 @@ body.match-refine-drawer-open .match-refine-live-status {
     background: var(--white);
   }
 }
+/* Hybrid pattern: keep the commit button visible inside the drawer.
+   Live preview updates results behind the drawer as the user taps
+   priority/format toggles, but ZIP and Insurance commit on blur and
+   the user explicitly closes the drawer to view the new results.
+   The button doubles as a live count indicator and a close-and-apply
+   action. */
+/* The drawer's live status text ("11 matches showing") duplicates the
+   commit button label ("Show 11 matches"). Hide visually but keep the
+   aria-live region in DOM for screen readers when filters change. */
+body.match-refine-drawer-open .match-refine-live-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
 body.match-refine-drawer-open .refine-bottom-submit {
-  display: none;
+  display: block;
+  position: sticky;
+  bottom: 0;
+  margin-top: 1rem;
+  margin-bottom: 0;
+  padding: 0.95rem 1.2rem;
+  background: var(--teal);
+  color: #fff;
+  border: none;
+  border-radius: 14px;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  width: 100%;
+  box-shadow:
+    0 -8px 18px rgba(15, 31, 40, 0.06),
+    0 8px 18px rgba(26, 122, 143, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    background 0.15s,
+    transform 0.1s;
+}
+body.match-refine-drawer-open .refine-bottom-submit:hover,
+body.match-refine-drawer-open .refine-bottom-submit:focus-visible {
+  background: var(--teal-dark);
+  outline: none;
+}
+body.match-refine-drawer-open .refine-bottom-submit:active {
+  transform: scale(0.98);
 }
 /* The drawer's "Change your search" section (care type + ZIP) is
          now the primary way to adjust the search since the inline
@@ -5471,6 +5517,13 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 }
 .mx-refine-sticky-count[hidden] {
   display: none;
+}
+/* Hide the sticky "Adjust filters" bar when the drawer is open — its
+   role is replaced by the .refine-bottom-submit "Show N matches"
+   button inside the drawer. Two refine buttons at the bottom of the
+   viewport at the same time is confusing. */
+body.match-refine-drawer-open .mx-refine-sticky {
+  display: none !important;
 }
 /* Hide sticky bar on desktop */
 @media (min-width: 821px) {
