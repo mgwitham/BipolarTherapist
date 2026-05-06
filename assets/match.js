@@ -117,6 +117,7 @@ var SHORTLIST_RESHAPE_HISTORY_KEY = "bth_shortlist_reshape_history_v1";
 var MATCH_FEEDBACK_KEY = "bth_match_feedback_v1";
 var CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
+var MATCH_RESULTS_URL_KEY = "matchResultsUrl";
 var zipcodesPreloadPromise = null;
 var activeSecondPassMode = "balanced";
 var activeMatchExperimentVariant = "control";
@@ -144,6 +145,33 @@ function getActiveExperimentContext() {
     homepage_messaging: getExperimentVariant("homepage_messaging", ["control", "adaptive"]),
     match_ranking: activeMatchExperimentVariant,
   };
+}
+
+function clearStoredMatchResultsUrl() {
+  try {
+    window.sessionStorage.removeItem(MATCH_RESULTS_URL_KEY);
+  } catch (_error) {
+    /* ignore */
+  }
+}
+
+function rememberMatchResultsUrl(profile, entries) {
+  var hasPersonalizedResults = Boolean(
+    profile &&
+    profile.care_state &&
+    profile.care_intent &&
+    Array.isArray(entries) &&
+    entries.length > 0,
+  );
+  try {
+    if (hasPersonalizedResults) {
+      window.sessionStorage.setItem(MATCH_RESULTS_URL_KEY, window.location.href);
+    } else {
+      window.sessionStorage.removeItem(MATCH_RESULTS_URL_KEY);
+    }
+  } catch (_error) {
+    /* ignore */
+  }
 }
 var FEEDBACK_REASON_OPTIONS = [
   "Insurance mismatch",
@@ -694,6 +722,7 @@ function buildStarterProfile() {
 function renderStarterResults() {
   var starterProfile = buildStarterProfile();
   var starterEntries = rankEntriesForProfile(starterProfile);
+  clearStoredMatchResultsUrl();
   if (!starterEntries.length) {
     setMatchJourneyMode("intake");
     setActionState(false, "Choose your care type and ZIP code to review the top options.");
@@ -1431,6 +1460,7 @@ function executeMatch(profile, options) {
   starterResultsMode = false;
 
   if (zipStatus.status === "invalid") {
+    clearStoredMatchResultsUrl();
     setMatchJourneyMode("intake");
     setActionState(false, "Enter a valid 5-digit ZIP code to review your top options.");
     renderIntakeTradeoffPreview(profile);
@@ -1438,6 +1468,7 @@ function executeMatch(profile, options) {
   }
 
   if (zipStatus.status === "out_of_state") {
+    clearStoredMatchResultsUrl();
     setMatchJourneyMode("intake");
     setActionState(false, zipStatus.message || "We are not currently live in that state yet.");
     renderIntakeTradeoffPreview(profile);
@@ -1445,6 +1476,7 @@ function executeMatch(profile, options) {
   }
 
   if (zipStatus.status === "unknown") {
+    clearStoredMatchResultsUrl();
     setMatchJourneyMode("results");
     // Clear any stale results from a previous search so the user doesn't see
     // the old list while the error message says there are no matches here.
@@ -1459,6 +1491,7 @@ function executeMatch(profile, options) {
   }
 
   if (!profile.care_state || !profile.care_intent) {
+    clearStoredMatchResultsUrl();
     setMatchJourneyMode("intake");
     setActionState(false, "Choose your care type and ZIP code to review your top options.");
     renderIntakeTradeoffPreview(profile);
@@ -1495,6 +1528,7 @@ function executeMatch(profile, options) {
   serializeProfileToUrl(profile);
   setMatchJourneyMode("results");
   safeRenderResults(entries, profile);
+  rememberMatchResultsUrl(profile, entries);
   if (settings.scroll) {
     scrollToTopMatches();
   }
@@ -6562,6 +6596,7 @@ function renderDirectoryShortlist(slugs) {
   latestEntries = selected;
   currentJourneyId = buildJourneyId(null, selected);
   starterResultsMode = false;
+  clearStoredMatchResultsUrl();
   var latestShortlistOutcome = getLatestShortlistOutcome(
     selected.map(function (entry) {
       return entry.therapist.slug;
@@ -6625,6 +6660,7 @@ function resetForm() {
   currentJourneyId = null;
   persistedJourneyId = "";
   starterResultsMode = false;
+  clearStoredMatchResultsUrl();
   setMatchJourneyMode("intake");
   window.history.replaceState({}, "", "match.html");
   setActionState(false, "Run a match to review your top options.");
@@ -6828,7 +6864,7 @@ function refreshIntakeUiFromForm() {
     var href = link.getAttribute("href") || "";
     if (href.indexOf("/therapists/") !== -1 && href.indexOf("ref=match") !== -1) {
       try {
-        window.sessionStorage.setItem("matchResultsUrl", window.location.href);
+        window.sessionStorage.setItem(MATCH_RESULTS_URL_KEY, window.location.href);
       } catch (_) {}
     }
   });

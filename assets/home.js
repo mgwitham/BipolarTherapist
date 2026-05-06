@@ -61,7 +61,11 @@ function applySiteSettings(siteSettings) {
   var footerTagline = document.getElementById("footerTagline");
   var footerContactLink = document.getElementById("footerContactLink");
 
-  if (navBrowseLink && siteSettings.browseLabel) {
+  if (
+    navBrowseLink &&
+    siteSettings.browseLabel &&
+    !(navBrowseLink.dataset && navBrowseLink.dataset.matchNavManaged)
+  ) {
     navBrowseLink.textContent = siteSettings.browseLabel;
   }
 
