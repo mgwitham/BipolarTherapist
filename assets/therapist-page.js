@@ -3233,6 +3233,14 @@ function renderProfile(t, therapistDirectory) {
     '<div class="profile-hero-right">' +
     '<div class="profile-contact-card" id="outreach" data-profile-contact-section>' +
     '<div class="profile-contact-card-label">Contact</div>' +
+    (primaryButton || primaryActionFallback
+      ? '<div class="profile-contact-primary">' +
+        (primaryButton || primaryActionFallback) +
+        '<div class="profile-contact-primary-caption">' +
+        escapeHtml(bestNextStepCopy) +
+        "</div></div>" +
+        '<div class="profile-contact-divider"><span>Other ways to reach</span></div>'
+      : "") +
     (t.phone
       ? '<a href="tel:' +
         escapeHtml(t.phone) +
@@ -3289,11 +3297,6 @@ function renderProfile(t, therapistDirectory) {
     buildFAQSection(t) +
     "</div>" +
     "</div>" +
-    '<div class="profile-hero-actions"><div class="profile-primary-action"><div class="primary-action-frame">' +
-    (primaryButton || primaryActionFallback) +
-    '<div class="profile-primary-caption">' +
-    escapeHtml(bestNextStepCopy) +
-    "</div></div></div></div>" +
     "</div>" +
     buildTrustBar(t) +
     '<div class="profile-foot-actions">' +
