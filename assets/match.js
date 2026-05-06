@@ -795,6 +795,13 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
     formatZipSuggestionList: formatZipSuggestionList,
   });
 
+  root.querySelectorAll('[data-empty-action="open-refine"]').forEach(function (button) {
+    button.addEventListener("click", function () {
+      trackFunnelEvent("match_recovery_clicked", { action: "open_refine_from_empty" });
+      setRefineDrawerOpen(true);
+    });
+  });
+
   root.querySelectorAll("[data-empty-zip]").forEach(function (button) {
     button.addEventListener("click", function () {
       var zip = button.getAttribute("data-empty-zip") || "";

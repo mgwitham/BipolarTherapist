@@ -8,7 +8,12 @@ export function renderNoResultsStateSection(options) {
   root.className = "match-empty";
   root.innerHTML =
     '<div class="match-empty-shell">' +
-    '<p class="match-empty-copy">No matches for those filters right now — try adjusting your search or <a href="/" class="match-empty-home-link">start over from the home page</a>.</p>' +
+    '<h2 class="match-empty-title">No matches with those filters</h2>' +
+    '<p class="match-empty-copy">Try loosening one or two filters. Most patients find a fit after relaxing insurance or care format.</p>' +
+    '<div class="match-empty-actions">' +
+    '<button type="button" class="match-empty-primary" data-empty-action="open-refine">Adjust filters</button>' +
+    '<a href="/match.html?mode=form" class="match-empty-secondary">Reset answers and start over</a>' +
+    "</div>" +
     "</div>";
 }
 
