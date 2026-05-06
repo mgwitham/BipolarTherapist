@@ -165,6 +165,7 @@ export function renderOutreachPanelMarkup(options) {
   var escapeHtml = typeof opts.escapeHtml === "function" ? opts.escapeHtml : defaultEscapeHtml;
   var allowEmail = opts.allowEmail !== false;
   var allowPhone = opts.allowPhone !== false;
+  var inline = opts.inline === true;
 
   var hasEmail = isRealEmailAddress(therapist.email);
   var hasWebsite = Boolean(therapist.website);
@@ -230,10 +231,11 @@ export function renderOutreachPanelMarkup(options) {
       "</section>";
   }
 
-  var closeButton =
-    '<div class="outreach-script-close-row">' +
-    '<button type="button" class="outreach-script-close" data-outreach-close>Close</button>' +
-    "</div>";
+  var closeButton = inline
+    ? ""
+    : '<div class="outreach-script-close-row">' +
+      '<button type="button" class="outreach-script-close" data-outreach-close>Close</button>' +
+      "</div>";
 
   return emailBlock + phoneBlock + closeButton;
 }
