@@ -195,7 +195,7 @@ nav {
 .nav-crisis-link {
   color: var(--navy) !important;
   font-size: 0.875rem !important;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .nav-crisis-link:hover {
@@ -209,7 +209,7 @@ nav {
   color: white !important;
   padding: 0.5rem 1.25rem;
   border-radius: 8px;
-  font-weight: 600 !important;
+  font-weight: 500 !important;
 }
 
 .nav-cta:hover {
