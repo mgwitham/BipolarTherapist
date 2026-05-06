@@ -758,7 +758,7 @@ function clearOptionalRefinements() {
 
   form.elements.insurance.value = "";
   form.elements.language_preferences.value = "";
-  form.elements.care_format.value = "In-Person";
+  form.elements.care_format.value = "";
   form.elements.needs_medication_management.value = "Open to either";
   form.elements.budget_max.value = "";
   form.elements.priority_mode.value = "Best overall fit";

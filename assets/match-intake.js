@@ -371,7 +371,12 @@ export function restoreProfileFromUrl(options) {
   var locationQuery = params.get("location_query") || "";
   var profile = settings.buildUserMatchProfile({
     care_state: settings.deriveStateFromLocation(locationQuery) || params.get("care_state") || "",
-    care_format: params.get("care_format") || "In-Person",
+    // Default to "" (Any) when not specified. Previously defaulted to
+    // "In-Person", which silently narrowed every home-form-originated
+    // search to in-person providers and biased ranking by ZIP-distance
+    // before the user told us their format preference. Empty = neutral
+    // (form has a radio with value="" labeled Any).
+    care_format: params.get("care_format") || "",
     care_intent: params.get("care_intent") || "",
     needs_medication_management: params.get("needs_medication_management") || "Open to either",
     insurance: params.get("insurance") || "",
@@ -424,7 +429,7 @@ export function hydrateForm(profile, options) {
   var locationValue = profile.location_query || profile.care_state || "";
   setFieldValue("location_query", locationValue);
   settings.syncZipResolvedLabel(locationValue);
-  setFieldValue("care_format", profile.care_format || "In-Person");
+  setFieldValue("care_format", profile.care_format || "");
   setFieldValue("care_intent", profile.care_intent || "");
   setFieldValue(
     "needs_medication_management",
