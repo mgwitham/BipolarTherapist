@@ -2074,7 +2074,7 @@ function updateShortlistAction(slugValue) {
   var status = document.getElementById("profileShortlistStatus");
   var decisionMemory = document.getElementById("profileDecisionMemory");
   var queueStatus = document.getElementById("profileQueueStatus");
-  if (!buttons.length || !status) {
+  if (!buttons.length) {
     return;
   }
 
@@ -2082,13 +2082,27 @@ function updateShortlistAction(slugValue) {
     return item.slug === slugValue;
   });
   var shortlisted = !!shortlistEntry;
+  // Update the .profile-save-btn-label span if present (keeps the icon
+  // intact); otherwise update textContent for the legacy plain button.
   buttons.forEach(function (button) {
-    button.textContent = shortlisted ? "Saved to list" : "Save to list";
+    var label = button.querySelector(".profile-save-btn-label");
+    var icon = button.querySelector(".profile-save-btn-icon");
+    if (label) {
+      label.textContent = shortlisted ? "Saved to list" : "Save to list";
+    } else {
+      button.textContent = shortlisted ? "Saved to list" : "Save to list";
+    }
+    if (icon) {
+      icon.textContent = shortlisted ? "★" : "☆";
+    }
     button.classList.toggle("is-saved", shortlisted);
+    button.setAttribute("aria-pressed", shortlisted ? "true" : "false");
   });
-  status.textContent = shortlisted
-    ? "Saved in your list on this browser. You can come back, compare, add a note, or move into outreach without losing your place."
-    : "Save up to 6 therapists so you can compare, leave a note, and return later without having to rebuild your search.";
+  if (status) {
+    status.textContent = shortlisted
+      ? "Saved in your list on this browser. You can come back, compare, add a note, or move into outreach without losing your place."
+      : "Save up to 6 therapists so you can compare, leave a note, and return later without having to rebuild your search.";
+  }
 
   if (decisionMemory) {
     var memoryState = buildProfileDecisionMemoryState(slugValue);
@@ -3303,6 +3317,10 @@ function renderProfile(t, therapistDirectory) {
         outreachPanelHtml +
         "</div>"
       : "") +
+    '<button type="button" class="profile-save-btn" id="profileShortlistButton" data-shortlist-trigger="profile" aria-pressed="false">' +
+    '<span class="profile-save-btn-icon" aria-hidden="true">☆</span>' +
+    '<span class="profile-save-btn-label">Save to list</span>' +
+    "</button>" +
     "</div>" +
     buildFAQSection(t) +
     "</div>" +

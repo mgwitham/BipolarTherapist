@@ -1874,6 +1874,10 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
     if (input.tagName === "INPUT") {
       input.addEventListener("input", scheduleLiveFilters);
+      // Also fire on change so programmatic edits (paste-then-blur,
+      // assistive tech, autofill) commit. scheduleLiveFilters debounces,
+      // so user-typing won't double-trigger.
+      input.addEventListener("change", scheduleLiveFilters);
       return;
     }
 
