@@ -5134,17 +5134,37 @@ function buildCardInfoRow(therapist) {
 
 // Build the "How to reach out" disclosure for a match card.
 // Returns "" when the therapist has no contactable channel.
-function buildMatchOutreachDisclosure(entry) {
+function buildMatchOutreachDisclosure(entry, options) {
   var therapist = entry && entry.therapist ? entry.therapist : null;
   if (!therapist) return "";
+  var settings = options || {};
+  var expanded = settings.expanded === true;
   var routeType = getPreferredRouteType(entry) || "";
   var inner = renderOutreachPanelMarkup({
     therapist: therapist,
     contactStrategy: routeType ? { route: routeType } : null,
     escapeHtml: escapeHtml,
+    inline: expanded,
   });
   if (!inner) return "";
   var slug = String(therapist.slug || "");
+  if (expanded) {
+    var firstName = String(therapist.name || "").split(" ")[0] || "them";
+    return (
+      '<section class="mx-outreach mx-outreach--expanded" data-mx-outreach="' +
+      escapeHtml(slug) +
+      '">' +
+      '<div class="mx-outreach-expanded-header">' +
+      '<span class="mx-outreach-expanded-kicker">Next step</span>' +
+      '<span class="mx-outreach-expanded-label">Reach out to ' +
+      escapeHtml(firstName) +
+      "</span>" +
+      "</div>" +
+      '<div class="mx-outreach-body outreach-script-shell">' +
+      inner +
+      "</div></section>"
+    );
+  }
   return (
     '<details class="mx-outreach" data-mx-outreach="' +
     escapeHtml(slug) +
@@ -5169,7 +5189,7 @@ function renderLeadResultCard(entry, _backupName, options) {
   var reasonLine = buildMatchReasonLine(therapist);
 
   var topMatchLabel = settings.showBestBadge
-    ? '<span class="mx-top-match-label">Top match for you</span>'
+    ? '<span class="mx-top-match-label">Best fit for what you described</span>'
     : "";
 
   return (
@@ -5210,7 +5230,7 @@ function renderLeadResultCard(entry, _backupName, options) {
     escapeHtml(buildTherapistProfileHref(therapist)) +
     '" class="mx-profile-link">See full profile</a>' +
     "</div>" +
-    buildMatchOutreachDisclosure(entry) +
+    buildMatchOutreachDisclosure(entry, { expanded: true }) +
     "</article>"
   );
 }
