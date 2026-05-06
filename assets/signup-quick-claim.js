@@ -488,12 +488,12 @@ function initQuickClaim() {
     // Recovery link: update href with pre-fill params, hide if no-email (recovery is the primary path)
     if (recoveryLink && result.has_email) {
       try {
-        const url = new URL("recover.html", window.location.href);
+        const url = new URL("/recover", window.location.origin);
         if (result.name) url.searchParams.set("name", result.name);
         if (result.license_number) url.searchParams.set("license", result.license_number);
         recoveryLink.href = url.toString();
       } catch (_e) {
-        recoveryLink.href = "recover.html";
+        recoveryLink.href = "/recover";
       }
     }
     if (recoveryWrap) {
@@ -603,13 +603,13 @@ function initQuickClaim() {
     if (!pickedResult.has_email) {
       // Navigate to recover page pre-filled
       try {
-        const url = new URL("recover.html", window.location.href);
+        const url = new URL("/recover", window.location.origin);
         if (pickedResult.name) url.searchParams.set("name", pickedResult.name);
         if (pickedResult.license_number)
           url.searchParams.set("license", pickedResult.license_number);
         window.location.href = url.toString();
       } catch (_e) {
-        window.location.href = "recover.html";
+        window.location.href = "/recover";
       }
       return;
     }

@@ -8014,7 +8014,7 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
 
 document.getElementById("navLogout").addEventListener("click", async function () {
   await signOutAdmin();
-  window.location.href = "admin.html";
+  window.location.href = "/admin";
 });
 
 var applicationSearchEl = document.getElementById("applicationSearch");
