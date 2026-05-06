@@ -933,7 +933,7 @@ function renderLookupState(options) {
 
 function describeFeaturedStatus(subscription) {
   if (!subscription || subscription.plan === "none" || !subscription.status) {
-    return 'You\'re on the free listing. Upgrade to unlock the weekly analytics dashboard, Monday digest email, and same-day profile edits. <a href="/pricing.html" style="color:var(--teal)">See what\'s included →</a>';
+    return 'You\'re on the free listing. Upgrade to unlock the weekly analytics dashboard, Monday digest email, and same-day profile edits. <a href="/pricing" style="color:var(--teal)">See what\'s included →</a>';
   }
   if (subscription.has_active_featured) {
     var endDate = formatDate(subscription.current_period_ends_at);
@@ -1053,7 +1053,7 @@ function renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail) 
         var params = new URLSearchParams();
         params.set("slug", therapistSlug);
         if (therapistEmail) params.set("email", therapistEmail);
-        window.location.href = "/pricing.html?" + params.toString();
+        window.location.href = "/pricing?" + params.toString();
       }
     });
   }
@@ -1156,7 +1156,7 @@ function handleFeaturedUpgradeClick(event) {
   if (event && event.preventDefault) {
     event.preventDefault();
   }
-  window.location.href = "/pricing.html?" + params.toString();
+  window.location.href = "/pricing?" + params.toString();
 }
 
 async function handleFeaturedBillingClick(event) {
@@ -1821,7 +1821,7 @@ function renderAnalyticsBlock(payload, subscription, therapist) {
       '<div style="font-weight:700;color:var(--teal-dark, #155f70);font-size:0.95rem">Upgrade to see your full analytics</div>' +
       '<div style="display:flex;flex-wrap:wrap;gap:0.5rem;align-items:center">' +
       '<a href="#portalFeaturedCard" class="td-bottom-card-cta" style="text-decoration:none;white-space:nowrap">Start 14-day free trial →</a>' +
-      '<a href="/pricing.html" style="color:var(--teal-dark,#155f70);font-size:0.82rem;white-space:nowrap">See pricing</a>' +
+      '<a href="/pricing" style="color:var(--teal-dark,#155f70);font-size:0.82rem;white-space:nowrap">See pricing</a>' +
       "</div>" +
       "</div>";
     return;
