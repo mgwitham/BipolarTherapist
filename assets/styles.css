@@ -154,13 +154,26 @@ nav {
   margin: 0;
 }
 
-.nav-links a {
-  font-family: "Inter", sans-serif;
+/* Nav typography is locked across the site so links never visually shift
+   between pages or between active/non-active states. Color and structural
+   properties (padding, border, layout) can vary per variant. Anything that
+   wants to vary typography needs to override this rule deliberately. */
+.nav-links a,
+.nav-links a.nav-link-current,
+.nav-links a.nav-signin-link,
+.nav-links a.nav-zone-switch,
+.nav-links a.nav-shortlist {
+  font-family: "Inter", sans-serif !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
   text-decoration: none;
-  color: var(--slate);
-  font-size: 0.875rem;
-  font-weight: 500;
   transition: color 0.2s;
+}
+
+.nav-links a {
+  color: var(--slate);
 }
 
 .nav-links a:hover {
@@ -2529,8 +2542,12 @@ footer a {
     padding: 0;
     margin: 0;
   }
-  .nav-links a {
-    font-size: 0.78rem;
+  .nav-links a,
+  .nav-links a.nav-link-current,
+  .nav-links a.nav-signin-link,
+  .nav-links a.nav-zone-switch,
+  .nav-links a.nav-shortlist {
+    font-size: 0.78rem !important;
     padding: 0;
     white-space: nowrap;
   }
