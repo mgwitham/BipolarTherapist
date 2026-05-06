@@ -2899,3 +2899,279 @@ img.bth-avatar {
   letter-spacing: 0.02em;
   text-transform: uppercase;
 }
+
+/* ─── Report-issue modal ──────────────────────────────────────────────────
+   Native <dialog> styling that matches the directory + portal design
+   language: teal accents, soft shadows, 14px radii, slate-on-cream type. */
+
+.report-issue-dialog {
+  border: none;
+  padding: 0;
+  background: transparent;
+  max-width: 480px;
+  width: calc(100% - 2rem);
+  margin: auto;
+  color: var(--slate);
+  overflow: visible;
+}
+
+.report-issue-dialog::backdrop {
+  background: rgba(15, 35, 45, 0.55);
+  backdrop-filter: blur(2px);
+}
+
+.report-issue-form {
+  position: relative;
+  background: var(--white);
+  border-radius: 18px;
+  padding: 1.75rem 1.75rem 1.5rem;
+  box-shadow:
+    0 24px 60px rgba(15, 35, 45, 0.18),
+    0 2px 8px rgba(15, 35, 45, 0.06);
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  max-height: calc(100vh - 2rem);
+  overflow-y: auto;
+}
+
+.report-issue-close {
+  position: absolute;
+  top: 0.85rem;
+  right: 0.85rem;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  border-radius: 8px;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease;
+}
+
+.report-issue-close:hover,
+.report-issue-close:focus-visible {
+  background: var(--teal-faint);
+  color: var(--teal-dark);
+  outline: none;
+}
+
+.report-issue-title {
+  font-family: "Lora", Georgia, serif;
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  padding-right: 2rem;
+  color: var(--slate);
+  line-height: 1.3;
+}
+
+.report-issue-sub {
+  margin: 0;
+  font-size: 0.88rem;
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.report-issue-reasons {
+  border: none;
+  padding: 0;
+  margin: 0.25rem 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.report-issue-legend {
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--teal-dark);
+  margin-bottom: 0.5rem;
+  padding: 0;
+}
+
+.report-issue-radio {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.7rem 0.85rem;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--white);
+  cursor: pointer;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  color: var(--slate);
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.report-issue-radio:hover {
+  border-color: var(--teal-light);
+  background: var(--teal-faint);
+}
+
+.report-issue-radio input[type="radio"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  margin: 1px 0 0;
+  flex-shrink: 0;
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease;
+  position: relative;
+}
+
+.report-issue-radio input[type="radio"]:checked {
+  border-color: var(--teal);
+  background: var(--teal);
+  box-shadow: inset 0 0 0 3px var(--white);
+}
+
+.report-issue-radio:has(input[type="radio"]:checked) {
+  border-color: var(--teal);
+  background: var(--teal-faint);
+  box-shadow: 0 0 0 1px var(--teal);
+}
+
+.report-issue-radio:focus-within {
+  outline: 2px solid var(--teal);
+  outline-offset: 2px;
+}
+
+.report-issue-comment-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-top: 0.2rem;
+}
+
+.report-issue-form textarea {
+  width: 100%;
+  font-family: inherit;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--slate);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 0.7rem 0.85rem;
+  background: var(--white);
+  resize: vertical;
+  min-height: 88px;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.report-issue-form textarea:focus {
+  outline: none;
+  border-color: var(--teal);
+  box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.15);
+}
+
+.report-issue-form textarea::placeholder {
+  color: #8a9aa0;
+}
+
+.report-issue-actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+}
+
+.report-issue-btn-primary,
+.report-issue-btn-secondary {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 12px;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease,
+    transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.report-issue-btn-primary {
+  background: var(--teal);
+  color: var(--white);
+  border: 1px solid var(--teal);
+  box-shadow:
+    0 8px 18px rgba(26, 122, 143, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+
+.report-issue-btn-primary:hover,
+.report-issue-btn-primary:focus-visible {
+  background: var(--teal-dark);
+  border-color: var(--teal-dark);
+  transform: translateY(-1px);
+  outline: none;
+}
+
+.report-issue-btn-primary:disabled {
+  background: #b0c2c8;
+  border-color: #b0c2c8;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.report-issue-btn-secondary {
+  background: var(--white);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+
+.report-issue-btn-secondary:hover,
+.report-issue-btn-secondary:focus-visible {
+  background: var(--bg);
+  color: var(--slate);
+  border-color: #b9cdd2;
+  outline: none;
+}
+
+.report-issue-thanks {
+  background: var(--teal-faint);
+  border: 1px solid rgba(26, 122, 143, 0.25);
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+  text-align: center;
+}
+
+.report-issue-thanks p {
+  margin: 0;
+  font-size: 0.92rem;
+  color: var(--teal-dark);
+  font-weight: 500;
+}
+
+@media (max-width: 480px) {
+  .report-issue-form {
+    padding: 1.4rem 1.25rem 1.2rem;
+    border-radius: 16px;
+  }
+  .report-issue-title {
+    font-size: 1.1rem;
+  }
+  .report-issue-actions {
+    flex-direction: column-reverse;
+  }
+}
