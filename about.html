@@ -1,0 +1,367 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Google Analytics -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q22R5G7VB5"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag() {
+        dataLayer.push(arguments);
+      }
+      gtag("js", new Date());
+      gtag("config", "G-Q22R5G7VB5");
+    </script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <title>About | BipolarTherapyHub</title>
+    <meta
+      name="description"
+      content="BipolarTherapyHub was built by someone who lived it. Learn why this directory exists and how we vet every therapist listed here."
+    />
+    <link rel="canonical" href="https://www.bipolartherapyhub.com/about" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BipolarTherapyHub" />
+    <meta property="og:url" content="https://www.bipolartherapyhub.com/about" />
+    <meta property="og:title" content="About | BipolarTherapyHub" />
+    <meta
+      property="og:description"
+      content="BipolarTherapyHub was built by someone who lived it. Learn why this directory exists and how we vet every therapist listed here."
+    />
+    <meta property="og:image" content="https://www.bipolartherapyhub.com/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="About | BipolarTherapyHub" />
+    <meta
+      name="twitter:description"
+      content="BipolarTherapyHub was built by someone who lived it. Learn why this directory exists and how we vet every therapist listed here."
+    />
+    <meta name="twitter:image" content="https://www.bipolartherapyhub.com/og-image.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lora:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --teal: #1a7a8f;
+        --teal-light: #2a9cb3;
+        --teal-dark: #155f70;
+        --teal-faint: #e8f5f8;
+        --navy: #1d3a4a;
+        --slate: #4a6572;
+        --muted: #6b8290;
+        --border: #d4e4e9;
+        --bg: #f7fbfc;
+        --white: #ffffff;
+      }
+
+      body {
+        font-family: "Inter", sans-serif;
+        background: linear-gradient(180deg, #f8fcfd 0%, #f4f9fb 100%);
+        color: var(--navy);
+        line-height: 1.65;
+      }
+
+      .skip-link {
+        position: absolute;
+        top: -40px;
+        left: 0;
+        background: var(--teal);
+        color: white;
+        padding: 0.5rem 1rem;
+        z-index: 999;
+        text-decoration: none;
+        font-weight: 600;
+        transition: top 0.1s;
+      }
+      .skip-link:focus {
+        top: 0;
+      }
+
+      /* ---- NAV (minimal, logo-only — matches privacy/terms pattern) ---- */
+      nav {
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        padding: 0 1.5rem;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      nav a.nav-logo {
+        text-decoration: none;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #000;
+      }
+      nav a.nav-logo span {
+        color: var(--teal);
+      }
+
+      /* ---- HERO (dark teal, matches homepage gradient) ---- */
+      .about-hero {
+        background: linear-gradient(160deg, #0a3a4a 0%, #1a7a8f 60%, #2a9cb3 100%);
+        color: white;
+        padding: 5rem 1.5rem 4.5rem;
+      }
+      .about-hero-inner {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      .about-hero-eyebrow {
+        display: inline-block;
+        font-family: "Inter", sans-serif;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.85);
+        background: rgba(255, 255, 255, 0.12);
+        padding: 0.35rem 0.85rem;
+        border-radius: 999px;
+        margin-bottom: 1.25rem;
+      }
+      .about-hero h1 {
+        font-family: "Lora", serif;
+        font-size: clamp(2.1rem, 4.4vw, 3rem);
+        font-weight: 600;
+        line-height: 1.12;
+        color: white;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.01em;
+      }
+      .about-hero p {
+        font-size: 1.05rem;
+        color: rgba(255, 255, 255, 0.88);
+        margin-bottom: 1rem;
+        max-width: 60ch;
+      }
+      .about-hero p:last-child {
+        margin-bottom: 0;
+      }
+
+      /* ---- BODY SECTIONS ---- */
+      main {
+        display: block;
+      }
+      .about-body {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 3rem 1.5rem 1rem;
+      }
+      .about-section {
+        padding: 1.75rem 0;
+      }
+      .about-section + .about-section {
+        border-top: 1px solid var(--border);
+      }
+      .about-section-tag {
+        display: inline-block;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--teal-dark);
+        background: var(--teal-faint);
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        margin-bottom: 1rem;
+      }
+      .about-section h2 {
+        font-family: "Lora", serif;
+        font-size: clamp(1.45rem, 2.6vw, 1.75rem);
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--navy);
+        margin-bottom: 1rem;
+      }
+      .about-section p {
+        font-size: 1rem;
+        color: var(--slate);
+        margin-bottom: 1rem;
+      }
+      .about-section p:last-child {
+        margin-bottom: 0;
+      }
+
+      /* ---- CLOSING BLOCK ---- */
+      .about-closing {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 1rem 1.5rem 4rem;
+      }
+      .about-closing-card {
+        background: var(--teal-faint);
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        border-radius: 14px;
+        padding: 1.75rem;
+      }
+      .about-closing-card p {
+        font-size: 1rem;
+        color: var(--slate);
+        margin-bottom: 0.85rem;
+      }
+      .about-closing-card p:last-child {
+        margin-bottom: 0;
+        color: var(--navy);
+        font-weight: 500;
+      }
+
+      /* ---- FOOTER ---- */
+      footer.site-mini-footer {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 1.5rem 1.5rem 2rem;
+        border-top: 1px solid var(--border);
+        color: var(--muted);
+        font-size: 0.85rem;
+        text-align: center;
+      }
+      footer.site-mini-footer a {
+        color: var(--muted);
+        text-decoration: none;
+        margin: 0 0.4rem;
+      }
+      footer.site-mini-footer a:hover {
+        color: var(--teal-dark);
+      }
+
+      /* ---- RESPONSIVE ---- */
+      @media (max-width: 640px) {
+        .about-hero {
+          padding: 3.5rem 1.25rem 3rem;
+        }
+        .about-hero p {
+          font-size: 1rem;
+        }
+        .about-body {
+          padding: 2rem 1.25rem 0.5rem;
+        }
+        .about-closing {
+          padding: 0.75rem 1.25rem 3rem;
+        }
+        .about-closing-card {
+          padding: 1.4rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <nav aria-label="Main navigation">
+      <a href="/" class="nav-logo">BipolarTherapy<span>Hub</span></a>
+    </nav>
+
+    <main id="main-content">
+      <section class="about-hero" aria-labelledby="aboutHeroHeading">
+        <div class="about-hero-inner">
+          <span class="about-hero-eyebrow">About BipolarTherapyHub</span>
+          <h1 id="aboutHeroHeading">Who built this. And why.</h1>
+          <p>I've lived with bipolar disorder for over 20 years.</p>
+          <p>
+            I know what it's like to sit across from a therapist who means well but doesn't quite
+            get it. Who sees the depression but misses the hypomania building underneath. Who treats
+            you like a textbook case when your experience has never felt textbook at all.
+          </p>
+          <p>
+            I also know what it's like when you finally find the right person. The difference isn't
+            subtle. It changes everything: your stability, your relationships, your sense of what's
+            possible.
+          </p>
+          <p>
+            It took me years to find that person. Too many wrong fits. Too many restarts. Too much
+            lost time. I built BipolarTherapyHub because no one should have to search that long.
+          </p>
+        </div>
+      </section>
+
+      <div class="about-body">
+        <section class="about-section" aria-labelledby="aboutPatientsHeading">
+          <span class="about-section-tag">For people living with bipolar disorder</span>
+          <h2 id="aboutPatientsHeading">You deserve a therapist who actually gets it.</h2>
+          <p>
+            Finding the right therapist isn't just a preference, it's clinical. Bipolar disorder
+            requires specific expertise: recognizing mixed episodes, supporting medication
+            management, building the kind of stability that holds over years, not just weeks.
+          </p>
+          <p>
+            Every therapist listed here has been vetted for that specific knowledge. No generalists.
+            No paid placements. Just specialists who have dedicated their practice to
+            bipolar-informed care.
+          </p>
+          <p>You've been managing this long enough. This is where the search gets easier.</p>
+        </section>
+
+        <section class="about-section" aria-labelledby="aboutFamiliesHeading">
+          <span class="about-section-tag">For families and loved ones</span>
+          <h2 id="aboutFamiliesHeading">Bipolar disorder doesn't only affect one person.</h2>
+          <p>
+            If someone you love is struggling, you already know this. The worry, the helplessness,
+            the moments where you're not sure what to do. That's real, and it matters.
+          </p>
+          <p>
+            This directory is for you too. We can help you find specialists who work with families,
+            who understand caregiver dynamics, and who can help your whole system find more
+            stability. You don't have to figure this out alone either.
+          </p>
+        </section>
+
+        <section class="about-section" aria-labelledby="aboutTherapistsHeading">
+          <span class="about-section-tag">For therapists</span>
+          <h2 id="aboutTherapistsHeading">
+            This is a community built around your work, not around who pays the most.
+          </h2>
+          <p>
+            If you've dedicated your practice to bipolar-informed care, you know how rare and
+            demanding that work is. This directory was built to make it easier for the right clients
+            to find you.
+          </p>
+          <p>
+            We take our vetting seriously because our users are making one of the most consequential
+            decisions of their mental health journey. A listing here signals something most
+            directories can't offer: that you've been recognized for the specific expertise this
+            population needs.
+          </p>
+          <p>
+            We understand the clinical complexity of this work. Misdiagnosis, medication
+            sensitivity, the long arc of treatment. We're not a lead-generation platform. We're a
+            mission-driven resource, and your reputation is safe here.
+          </p>
+        </section>
+      </div>
+
+      <div class="about-closing">
+        <div class="about-closing-card">
+          <p>
+            BipolarTherapyHub is an independent, mission-driven platform. We don't accept paid
+            rankings. We don't sell your data. We don't take referral fees.
+          </p>
+          <p>
+            Stability is possible. The right help makes it more likely. That's what we're here for.
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <footer class="site-mini-footer">
+      <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
+      <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+    </footer>
+  </body>
+</html>

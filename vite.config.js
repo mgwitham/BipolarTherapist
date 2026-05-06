@@ -53,6 +53,7 @@ export default defineConfig({
         recover: resolve(rootDir, "recover.html"),
         privacy: resolve(rootDir, "privacy.html"),
         terms: resolve(rootDir, "terms.html"),
+        about: resolve(rootDir, "about.html"),
         404: resolve(rootDir, "404.html"),
       },
     },
