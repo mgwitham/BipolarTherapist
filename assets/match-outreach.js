@@ -352,7 +352,7 @@ export function renderFallbackRecommendation(profile, entries, options) {
       ? '<a class="btn-primary" href="' +
         settings.escapeHtml(preferredRoute.href) +
         '"' +
-        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
         ' data-fallback-contact-link="' +
         settings.escapeHtml(fallback.therapist.slug) +
         '" data-fallback-route-label="' +
@@ -480,7 +480,7 @@ export function renderFirstContactRecommendation(profile, entries, options) {
       ? '<a class="btn-primary" href="' +
         settings.escapeHtml(preferredRoute.href) +
         '"' +
-        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
         ' data-entry-contact-link="' +
         settings.escapeHtml(recommendation.therapist.slug) +
         '" data-entry-route-label="' +
@@ -696,7 +696,7 @@ export function renderOutreachPanel(entries, options) {
             ? '<a class="btn-primary" href="' +
               settings.escapeHtml(preferredRoute.href) +
               '"' +
-              (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
+              (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
               ' data-entry-contact-link="' +
               settings.escapeHtml(therapist.slug) +
               '" data-entry-route-label="' +

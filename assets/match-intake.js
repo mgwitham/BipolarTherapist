@@ -172,9 +172,7 @@ export function buildRequestSummary(profile, hasMeaningfulRefinements) {
   var summary = [
     profile.location_query ? "Location: " + profile.location_query : "",
     !profile.location_query && profile.care_state ? "State: " + profile.care_state : "",
-    profile.care_format && profile.care_format !== "In-Person"
-      ? "Format: " + profile.care_format
-      : "",
+    profile.care_format && profile.care_format !== "Either" ? "Format: " + profile.care_format : "",
     profile.care_intent && profile.care_intent !== "Therapy"
       ? "Looking for: " + profile.care_intent
       : "",
@@ -211,7 +209,7 @@ export function buildAppliedAnswerPills(profile) {
     pills.push(profile.care_state + " statewide");
   }
 
-  if (profile.care_format && profile.care_format !== "In-Person") {
+  if (profile.care_format && profile.care_format !== "Either") {
     pills.push(profile.care_format);
   }
 
@@ -243,7 +241,7 @@ export function hasMeaningfulRefinements(profile) {
   }
 
   return Boolean(
-    (profile.care_format && profile.care_format !== "In-Person") ||
+    (profile.care_format && profile.care_format !== "Either") ||
     (profile.care_intent && profile.care_intent !== "Therapy") ||
     (profile.needs_medication_management &&
       profile.needs_medication_management !== "Open to either") ||
