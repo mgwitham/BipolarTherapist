@@ -5436,7 +5436,7 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   gap: 0.55rem;
   width: 100%;
   padding: 0.85rem 1.25rem;
-  background: #1d3a4a;
+  background: #1a7a8f;
   color: #fff;
   border: none;
   border-radius: 14px;
@@ -5444,10 +5444,15 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   font-weight: 600;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.15s;
+  box-shadow:
+    0 8px 18px rgba(26, 122, 143, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  transition:
+    background 0.15s,
+    box-shadow 0.15s;
 }
 .mx-refine-sticky-btn:hover {
-  background: #1a7a8f;
+  background: #155f70;
 }
 .mx-refine-sticky-btn svg {
   flex-shrink: 0;
