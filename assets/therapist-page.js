@@ -124,6 +124,14 @@ var DIRECTORY_LIST_LIMIT = SAVED_LIST_MAX;
 var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
 var activeTherapistContactExperimentVariant = "control";
 
+// Strip everything but digits and + so tel: URIs work across iOS, Android,
+// and VoIP dialers. iOS auto-normalizes "(805) 870-8901" but Android Auto
+// and some VoIP softphones don't. Display value can keep formatting; the
+// href should always be digits-only.
+function normalizeTelUri(phone) {
+  return String(phone || "").replace(/[^0-9+]/g, "");
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -2503,7 +2511,7 @@ function renderProfile(t, therapistDirectory) {
       return (
         '<a href="' +
         escapeHtml(t.booking_url) +
-        '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">' +
+        '" target="_blank" rel="noopener noreferrer" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">' +
         escapeHtml(primaryContactLabel || "Book consultation") +
         "</a>"
       );
@@ -2512,7 +2520,7 @@ function renderProfile(t, therapistDirectory) {
       return (
         '<a href="' +
         escapeHtml(t.website) +
-        '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="website" data-profile-contact-priority="primary">' +
+        '" target="_blank" rel="noopener noreferrer" class="btn-contact" data-profile-contact-route="website" data-profile-contact-priority="primary">' +
         escapeHtml(primaryContactLabel || "Visit " + therapistFirstName + "'s website →") +
         "</a>"
       );
@@ -2520,7 +2528,7 @@ function renderProfile(t, therapistDirectory) {
     if (t.preferred_contact_method === "phone" && t.phone) {
       return (
         '<a href="tel:' +
-        escapeHtml(t.phone) +
+        escapeHtml(normalizeTelUri(t.phone)) +
         '" class="btn-contact" data-profile-contact-route="phone" data-profile-contact-priority="primary">' +
         escapeHtml(primaryContactLabel || "Call " + t.phone + " →") +
         "</a>"
@@ -2541,7 +2549,7 @@ function renderProfile(t, therapistDirectory) {
     if (t.phone) {
       return (
         '<a href="tel:' +
-        escapeHtml(t.phone) +
+        escapeHtml(normalizeTelUri(t.phone)) +
         '" class="btn-contact" data-profile-contact-route="phone" data-profile-contact-priority="primary">Call ' +
         escapeHtml(t.phone) +
         " →</a>"
@@ -2558,7 +2566,7 @@ function renderProfile(t, therapistDirectory) {
       return (
         '<a href="' +
         escapeHtml(t.booking_url) +
-        '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">Book a consultation →</a>'
+        '" target="_blank" rel="noopener noreferrer" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">Book a consultation →</a>'
       );
     }
     return "";
@@ -2573,7 +2581,7 @@ function renderProfile(t, therapistDirectory) {
   if (t.phone && t.preferred_contact_method !== "phone") {
     contactBtns +=
       '<a href="tel:' +
-      escapeHtml(t.phone) +
+      escapeHtml(normalizeTelUri(t.phone)) +
       '" class="btn-contact btn-contact-secondary" data-profile-contact-route="phone" data-profile-contact-priority="secondary">Call ' +
       escapeHtml(t.phone) +
       "</a>";
@@ -2588,13 +2596,13 @@ function renderProfile(t, therapistDirectory) {
     contactBtns +=
       '<a href="' +
       escapeHtml(t.website) +
-      '" target="_blank" rel="noopener" class="btn-website" data-profile-contact-route="website" data-profile-contact-priority="secondary">Visit website</a>';
+      '" target="_blank" rel="noopener noreferrer" class="btn-website" data-profile-contact-route="website" data-profile-contact-priority="secondary">Visit website</a>';
   }
   if (t.booking_url && bookingHealthy && t.preferred_contact_method !== "booking") {
     contactBtns +=
       '<a href="' +
       escapeHtml(t.booking_url) +
-      '" target="_blank" rel="noopener" class="btn-website" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
+      '" target="_blank" rel="noopener noreferrer" class="btn-website" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
   }
 
   var insTags = renderList(t.insurance_accepted, "ins-item");
@@ -2990,7 +2998,9 @@ function renderProfile(t, therapistDirectory) {
     '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to list</button>';
   if (t.phone && t.preferred_contact_method !== "phone") {
     secondaryButtons +=
-      '<a href="tel:' + escapeHtml(t.phone) + '" class="btn-website">Call practice</a>';
+      '<a href="tel:' +
+      escapeHtml(normalizeTelUri(t.phone)) +
+      '" class="btn-website">Call practice</a>';
   }
   if (isRealEmail(t.email) && t.preferred_contact_method !== "email") {
     secondaryButtons +=
@@ -3000,13 +3010,13 @@ function renderProfile(t, therapistDirectory) {
     secondaryButtons +=
       '<a href="' +
       escapeHtml(t.website) +
-      '" target="_blank" rel="noopener" class="btn-website">Visit website</a>';
+      '" target="_blank" rel="noopener noreferrer" class="btn-website">Visit website</a>';
   }
   if (t.booking_url && bookingHealthy && t.preferred_contact_method !== "booking") {
     secondaryButtons +=
       '<a href="' +
       escapeHtml(t.booking_url) +
-      '" target="_blank" rel="noopener" class="btn-website">Booking link</a>';
+      '" target="_blank" rel="noopener noreferrer" class="btn-website">Booking link</a>';
   }
   secondaryButtons +=
     '<a href="/portal?slug=' +
@@ -3243,7 +3253,7 @@ function renderProfile(t, therapistDirectory) {
       : "") +
     (t.phone
       ? '<a href="tel:' +
-        escapeHtml(t.phone) +
+        escapeHtml(normalizeTelUri(t.phone)) +
         '" class="profile-contact-row" aria-label="Call ' +
         escapeHtml(t.name) +
         '"><span class="profile-contact-icon" aria-hidden="true">📞</span><span class="profile-contact-value">' +
@@ -3264,7 +3274,7 @@ function renderProfile(t, therapistDirectory) {
     (t.website && websiteHealthy
       ? '<a href="' +
         escapeHtml(t.website) +
-        '" target="_blank" rel="noopener" class="profile-contact-row" aria-label="Visit ' +
+        '" target="_blank" rel="noopener noreferrer" class="profile-contact-row" aria-label="Visit ' +
         escapeHtml(t.name) +
         '\u2019s website"><span class="profile-contact-icon" aria-hidden="true">🌐</span><span class="profile-contact-value">' +
         "Practice website →</span></a>" +
@@ -3273,7 +3283,7 @@ function renderProfile(t, therapistDirectory) {
     (t.booking_url && bookingHealthy
       ? '<a href="' +
         escapeHtml(t.booking_url) +
-        '" target="_blank" rel="noopener" class="profile-contact-row" aria-label="Book with ' +
+        '" target="_blank" rel="noopener noreferrer" class="profile-contact-row" aria-label="Book with ' +
         escapeHtml(t.name) +
         '"><span class="profile-contact-icon" aria-hidden="true">📅</span><span class="profile-contact-value">Booking link</span></a>'
       : "") +

@@ -198,7 +198,9 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
         : buildTherapistProfileHref(model.therapist.slug, "preview_contact"),
     ) +
     '"' +
-    (model.contactRoute && model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
+    (model.contactRoute && model.contactRoute.external
+      ? ' target="_blank" rel="noopener noreferrer"'
+      : "") +
     ' class="card-action-primary" data-primary-cta="' +
     escapeHtml(model.therapist.slug) +
     '" data-cta-tier="featured">' +
@@ -284,7 +286,9 @@ export function renderBackupCardMarkup(options) {
         : buildTherapistProfileHref(therapist.slug, "backup_contact"),
     ) +
     '"' +
-    (model.contactRoute && model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
+    (model.contactRoute && model.contactRoute.external
+      ? ' target="_blank" rel="noopener noreferrer"'
+      : "") +
     ' class="card-action-primary" data-primary-cta="' +
     escapeHtml(therapist.slug) +
     '" data-cta-tier="backup">Contact therapist</a><button type="button" class="card-action-secondary" data-view-details="' +
@@ -317,7 +321,7 @@ export function renderCardMarkup(options) {
     ? '<a href="' +
       escapeHtml(model.contactRoute.href) +
       '"' +
-      (model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
+      (model.contactRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
       ' class="card-action-primary" data-primary-cta="' +
       escapeHtml(therapist.slug) +
       '" data-cta-tier="browse">' +
@@ -493,7 +497,7 @@ export function renderDirectoryDetailsMarkup(options) {
       ? '<a href="' +
         escapeHtml(contactHref) +
         '"' +
-        (model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
+        (model.contactRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
         ' class="card-action-primary dir-panel-cta" data-primary-cta="' +
         escapeHtml(therapist.slug) +
         '" data-cta-tier="details">' +
@@ -907,7 +911,7 @@ export function renderBottomSheetMarkup(options) {
   var profileCta =
     '<a href="' +
     escapeHtml(profileHref) +
-    '" class="bsh-cta-primary" target="_blank" rel="noopener" data-primary-cta="' +
+    '" class="bsh-cta-primary" target="_blank" rel="noopener noreferrer" data-primary-cta="' +
     escapeHtml(slug) +
     '" data-cta-tier="bottom-sheet">View full profile' +
     '<svg class="bsh-cta-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 12L12 2M12 2H7M12 2V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
@@ -921,7 +925,7 @@ export function renderBottomSheetMarkup(options) {
       '<a href="' +
       escapeHtml(contactHref) +
       '"' +
-      (model.contactRoute.external ? ' target="_blank" rel="noopener"' : "") +
+      (model.contactRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
       ' class="bsh-cta-secondary" data-primary-cta="' +
       escapeHtml(slug) +
       '" data-cta-tier="bottom-sheet">' +
