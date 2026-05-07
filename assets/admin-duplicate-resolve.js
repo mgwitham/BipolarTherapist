@@ -18,7 +18,11 @@
 //     "rejected_duplicate"; the duplicate detector then filters it out).
 //   - Cancel (close, no changes).
 
-import { decideTherapistCandidate, updateTherapistCandidate } from "./review-api.js";
+import {
+  decideTherapistCandidate,
+  updateTherapist,
+  updateTherapistCandidate,
+} from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 
 const COMPARE_FIELDS = [
@@ -151,10 +155,13 @@ function configureButtonsForCounterpart() {
     mergeBtn.removeAttribute("hidden");
     notDupBtn.removeAttribute("hidden");
   } else {
-    // Therapist-vs-therapist duplicate: auto-merging two live therapist
-    // documents is risky and rare; defer that to manual cleanup.
+    // Therapist-vs-therapist duplicate: merge is still risky and stays
+    // disabled, but the admin can mark "not a duplicate" when two live
+    // records intentionally share an email (e.g. clinicians at the same
+    // group practice with one inbox). The handler patches dedupeOverrides
+    // on both sides; the duplicate detector then suppresses the warning.
     mergeBtn.setAttribute("hidden", "");
-    notDupBtn.setAttribute("hidden", "");
+    notDupBtn.removeAttribute("hidden");
   }
 }
 
@@ -208,7 +215,12 @@ async function handleMerge() {
 }
 
 async function handleMarkNotDuplicate() {
-  if (_counterpartKind !== "candidate" || !_counterpart) return;
+  if (!_counterpart) return;
+
+  if (_counterpartKind === "therapist") {
+    return handleMarkNotDuplicateTherapist();
+  }
+
   const candidateId = _counterpart.id || _counterpart._id;
   if (!candidateId) {
     setStatus("Missing candidate id.", "error");
@@ -245,6 +257,59 @@ async function handleMarkNotDuplicate() {
   }
 }
 
+// Therapist-vs-therapist override: patch dedupeOverrides on BOTH records so
+// either side appearing first in the detector's loop suppresses the warning.
+// The detector is also lenient (one side declaring is enough), but writing
+// both keeps the data symmetric.
+async function handleMarkNotDuplicateTherapist() {
+  const therapistId = _therapist && (_therapist.id || _therapist._id);
+  const otherId = _counterpart && (_counterpart.id || _counterpart._id);
+  if (!therapistId || !otherId) {
+    setStatus("Missing therapist id on one side.", "error");
+    return;
+  }
+
+  const confirmed = window.confirm(
+    "Mark these two therapists as NOT duplicates of each other? The duplicate warning will stop showing for this pair. Use only when both records are intentionally distinct (e.g. two clinicians at a group practice sharing one inbox).",
+  );
+  if (!confirmed) return;
+
+  setButtonsDisabled(true);
+  setStatus("Saving…");
+
+  function withAdded(list, id) {
+    const arr = Array.isArray(list) ? list.slice() : [];
+    if (!arr.includes(id)) arr.push(id);
+    return arr;
+  }
+
+  try {
+    const therapistOverrides = withAdded(
+      read(_therapist, "dedupe_overrides", "dedupeOverrides"),
+      otherId,
+    );
+    const otherOverrides = withAdded(
+      read(_counterpart, "dedupe_overrides", "dedupeOverrides"),
+      therapistId,
+    );
+    await Promise.all([
+      updateTherapist(therapistId, { dedupeOverrides: therapistOverrides }),
+      updateTherapist(otherId, { dedupeOverrides: otherOverrides }),
+    ]);
+    trackFunnelEvent("admin_duplicate_resolved", {
+      action: "therapist_override",
+      therapist_id: therapistId,
+      counterpart_id: otherId,
+    });
+    setStatus("Marked. Reloading…");
+    if (typeof _onResolved === "function") _onResolved();
+    window.setTimeout(close, 600);
+  } catch (err) {
+    setStatus("Save failed: " + (err && err.message ? err.message : "try again"), "error");
+    setButtonsDisabled(false);
+  }
+}
+
 export function openResolveDuplicate({ therapist, counterpart, counterpartKind, onResolved }) {
   if (!_backdropEl) _backdropEl = document.getElementById("resolveDuplicateBackdrop");
   if (!_backdropEl) return;
@@ -257,7 +322,7 @@ export function openResolveDuplicate({ therapist, counterpart, counterpartKind, 
   if (subtitle) {
     subtitle.textContent =
       _counterpartKind === "therapist"
-        ? "Two therapist documents share an identifier. Manual cleanup required; this view is read-only."
+        ? "Two therapist documents share an identifier. If they're intentionally distinct (e.g. shared group-practice inbox), use 'Mark as not duplicate' below — it patches both records so the warning stops."
         : "Compare the two records below, then pick the action that matches.";
   }
 

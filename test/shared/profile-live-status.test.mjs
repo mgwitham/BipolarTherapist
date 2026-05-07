@@ -140,6 +140,36 @@ test("isProfileLive: duplicate license against same id is ignored", function () 
   assert.equal(result.isLive, true);
 });
 
+test("isProfileLive: dedupeOverrides on this side suppresses therapist duplicate warning", function () {
+  const result = isProfileLive(
+    approvedDoc({ email: "shared@example.com", dedupeOverrides: ["therapist-other"] }),
+    {
+      otherTherapists: [{ _id: "therapist-other", email: "shared@example.com" }],
+    },
+  );
+  assert.equal(result.isLive, true);
+});
+
+test("isProfileLive: dedupeOverrides on the OTHER side also suppresses (lenient/symmetric)", function () {
+  const result = isProfileLive(approvedDoc({ id: "therapist-1", email: "shared@example.com" }), {
+    otherTherapists: [
+      { _id: "therapist-other", email: "shared@example.com", dedupeOverrides: ["therapist-1"] },
+    ],
+  });
+  assert.equal(result.isLive, true);
+});
+
+test("isProfileLive: dedupeOverrides does NOT suppress candidate duplicates (therapist-only feature)", function () {
+  const result = isProfileLive(
+    approvedDoc({ email: "shared@example.com", dedupeOverrides: ["candidate-other"] }),
+    {
+      unconvertedCandidates: [{ _id: "candidate-other", email: "shared@example.com" }],
+    },
+  );
+  assert.equal(result.isLive, false);
+  assert.ok(result.blockers.some((b) => b.includes("unconverted candidate")));
+});
+
 test("isProfileLive: duplicate against an unconverted candidate blocks Live", function () {
   const result = isProfileLive(approvedDoc({ email: "shared@example.com" }), {
     unconvertedCandidates: [{ _id: "candidate-other", email: "shared@example.com" }],
