@@ -256,125 +256,189 @@
                   </div>
 
                   <div class="refine-advanced-panel">
-                    <!-- Insurance (full-width at top), then pill rows below -->
+                    <!-- Inputs + preference pills -->
                     <div class="refine-adv-section">
-                      <div class="refine-field" data-intake-field="insurance">
-                        <label class="refine-field-lbl" for="insurance">Insurance</label>
-                        <div class="refine-autocomplete" data-autocomplete="insurance">
-                          <input
-                            id="insurance"
-                            name="insurance"
-                            type="text"
-                            class="refine-input"
-                            placeholder="e.g. Aetna, Medi-Cal, self-pay"
-                            autocomplete="off"
-                            role="combobox"
-                            aria-autocomplete="list"
-                            aria-controls="insuranceSuggestions"
-                            aria-expanded="false"
-                          />
-                          <ul
-                            id="insuranceSuggestions"
-                            class="refine-autocomplete-list"
-                            role="listbox"
-                            hidden
-                          ></ul>
-                          <p id="insuranceNoMatchHint" class="refine-autocomplete-hint" hidden>
-                            We don't recognize that plan. We'll still rank these matches and you can
-                            confirm coverage when you reach out.
-                          </p>
+                      <!-- Insurance + ZIP: side-by-side inputs card -->
+                      <div class="refine-inputs-row">
+                        <div class="refine-field" data-intake-field="insurance">
+                          <label class="refine-field-lbl" for="insurance">Insurance</label>
+                          <div class="refine-autocomplete" data-autocomplete="insurance">
+                            <input
+                              id="insurance"
+                              name="insurance"
+                              type="text"
+                              class="refine-input"
+                              placeholder="e.g. Aetna, Medi-Cal, self-pay"
+                              autocomplete="off"
+                              role="combobox"
+                              aria-autocomplete="list"
+                              aria-controls="insuranceSuggestions"
+                              aria-expanded="false"
+                            />
+                            <ul
+                              id="insuranceSuggestions"
+                              class="refine-autocomplete-list"
+                              role="listbox"
+                              hidden
+                            ></ul>
+                            <p id="insuranceNoMatchHint" class="refine-autocomplete-hint" hidden>
+                              We don't recognize that plan. We'll still rank these matches and you
+                              can confirm coverage when you reach out.
+                            </p>
+                          </div>
+                        </div>
+                        <div class="refine-field" data-intake-field="location_query">
+                          <label class="refine-field-lbl" for="location_query_drawer"
+                            >ZIP code</label
+                          >
+                          <div class="refine-autocomplete">
+                            <input
+                              id="location_query_drawer"
+                              name="location_query_drawer"
+                              data-sync-key="location_query"
+                              type="text"
+                              class="refine-input"
+                              placeholder="e.g. 90028"
+                              inputmode="numeric"
+                            />
+                            <span
+                              class="match-zip-resolved"
+                              id="matchZipResolvedDrawer"
+                              aria-live="polite"
+                            ></span>
+                          </div>
                         </div>
                       </div>
-                      <div class="refine-sort-row">
-                        <span class="refine-field-lbl" id="refineFormatLabel">Format</span>
-                        <div
-                          class="refine-sort-seg"
-                          role="radiogroup"
-                          aria-labelledby="refineFormatLabel"
-                        >
-                          <label class="refine-seg-opt">
-                            <input type="radio" name="care_format" value="" checked />
-                            <span>Any</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input type="radio" name="care_format" value="Telehealth" />
-                            <span>Telehealth</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input type="radio" name="care_format" value="In-Person" />
-                            <span>In-person</span>
-                          </label>
+                      <!-- Preference pills: Format, Sort, Care type, Therapist -->
+                      <div class="refine-pills-block">
+                        <div class="refine-sort-row">
+                          <span class="refine-field-lbl" id="refineFormatLabel">Format</span>
+                          <div
+                            class="refine-sort-seg"
+                            role="radiogroup"
+                            aria-labelledby="refineFormatLabel"
+                          >
+                            <label class="refine-seg-opt">
+                              <input type="radio" name="care_format" value="" checked />
+                              <span>Any</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input type="radio" name="care_format" value="Telehealth" />
+                              <span>Telehealth</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input type="radio" name="care_format" value="In-Person" />
+                              <span>In-person</span>
+                            </label>
+                          </div>
                         </div>
-                      </div>
-                      <div class="refine-sort-row">
-                        <span class="refine-field-lbl" id="refineSortLabel">Sort by</span>
-                        <div
-                          class="refine-sort-seg"
-                          role="radiogroup"
-                          aria-labelledby="refineSortLabel"
-                        >
-                          <label class="refine-seg-opt">
-                            <input
-                              type="radio"
-                              name="priority_mode"
-                              value="Best overall fit"
-                              checked
-                            />
-                            <span>Best fit</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input type="radio" name="priority_mode" value="Soonest availability" />
-                            <span>Soonest</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input type="radio" name="priority_mode" value="Lowest cost" />
-                            <span>Affordable</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input
-                              type="radio"
-                              name="priority_mode"
-                              value="Highest specialization"
-                            />
-                            <span>Experienced</span>
-                          </label>
+                        <div class="refine-sort-row">
+                          <span class="refine-field-lbl" id="refineSortLabel">Sort by</span>
+                          <div
+                            class="refine-sort-seg"
+                            role="radiogroup"
+                            aria-labelledby="refineSortLabel"
+                          >
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="priority_mode"
+                                value="Best overall fit"
+                                checked
+                              />
+                              <span>Best fit</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="priority_mode"
+                                value="Soonest availability"
+                              />
+                              <span>Soonest</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input type="radio" name="priority_mode" value="Lowest cost" />
+                              <span>Affordable</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="priority_mode"
+                                value="Highest specialization"
+                              />
+                              <span>Experienced</span>
+                            </label>
+                          </div>
                         </div>
-                      </div>
-                      <div class="refine-sort-row">
-                        <span class="refine-field-lbl" id="refineCareTypeLabel">Care type</span>
+                        <div class="refine-sort-row">
+                          <span class="refine-field-lbl" id="refineCareTypeLabel">Care type</span>
+                          <div
+                            class="refine-sort-seg"
+                            role="radiogroup"
+                            aria-labelledby="refineCareTypeLabel"
+                          >
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="care_intent_drawer"
+                                data-sync-key="care_intent"
+                                value="Therapy"
+                                checked
+                              />
+                              <span>Therapy</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="care_intent_drawer"
+                                data-sync-key="care_intent"
+                                value="Psychiatry"
+                              />
+                              <span>Psychiatry</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="care_intent_drawer"
+                                data-sync-key="care_intent"
+                                value=""
+                              />
+                              <span>Either</span>
+                            </label>
+                          </div>
+                        </div>
                         <div
-                          class="refine-sort-seg"
-                          role="radiogroup"
-                          aria-labelledby="refineCareTypeLabel"
+                          class="refine-sort-row"
+                          data-intake-field="therapist_gender_preference"
                         >
-                          <label class="refine-seg-opt">
-                            <input
-                              type="radio"
-                              name="care_intent_drawer"
-                              data-sync-key="care_intent"
-                              value="Therapy"
-                              checked
-                            />
-                            <span>Therapy</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input
-                              type="radio"
-                              name="care_intent_drawer"
-                              data-sync-key="care_intent"
-                              value="Psychiatry"
-                            />
-                            <span>Psychiatry</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input
-                              type="radio"
-                              name="care_intent_drawer"
-                              data-sync-key="care_intent"
-                              value=""
-                            />
-                            <span>Either</span>
-                          </label>
+                          <span class="refine-field-lbl" id="refineGenderLabel">Therapist</span>
+                          <div
+                            class="refine-sort-seg"
+                            role="radiogroup"
+                            aria-labelledby="refineGenderLabel"
+                          >
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="therapist_gender_preference"
+                                value=""
+                                checked
+                              />
+                              <span>Any</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="therapist_gender_preference"
+                                value="female"
+                              />
+                              <span>Female</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input type="radio" name="therapist_gender_preference" value="male" />
+                              <span>Male</span>
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -616,54 +680,6 @@
                       </div>
                     </details>
 
-                    <!-- Therapist gender + ZIP — same style as the main section above -->
-                    <div class="refine-adv-section refine-adv-section--search">
-                      <div class="refine-sort-row" data-intake-field="therapist_gender_preference">
-                        <span class="refine-field-lbl" id="refineGenderLabel">Therapist</span>
-                        <div
-                          class="refine-sort-seg"
-                          role="radiogroup"
-                          aria-labelledby="refineGenderLabel"
-                        >
-                          <label class="refine-seg-opt">
-                            <input
-                              type="radio"
-                              name="therapist_gender_preference"
-                              value=""
-                              checked
-                            />
-                            <span>Any</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input type="radio" name="therapist_gender_preference" value="female" />
-                            <span>Female</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input type="radio" name="therapist_gender_preference" value="male" />
-                            <span>Male</span>
-                          </label>
-                        </div>
-                      </div>
-                      <div class="refine-field refine-sort-row" data-intake-field="location_query">
-                        <label class="refine-field-lbl" for="location_query_drawer">ZIP code</label>
-                        <div class="refine-autocomplete">
-                          <input
-                            id="location_query_drawer"
-                            name="location_query_drawer"
-                            data-sync-key="location_query"
-                            type="text"
-                            class="refine-input"
-                            placeholder="e.g. 90028"
-                            inputmode="numeric"
-                          />
-                          <span
-                            class="match-zip-resolved"
-                            id="matchZipResolvedDrawer"
-                            aria-live="polite"
-                          ></span>
-                        </div>
-                      </div>
-                    </div>
                     <button type="submit" class="refine-bottom-submit">Show matches</button>
                   </div>
                   <div
