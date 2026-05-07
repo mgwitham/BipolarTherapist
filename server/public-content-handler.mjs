@@ -223,6 +223,11 @@ export function normalizePublicTherapist(doc, options = {}) {
     status: doc.status || "active",
     lifecycle: doc.lifecycle || "",
     visibility_intent: doc.visibilityIntent || doc.visibility_intent || "",
+    dedupe_overrides: Array.isArray(doc.dedupeOverrides)
+      ? doc.dedupeOverrides
+      : Array.isArray(doc.dedupe_overrides)
+        ? doc.dedupe_overrides
+        : [],
     slug: getSlug(doc),
     has_paid_subscription: Boolean(options.hasPaidSubscription),
   };
