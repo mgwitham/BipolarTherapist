@@ -1097,7 +1097,7 @@ body.match-refine-drawer-open .refine-advanced-panel {
          so the drawer reads as a stack of decisions instead of one
          dense scroll of controls. */
 body.match-refine-drawer-open .refine-adv-section {
-  padding-bottom: 1.4rem;
+  padding-bottom: 0.85rem;
   border-bottom: 1px solid rgba(14, 77, 95, 0.12);
 }
 body.match-refine-drawer-open .refine-adv-section:last-of-type {
@@ -1105,10 +1105,10 @@ body.match-refine-drawer-open .refine-adv-section:last-of-type {
   padding-bottom: 0;
 }
 body.match-refine-drawer-open .refine-adv-header {
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.6rem;
 }
 body.match-refine-drawer-open .refine-adv-title {
-  font-size: 0.98rem;
+  font-size: 0.88rem;
   font-weight: 700;
   color: var(--navy);
   letter-spacing: -0.005em;
@@ -1134,18 +1134,7 @@ body.match-refine-drawer-open .refine-chips-lbl {
   margin-bottom: 0.4rem;
   display: block;
 }
-body.match-refine-drawer-open .refine-priority-opts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
-}
-body.match-refine-drawer-open .refine-priority-card {
-  padding: 0.75rem 0.9rem;
-  min-height: 3.8rem;
-}
-body.match-refine-drawer-open .refine-priority-card-label {
-  font-size: 0.9rem;
-}
+/* priority cards removed — replaced by compact .refine-sort-seg pill row */
 body.match-refine-drawer-open .refine-priority-card-sub {
   font-size: 0.72rem;
 }
@@ -4695,6 +4684,78 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 .refine-seg-opt:has(input:checked):hover span {
   background: #1a7a8f;
   color: #fff;
+}
+
+/* Sort priority — compact pill row replacing the 4 large cards */
+.refine-sort-row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid rgba(14, 77, 95, 0.1);
+  margin-top: 0.25rem;
+}
+.refine-sort-seg {
+  display: flex;
+  border: 1.5px solid rgba(14, 77, 95, 0.16);
+  border-radius: 8px;
+  overflow: hidden;
+  width: 100%;
+}
+.refine-sort-seg .refine-seg-opt {
+  flex: 1;
+}
+.refine-sort-seg .refine-seg-opt span {
+  width: 100%;
+  text-align: center;
+  font-size: 0.76rem;
+  padding: 0.42rem 0.3rem;
+  white-space: nowrap;
+}
+
+/* Override the blanket summary { display:none !important } inside .match-refinements */
+.match-refinements .refine-more-summary,
+.match-builder.is-results-mode .match-refinements .refine-more-summary {
+  display: flex !important;
+}
+
+/* More options collapsible */
+.refine-more-details {
+  border-top: 1px solid rgba(14, 77, 95, 0.12);
+  margin-top: 0.1rem;
+}
+.refine-more-summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.7rem 0;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #1a7a8f;
+  user-select: none;
+}
+.refine-more-summary::-webkit-details-marker {
+  display: none;
+}
+.refine-more-chevron {
+  transition: transform 0.18s ease;
+  flex-shrink: 0;
+}
+.refine-more-details[open] .refine-more-chevron {
+  transform: rotate(180deg);
+}
+.refine-more-inner {
+  padding-top: 0.3rem;
+  padding-bottom: 0.85rem;
+  border-bottom: 1px solid rgba(14, 77, 95, 0.12);
+}
+.refine-more-inner + .refine-more-inner {
+  border-top: 1px solid rgba(14, 77, 95, 0.12);
+  padding-top: 0.85rem;
 }
 
 /* Footer row: customize CTA + update */
