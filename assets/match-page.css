@@ -5483,6 +5483,39 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   display: none;
 }
 
+/* Active filter chips — shown in results area when filters are applied */
+.mx-active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin: -0.25rem 0 1rem;
+}
+.mx-filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.6rem 0.28rem 0.75rem;
+  background: rgba(26, 122, 143, 0.07);
+  border: 1px solid rgba(26, 122, 143, 0.22);
+  border-radius: 100px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--teal-dark, #1a7a8f);
+  cursor: pointer;
+  transition:
+    background 0.13s,
+    border-color 0.13s;
+  line-height: 1;
+}
+.mx-filter-chip:hover {
+  background: rgba(26, 122, 143, 0.15);
+  border-color: rgba(26, 122, 143, 0.38);
+}
+.mx-filter-chip svg {
+  flex-shrink: 0;
+  opacity: 0.65;
+}
+
 /* Desktop refine bar — full-width, below cards, hidden on mobile */
 .mx-refine-bar {
   display: none;
