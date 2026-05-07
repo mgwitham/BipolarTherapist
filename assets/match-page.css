@@ -7593,6 +7593,28 @@ img.bth-avatar {
 .mx-outreach.mx-outreach--expanded .mx-outreach-body {
   padding: 0;
 }
+.mx-outreach-expanded-summary {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  list-style: none;
+  margin-bottom: 0.6rem;
+}
+.mx-outreach-expanded-summary::-webkit-details-marker {
+  display: none;
+}
+.mx-outreach-expanded-summary .mx-outreach-expanded-header {
+  flex: 1;
+  margin-bottom: 0;
+}
+.mx-outreach-expanded-chevron {
+  flex-shrink: 0;
+  color: var(--teal);
+  transition: transform 0.18s ease;
+}
+.mx-outreach--expanded[open] .mx-outreach-expanded-chevron {
+  transform: rotate(-180deg);
+}
 
 /* Email nudge card — shown once per session after first outreach panel opens */
 @keyframes mx-nudge-in {
