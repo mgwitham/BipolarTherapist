@@ -1,4 +1,4 @@
-import { getDistanceMilesFromZipToTherapist, getInPersonProximityBonus } from "./zip-lookup.js";
+import { getDistanceMilesFromZipToTherapist } from "./zip-lookup.js";
 
 // In-person searches with a known ZIP should not surface therapists beyond
 // realistic commute range. Penalizing their score is not enough on its own —
@@ -15,6 +15,27 @@ function getRequestedZip(locationQuery) {
 function getTherapistZipValue(therapist) {
   var zip = String((therapist && therapist.zip) || "").trim();
   return /^\d{5}$/.test(zip) ? zip : "";
+}
+
+// Proximity bonus used for match-page ranking.
+// In-person uses the full agreed scale so nearby providers surface clearly.
+// "Any" format uses a half-strength signal — close providers get a nudge but
+// telehealth-only providers aren't penalised for being across the county.
+// Telehealth format: always returns 0 — distance is irrelevant.
+function getMatchProximityBonus(miles, isInPerson) {
+  if (!Number.isFinite(miles)) return 0;
+  if (isInPerson) {
+    if (miles < 5) return 20;
+    if (miles < 15) return 10;
+    if (miles < 30) return -8;
+    return -20;
+  }
+  // "Any" format — light proximity nudge only
+  if (miles < 5) return 10;
+  if (miles < 15) return 5;
+  if (miles < 30) return -4;
+  if (miles < 60) return -10;
+  return 0;
 }
 
 export function getEntryRankScore(entry) {
@@ -36,7 +57,10 @@ export function applyZipAwareOrdering(entries, options) {
     return list;
   }
 
-  var isInPerson = opts.careFormat === "In-Person" || opts.careFormat === "In-person";
+  var careFormat = String(opts.careFormat || "").trim();
+  var isTelehealth = careFormat === "Telehealth";
+  var isInPerson = careFormat === "In-Person" || careFormat === "In-person";
+  var isAny = !isTelehealth && !isInPerson;
 
   list.forEach(function (entry) {
     if (!entry) return;
@@ -44,8 +68,8 @@ export function applyZipAwareOrdering(entries, options) {
     // Prefer ZIP, fall back to city centroid so therapists with city-only
     // records (no ZIP on file) still get a real distance, not Infinity.
     var distance = getDistanceMilesFromZipToTherapist(requestedZip, entry.therapist);
-    if (isInPerson && Number.isFinite(distance)) {
-      entry.ordering_score = baseScore + getInPersonProximityBonus(distance);
+    if (!isTelehealth && Number.isFinite(distance)) {
+      entry.ordering_score = baseScore + getMatchProximityBonus(distance, isInPerson);
     } else {
       entry.ordering_score = baseScore;
     }
@@ -72,7 +96,7 @@ export function applyZipAwareOrdering(entries, options) {
     var aDistance = a?.ordering_distance;
     var bDistance = b?.ordering_distance;
 
-    if (isInPerson && Number.isFinite(aDistance) && Number.isFinite(bDistance)) {
+    if ((isInPerson || isAny) && Number.isFinite(aDistance) && Number.isFinite(bDistance)) {
       if (a.ordering_score !== b.ordering_score) {
         return b.ordering_score - a.ordering_score;
       }
