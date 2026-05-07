@@ -256,59 +256,56 @@
                   </div>
 
                   <div class="refine-advanced-panel">
-                    <!-- Insurance + format + sort (all above the fold) -->
+                    <!-- Insurance (full-width at top), then pill rows below -->
                     <div class="refine-adv-section">
-                      <div class="refine-quick">
-                        <div class="refine-field" data-intake-field="insurance">
-                          <label class="refine-field-lbl" for="insurance">Insurance</label>
-                          <div class="refine-autocomplete" data-autocomplete="insurance">
-                            <input
-                              id="insurance"
-                              name="insurance"
-                              type="text"
-                              class="refine-input"
-                              placeholder="e.g. Aetna, Medi-Cal, self-pay"
-                              autocomplete="off"
-                              role="combobox"
-                              aria-autocomplete="list"
-                              aria-controls="insuranceSuggestions"
-                              aria-expanded="false"
-                            />
-                            <ul
-                              id="insuranceSuggestions"
-                              class="refine-autocomplete-list"
-                              role="listbox"
-                              hidden
-                            ></ul>
-                            <p id="insuranceNoMatchHint" class="refine-autocomplete-hint" hidden>
-                              We don't recognize that plan. We'll still rank these matches and you
-                              can confirm coverage when you reach out.
-                            </p>
-                          </div>
-                        </div>
-                        <div class="refine-field refine-field--format">
-                          <span class="refine-field-lbl" id="refineFormatLabel">Format</span>
-                          <div
-                            class="refine-format-seg"
-                            role="radiogroup"
-                            aria-labelledby="refineFormatLabel"
-                          >
-                            <label class="refine-seg-opt">
-                              <input type="radio" name="care_format" value="" checked />
-                              <span>Any</span>
-                            </label>
-                            <label class="refine-seg-opt">
-                              <input type="radio" name="care_format" value="Telehealth" />
-                              <span>Telehealth</span>
-                            </label>
-                            <label class="refine-seg-opt">
-                              <input type="radio" name="care_format" value="In-Person" />
-                              <span>In-person</span>
-                            </label>
-                          </div>
+                      <div class="refine-field" data-intake-field="insurance">
+                        <label class="refine-field-lbl" for="insurance">Insurance</label>
+                        <div class="refine-autocomplete" data-autocomplete="insurance">
+                          <input
+                            id="insurance"
+                            name="insurance"
+                            type="text"
+                            class="refine-input"
+                            placeholder="e.g. Aetna, Medi-Cal, self-pay"
+                            autocomplete="off"
+                            role="combobox"
+                            aria-autocomplete="list"
+                            aria-controls="insuranceSuggestions"
+                            aria-expanded="false"
+                          />
+                          <ul
+                            id="insuranceSuggestions"
+                            class="refine-autocomplete-list"
+                            role="listbox"
+                            hidden
+                          ></ul>
+                          <p id="insuranceNoMatchHint" class="refine-autocomplete-hint" hidden>
+                            We don't recognize that plan. We'll still rank these matches and you can
+                            confirm coverage when you reach out.
+                          </p>
                         </div>
                       </div>
-                      <!-- Sort priority — compact pill row, no header needed -->
+                      <div class="refine-sort-row">
+                        <span class="refine-field-lbl" id="refineFormatLabel">Format</span>
+                        <div
+                          class="refine-sort-seg"
+                          role="radiogroup"
+                          aria-labelledby="refineFormatLabel"
+                        >
+                          <label class="refine-seg-opt">
+                            <input type="radio" name="care_format" value="" checked />
+                            <span>Any</span>
+                          </label>
+                          <label class="refine-seg-opt">
+                            <input type="radio" name="care_format" value="Telehealth" />
+                            <span>Telehealth</span>
+                          </label>
+                          <label class="refine-seg-opt">
+                            <input type="radio" name="care_format" value="In-Person" />
+                            <span>In-person</span>
+                          </label>
+                        </div>
+                      </div>
                       <div class="refine-sort-row">
                         <span class="refine-field-lbl" id="refineSortLabel">Sort by</span>
                         <div
@@ -343,10 +340,6 @@
                           </label>
                         </div>
                       </div>
-                    </div>
-
-                    <!-- Care type toggle — lets users switch therapy ↔ psychiatry after initial search -->
-                    <div class="refine-adv-section refine-adv-section--care-type">
                       <div class="refine-sort-row">
                         <span class="refine-field-lbl" id="refineCareTypeLabel">Care type</span>
                         <div
