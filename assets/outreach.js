@@ -36,6 +36,8 @@ const STATUS_LABELS = {
   not_contacted: "Not contacted",
   email_1_sent: "Email 1 sent",
   followed_up: "Followed up",
+  replied: "Replied",
+  bounced: "Bounced",
   claimed: "Claimed",
   paid: "Paid",
   opted_out: "Opted out",
@@ -45,10 +47,16 @@ const STATUS_STYLES = {
   not_contacted: "background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;",
   email_1_sent: "background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;",
   followed_up: "background:#fffbeb;color:#b45309;border:1px solid #fcd34d;",
+  replied: "background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;",
+  bounced:
+    "background:#f3f4f6;color:#374151;border:1px solid #9ca3af;text-decoration:line-through;",
   claimed: "background:#e8f3f6;color:#2a5f6e;border:1px solid #a5d0db;",
   paid: "background:#ecfdf5;color:#065f46;border:1px solid #6ee7b7;",
   opted_out: "background:#fef2f2;color:#991b1b;border:1px solid #fca5a5;",
 };
+
+// Statuses that mean we should NOT keep emailing this person.
+const TERMINAL_STATUSES = new Set(["replied", "bounced", "claimed", "paid", "opted_out"]);
 
 function pill(status) {
   const s = status || "not_contacted";
@@ -128,11 +136,18 @@ function applyFilters() {
 function computeStats(list) {
   const total = list.length;
   const contacted = list.filter((t) =>
-    ["email_1_sent", "followed_up", "claimed", "paid"].includes(t.outreach?.status),
+    ["email_1_sent", "followed_up", "replied", "claimed", "paid"].includes(t.outreach?.status),
+  ).length;
+  const replied = list.filter((t) =>
+    ["replied", "claimed", "paid"].includes(t.outreach?.status),
   ).length;
   const claimed = list.filter((t) => ["claimed", "paid"].includes(t.outreach?.status)).length;
-  const claimRate = contacted > 0 ? Math.round((claimed / contacted) * 100) : 0;
-  return { total, contacted, claimed, claimRate };
+  // Reply rate is the meaningful early signal — claim rate stays low for
+  // a while even on healthy outreach. Bounced + opted_out are excluded
+  // from the denominator so we measure response from people who actually
+  // received the email.
+  const replyRate = contacted > 0 ? Math.round((replied / contacted) * 100) : 0;
+  return { total, contacted, replied, claimed, replyRate };
 }
 
 // ---- AUTH GATE ----
@@ -161,8 +176,8 @@ function renderDashboard() {
       <div style="display:flex;gap:14px;padding:18px 24px 0;flex-shrink:0;">
         ${statCard("Total", stats.total, "#2a5f6e")}
         ${statCard("Contacted", stats.contacted, "#3b82f6")}
-        ${statCard("Claimed", stats.claimed, "#10b981")}
-        ${statCard("Claim rate", stats.claimRate + "%", "#f59e0b")}
+        ${statCard("Replied", stats.replied, "#7c3aed")}
+        ${statCard("Reply rate", stats.replyRate + "%", "#f59e0b")}
       </div>
 
       <div style="display:flex;gap:10px;align-items:center;padding:14px 24px;flex-shrink:0;flex-wrap:wrap;border-bottom:1px solid #e5e7eb;">
@@ -312,8 +327,12 @@ function closePanel() {
 function renderPanelContent(t) {
   const status = t.outreach?.status || "not_contacted";
   const emailLog = (t.outreach?.emailLog || []).slice().reverse();
-  const isInactive = ["opted_out", "claimed", "paid"].includes(status);
+  const isInactive = TERMINAL_STATUSES.has(status);
   const defaultTemplate = status === "not_contacted" ? "email_1" : "follow_up";
+  // Quick-action reply buttons make sense after we've contacted them
+  // but before they've reached a terminal status. Keeps the dropdown-
+  // and-Save dance off the most common reply outcomes.
+  const showQuickActions = ["email_1_sent", "followed_up"].includes(status);
 
   return `
     <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
@@ -335,6 +354,16 @@ function renderPanelContent(t) {
         </select>
         <button id="save-status-btn" class="btn-primary" style="white-space:nowrap;">Save</button>
       </div>
+      ${
+        showQuickActions
+          ? `
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+          <button class="quick-status-btn btn-secondary" data-status="replied" style="border-color:#7c3aed;color:#5b21b6;">Mark replied</button>
+          <button class="quick-status-btn btn-secondary" data-status="opted_out" style="border-color:#fca5a5;color:#991b1b;">Mark opted out</button>
+        </div>
+      `
+          : ""
+      }
     </div>
 
     <div class="panel-section">
@@ -346,7 +375,11 @@ function renderPanelContent(t) {
           ${
             status === "opted_out"
               ? "This therapist opted out — do not email."
-              : "Already claimed or paid — no outreach needed."
+              : status === "replied"
+                ? "This therapist replied — handle in your inbox; don't auto-send another email."
+                : status === "bounced"
+                  ? "Email bounced — verify the address before retrying."
+                  : "Already claimed or paid — no outreach needed."
           }
         </div>
       `
@@ -537,14 +570,8 @@ function setupPanelListeners(t) {
     bodyEl.value = newDefaults.body;
   });
 
-  document.getElementById("save-status-btn")?.addEventListener("click", async () => {
-    const btn = document.getElementById("save-status-btn");
-    const newStatus = document.getElementById("panel-status")?.value;
-    btn.disabled = true;
-    btn.textContent = "Saving…";
+  async function applyStatus(newStatus) {
     const { ok } = await apiPatch(`/therapist/${t._id}`, { status: newStatus });
-    btn.disabled = false;
-    btn.textContent = "Save";
     if (ok) {
       mutateTherapist(t._id, (th) => {
         if (!th.outreach) th.outreach = {};
@@ -552,12 +579,33 @@ function setupPanelListeners(t) {
       });
       toast("Status updated");
       refreshTable();
-      // Refresh panel to show updated pill
       const updated = state.therapists.find((x) => x._id === t._id);
       if (updated) openPanel(updated);
     } else {
       toast("Failed to save status", "error");
     }
+  }
+
+  document.getElementById("save-status-btn")?.addEventListener("click", async () => {
+    const btn = document.getElementById("save-status-btn");
+    const newStatus = document.getElementById("panel-status")?.value;
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    await applyStatus(newStatus);
+    btn.disabled = false;
+    btn.textContent = "Save";
+  });
+
+  document.querySelectorAll(".quick-status-btn").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const newStatus = btn.dataset.status;
+      btn.disabled = true;
+      const orig = btn.textContent;
+      btn.textContent = "Saving…";
+      await applyStatus(newStatus);
+      btn.disabled = false;
+      btn.textContent = orig;
+    });
   });
 
   // Read the current composer state (template + edited subject/body).

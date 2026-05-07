@@ -49,6 +49,34 @@ function plainTextToHtml(text) {
   return paragraphs.join("");
 }
 
+// CAN-SPAM compliance: every commercial email must include a clear
+// opt-out path and a valid physical postal address. We auto-append a
+// footer to every send so it can't be forgotten per-message. Address
+// comes from the OUTREACH_FOOTER_ADDRESS env var; missing config blocks
+// the send rather than silently skipping the legal requirement.
+function buildFooter() {
+  const address = (process.env.OUTREACH_FOOTER_ADDRESS || "").trim();
+  if (!address) return null;
+  const orgName = process.env.OUTREACH_FOOTER_ORG_NAME || "BipolarTherapyHub";
+  const text = ["", "—", `${orgName} · ${address}`, "Reply STOP and I'll stop emailing you."].join(
+    "\n",
+  );
+  const html =
+    '<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 12px;">' +
+    `<p style="color:#6b7280;font-size:12px;margin:0;">` +
+    `${escapeForHtml(orgName)} · ${escapeForHtml(address)}<br>` +
+    `Reply <strong>STOP</strong> and I'll stop emailing you.` +
+    `</p>`;
+  return { text, html };
+}
+
+function escapeForHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
 async function parseBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -132,13 +160,24 @@ export default async function handler(req, res) {
     return;
   }
 
+  const footer = buildFooter();
+  if (!footer) {
+    res.status(500).json({
+      error:
+        "OUTREACH_FOOTER_ADDRESS is not configured. CAN-SPAM requires a physical postal address on commercial email — set this in Vercel env before sending.",
+    });
+    return;
+  }
+
   const resend = new Resend(resendKey);
   const subject = trimmedSubject || tpl.subject;
-  const textBody = trimmedBody || tpl.text(therapist);
+  const textBodyBase = trimmedBody || tpl.text(therapist);
   // For the HTML version, escape and convert linebreaks so the user's
   // plain-text edits render correctly. The static template falls back
   // to its own pre-built HTML.
-  const htmlBody = trimmedBody ? plainTextToHtml(trimmedBody) : tpl.html(therapist);
+  const htmlBodyBase = trimmedBody ? plainTextToHtml(trimmedBody) : tpl.html(therapist);
+  const textBody = textBodyBase + footer.text;
+  const htmlBody = htmlBodyBase + footer.html;
 
   try {
     await resend.emails.send({
