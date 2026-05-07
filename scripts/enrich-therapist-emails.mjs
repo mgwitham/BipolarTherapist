@@ -126,8 +126,7 @@ function getConfig() {
       process.env.VITE_SANITY_DATASET ||
       rootEnv.VITE_SANITY_DATASET ||
       studioEnv.SANITY_STUDIO_DATASET,
-    token:
-      process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN,
+    token: process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN,
   };
 }
 
@@ -189,7 +188,11 @@ function scoreEmail(email, { therapistName, websiteUrl, viaMailto }) {
   }
 
   // Penalize obvious role addresses that aren't tied to a specific person.
-  if (/^(info|hello|contact|admin|office|appointments|reception|frontdesk|billing|noreply|no-reply|webmaster|postmaster|abuse)@/.test(lower)) {
+  if (
+    /^(info|hello|contact|admin|office|appointments|reception|frontdesk|billing|noreply|no-reply|webmaster|postmaster|abuse)@/.test(
+      lower,
+    )
+  ) {
     score -= 15;
   }
 
@@ -340,7 +343,9 @@ async function main() {
 
   const config = getConfig();
   if (!config.projectId || !config.dataset) {
-    console.error("Missing Sanity project config. Set VITE_SANITY_PROJECT_ID and VITE_SANITY_DATASET.");
+    console.error(
+      "Missing Sanity project config. Set VITE_SANITY_PROJECT_ID and VITE_SANITY_DATASET.",
+    );
     process.exit(1);
   }
   if (write && !config.token) {
@@ -486,7 +491,18 @@ async function main() {
 
   // Write CSV preview.
   fs.mkdirSync(path.dirname(OUTPUT_CSV), { recursive: true });
-  const header = ["_id", "name", "slug", "sourceUrl", "website", "foundEmail", "confidence", "evidence", "action", "reason"];
+  const header = [
+    "_id",
+    "name",
+    "slug",
+    "sourceUrl",
+    "website",
+    "foundEmail",
+    "confidence",
+    "evidence",
+    "action",
+    "reason",
+  ];
   const csv = [header.join(",")]
     .concat(rows.map((r) => header.map((h) => csvEscape(r[h])).join(",")))
     .join("\n");
