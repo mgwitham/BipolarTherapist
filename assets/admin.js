@@ -7706,6 +7706,8 @@ function setAuthUiState() {
     }
     const navLogout = document.getElementById("navLogout");
     if (navLogout) navLogout.style.display = "none";
+    const navOutreach = document.getElementById("navOutreach");
+    if (navOutreach) navOutreach.style.display = "none";
     if (authError) {
       authError.style.display = authErrorVisible ? "block" : "none";
     }
@@ -7751,6 +7753,8 @@ function setAuthUiState() {
   syncAdminQuickNavFromViewport();
   const navLogout = document.getElementById("navLogout");
   if (navLogout) navLogout.style.display = "inline-block";
+  const navOutreach = document.getElementById("navOutreach");
+  if (navOutreach) navOutreach.style.display = "inline-block";
   if (authError) {
     authError.style.display = "none";
   }
