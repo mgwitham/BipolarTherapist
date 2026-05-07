@@ -87,7 +87,7 @@ export default async function handler(req, res) {
         ),
         outreach
       }`,
-      { id: therapistId }
+      { id: therapistId },
     );
   } catch (err) {
     console.error("fetch therapist error:", err);
@@ -155,7 +155,9 @@ export default async function handler(req, res) {
   } catch (err) {
     // Email already sent — log but don't surface as failure.
     console.error("sanity patch error after send:", err);
-    res.status(200).json({ ok: true, warning: "Email sent but Sanity record could not be updated" });
+    res
+      .status(200)
+      .json({ ok: true, warning: "Email sent but Sanity record could not be updated" });
     return;
   }
 
