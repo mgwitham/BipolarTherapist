@@ -4,26 +4,63 @@ import { verifyAdminSession } from "../_adminAuth.mjs";
 
 const VALID_TEMPLATES = new Set(["email_1", "follow_up"]);
 
-// TODO: Replace placeholder subject/body with real copy before sending live emails.
+// Strip leading title (Dr., Mr., etc.) and take the first word.
+function firstName(fullName) {
+  const tokens = String(fullName || "")
+    .replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Mx\.?)\s+/i, "")
+    .trim()
+    .split(/\s+/);
+  return tokens[0] || "there";
+}
+
+// Fallback copy used when the composer ships a blank subject/body
+// (shouldn't happen — the client validates — but defense in depth).
+// Keep this in sync with getTemplateDefaults() in assets/outreach.js.
 const TEMPLATES = {
   email_1: {
-    subject: "[SUBJECT PLACEHOLDER — Initial outreach]",
-    html: (t) =>
-      `<p>[BODY PLACEHOLDER — Initial outreach to ${t.name}.]</p>` +
-      (t.profileUrl ? `<p>Your profile: <a href="${t.profileUrl}">${t.profileUrl}</a></p>` : ""),
-    text: (t) =>
-      `[BODY PLACEHOLDER — Initial outreach to ${t.name}.]\n` +
-      (t.profileUrl ? `\nYour profile: ${t.profileUrl}` : ""),
+    subject: "Your BipolarTherapyHub listing",
+    text: (t) => {
+      const first = firstName(t.name);
+      const url = t.profileUrl || "";
+      return [
+        `Hi ${first},`,
+        "",
+        "I built BipolarTherapyHub, a directory specifically for California therapists who treat bipolar disorder. Your practice came up in our research and I added a profile for you:",
+        "",
+        url,
+        "",
+        "It's live and free. To edit anything (bio, photo, fees, specialties), you can claim it in two clicks at the link above. No payment required.",
+        "",
+        "If you don't want to be listed, just reply and I'll remove it today.",
+        "",
+        "Best,",
+        "Michael",
+      ].join("\n");
+    },
+    html: (t) => plainTextToHtml(TEMPLATES.email_1.text(t)),
     nextStatus: "email_1_sent",
   },
   follow_up: {
-    subject: "[SUBJECT PLACEHOLDER — Follow-up]",
-    html: (t) =>
-      `<p>[BODY PLACEHOLDER — Follow-up to ${t.name}.]</p>` +
-      (t.profileUrl ? `<p>Your profile: <a href="${t.profileUrl}">${t.profileUrl}</a></p>` : ""),
-    text: (t) =>
-      `[BODY PLACEHOLDER — Follow-up to ${t.name}.]\n` +
-      (t.profileUrl ? `\nYour profile: ${t.profileUrl}` : ""),
+    subject: "Re: Your BipolarTherapyHub listing",
+    text: (t) => {
+      const first = firstName(t.name);
+      const url = t.profileUrl || "";
+      return [
+        `Hi ${first},`,
+        "",
+        "Bumping this in case it got buried. Your bipolar specialist listing is here:",
+        "",
+        url,
+        "",
+        `Free to claim if you want to edit anything, or reply "remove" and I'll take it down.`,
+        "",
+        "No more emails after this either way.",
+        "",
+        "Best,",
+        "Michael",
+      ].join("\n");
+    },
+    html: (t) => plainTextToHtml(TEMPLATES.follow_up.text(t)),
     nextStatus: "followed_up",
   },
 };

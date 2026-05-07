@@ -419,32 +419,49 @@ function renderPanelContent(t) {
   `;
 }
 
+// Strip leading title (Dr., Dr, Mr., Ms., Mrs.) and return the first
+// word — good enough for "Hi Jane," opening lines.
+function firstName(fullName) {
+  const tokens = String(fullName || "")
+    .replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Mx\.?)\s+/i, "")
+    .trim()
+    .split(/\s+/);
+  return tokens[0] || "there";
+}
+
 // Default starting subject + body for each template. The composer
 // pre-fills these into editable inputs; the user edits before sending.
-// Profile link goes at the bottom on its own line so it survives any
-// edits to the rest of the body.
 function getTemplateDefaults(template, t) {
-  const profileLine = t.profileUrl ? `\n\nYour profile: ${t.profileUrl}` : "";
+  const first = firstName(t.name);
+  const profileUrl = t.profileUrl || "[your profile URL]";
   if (template === "follow_up") {
     return {
-      subject: `Following up — ${t.name || "your"} bipolar specialist listing`,
-      body: `Hi ${t.name || "there"},
+      subject: "Re: Your BipolarTherapyHub listing",
+      body: `Hi ${first},
 
-[Brief reminder of the first email + a softer second ask. Edit before sending.]${profileLine}
+Bumping this in case it got buried. Your bipolar specialist listing is here:
+
+${profileUrl}
+
+Free to claim if you want to edit anything, or reply "remove" and I'll take it down.
+
+No more emails after this either way.
 
 Best,
 Michael`,
     };
   }
   return {
-    subject: `Question about your bipolar specialty practice`,
-    body: `Hi ${t.name || "there"},
+    subject: "Your BipolarTherapyHub listing",
+    body: `Hi ${first},
 
-[Replace this with your hook — what specifically caught your eye about ${t.name || "their"} practice.]
+I built BipolarTherapyHub, a directory specifically for California therapists who treat bipolar disorder. Your practice came up in our research and I added a profile for you:
 
-[A sentence or two about BipolarTherapyHub — a directory built around bipolar specialists in California.]
+${profileUrl}
 
-[Specific ask — claim profile / give feedback / etc.]${profileLine}
+It's live and free. To edit anything (bio, photo, fees, specialties), you can claim it in two clicks at the link above. No payment required.
+
+If you don't want to be listed, just reply and I'll remove it today.
 
 Best,
 Michael`,
