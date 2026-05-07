@@ -977,6 +977,7 @@ export const therapistType = defineType({
                 defineField({ name: "sentAt", title: "Sent at", type: "datetime" }),
                 defineField({ name: "subject", title: "Subject", type: "string" }),
                 defineField({ name: "template", title: "Template", type: "string" }),
+                defineField({ name: "body", title: "Body", type: "text", rows: 6 }),
               ],
               preview: {
                 select: { title: "template", subtitle: "sentAt" },

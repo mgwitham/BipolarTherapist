@@ -350,20 +350,11 @@ function renderPanelContent(t) {
           }
         </div>
       `
-          : t.email
-            ? `
-        <label style="font-size:13px;font-weight:500;color:#374151;display:block;margin-bottom:6px;">Template</label>
-        <select id="template-select" class="form-input" style="margin-bottom:12px;">
-          <option value="email_1" ${defaultTemplate === "email_1" ? "selected" : ""}>Initial outreach</option>
-          <option value="follow_up" ${defaultTemplate === "follow_up" ? "selected" : ""}>Follow-up</option>
-        </select>
-        <div id="email-preview" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;font-size:13px;margin-bottom:12px;">
-          ${emailPreviewHtml(defaultTemplate, t)}
-        </div>
-        <button id="send-email-btn" class="btn-primary" style="width:100%;padding:10px;">Send email</button>
-        <div id="send-msg" style="margin-top:8px;font-size:13px;"></div>
-      `
-            : contactFormHelperHtml(t, defaultTemplate)
+          : !t.email && !(t.website || t.sourceUrl)
+            ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;font-size:13px;color:#92400e;">
+                No email or website on file — can't reach this therapist.
+              </div>`
+            : gmailComposerHtml(t, defaultTemplate, t.email ? "email" : "form")
       }
     </div>
 
@@ -395,51 +386,92 @@ function renderPanelContent(t) {
   `;
 }
 
-function contactFormHelperHtml(t, defaultTemplate) {
-  const target = t.website || t.sourceUrl || "";
-  if (!target) {
-    return `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;font-size:13px;color:#92400e;">
-      No email or website on file — can't reach this therapist.
-    </div>`;
+// Default starting subject + body for each template. The composer
+// pre-fills these into editable inputs; the user edits before sending.
+// Profile link goes at the bottom on its own line so it survives any
+// edits to the rest of the body.
+function getTemplateDefaults(template, t) {
+  const profileLine = t.profileUrl ? `\n\nYour profile: ${t.profileUrl}` : "";
+  if (template === "follow_up") {
+    return {
+      subject: `Following up — ${t.name || "your"} bipolar specialist listing`,
+      body: `Hi ${t.name || "there"},
+
+[Brief reminder of the first email + a softer second ask. Edit before sending.]${profileLine}
+
+Best,
+Michael`,
+    };
   }
-  return `
-    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;font-size:13px;margin-bottom:12px;color:#374151;">
-      No email on file. Use this helper to fill out their contact form.
+  return {
+    subject: `Question about your bipolar specialty practice`,
+    body: `Hi ${t.name || "there"},
+
+[Replace this with your hook — what specifically caught your eye about ${t.name || "their"} practice.]
+
+[A sentence or two about BipolarTherapyHub — a directory built around bipolar specialists in California.]
+
+[Specific ask — claim profile / give feedback / etc.]${profileLine}
+
+Best,
+Michael`,
+  };
+}
+
+// Gmail-style composer: From + To (or just From for form mode), an
+// editable Subject input, an editable Body textarea, and a single
+// action button. The same component is used for both real-email sends
+// and contact-form helpers; only the action button + lack of "To"
+// differentiates them.
+function gmailComposerHtml(t, defaultTemplate, mode) {
+  const fromAddress = "Michael <michael@bipolartherapyhub.com>";
+  const isFormMode = mode === "form";
+  const target = t.website || t.sourceUrl || "";
+  const defaults = getTemplateDefaults(defaultTemplate, t);
+
+  const headerRow = (label, value) => `
+    <div style="display:flex;align-items:baseline;gap:8px;padding:8px 12px;border-bottom:1px solid #e5e7eb;font-size:13px;">
+      <span style="color:#9ca3af;width:48px;flex-shrink:0;">${esc(label)}</span>
+      <span style="color:#374151;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(value)}</span>
     </div>
+  `;
+
+  const formNote = isFormMode
+    ? `<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:8px 11px;font-size:12px;color:#1e3a8a;margin-bottom:10px;line-height:1.5;">
+        No email on file. Click <strong>Copy + open contact page</strong>: the body is copied to your clipboard, ${esc(target || "their site")} opens in a new tab, paste it into their contact form by hand.
+      </div>`
+    : "";
+
+  const templateSelector = `
     <label style="font-size:13px;font-weight:500;color:#374151;display:block;margin-bottom:6px;">Template</label>
     <select id="template-select" class="form-input" style="margin-bottom:12px;">
       <option value="email_1" ${defaultTemplate === "email_1" ? "selected" : ""}>Initial outreach</option>
       <option value="follow_up" ${defaultTemplate === "follow_up" ? "selected" : ""}>Follow-up</option>
     </select>
-    <div id="email-preview" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;font-size:13px;margin-bottom:12px;">
-      ${emailPreviewHtml(defaultTemplate, t)}
-    </div>
-    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 12px;font-size:12px;color:#1e3a8a;margin-bottom:10px;line-height:1.5;">
-      <strong>What happens when you click below:</strong>
-      <ol style="margin:6px 0 0 18px;padding:0;">
-        <li>Message body is copied to your clipboard</li>
-        <li>${esc(target)} opens in a new tab</li>
-        <li>You paste, fix any subject/name fields, and submit by hand</li>
-        <li>This outreach is logged the same as a sent email</li>
-      </ol>
-    </div>
-    <button id="open-form-btn" class="btn-primary" data-target="${esc(target)}" style="width:100%;padding:10px;">Copy message + open contact page</button>
-    <div id="send-msg" style="margin-top:8px;font-size:13px;"></div>
   `;
-}
 
-function emailPreviewHtml(template, t) {
-  const subjects = {
-    email_1: "[SUBJECT PLACEHOLDER — Initial outreach]",
-    follow_up: "[SUBJECT PLACEHOLDER — Follow-up]",
-  };
-  const bodies = {
-    email_1: `[BODY PLACEHOLDER — Initial outreach to ${t.name}. Profile: ${t.profileUrl || "N/A"}]`,
-    follow_up: `[BODY PLACEHOLDER — Follow-up to ${t.name}. Profile: ${t.profileUrl || "N/A"}]`,
-  };
+  const composerCard = `
+    <div style="background:#fff;border:1px solid #d1d5db;border-radius:8px;overflow:hidden;margin-bottom:10px;">
+      ${headerRow("From", fromAddress)}
+      ${isFormMode ? "" : headerRow("To", t.email || "")}
+      <input id="composer-subject" type="text" placeholder="Subject"
+        value="${esc(defaults.subject)}"
+        style="display:block;width:100%;border:none;border-bottom:1px solid #e5e7eb;padding:10px 12px;font-size:14px;font-weight:500;color:#111827;outline:none;box-sizing:border-box;" />
+      <textarea id="composer-body" placeholder="Write your message…"
+        style="display:block;width:100%;border:none;padding:12px;font-size:14px;line-height:1.55;color:#111827;font-family:inherit;resize:vertical;min-height:240px;outline:none;box-sizing:border-box;">${esc(defaults.body)}</textarea>
+    </div>
+  `;
+
+  const button = isFormMode
+    ? `<button id="open-form-btn" class="btn-primary" data-target="${esc(target)}" style="width:100%;padding:10px;">Copy + open contact page</button>`
+    : `<button id="send-email-btn" class="btn-primary" style="width:100%;padding:10px;">Send email</button>`;
+
   return `
-    <div><span style="font-weight:600;">Subject:</span> <span style="color:#374151;">${esc(subjects[template])}</span></div>
-    <div style="margin-top:6px;color:#6b7280;">${esc(bodies[template])}</div>
+    ${formNote}
+    ${templateSelector}
+    ${composerCard}
+    ${button}
+    <div id="send-msg" style="margin-top:8px;font-size:13px;"></div>
   `;
 }
 
@@ -482,8 +514,27 @@ function setupPanelListeners(t) {
   document.getElementById("panel-close")?.addEventListener("click", closePanel);
 
   document.getElementById("template-select")?.addEventListener("change", (e) => {
-    const preview = document.getElementById("email-preview");
-    if (preview) preview.innerHTML = emailPreviewHtml(e.target.value, t);
+    // Switching template repopulates the composer fields with the new
+    // template's defaults. If the user has unsaved edits, ask first so
+    // we don't blow away in-progress work.
+    const subjectEl = document.getElementById("composer-subject");
+    const bodyEl = document.getElementById("composer-body");
+    if (!subjectEl || !bodyEl) return;
+    const newDefaults = getTemplateDefaults(e.target.value, t);
+    const prevTemplate = e.target.value === "email_1" ? "follow_up" : "email_1";
+    const prevDefaults = getTemplateDefaults(prevTemplate, t);
+    const isUnedited =
+      subjectEl.value === prevDefaults.subject && bodyEl.value === prevDefaults.body;
+    if (
+      !isUnedited &&
+      !window.confirm("Replace the current draft with the other template's starting copy?")
+    ) {
+      // Roll the selector back if they decline.
+      e.target.value = prevTemplate;
+      return;
+    }
+    subjectEl.value = newDefaults.subject;
+    bodyEl.value = newDefaults.body;
   });
 
   document.getElementById("save-status-btn")?.addEventListener("click", async () => {
@@ -509,31 +560,42 @@ function setupPanelListeners(t) {
     }
   });
 
+  // Read the current composer state (template + edited subject/body).
+  // Returns null if the inputs aren't on screen.
+  function readComposer() {
+    const template = document.getElementById("template-select")?.value || "email_1";
+    const subjectEl = document.getElementById("composer-subject");
+    const bodyEl = document.getElementById("composer-body");
+    if (!subjectEl || !bodyEl) return null;
+    return {
+      template,
+      subject: subjectEl.value.trim(),
+      body: bodyEl.value.trim(),
+    };
+  }
+
   document.getElementById("open-form-btn")?.addEventListener("click", async () => {
     const btn = document.getElementById("open-form-btn");
-    const template = document.getElementById("template-select")?.value || "email_1";
     const msgEl = document.getElementById("send-msg");
     const target = btn.dataset.target;
+    const composer = readComposer();
+    if (!composer) return;
     if (msgEl) msgEl.textContent = "";
 
-    // Build the message body to copy. Same placeholder source the
-    // email composer renders, kept consistent on purpose so contact
-    // form sends use the same copy as email sends.
-    const subjects = {
-      email_1: "[SUBJECT PLACEHOLDER — Initial outreach]",
-      follow_up: "[SUBJECT PLACEHOLDER — Follow-up]",
-    };
-    const bodies = {
-      email_1: `[BODY PLACEHOLDER — Initial outreach to ${t.name}.]\n\nYour profile: ${t.profileUrl || "N/A"}`,
-      follow_up: `[BODY PLACEHOLDER — Follow-up to ${t.name}.]\n\nYour profile: ${t.profileUrl || "N/A"}`,
-    };
-    const messageText = `Subject: ${subjects[template]}\n\n${bodies[template]}`;
+    if (!composer.subject || !composer.body) {
+      if (msgEl) {
+        msgEl.textContent = "Subject and body are required.";
+        msgEl.style.color = "#ef4444";
+      }
+      return;
+    }
 
+    const messageText = `Subject: ${composer.subject}\n\n${composer.body}`;
     try {
       await navigator.clipboard.writeText(messageText);
     } catch {
       if (msgEl) {
-        msgEl.textContent = "Couldn't copy to clipboard — copy from the preview above by hand.";
+        msgEl.textContent = "Couldn't copy to clipboard — copy from the composer by hand.";
         msgEl.style.color = "#b45309";
       }
     }
@@ -544,25 +606,28 @@ function setupPanelListeners(t) {
     btn.textContent = "Logging…";
     const { ok, data } = await apiPost("/log-contact-form", {
       therapistId: t._id,
-      template,
+      template: composer.template,
+      subject: composer.subject,
+      body: composer.body,
     });
     btn.disabled = false;
-    btn.textContent = "Copy message + open contact page";
+    btn.textContent = "Copy + open contact page";
 
     if (ok) {
       toast("Copied + opened. Outreach logged.");
       const now = new Date().toISOString();
       mutateTherapist(t._id, (th) => {
         if (!th.outreach) th.outreach = {};
-        th.outreach.status = template === "email_1" ? "email_1_sent" : "followed_up";
+        th.outreach.status = composer.template === "email_1" ? "email_1_sent" : "followed_up";
         th.outreach.emailsSent = (th.outreach.emailsSent || 0) + 1;
         th.outreach.lastContactedAt = now;
         th.outreach.emailLog = [
           ...(th.outreach.emailLog || []),
           {
             sentAt: now,
-            template: `${template}_via_form`,
-            subject: template === "email_1" ? "[FORM — Initial outreach]" : "[FORM — Follow-up]",
+            template: `${composer.template}_via_form`,
+            subject: composer.subject,
+            body: composer.body,
           },
         ];
       });
@@ -580,13 +645,28 @@ function setupPanelListeners(t) {
 
   document.getElementById("send-email-btn")?.addEventListener("click", async () => {
     const btn = document.getElementById("send-email-btn");
-    const template = document.getElementById("template-select")?.value || "email_1";
     const msgEl = document.getElementById("send-msg");
-    btn.disabled = true;
-    btn.textContent = "Sending…";
+    const composer = readComposer();
+    if (!composer) return;
     if (msgEl) msgEl.textContent = "";
 
-    const { ok, data } = await apiPost("/send-email", { therapistId: t._id, template });
+    if (!composer.subject || !composer.body) {
+      if (msgEl) {
+        msgEl.textContent = "Subject and body are required.";
+        msgEl.style.color = "#ef4444";
+      }
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Sending…";
+
+    const { ok, data } = await apiPost("/send-email", {
+      therapistId: t._id,
+      template: composer.template,
+      subject: composer.subject,
+      body: composer.body,
+    });
     btn.disabled = false;
     btn.textContent = "Send email";
 
@@ -595,12 +675,17 @@ function setupPanelListeners(t) {
       const now = new Date().toISOString();
       mutateTherapist(t._id, (th) => {
         if (!th.outreach) th.outreach = {};
-        th.outreach.status = template === "email_1" ? "email_1_sent" : "followed_up";
+        th.outreach.status = composer.template === "email_1" ? "email_1_sent" : "followed_up";
         th.outreach.emailsSent = (th.outreach.emailsSent || 0) + 1;
         th.outreach.lastContactedAt = now;
         th.outreach.emailLog = [
           ...(th.outreach.emailLog || []),
-          { sentAt: now, template, subject: "[SUBJECT PLACEHOLDER]" },
+          {
+            sentAt: now,
+            template: composer.template,
+            subject: composer.subject,
+            body: composer.body,
+          },
         ];
       });
       refreshTable();
