@@ -309,8 +309,78 @@
                           </div>
                         </div>
                       </div>
-                      <!-- Preference pills: Format, Sort, Care type, Therapist -->
+                      <!-- Preference pills: Therapist, Care type, Format, Sort by -->
                       <div class="refine-pills-block">
+                        <div
+                          class="refine-sort-row"
+                          data-intake-field="therapist_gender_preference"
+                        >
+                          <span class="refine-field-lbl" id="refineGenderLabel">Therapist</span>
+                          <div
+                            class="refine-sort-seg"
+                            role="radiogroup"
+                            aria-labelledby="refineGenderLabel"
+                          >
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="therapist_gender_preference"
+                                value=""
+                                checked
+                              />
+                              <span>Any</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="therapist_gender_preference"
+                                value="female"
+                              />
+                              <span>Female</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input type="radio" name="therapist_gender_preference" value="male" />
+                              <span>Male</span>
+                            </label>
+                          </div>
+                        </div>
+                        <div class="refine-sort-row">
+                          <span class="refine-field-lbl" id="refineCareTypeLabel">Care type</span>
+                          <div
+                            class="refine-sort-seg"
+                            role="radiogroup"
+                            aria-labelledby="refineCareTypeLabel"
+                          >
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="care_intent_drawer"
+                                data-sync-key="care_intent"
+                                value="Therapy"
+                                checked
+                              />
+                              <span>Therapy</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="care_intent_drawer"
+                                data-sync-key="care_intent"
+                                value="Psychiatry"
+                              />
+                              <span>Psychiatry</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="care_intent_drawer"
+                                data-sync-key="care_intent"
+                                value=""
+                              />
+                              <span>Either</span>
+                            </label>
+                          </div>
+                        </div>
                         <div class="refine-sort-row">
                           <span class="refine-field-lbl" id="refineFormatLabel">Format</span>
                           <div
@@ -367,76 +437,6 @@
                                 value="Highest specialization"
                               />
                               <span>Experienced</span>
-                            </label>
-                          </div>
-                        </div>
-                        <div class="refine-sort-row">
-                          <span class="refine-field-lbl" id="refineCareTypeLabel">Care type</span>
-                          <div
-                            class="refine-sort-seg"
-                            role="radiogroup"
-                            aria-labelledby="refineCareTypeLabel"
-                          >
-                            <label class="refine-seg-opt">
-                              <input
-                                type="radio"
-                                name="care_intent_drawer"
-                                data-sync-key="care_intent"
-                                value="Therapy"
-                                checked
-                              />
-                              <span>Therapy</span>
-                            </label>
-                            <label class="refine-seg-opt">
-                              <input
-                                type="radio"
-                                name="care_intent_drawer"
-                                data-sync-key="care_intent"
-                                value="Psychiatry"
-                              />
-                              <span>Psychiatry</span>
-                            </label>
-                            <label class="refine-seg-opt">
-                              <input
-                                type="radio"
-                                name="care_intent_drawer"
-                                data-sync-key="care_intent"
-                                value=""
-                              />
-                              <span>Either</span>
-                            </label>
-                          </div>
-                        </div>
-                        <div
-                          class="refine-sort-row"
-                          data-intake-field="therapist_gender_preference"
-                        >
-                          <span class="refine-field-lbl" id="refineGenderLabel">Therapist</span>
-                          <div
-                            class="refine-sort-seg"
-                            role="radiogroup"
-                            aria-labelledby="refineGenderLabel"
-                          >
-                            <label class="refine-seg-opt">
-                              <input
-                                type="radio"
-                                name="therapist_gender_preference"
-                                value=""
-                                checked
-                              />
-                              <span>Any</span>
-                            </label>
-                            <label class="refine-seg-opt">
-                              <input
-                                type="radio"
-                                name="therapist_gender_preference"
-                                value="female"
-                              />
-                              <span>Female</span>
-                            </label>
-                            <label class="refine-seg-opt">
-                              <input type="radio" name="therapist_gender_preference" value="male" />
-                              <span>Male</span>
                             </label>
                           </div>
                         </div>
