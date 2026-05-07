@@ -5432,39 +5432,34 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 
 /* Header refine button — desktop only, sits inline below subtitle */
 .mx-refine-btn--header {
-  display: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  padding: 0.5rem 1rem;
+  background: #fff;
+  border: 1px solid #c9dce1;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #1d3a4a;
+  box-shadow: 0 1px 3px rgba(15, 31, 40, 0.06);
+  white-space: nowrap;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+  margin-top: 0.75rem;
 }
-@media (min-width: 821px) {
-  .mx-refine-btn--header {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    align-self: flex-start;
-    padding: 0.55rem 1rem;
-    background: #fff;
-    border: 1px solid #c9dce1;
-    border-radius: 999px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #1d3a4a;
-    box-shadow: 0 1px 3px rgba(15, 31, 40, 0.06);
-    white-space: nowrap;
-    cursor: pointer;
-    font-family: inherit;
-    transition:
-      border-color 0.15s,
-      box-shadow 0.15s;
-    margin-top: 0.2rem;
-  }
-  .mx-refine-btn--header:hover {
-    border-color: #1a7a8f;
-    box-shadow: 0 2px 6px rgba(26, 122, 143, 0.12);
-  }
-  .mx-refine-btn--header svg {
-    width: 13px;
-    height: 13px;
-    flex-shrink: 0;
-  }
+.mx-refine-btn--header:hover {
+  border-color: #1a7a8f;
+  box-shadow: 0 2px 6px rgba(26, 122, 143, 0.12);
+}
+.mx-refine-btn--header svg {
+  width: 13px;
+  height: 13px;
+  flex-shrink: 0;
 }
 .mx-refine-btn-count {
   background: #1a7a8f;

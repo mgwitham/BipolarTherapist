@@ -5365,7 +5365,13 @@ function buildActiveFilterChipsHtml(profile) {
   if (!profile) return "";
   var chips = [];
 
-  if (profile.care_format && profile.care_format !== "No preference") {
+  // Only chip for an explicit format choice — "Either" is the model's
+  // internal default for "Any" and should not surface as an active filter.
+  if (
+    profile.care_format &&
+    profile.care_format !== "No preference" &&
+    profile.care_format !== "Either"
+  ) {
     chips.push({ key: "care_format", label: profile.care_format });
   }
   if (profile.insurance) {
