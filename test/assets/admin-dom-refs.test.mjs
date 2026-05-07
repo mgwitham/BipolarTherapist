@@ -18,6 +18,7 @@ const HTML_PAGES = [
   "therapist.html",
   "signup.html",
   "portal.html",
+  "outreach.html",
 ];
 
 function readText(file) {
