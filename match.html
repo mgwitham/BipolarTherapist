@@ -256,7 +256,7 @@
                   </div>
 
                   <div class="refine-advanced-panel">
-                    <!-- Insurance + format -->
+                    <!-- Insurance + format + sort (all above the fold) -->
                     <div class="refine-adv-section">
                       <div class="refine-quick">
                         <div class="refine-field" data-intake-field="insurance">
@@ -308,333 +308,342 @@
                           </div>
                         </div>
                       </div>
-                    </div>
-
-                    <!-- 1. What matters most — leads because it has the biggest impact -->
-                    <div class="refine-adv-section">
-                      <div class="refine-adv-header">
-                        <span class="refine-adv-title">What matters most to you?</span>
-                        <span class="refine-priority-auto-note">Tap to re-rank</span>
-                      </div>
-                      <div
-                        class="refine-priority-opts"
-                        role="radiogroup"
-                        aria-label="Ranking priority"
-                      >
-                        <label class="refine-priority-opt">
-                          <input
-                            type="radio"
-                            name="priority_mode"
-                            value="Best overall fit"
-                            checked
-                          />
-                          <span class="refine-priority-card">
-                            <span class="refine-priority-card-label">Best overall fit</span>
-                            <span class="refine-priority-card-sub"
-                              >Balances wait, cost, and experience</span
-                            >
-                          </span>
-                        </label>
-                        <label class="refine-priority-opt">
-                          <input type="radio" name="priority_mode" value="Soonest availability" />
-                          <span class="refine-priority-card">
-                            <span class="refine-priority-card-label">Shortest wait</span>
-                            <span class="refine-priority-card-sub"
-                              >Ranks by estimated availability</span
-                            >
-                          </span>
-                        </label>
-                        <label class="refine-priority-opt">
-                          <input type="radio" name="priority_mode" value="Lowest cost" />
-                          <span class="refine-priority-card">
-                            <span class="refine-priority-card-label">Most affordable</span>
-                            <span class="refine-priority-card-sub"
-                              >Ranks by session fee, lower first</span
-                            >
-                          </span>
-                        </label>
-                        <label class="refine-priority-opt">
-                          <input type="radio" name="priority_mode" value="Highest specialization" />
-                          <span class="refine-priority-card">
-                            <span class="refine-priority-card-label">Most experienced</span>
-                            <span class="refine-priority-card-sub"
-                              >Ranks by years treating bipolar</span
-                            >
-                          </span>
-                        </label>
+                      <!-- Sort priority — compact pill row, no header needed -->
+                      <div class="refine-sort-row">
+                        <span class="refine-field-lbl" id="refineSortLabel">Sort by</span>
+                        <div
+                          class="refine-sort-seg"
+                          role="radiogroup"
+                          aria-labelledby="refineSortLabel"
+                        >
+                          <label class="refine-seg-opt">
+                            <input
+                              type="radio"
+                              name="priority_mode"
+                              value="Best overall fit"
+                              checked
+                            />
+                            <span>Best fit</span>
+                          </label>
+                          <label class="refine-seg-opt">
+                            <input type="radio" name="priority_mode" value="Soonest availability" />
+                            <span>Soonest</span>
+                          </label>
+                          <label class="refine-seg-opt">
+                            <input type="radio" name="priority_mode" value="Lowest cost" />
+                            <span>Affordable</span>
+                          </label>
+                          <label class="refine-seg-opt">
+                            <input
+                              type="radio"
+                              name="priority_mode"
+                              value="Highest specialization"
+                            />
+                            <span>Experienced</span>
+                          </label>
+                        </div>
                       </div>
                     </div>
 
-                    <!-- 2. Cost & access -->
-                    <div class="refine-adv-section">
-                      <div class="refine-adv-header">
-                        <span class="refine-adv-title">Cost & access</span>
-                      </div>
-                      <div class="refine-cost-row">
-                        <div class="match-group" data-intake-field="budget_max">
-                          <label class="refine-field-lbl" for="budget_max"
-                            >Max per session ($)</label
-                          >
-                          <input
-                            id="budget_max"
-                            name="budget_max"
-                            type="number"
-                            min="0"
-                            class="refine-input"
-                            placeholder="e.g. 150"
+                    <!-- More options: Cost & access + Clinical focus (collapsed by default) -->
+                    <details class="refine-more-details">
+                      <summary class="refine-more-summary">
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 14 14"
+                          fill="none"
+                          aria-hidden="true"
+                          class="refine-more-chevron"
+                        >
+                          <path
+                            d="M3 5l4 4 4-4"
+                            stroke="currentColor"
+                            stroke-width="1.6"
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
                           />
+                        </svg>
+                        More options
+                      </summary>
+                      <div class="refine-adv-section refine-more-inner">
+                        <div class="refine-adv-header">
+                          <span class="refine-adv-title">Cost & access</span>
                         </div>
-                        <div class="match-group" data-intake-field="language_preferences">
-                          <label class="refine-field-lbl" for="language_preferences"
-                            >Language preference</label
-                          >
-                          <input
-                            id="language_preferences"
-                            name="language_preferences"
-                            type="text"
-                            class="refine-input"
-                            placeholder="English, Spanish…"
-                          />
+                        <div class="refine-cost-row">
+                          <div class="match-group" data-intake-field="budget_max">
+                            <label class="refine-field-lbl" for="budget_max"
+                              >Max per session ($)</label
+                            >
+                            <input
+                              id="budget_max"
+                              name="budget_max"
+                              type="number"
+                              min="0"
+                              class="refine-input"
+                              placeholder="e.g. 150"
+                            />
+                          </div>
+                          <div class="match-group" data-intake-field="language_preferences">
+                            <label class="refine-field-lbl" for="language_preferences"
+                              >Language preference</label
+                            >
+                            <input
+                              id="language_preferences"
+                              name="language_preferences"
+                              type="text"
+                              class="refine-input"
+                              placeholder="English, Spanish…"
+                            />
+                          </div>
+                          <div class="match-group" data-intake-field="therapist_gender_preference">
+                            <label class="refine-field-lbl">Therapist gender preference</label>
+                            <div
+                              class="refine-med-opts"
+                              role="radiogroup"
+                              aria-label="Therapist gender preference"
+                            >
+                              <label class="refine-med-opt">
+                                <input
+                                  type="radio"
+                                  name="therapist_gender_preference"
+                                  value=""
+                                  checked
+                                />
+                                <span>No preference</span>
+                              </label>
+                              <label class="refine-med-opt">
+                                <input
+                                  type="radio"
+                                  name="therapist_gender_preference"
+                                  value="female"
+                                />
+                                <span>Female</span>
+                              </label>
+                              <label class="refine-med-opt">
+                                <input
+                                  type="radio"
+                                  name="therapist_gender_preference"
+                                  value="male"
+                                />
+                                <span>Male</span>
+                              </label>
+                            </div>
+                          </div>
                         </div>
-                        <div class="match-group" data-intake-field="therapist_gender_preference">
-                          <label class="refine-field-lbl">Therapist gender preference</label>
+                        <div class="match-group" data-intake-field="needs_medication_management">
+                          <label class="refine-field-lbl">Do you need medication management?</label>
                           <div
                             class="refine-med-opts"
                             role="radiogroup"
-                            aria-label="Therapist gender preference"
+                            aria-label="Medication management"
                           >
                             <label class="refine-med-opt">
                               <input
                                 type="radio"
-                                name="therapist_gender_preference"
-                                value=""
+                                name="needs_medication_management"
+                                value="Open to either"
                                 checked
                               />
-                              <span>No preference</span>
+                              <span>Open to either</span>
                             </label>
                             <label class="refine-med-opt">
-                              <input
-                                type="radio"
-                                name="therapist_gender_preference"
-                                value="female"
-                              />
-                              <span>Female</span>
+                              <input type="radio" name="needs_medication_management" value="Yes" />
+                              <span>Yes, needed</span>
                             </label>
                             <label class="refine-med-opt">
-                              <input type="radio" name="therapist_gender_preference" value="male" />
-                              <span>Male</span>
+                              <input type="radio" name="needs_medication_management" value="No" />
+                              <span>Not needed</span>
                             </label>
                           </div>
                         </div>
                       </div>
-                      <div class="match-group" data-intake-field="needs_medication_management">
-                        <label class="refine-field-lbl">Do you need medication management?</label>
-                        <div
-                          class="refine-med-opts"
-                          role="radiogroup"
-                          aria-label="Medication management"
-                        >
-                          <label class="refine-med-opt">
-                            <input
-                              type="radio"
-                              name="needs_medication_management"
-                              value="Open to either"
-                              checked
-                            />
-                            <span>Open to either</span>
-                          </label>
-                          <label class="refine-med-opt">
-                            <input type="radio" name="needs_medication_management" value="Yes" />
-                            <span>Yes, needed</span>
-                          </label>
-                          <label class="refine-med-opt">
-                            <input type="radio" name="needs_medication_management" value="No" />
-                            <span>Not needed</span>
-                          </label>
-                        </div>
-                      </div>
-                    </div>
 
-                    <!-- 3. Clinical focus — optional, for users who know what they want -->
-                    <div class="refine-adv-section">
-                      <div class="refine-adv-header">
-                        <span class="refine-adv-title">Clinical focus</span>
-                        <span class="refine-adv-hint">Optional. Skip if you're not sure.</span>
+                      <!-- 3. Clinical focus — optional, for users who know what they want -->
+                      <div class="refine-adv-section">
+                        <div class="refine-adv-header">
+                          <span class="refine-adv-title">Clinical focus</span>
+                          <span class="refine-adv-hint">Optional. Skip if you're not sure.</span>
+                        </div>
+                        <div class="refine-chips-group">
+                          <div class="match-group" data-intake-field="bipolar_focus">
+                            <span class="refine-chips-lbl">Specific diagnosis or focus</span>
+                            <div class="refine-chips">
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="bipolar_focus"
+                                  value="Bipolar I"
+                                /><span>Bipolar I</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="bipolar_focus"
+                                  value="Bipolar II"
+                                /><span>Bipolar II</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="bipolar_focus"
+                                  value="Cyclothymia"
+                                /><span>Cyclothymia</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="bipolar_focus"
+                                  value="Rapid Cycling"
+                                /><span>Rapid Cycling</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="bipolar_focus"
+                                  value="Mixed Episodes"
+                                /><span>Mixed Episodes</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="bipolar_focus"
+                                  value="Psychosis"
+                                /><span>Psychosis</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="bipolar_focus"
+                                  value="Medication Management"
+                                /><span>Medication mgmt</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="bipolar_focus"
+                                  value="Family Support"
+                                /><span>Family support</span></label
+                              >
+                            </div>
+                          </div>
+                          <div class="match-group" data-intake-field="preferred_modalities">
+                            <span class="refine-chips-lbl">Therapy style</span>
+                            <div class="refine-chips">
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="preferred_modalities"
+                                  value="CBT"
+                                /><span>CBT</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="preferred_modalities"
+                                  value="DBT"
+                                /><span>DBT</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="preferred_modalities"
+                                  value="IPSRT"
+                                /><span>IPSRT</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="preferred_modalities"
+                                  value="ACT"
+                                /><span>ACT</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="preferred_modalities"
+                                  value="Family therapy"
+                                /><span>Family therapy</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="preferred_modalities"
+                                  value="Mindfulness-based therapy"
+                                /><span>Mindfulness</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="preferred_modalities"
+                                  value="Psychoeducation"
+                                /><span>Psychoeducation</span></label
+                              >
+                            </div>
+                          </div>
+                          <div class="match-group" data-intake-field="population_fit">
+                            <span class="refine-chips-lbl">Who is this for?</span>
+                            <div class="refine-chips">
+                              <label class="refine-chip"
+                                ><input type="checkbox" name="population_fit" value="Adults" /><span
+                                  >Adults</span
+                                ></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="population_fit"
+                                  value="Young adults"
+                                /><span>Young adults</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="population_fit"
+                                  value="Adolescents"
+                                /><span>Adolescents</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="population_fit"
+                                  value="Couples"
+                                /><span>Couples</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="population_fit"
+                                  value="Families"
+                                /><span>Families</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="population_fit"
+                                  value="Professionals"
+                                /><span>Professionals</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input
+                                  type="checkbox"
+                                  name="population_fit"
+                                  value="College students"
+                                /><span>College students</span></label
+                              >
+                              <label class="refine-chip"
+                                ><input type="checkbox" name="population_fit" value="LGBTQ+" /><span
+                                  >LGBTQ+</span
+                                ></label
+                              >
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div class="refine-chips-group">
-                        <div class="match-group" data-intake-field="bipolar_focus">
-                          <span class="refine-chips-lbl">Specific diagnosis or focus</span>
-                          <div class="refine-chips">
-                            <label class="refine-chip"
-                              ><input type="checkbox" name="bipolar_focus" value="Bipolar I" /><span
-                                >Bipolar I</span
-                              ></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="bipolar_focus"
-                                value="Bipolar II"
-                              /><span>Bipolar II</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="bipolar_focus"
-                                value="Cyclothymia"
-                              /><span>Cyclothymia</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="bipolar_focus"
-                                value="Rapid Cycling"
-                              /><span>Rapid Cycling</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="bipolar_focus"
-                                value="Mixed Episodes"
-                              /><span>Mixed Episodes</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input type="checkbox" name="bipolar_focus" value="Psychosis" /><span
-                                >Psychosis</span
-                              ></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="bipolar_focus"
-                                value="Medication Management"
-                              /><span>Medication mgmt</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="bipolar_focus"
-                                value="Family Support"
-                              /><span>Family support</span></label
-                            >
-                          </div>
-                        </div>
-                        <div class="match-group" data-intake-field="preferred_modalities">
-                          <span class="refine-chips-lbl">Therapy style</span>
-                          <div class="refine-chips">
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="preferred_modalities"
-                                value="CBT"
-                              /><span>CBT</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="preferred_modalities"
-                                value="DBT"
-                              /><span>DBT</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="preferred_modalities"
-                                value="IPSRT"
-                              /><span>IPSRT</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="preferred_modalities"
-                                value="ACT"
-                              /><span>ACT</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="preferred_modalities"
-                                value="Family therapy"
-                              /><span>Family therapy</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="preferred_modalities"
-                                value="Mindfulness-based therapy"
-                              /><span>Mindfulness</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="preferred_modalities"
-                                value="Psychoeducation"
-                              /><span>Psychoeducation</span></label
-                            >
-                          </div>
-                        </div>
-                        <div class="match-group" data-intake-field="population_fit">
-                          <span class="refine-chips-lbl">Who is this for?</span>
-                          <div class="refine-chips">
-                            <label class="refine-chip"
-                              ><input type="checkbox" name="population_fit" value="Adults" /><span
-                                >Adults</span
-                              ></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="population_fit"
-                                value="Young adults"
-                              /><span>Young adults</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="population_fit"
-                                value="Adolescents"
-                              /><span>Adolescents</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input type="checkbox" name="population_fit" value="Couples" /><span
-                                >Couples</span
-                              ></label
-                            >
-                            <label class="refine-chip"
-                              ><input type="checkbox" name="population_fit" value="Families" /><span
-                                >Families</span
-                              ></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="population_fit"
-                                value="Professionals"
-                              /><span>Professionals</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input
-                                type="checkbox"
-                                name="population_fit"
-                                value="College students"
-                              /><span>College students</span></label
-                            >
-                            <label class="refine-chip"
-                              ><input type="checkbox" name="population_fit" value="LGBTQ+" /><span
-                                >LGBTQ+</span
-                              ></label
-                            >
-                          </div>
-                        </div>
-                      </div>
-                    </div>
+                    </details>
 
-                    <!-- 4. Update search — secondary, at the bottom -->
+                    <!-- Adjust search — floated to top via order:-1 CSS -->
                     <div class="refine-adv-section refine-adv-section--search">
-                      <div class="refine-adv-header">
-                        <span class="refine-adv-title">Adjust search</span>
-                        <span class="refine-adv-hint">Change your type of care or location</span>
-                      </div>
                       <div class="refine-search-row">
                         <div class="match-group" data-intake-field="care_intent">
                           <label class="refine-field-lbl" for="care_intent_drawer"
