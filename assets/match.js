@@ -953,19 +953,15 @@ function maybeLiveRecompute(event) {
 }
 
 // Update the drawer's commit button to reflect the live result count.
-// "Show 11 matches" doubles as both a count indicator and the action
-// label — taps commit + close the drawer.
+// Button label reflects action, not a count — counts implied false precision.
 function setRefineSubmitLabel(count) {
   var btn = document.querySelector(".refine-bottom-submit");
   if (!btn) return;
   if (count === 0) {
     btn.textContent = "No matches — try fewer filters";
     btn.disabled = false;
-  } else if (count === 1) {
-    btn.textContent = "Show 1 match";
-    btn.disabled = false;
   } else {
-    btn.textContent = "Show " + count + " matches";
+    btn.textContent = "See your matches";
     btn.disabled = false;
   }
 }
