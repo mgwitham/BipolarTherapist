@@ -1088,16 +1088,13 @@ body.match-refine-drawer-open .match-refinements > summary {
   display: none;
 }
 body.match-refine-drawer-open .refine-advanced-panel {
-  padding: 1.25rem 1.25rem 4.25rem;
+  padding: 0.75rem 1rem 3.5rem;
   max-width: none;
   display: grid;
-  gap: 1.4rem;
+  gap: 0.55rem;
 }
-/* Give each section visible breathing room + a hairline divider
-         so the drawer reads as a stack of decisions instead of one
-         dense scroll of controls. */
 body.match-refine-drawer-open .refine-adv-section {
-  padding-bottom: 0.85rem;
+  padding-bottom: 0.45rem;
   border-bottom: 1px solid rgba(14, 77, 95, 0.12);
 }
 body.match-refine-drawer-open .refine-adv-section:last-of-type {
@@ -1105,7 +1102,7 @@ body.match-refine-drawer-open .refine-adv-section:last-of-type {
   padding-bottom: 0;
 }
 body.match-refine-drawer-open .refine-adv-header {
-  margin-bottom: 0.6rem;
+  margin-bottom: 0.4rem;
 }
 body.match-refine-drawer-open .refine-adv-title {
   font-size: 0.88rem;
@@ -1128,10 +1125,10 @@ body.match-refine-drawer-open .refine-cost-row {
 }
 body.match-refine-drawer-open .refine-field-lbl,
 body.match-refine-drawer-open .refine-chips-lbl {
-  font-size: 0.82rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: var(--slate);
-  margin-bottom: 0.4rem;
+  margin-bottom: 0.25rem;
   display: block;
 }
 /* priority cards removed — replaced by compact .refine-sort-seg pill row */
@@ -1142,7 +1139,7 @@ body.match-refine-drawer-open .refine-priority-card-sub {
   display: none;
   align-items: center;
   justify-content: space-between;
-  padding: 1rem 1.25rem;
+  padding: 0.6rem 1rem;
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -1154,7 +1151,7 @@ body.match-refine-drawer-open .match-refine-drawer-header {
 }
 .match-refine-drawer-header h2 {
   margin: 0;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   font-weight: 800;
   color: var(--navy);
 }
@@ -1283,9 +1280,9 @@ body.match-refine-drawer-open .refine-bottom-submit {
   display: block;
   position: sticky;
   bottom: 0;
-  margin-top: 1rem;
+  margin-top: 0.5rem;
   margin-bottom: 0;
-  padding: 0.95rem 1.2rem;
+  padding: 0.75rem 1rem;
   background: var(--teal);
   color: #fff;
   border: none;
@@ -1323,8 +1320,8 @@ body.match-refine-drawer-open .refine-adv-section--search .refine-adv-header {
 }
 body.match-refine-drawer-open .refine-search-row {
   display: grid;
-  grid-template-columns: 1fr 130px;
-  gap: 0.7rem;
+  grid-template-columns: 1fr 110px;
+  gap: 0.5rem;
 }
 body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   font-size: 0.78rem;
@@ -4619,8 +4616,8 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   border: none;
   border-bottom: 1.5px solid rgba(14, 77, 95, 0.18);
   border-radius: 0;
-  padding: 0.38rem 0;
-  font-size: 0.9rem;
+  padding: 0.28rem 0;
+  font-size: 0.86rem;
   font-family: inherit;
   color: var(--navy);
   outline: none;
@@ -4657,8 +4654,8 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 }
 .refine-seg-opt span {
   display: block;
-  padding: 0.35rem 0.82rem;
-  font-size: 0.8rem;
+  padding: 0.26rem 0.72rem;
+  font-size: 0.78rem;
   font-weight: 500;
   color: var(--slate);
   background: transparent;
@@ -4690,10 +4687,10 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 .refine-sort-row {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
-  padding-top: 0.75rem;
+  gap: 0.25rem;
+  padding-top: 0.45rem;
   border-top: 1px solid rgba(14, 77, 95, 0.1);
-  margin-top: 0.25rem;
+  margin-top: 0;
 }
 .refine-sort-seg {
   display: flex;
@@ -4708,8 +4705,8 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 .refine-sort-seg .refine-seg-opt span {
   width: 100%;
   text-align: center;
-  font-size: 0.76rem;
-  padding: 0.42rem 0.3rem;
+  font-size: 0.74rem;
+  padding: 0.28rem 0.2rem;
   white-space: nowrap;
 }
 
@@ -4730,8 +4727,8 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   display: flex;
   align-items: center;
   gap: 0.35rem;
-  padding: 0.7rem 0;
-  font-size: 0.78rem;
+  padding: 0.45rem 0;
+  font-size: 0.72rem;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
