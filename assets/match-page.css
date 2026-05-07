@@ -1105,10 +1105,11 @@ body.match-refine-drawer-open .refine-adv-header {
   margin-bottom: 0.4rem;
 }
 body.match-refine-drawer-open .refine-adv-title {
-  font-size: 0.88rem;
+  font-size: 0.76rem;
   font-weight: 700;
   color: var(--navy);
-  letter-spacing: -0.005em;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 body.match-refine-drawer-open .refine-adv-hint {
   display: block;
@@ -1125,9 +1126,11 @@ body.match-refine-drawer-open .refine-cost-row {
 }
 body.match-refine-drawer-open .refine-field-lbl,
 body.match-refine-drawer-open .refine-chips-lbl {
-  font-size: 0.78rem;
-  font-weight: 600;
+  font-size: 0.72rem;
+  font-weight: 700;
   color: var(--slate);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
   margin-bottom: 0.25rem;
   display: block;
 }
@@ -1154,6 +1157,8 @@ body.match-refine-drawer-open .match-refine-drawer-header {
   font-size: 0.95rem;
   font-weight: 800;
   color: var(--navy);
+  letter-spacing: -0.01em;
+  font-family: inherit;
 }
 .match-refine-drawer-close {
   background: var(--white);
@@ -4604,12 +4609,12 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   flex: 0 0 auto;
 }
 .refine-field-lbl {
-  font-size: 0.67rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: var(--slate);
-  opacity: 0.7;
+  opacity: 0.8;
 }
 .refine-input {
   background: transparent;
@@ -4655,7 +4660,7 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 .refine-seg-opt span {
   display: block;
   padding: 0.26rem 0.72rem;
-  font-size: 0.78rem;
+  font-size: 0.76rem;
   font-weight: 500;
   color: var(--slate);
   background: transparent;
@@ -4705,7 +4710,8 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
 .refine-sort-seg .refine-seg-opt span {
   width: 100%;
   text-align: center;
-  font-size: 0.74rem;
+  font-size: 0.76rem;
+  font-weight: 500;
   padding: 0.28rem 0.2rem;
   white-space: nowrap;
 }
@@ -4730,7 +4736,7 @@ body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
   padding: 0.45rem 0;
   font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: #1a7a8f;
   user-select: none;
