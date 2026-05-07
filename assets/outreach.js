@@ -586,7 +586,12 @@ function gmailComposerHtml(t, defaultTemplate, mode) {
 
   const button = isFormMode
     ? `<button id="open-form-btn" class="btn-primary" data-target="${esc(target)}" style="width:100%;padding:10px;">Copy + open contact page</button>`
-    : `<button id="send-email-btn" class="btn-primary" style="width:100%;padding:10px;">Send email</button>`;
+    : `
+        <div style="display:flex;gap:8px;">
+          <button id="send-email-btn" class="btn-primary" style="flex:1;padding:10px;">Send email</button>
+          <button id="send-test-btn" class="btn-secondary" style="padding:10px 14px;white-space:nowrap;border-color:#2a5f6e;color:#2a5f6e;">Send test to me</button>
+        </div>
+      `;
 
   return `
     ${formNote}
@@ -775,6 +780,45 @@ function setupPanelListeners(t) {
       const msg = data?.error || "Couldn't log outreach";
       if (msgEl) {
         msgEl.textContent = msg;
+        msgEl.style.color = "#ef4444";
+      }
+    }
+  });
+
+  document.getElementById("send-test-btn")?.addEventListener("click", async () => {
+    const btn = document.getElementById("send-test-btn");
+    const msgEl = document.getElementById("send-msg");
+    const composer = readComposer();
+    if (!composer) return;
+    if (msgEl) msgEl.textContent = "";
+
+    if (!composer.subject || !composer.body) {
+      if (msgEl) {
+        msgEl.textContent = "Subject and body are required.";
+        msgEl.style.color = "#ef4444";
+      }
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = "Sending test…";
+
+    const { ok, data } = await apiPost("/send-email", {
+      therapistId: t._id,
+      template: composer.template,
+      subject: composer.subject,
+      body: composer.body,
+      sendToSelf: true,
+    });
+    btn.disabled = false;
+    btn.textContent = "Send test to me";
+
+    if (ok) {
+      toast(`Test sent to ${data?.testTo || "your inbox"}`);
+    } else {
+      const err = data?.error || "Test send failed";
+      if (msgEl) {
+        msgEl.textContent = err;
         msgEl.style.color = "#ef4444";
       }
     }
