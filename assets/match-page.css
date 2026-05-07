@@ -1323,16 +1323,6 @@ body.match-refine-drawer-open .refine-adv-section--search {
 body.match-refine-drawer-open .refine-adv-section--search .refine-adv-header {
   display: none;
 }
-body.match-refine-drawer-open .refine-search-row {
-  display: grid;
-  grid-template-columns: 1fr 110px;
-  gap: 0.5rem;
-}
-body.match-refine-drawer-open .refine-search-row .refine-field-lbl {
-  font-size: 0.78rem;
-  color: var(--slate);
-  font-weight: 600;
-}
 /* In results mode, collapse the inline .match-builder so the
          "Refine your results" card no longer appears below the cards.
          Use max-height + overflow hidden (not display:none) so the

@@ -616,61 +616,51 @@
                       </div>
                     </details>
 
-                    <!-- Adjust search — floated to top via order:-1 CSS -->
+                    <!-- Therapist gender + ZIP — same style as the main section above -->
                     <div class="refine-adv-section refine-adv-section--search">
-                      <div class="refine-search-row">
+                      <div class="refine-sort-row" data-intake-field="therapist_gender_preference">
+                        <span class="refine-field-lbl" id="refineGenderLabel">Therapist</span>
                         <div
-                          class="refine-field refine-field--gender"
-                          data-intake-field="therapist_gender_preference"
+                          class="refine-sort-seg"
+                          role="radiogroup"
+                          aria-labelledby="refineGenderLabel"
                         >
-                          <span class="refine-field-lbl" id="refineGenderLabel">Therapist</span>
-                          <div
-                            class="refine-format-seg"
-                            role="radiogroup"
-                            aria-labelledby="refineGenderLabel"
-                          >
-                            <label class="refine-seg-opt">
-                              <input
-                                type="radio"
-                                name="therapist_gender_preference"
-                                value=""
-                                checked
-                              />
-                              <span>Any</span>
-                            </label>
-                            <label class="refine-seg-opt">
-                              <input
-                                type="radio"
-                                name="therapist_gender_preference"
-                                value="female"
-                              />
-                              <span>Female</span>
-                            </label>
-                            <label class="refine-seg-opt">
-                              <input type="radio" name="therapist_gender_preference" value="male" />
-                              <span>Male</span>
-                            </label>
-                          </div>
-                        </div>
-                        <div class="match-group" data-intake-field="location_query">
-                          <label class="refine-field-lbl" for="location_query_drawer"
-                            >ZIP code</label
-                          >
-                          <div class="match-zip-inline">
+                          <label class="refine-seg-opt">
                             <input
-                              id="location_query_drawer"
-                              name="location_query_drawer"
-                              data-sync-key="location_query"
-                              type="text"
-                              placeholder="ZIP code"
-                              inputmode="numeric"
+                              type="radio"
+                              name="therapist_gender_preference"
+                              value=""
+                              checked
                             />
-                            <span
-                              class="match-zip-resolved"
-                              id="matchZipResolvedDrawer"
-                              aria-live="polite"
-                            ></span>
-                          </div>
+                            <span>Any</span>
+                          </label>
+                          <label class="refine-seg-opt">
+                            <input type="radio" name="therapist_gender_preference" value="female" />
+                            <span>Female</span>
+                          </label>
+                          <label class="refine-seg-opt">
+                            <input type="radio" name="therapist_gender_preference" value="male" />
+                            <span>Male</span>
+                          </label>
+                        </div>
+                      </div>
+                      <div class="refine-field refine-sort-row" data-intake-field="location_query">
+                        <label class="refine-field-lbl" for="location_query_drawer">ZIP code</label>
+                        <div class="refine-autocomplete">
+                          <input
+                            id="location_query_drawer"
+                            name="location_query_drawer"
+                            data-sync-key="location_query"
+                            type="text"
+                            class="refine-input"
+                            placeholder="e.g. 90028"
+                            inputmode="numeric"
+                          />
+                          <span
+                            class="match-zip-resolved"
+                            id="matchZipResolvedDrawer"
+                            aria-live="polite"
+                          ></span>
                         </div>
                       </div>
                     </div>
