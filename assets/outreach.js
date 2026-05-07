@@ -433,13 +433,14 @@ function firstName(fullName) {
 // pre-fills these into editable inputs; the user edits before sending.
 function getTemplateDefaults(template, t) {
   const first = firstName(t.name);
+  const city = t.city || "California";
   const profileUrl = t.profileUrl || "[your profile URL]";
   if (template === "follow_up") {
     return {
-      subject: "Re: Your BipolarTherapyHub listing",
+      subject: `Re: Patients in ${city} are searching for bipolar specialists`,
       body: `Hi ${first},
 
-Bumping this in case it got buried. Your bipolar specialist listing is here:
+Quick bump in case the first email got buried. Your bipolar specialist listing is here:
 
 ${profileUrl}
 
@@ -452,16 +453,18 @@ Michael`,
     };
   }
   return {
-    subject: "Your BipolarTherapyHub listing",
+    subject: `Patients in ${city} are searching for bipolar specialists`,
     body: `Hi ${first},
 
-I built BipolarTherapyHub, a directory specifically for California therapists who treat bipolar disorder. Your practice came up in our research and I added a profile for you:
+Patients in California search every week for therapists who truly understand bipolar disorder, not just mood issues in general. That search is harder than it should be.
+
+I built BipolarTherapyHub to fix that. Based on your public practice info, I added a profile for you:
 
 ${profileUrl}
 
-It's live and free. To edit anything (bio, photo, fees, specialties), you can claim it in two clicks at the link above. No payment required.
+It's live and free. To update your bio, photo, fees, or specialties, you can claim it in two clicks. No payment required.
 
-If you don't want to be listed, just reply and I'll remove it today.
+If you'd rather not be listed, just reply and I'll remove it today.
 
 Best,
 Michael`,
