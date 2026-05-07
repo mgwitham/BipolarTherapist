@@ -1,6 +1,27 @@
 import { createClient } from "@sanity/client";
-import { Resend } from "resend";
 import { verifyAdminSession } from "../_adminAuth.mjs";
+
+// Direct fetch to the Resend HTTP API instead of the `resend` SDK.
+// The SDK isn't in package.json (the rest of the codebase posts to
+// api.resend.com/emails directly via fetch — see server/review-email.mjs)
+// and importing it crashes the function on Vercel with
+// FUNCTION_INVOCATION_FAILED.
+async function resendSend({ apiKey, from, to, subject, html, text }) {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({ from, to, subject, html, text }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    const message = data?.message || data?.error || `Resend API error ${response.status}`;
+    throw new Error(message);
+  }
+  return data;
+}
 
 const VALID_TEMPLATES = new Set(["email_1", "follow_up"]);
 
@@ -231,7 +252,6 @@ export default async function handler(req, res) {
     return;
   }
 
-  const resend = new Resend(resendKey);
   const subject = trimmedSubject || tpl.subject(therapist);
   const textBodyBase = trimmedBody || tpl.text(therapist);
   // For the HTML version, escape and convert linebreaks so the user's
@@ -254,7 +274,8 @@ export default async function handler(req, res) {
       return;
     }
     try {
-      await resend.emails.send({
+      await resendSend({
+        apiKey: resendKey,
         from: fromAddress,
         to: testTo,
         subject: `[TEST] ${subject}`,
@@ -271,7 +292,8 @@ export default async function handler(req, res) {
   }
 
   try {
-    await resend.emails.send({
+    await resendSend({
+      apiKey: resendKey,
       from: fromAddress,
       to: therapist.email,
       subject,
