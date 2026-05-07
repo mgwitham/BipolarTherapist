@@ -94,8 +94,7 @@ function getConfig() {
       process.env.VITE_SANITY_DATASET ||
       rootEnv.VITE_SANITY_DATASET ||
       studioEnv.SANITY_STUDIO_DATASET,
-    token:
-      process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN,
+    token: process.env.SANITY_API_TOKEN || rootEnv.SANITY_API_TOKEN || studioEnv.SANITY_API_TOKEN,
   };
 }
 
@@ -197,7 +196,9 @@ async function main() {
   const rows = [];
   for (const f of findings) {
     const id = String(f?.id || "").trim();
-    const email = String(f?.email || "").trim().toLowerCase();
+    const email = String(f?.email || "")
+      .trim()
+      .toLowerCase();
     const sourceUrl = String(f?.sourceUrl || "").trim();
     const confidence = Number(f?.confidence);
     const notes = String(f?.notes || "").trim();
