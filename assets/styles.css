@@ -4109,7 +4109,9 @@ body.dir-vb .dir-vb-section-body .filter-group input[type="text"] {
   width: 100%;
   appearance: none;
   -webkit-appearance: none;
-  box-shadow: 0 1px 3px rgba(40, 25, 10, 0.07), 0 3px 8px rgba(40, 25, 10, 0.05);
+  box-shadow:
+    0 1px 3px rgba(40, 25, 10, 0.07),
+    0 3px 8px rgba(40, 25, 10, 0.05);
 }
 
 body.dir-vb .dir-vb-section-body .filter-group select {
