@@ -427,7 +427,9 @@ export function hydrateForm(profile, options) {
   var locationValue = profile.location_query || profile.care_state || "";
   setFieldValue("location_query", locationValue);
   settings.syncZipResolvedLabel(locationValue);
-  setFieldValue("care_format", profile.care_format || "");
+  // "Either" is the model's internal default for "no format preference";
+  // the form uses value="" for the "Any" radio, so normalize on hydration.
+  setFieldValue("care_format", profile.care_format === "Either" ? "" : profile.care_format || "");
   setFieldValue("care_intent", profile.care_intent || "");
   setFieldValue(
     "needs_medication_management",
