@@ -347,6 +347,9 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   setVal("editSessionFeeMin", candidate.session_fee_min);
   setVal("editSessionFeeMax", candidate.session_fee_max);
 
+  // Profile
+  setVal("editGender", candidate.gender);
+
   // Notes
   setVal("editNotes", candidate.notes);
 
@@ -424,6 +427,9 @@ export function openTherapistEditDrawer(therapist, onSaved) {
   // Lifecycle / visibility
   setVal("editLifecycle", read("lifecycle", "lifecycle") || "draft");
   setVal("editVisibilityIntent", read("visibility_intent", "visibilityIntent") || "listed");
+
+  // Profile
+  setVal("editGender", read("gender", "gender") || "");
 
   // Notes
   setVal("editNotes", read("notes", "notes") || "");
@@ -555,6 +561,7 @@ export function bindCandidateEditDrawer() {
           credentials: getVal("editCredentials"),
           title: getVal("editTitle"),
           practiceName: getVal("editPracticeName"),
+          gender: getVal("editGender") || undefined,
           city: getVal("editCity"),
           state: getVal("editState"),
           zip: getVal("editZip"),
@@ -588,6 +595,7 @@ export function bindCandidateEditDrawer() {
           credentials: getVal("editCredentials"),
           title: getVal("editTitle"),
           practice_name: getVal("editPracticeName"),
+          gender: getVal("editGender") || undefined,
           city: getVal("editCity"),
           state: getVal("editState"),
           zip: getVal("editZip"),
