@@ -1240,6 +1240,19 @@ function bindRefineButtons() {
     });
   }
 
+  // Care-type drawer radios → sync to the main care_intent select so
+  // readCurrentIntakeProfile() always reads the up-to-date value,
+  // then kick off a live recompute so results update immediately.
+  document.querySelectorAll('[name="care_intent_drawer"]').forEach(function (radio) {
+    if (radio.dataset.boundCareIntent === "true") return;
+    radio.dataset.boundCareIntent = "true";
+    radio.addEventListener("change", function () {
+      var select = document.getElementById("care_intent_primary");
+      if (select && radio.checked) select.value = radio.value;
+      maybeLiveRecompute(null);
+    });
+  });
+
   // ESC anywhere closes the drawer
   if (!document.body.dataset.boundRefineEsc) {
     document.body.dataset.boundRefineEsc = "true";

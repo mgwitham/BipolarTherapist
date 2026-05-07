@@ -345,6 +345,47 @@
                       </div>
                     </div>
 
+                    <!-- Care type toggle — lets users switch therapy ↔ psychiatry after initial search -->
+                    <div class="refine-adv-section refine-adv-section--care-type">
+                      <div class="refine-sort-row">
+                        <span class="refine-field-lbl" id="refineCareTypeLabel">Care type</span>
+                        <div
+                          class="refine-sort-seg"
+                          role="radiogroup"
+                          aria-labelledby="refineCareTypeLabel"
+                        >
+                          <label class="refine-seg-opt">
+                            <input
+                              type="radio"
+                              name="care_intent_drawer"
+                              data-sync-key="care_intent"
+                              value="Therapy"
+                              checked
+                            />
+                            <span>Therapy</span>
+                          </label>
+                          <label class="refine-seg-opt">
+                            <input
+                              type="radio"
+                              name="care_intent_drawer"
+                              data-sync-key="care_intent"
+                              value="Psychiatry"
+                            />
+                            <span>Psychiatry</span>
+                          </label>
+                          <label class="refine-seg-opt">
+                            <input
+                              type="radio"
+                              name="care_intent_drawer"
+                              data-sync-key="care_intent"
+                              value=""
+                            />
+                            <span>Either</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
                     <!-- More options: Cost & access + Clinical focus (collapsed by default) -->
                     <details class="refine-more-details">
                       <summary class="refine-more-summary">
@@ -395,32 +436,6 @@
                               class="refine-input"
                               placeholder="English, Spanish…"
                             />
-                          </div>
-                        </div>
-                        <div class="match-group" data-intake-field="needs_medication_management">
-                          <label class="refine-field-lbl">Do you need medication management?</label>
-                          <div
-                            class="refine-med-opts"
-                            role="radiogroup"
-                            aria-label="Medication management"
-                          >
-                            <label class="refine-med-opt">
-                              <input
-                                type="radio"
-                                name="needs_medication_management"
-                                value="Open to either"
-                                checked
-                              />
-                              <span>Open to either</span>
-                            </label>
-                            <label class="refine-med-opt">
-                              <input type="radio" name="needs_medication_management" value="Yes" />
-                              <span>Yes, needed</span>
-                            </label>
-                            <label class="refine-med-opt">
-                              <input type="radio" name="needs_medication_management" value="No" />
-                              <span>Not needed</span>
-                            </label>
                           </div>
                         </div>
                       </div>
