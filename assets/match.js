@@ -1138,6 +1138,9 @@ function setRefineDrawerOpen(open) {
     // rather than the generic "Show matches" until they tweak something.
     var initialCount = Array.isArray(latestEntries) ? latestEntries.length : 0;
     if (initialCount > 0) setRefineSubmitLabel(initialCount);
+    // Sync drawer fields to the last-run profile so "Show N matches" count
+    // and every form field both reflect the same search state on open.
+    if (latestProfile) hydrateForm(latestProfile);
     // Focus the close button so keyboard users land in the drawer
     // instead of being stuck on the underlying toggle.
     window.requestAnimationFrame(function () {
@@ -5358,6 +5361,62 @@ function countActiveRefinements(profile) {
   return count;
 }
 
+function buildActiveFilterChipsHtml(profile) {
+  if (!profile) return "";
+  var chips = [];
+
+  if (profile.care_format && profile.care_format !== "No preference") {
+    chips.push({ key: "care_format", label: profile.care_format });
+  }
+  if (profile.insurance) {
+    chips.push({ key: "insurance", label: profile.insurance + " insurance" });
+  }
+  if (profile.budget_max) {
+    chips.push({ key: "budget_max", label: "Under $" + profile.budget_max + "/session" });
+  }
+  if (profile.priority_mode && profile.priority_mode !== "Best overall fit") {
+    var modeLabels = {
+      "Soonest availability": "Soonest",
+      "Lowest cost": "Affordable",
+      "Highest specialization": "Most experienced",
+    };
+    chips.push({
+      key: "priority_mode",
+      label: modeLabels[profile.priority_mode] || profile.priority_mode,
+    });
+  }
+  if (Array.isArray(profile.language_preferences) && profile.language_preferences.length) {
+    chips.push({
+      key: "language_preferences",
+      label: profile.language_preferences.join(", "),
+    });
+  }
+
+  if (!chips.length) return "";
+
+  var xIcon =
+    '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" width="9" height="9">' +
+    '<line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/>' +
+    "</svg>";
+
+  return (
+    '<div class="mx-active-filters">' +
+    chips
+      .map(function (chip) {
+        return (
+          '<button type="button" class="mx-filter-chip" data-clear-filter="' +
+          escapeHtml(chip.key) +
+          '">' +
+          escapeHtml(chip.label) +
+          xIcon +
+          "</button>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
 function buildResultsHeaderHtml(profile, totalCount) {
   var mirrorSentence = buildIntakeMirrorSentence(profile);
 
@@ -5490,6 +5549,7 @@ function renderPrimaryMatchCards(entries, profile) {
   root.innerHTML =
     '<div class="results-panel">' +
     buildResultsHeaderHtml(profile, allEntries.length) +
+    buildActiveFilterChipsHtml(profile) +
     '<section class="mx-top-three">' +
     renderLeadResultCard(leadEntry, null, { showBestBadge: showBestBadge }) +
     runnersHtml +
@@ -5535,6 +5595,35 @@ function renderPrimaryMatchCards(entries, profile) {
           });
         }
       }
+    });
+  });
+
+  // Active filter chip dismissal — clears the field from the form and re-runs match
+  root.querySelectorAll("[data-clear-filter]").forEach(function (chip) {
+    chip.addEventListener("click", function () {
+      var field = chip.getAttribute("data-clear-filter");
+      var form = document.getElementById("matchForm");
+      if (!form || !field) return;
+      if (field === "care_format") {
+        form.querySelectorAll('input[name="care_format"]').forEach(function (r) {
+          r.checked = false;
+        });
+      } else if (field === "priority_mode") {
+        form.querySelectorAll('input[name="priority_mode"]').forEach(function (r) {
+          r.checked = r.value === "Best overall fit";
+        });
+      } else if (field === "language_preferences") {
+        var lf = form.querySelector(
+          'input[name="language_preferences"], textarea[name="language_preferences"]',
+        );
+        if (lf) lf.value = "";
+      } else {
+        var el = form.querySelector('[name="' + field + '"]');
+        if (el) el.value = "";
+      }
+      var newProfile = readCurrentIntakeProfile();
+      executeMatch(newProfile, { scroll: false, source: "filter_chip_dismiss" });
+      trackFunnelEvent("match_filter_chip_dismissed", { field: field });
     });
   });
 
