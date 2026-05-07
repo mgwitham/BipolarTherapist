@@ -62,6 +62,7 @@ export default async function handler(req, res) {
     outreach,
     claimedAt,
     claimStatus,
+    city,
     state,
     licenseNumber,
     website,

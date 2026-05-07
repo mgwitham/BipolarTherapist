@@ -6,6 +6,7 @@ const state = {
   therapists: [],
   filters: { status: "", state: "CA", search: "", followUpDue: false },
   selectedId: null,
+  patientSignal: null, // { matchRequests, profileViews, ctaClicks, generatedAt }
 };
 
 // ---- UTILS ----
@@ -173,11 +174,26 @@ function renderDashboard() {
         <button id="logout-btn" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:13px;">Log out</button>
       </div>
 
-      <div style="display:flex;gap:14px;padding:18px 24px 0;flex-shrink:0;">
-        ${statCard("Total", stats.total, "#2a5f6e")}
-        ${statCard("Contacted", stats.contacted, "#3b82f6")}
-        ${statCard("Replied", stats.replied, "#7c3aed")}
-        ${statCard("Reply rate", stats.replyRate + "%", "#f59e0b")}
+      <div style="padding:14px 24px 0;flex-shrink:0;">
+        <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">
+          Outreach (your sends)
+        </div>
+        <div style="display:flex;gap:14px;">
+          ${statCard("Total", stats.total, "#2a5f6e")}
+          ${statCard("Contacted", stats.contacted, "#3b82f6")}
+          ${statCard("Replied", stats.replied, "#7c3aed")}
+          ${statCard("Reply rate", stats.replyRate + "%", "#f59e0b")}
+        </div>
+      </div>
+
+      <div style="padding:14px 24px 0;flex-shrink:0;">
+        <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:baseline;gap:8px;">
+          <span>Patient signal (last 30 days)</span>
+          <span id="patient-signal-trend" style="font-size:10px;font-weight:500;color:#6b7280;text-transform:none;letter-spacing:0;"></span>
+        </div>
+        <div id="patient-signal-row" style="display:flex;gap:14px;">
+          ${patientSignalCardsHtml(state.patientSignal)}
+        </div>
       </div>
 
       <div style="display:flex;gap:10px;align-items:center;padding:14px 24px;flex-shrink:0;flex-wrap:wrap;border-bottom:1px solid #e5e7eb;">
@@ -211,6 +227,11 @@ function renderDashboard() {
 
   refreshTable();
   setupDashboardListeners();
+
+  // Patient signal loads asynchronously so it doesn't block the table.
+  // Reuses cached value while fetching to avoid flash of empty state on
+  // re-render (e.g. after a status save).
+  loadAndRenderPatientSignal();
 }
 
 function statCard(label, value, color) {
@@ -218,6 +239,54 @@ function statCard(label, value, color) {
     <div style="font-size:22px;font-weight:700;color:${color};">${value}</div>
     <div style="font-size:12px;color:#6b7280;margin-top:2px;">${label}</div>
   </div>`;
+}
+
+function patientSignalCardsHtml(signal) {
+  if (!signal) {
+    // Loading state — placeholder cards.
+    return [
+      statCard("Match requests", "…", "#9ca3af"),
+      statCard("Profile views (7d)", "…", "#9ca3af"),
+      statCard("CTA clicks (7d)", "…", "#9ca3af"),
+      statCard("Trend", "…", "#9ca3af"),
+    ].join("");
+  }
+  const mr = signal.matchRequests || {};
+  const views = signal.profileViews || {};
+  const clicks = signal.ctaClicks || {};
+  const trend = mr.trend7dVsPrev7d || "flat";
+  const trendStyle =
+    trend === "growing"
+      ? { label: "↑ growing", color: "#059669" }
+      : trend === "declining"
+        ? { label: "↓ declining", color: "#dc2626" }
+        : { label: "→ flat", color: "#6b7280" };
+  return [
+    statCard(`Match requests (${mr.last30d || 0} this month)`, mr.last7d || 0, "#10b981"),
+    statCard("Profile views (7d)", views.last7d || 0, "#0ea5e9"),
+    statCard("CTA clicks (7d)", clicks.last7d || 0, "#8b5cf6"),
+    statCard(trendStyle.label, "", trendStyle.color),
+  ].join("");
+}
+
+async function fetchPatientSignal() {
+  try {
+    const r = await fetch("/api/review/admin/patient-signal", {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
+async function loadAndRenderPatientSignal() {
+  const data = await fetchPatientSignal();
+  state.patientSignal = data;
+  const row = document.getElementById("patient-signal-row");
+  if (row) row.innerHTML = patientSignalCardsHtml(data);
 }
 
 // ---- TABLE ----
@@ -255,11 +324,11 @@ function refreshTable() {
             : "";
 
       return `<tr data-id="${esc(t._id)}" style="cursor:pointer;${dueBg}">
-      <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "—")}</td>
-      <td style="padding:11px 14px;color:#6b7280;">${esc(t.email || "—")}</td>
+      <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "-")}</td>
+      <td style="padding:11px 14px;color:#6b7280;">${esc(t.email || "-")}</td>
       <td style="padding:11px 14px;">${pill(s)}</td>
       <td style="padding:11px 14px;text-align:center;color:#6b7280;">${sent}</td>
-      <td style="padding:11px 14px;color:#6b7280;">${relTime(last) || "—"}</td>
+      <td style="padding:11px 14px;color:#6b7280;">${relTime(last) || "-"}</td>
       <td style="padding:11px 14px;white-space:nowrap;">
         ${sendLabel ? `<button class="send-btn btn-secondary" data-id="${esc(t._id)}" style="margin-right:6px;color:#2a5f6e;border-color:#2a5f6e;">${sendLabel}</button>` : ""}
         <button class="view-btn btn-secondary" data-id="${esc(t._id)}">View</button>
@@ -337,7 +406,7 @@ function renderPanelContent(t) {
   return `
     <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
       <div>
-        <div style="font-size:16px;font-weight:700;">${esc(t.name || "—")}</div>
+        <div style="font-size:16px;font-weight:700;">${esc(t.name || "-")}</div>
         ${t.profileUrl ? `<a href="${esc(t.profileUrl)}" target="_blank" rel="noopener" style="font-size:12px;color:#2a5f6e;margin-top:4px;display:inline-block;">View live profile →</a>` : ""}
       </div>
       <button id="panel-close" style="background:none;border:none;font-size:22px;color:#9ca3af;line-height:1;padding:0;flex-shrink:0;">×</button>
@@ -374,18 +443,18 @@ function renderPanelContent(t) {
         <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;font-size:13px;color:#6b7280;">
           ${
             status === "opted_out"
-              ? "This therapist opted out — do not email."
+              ? "This therapist opted out. Do not email."
               : status === "replied"
-                ? "This therapist replied — handle in your inbox; don't auto-send another email."
+                ? "This therapist replied. Handle in your inbox; don't auto-send another email."
                 : status === "bounced"
-                  ? "Email bounced — verify the address before retrying."
-                  : "Already claimed or paid — no outreach needed."
+                  ? "Email bounced. Verify the address before retrying."
+                  : "Already claimed or paid. No outreach needed."
           }
         </div>
       `
           : !t.email && !(t.website || t.sourceUrl)
             ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;font-size:13px;color:#92400e;">
-                No email or website on file — can't reach this therapist.
+                No email or website on file. Can't reach this therapist.
               </div>`
             : gmailComposerHtml(t, defaultTemplate, t.email ? "email" : "form")
       }
@@ -404,7 +473,7 @@ function renderPanelContent(t) {
               e.template?.startsWith("email_1") ? "Initial outreach" : "Follow-up"
             }${e.template?.endsWith("_via_form") ? " (contact form)" : ""}</div>
             <div style="color:#6b7280;font-size:12px;margin-top:2px;">${esc(e.subject)}</div>
-            <div style="color:#9ca3af;font-size:12px;margin-top:2px;">${e.sentAt ? new Date(e.sentAt).toLocaleString() : "—"}</div>
+            <div style="color:#9ca3af;font-size:12px;margin-top:2px;">${e.sentAt ? new Date(e.sentAt).toLocaleString() : "-"}</div>
           </div>`,
               )
               .join("")
@@ -433,13 +502,14 @@ function firstName(fullName) {
 // pre-fills these into editable inputs; the user edits before sending.
 function getTemplateDefaults(template, t) {
   const first = firstName(t.name);
+  const city = t.city || "California";
   const profileUrl = t.profileUrl || "[your profile URL]";
   if (template === "follow_up") {
     return {
-      subject: "Re: Your BipolarTherapyHub listing",
+      subject: `Re: Patients in ${city} are searching for bipolar specialists`,
       body: `Hi ${first},
 
-Bumping this in case it got buried. Your bipolar specialist listing is here:
+Quick bump in case the first email got buried. Your bipolar specialist listing is here:
 
 ${profileUrl}
 
@@ -452,16 +522,18 @@ Michael`,
     };
   }
   return {
-    subject: "Your BipolarTherapyHub listing",
+    subject: `Patients in ${city} are searching for bipolar specialists`,
     body: `Hi ${first},
 
-I built BipolarTherapyHub, a directory specifically for California therapists who treat bipolar disorder. Your practice came up in our research and I added a profile for you:
+Every week, patients across California search for therapists who truly understand bipolar disorder, not just mood issues in general. That search is harder than it should be.
+
+I built BipolarTherapyHub to fix that, and I added a profile for you:
 
 ${profileUrl}
 
-It's live and free. To edit anything (bio, photo, fees, specialties), you can claim it in two clicks at the link above. No payment required.
+It's live and free. To update your bio, photo, fees, or specialties, you can claim it in two clicks. No payment required.
 
-If you don't want to be listed, just reply and I'll remove it today.
+If you'd rather not be listed, just reply and I'll remove it today.
 
 Best,
 Michael`,
@@ -660,7 +732,7 @@ function setupPanelListeners(t) {
       await navigator.clipboard.writeText(messageText);
     } catch {
       if (msgEl) {
-        msgEl.textContent = "Couldn't copy to clipboard — copy from the composer by hand.";
+        msgEl.textContent = "Couldn't copy to clipboard. Copy from the composer by hand.";
         msgEl.style.color = "#b45309";
       }
     }

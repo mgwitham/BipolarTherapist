@@ -18,20 +18,22 @@ function firstName(fullName) {
 // Keep this in sync with getTemplateDefaults() in assets/outreach.js.
 const TEMPLATES = {
   email_1: {
-    subject: "Your BipolarTherapyHub listing",
+    subject: (t) => `Patients in ${t.city || "California"} are searching for bipolar specialists`,
     text: (t) => {
       const first = firstName(t.name);
       const url = t.profileUrl || "";
       return [
         `Hi ${first},`,
         "",
-        "I built BipolarTherapyHub, a directory specifically for California therapists who treat bipolar disorder. Your practice came up in our research and I added a profile for you:",
+        "Every week, patients across California search for therapists who truly understand bipolar disorder, not just mood issues in general. That search is harder than it should be.",
+        "",
+        "I built BipolarTherapyHub to fix that, and I added a profile for you:",
         "",
         url,
         "",
-        "It's live and free. To edit anything (bio, photo, fees, specialties), you can claim it in two clicks at the link above. No payment required.",
+        "It's live and free. To update your bio, photo, fees, or specialties, you can claim it in two clicks. No payment required.",
         "",
-        "If you don't want to be listed, just reply and I'll remove it today.",
+        "If you'd rather not be listed, just reply and I'll remove it today.",
         "",
         "Best,",
         "Michael",
@@ -41,14 +43,15 @@ const TEMPLATES = {
     nextStatus: "email_1_sent",
   },
   follow_up: {
-    subject: "Re: Your BipolarTherapyHub listing",
+    subject: (t) =>
+      `Re: Patients in ${t.city || "California"} are searching for bipolar specialists`,
     text: (t) => {
       const first = firstName(t.name);
       const url = t.profileUrl || "";
       return [
         `Hi ${first},`,
         "",
-        "Bumping this in case it got buried. Your bipolar specialist listing is here:",
+        "Quick bump in case the first email got buried. Your bipolar specialist listing is here:",
         "",
         url,
         "",
@@ -95,9 +98,12 @@ function buildFooter() {
   const address = (process.env.OUTREACH_FOOTER_ADDRESS || "").trim();
   if (!address) return null;
   const orgName = process.env.OUTREACH_FOOTER_ORG_NAME || "BipolarTherapyHub";
-  const text = ["", "—", `${orgName} · ${address}`, "Reply STOP and I'll stop emailing you."].join(
-    "\n",
-  );
+  const text = [
+    "",
+    "---",
+    `${orgName} · ${address}`,
+    "Reply STOP and I'll stop emailing you.",
+  ].join("\n");
   const html =
     '<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 12px;">' +
     `<p style="color:#6b7280;font-size:12px;margin:0;">` +
@@ -161,7 +167,7 @@ export default async function handler(req, res) {
   try {
     therapist = await client.fetch(
       `*[_type == "therapist" && _id == $id][0] {
-        _id, name, email, slug,
+        _id, name, email, slug, city,
         "profileUrl": select(
           defined(slug.current) => "https://www.bipolartherapyhub.com/therapists/" + slug.current,
           null
@@ -201,13 +207,13 @@ export default async function handler(req, res) {
   if (!footer) {
     res.status(500).json({
       error:
-        "OUTREACH_FOOTER_ADDRESS is not configured. CAN-SPAM requires a physical postal address on commercial email — set this in Vercel env before sending.",
+        "OUTREACH_FOOTER_ADDRESS is not configured. CAN-SPAM requires a physical postal address on commercial email. Set this in Vercel env before sending.",
     });
     return;
   }
 
   const resend = new Resend(resendKey);
-  const subject = trimmedSubject || tpl.subject;
+  const subject = trimmedSubject || tpl.subject(therapist);
   const textBodyBase = trimmedBody || tpl.text(therapist);
   // For the HTML version, escape and convert linebreaks so the user's
   // plain-text edits render correctly. The static template falls back
