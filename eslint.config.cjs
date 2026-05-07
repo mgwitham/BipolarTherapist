@@ -28,6 +28,8 @@ module.exports = [
         Map: "readonly",
         navigator: "readonly",
         Set: "readonly",
+        setTimeout: "readonly",
+        clearTimeout: "readonly",
         URL: "readonly",
         URLSearchParams: "readonly",
         window: "readonly",

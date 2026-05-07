@@ -11,6 +11,7 @@ export const therapistType = defineType({
     { name: "trust", title: "Trust & Fit" },
     { name: "directory", title: "Directory" },
     { name: "billing", title: "Billing" },
+    { name: "outreach", title: "Outreach" },
   ],
   fields: [
     defineField({
@@ -917,6 +918,64 @@ export const therapistType = defineType({
       group: "directory",
       description:
         "Timestamp of the self-service signup + DCA verification that created this listing.",
+    }),
+    defineField({
+      name: "outreach",
+      title: "Outreach",
+      type: "object",
+      group: "outreach",
+      fields: [
+        defineField({
+          name: "status",
+          title: "Outreach status",
+          type: "string",
+          options: {
+            list: [
+              { title: "Not contacted", value: "not_contacted" },
+              { title: "Email 1 sent", value: "email_1_sent" },
+              { title: "Followed up", value: "followed_up" },
+              { title: "Claimed", value: "claimed" },
+              { title: "Paid", value: "paid" },
+              { title: "Opted out", value: "opted_out" },
+            ],
+          },
+          initialValue: "not_contacted",
+        }),
+        defineField({
+          name: "emailsSent",
+          title: "Emails sent",
+          type: "number",
+          initialValue: 0,
+        }),
+        defineField({
+          name: "lastContactedAt",
+          title: "Last contacted at",
+          type: "datetime",
+        }),
+        defineField({
+          name: "notes",
+          title: "Notes",
+          type: "text",
+        }),
+        defineField({
+          name: "emailLog",
+          title: "Email log",
+          type: "array",
+          of: [
+            defineArrayMember({
+              type: "object",
+              fields: [
+                defineField({ name: "sentAt", title: "Sent at", type: "datetime" }),
+                defineField({ name: "subject", title: "Subject", type: "string" }),
+                defineField({ name: "template", title: "Template", type: "string" }),
+              ],
+              preview: {
+                select: { title: "template", subtitle: "sentAt" },
+              },
+            }),
+          ],
+        }),
+      ],
     }),
   ],
   preview: {
