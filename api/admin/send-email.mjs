@@ -38,6 +38,17 @@ function getSanityClient() {
   });
 }
 
+// Convert the user's plain-text edited body into safe HTML for the
+// `html` field of the email. Escapes HTML special chars, then turns
+// blank lines into paragraph breaks and single newlines into <br>.
+function plainTextToHtml(text) {
+  const escaped = String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const paragraphs = escaped.split(/\n{2,}/).map(function (block) {
+    return "<p>" + block.replace(/\n/g, "<br>") + "</p>";
+  });
+  return paragraphs.join("");
+}
+
 async function parseBody(req) {
   const chunks = [];
   for await (const chunk of req) chunks.push(chunk);
@@ -63,7 +74,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { therapistId, template } = body || {};
+  const { therapistId, template, subject: subjectOverride, body: bodyOverride } = body || {};
   if (!therapistId || !template) {
     res.status(400).json({ error: "therapistId and template are required" });
     return;
@@ -72,6 +83,11 @@ export default async function handler(req, res) {
     res.status(400).json({ error: `Unknown template: ${template}` });
     return;
   }
+
+  // Trim user overrides. Empty/whitespace strings fall back to the static
+  // template default so a stray empty input doesn't ship a blank email.
+  const trimmedSubject = typeof subjectOverride === "string" ? subjectOverride.trim() : "";
+  const trimmedBody = typeof bodyOverride === "string" ? bodyOverride.trim() : "";
 
   const tpl = TEMPLATES[template];
   const client = getSanityClient();
@@ -117,15 +133,20 @@ export default async function handler(req, res) {
   }
 
   const resend = new Resend(resendKey);
-  const subject = tpl.subject;
+  const subject = trimmedSubject || tpl.subject;
+  const textBody = trimmedBody || tpl.text(therapist);
+  // For the HTML version, escape and convert linebreaks so the user's
+  // plain-text edits render correctly. The static template falls back
+  // to its own pre-built HTML.
+  const htmlBody = trimmedBody ? plainTextToHtml(trimmedBody) : tpl.html(therapist);
 
   try {
     await resend.emails.send({
       from: fromAddress,
       to: therapist.email,
       subject,
-      html: tpl.html(therapist),
-      text: tpl.text(therapist),
+      html: htmlBody,
+      text: textBody,
     });
   } catch (err) {
     console.error("resend error:", err);
@@ -148,7 +169,7 @@ export default async function handler(req, res) {
         "outreach.emailsSent": existingCount + 1,
         "outreach.emailLog": [
           ...existingLog,
-          { _key: `email_${Date.now()}`, sentAt: now, subject, template },
+          { _key: `email_${Date.now()}`, sentAt: now, subject, template, body: textBody },
         ],
       })
       .commit();

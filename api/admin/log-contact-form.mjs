@@ -49,7 +49,7 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { therapistId, template } = body || {};
+  const { therapistId, template, subject: subjectOverride, body: bodyOverride } = body || {};
   if (!therapistId || !template) {
     res.status(400).json({ error: "therapistId and template are required" });
     return;
@@ -59,7 +59,11 @@ export default async function handler(req, res) {
     return;
   }
 
+  const trimmedSubject = typeof subjectOverride === "string" ? subjectOverride.trim() : "";
+  const trimmedBody = typeof bodyOverride === "string" ? bodyOverride.trim() : "";
+
   const tpl = TEMPLATE_LABELS[template];
+  const recordedSubject = trimmedSubject || tpl.subject;
   const client = getSanityClient();
 
   const now = new Date().toISOString();
@@ -83,8 +87,9 @@ export default async function handler(req, res) {
           {
             _key: `form_${Date.now()}`,
             sentAt: now,
-            subject: tpl.subject,
+            subject: recordedSubject,
             template: `${template}_via_form`,
+            body: trimmedBody,
           },
         ],
       })
