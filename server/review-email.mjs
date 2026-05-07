@@ -79,6 +79,18 @@ export async function sendEmail(config, payload) {
     return { captured: true };
   }
 
+  // Global kill switch for every email path that flows through this helper:
+  // weekly digests, license-expiration warnings, application notifications,
+  // recovery flows, portal nudges, founder digest, etc. Set EMAIL_KILL_SWITCH
+  // to anything truthy in env to pause all of them. Manual outreach sends
+  // from /api/admin/send-email use a separate code path and are NOT gated
+  // by this switch — that's intentional, the founder still needs to ship
+  // intentional outreach from the CRM.
+  if (String(process.env.EMAIL_KILL_SWITCH || "").toLowerCase() === "true") {
+    console.warn("[email] kill switch active. Skipping send to:", payload?.to);
+    return { skipped: true, killed: true };
+  }
+
   if (!hasEmailConfig(config)) {
     return { skipped: true };
   }
