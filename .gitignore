@@ -16,6 +16,7 @@ data/import/generated-*.csv
 data/import/generated-*.md
 data/import/generated-*.json
 data/import/email-discovery-response.json
+data/import/email-discovery-batch-*.json
 !data/import/therapists-template.csv
 !data/import/therapist-candidates-template.csv
 !data/import/therapist-source-seeds-template.csv

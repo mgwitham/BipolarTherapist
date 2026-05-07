@@ -89,9 +89,14 @@ export async function handleOpsRoutes(context) {
       "insuranceAccepted",
       "languages",
       "telehealthStates",
+      "dedupeOverrides",
     ];
     arrayFields.forEach(function (f) {
-      if (Array.isArray(body[f])) patchFields[f] = body[f];
+      if (Array.isArray(body[f])) {
+        patchFields[f] = body[f].filter(function (v) {
+          return typeof v === "string";
+        });
+      }
     });
     const boolFields = [
       "acceptsTelehealth",

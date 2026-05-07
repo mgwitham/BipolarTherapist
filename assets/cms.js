@@ -265,6 +265,11 @@ function normalizeTherapist(doc) {
     status: doc.status || "active",
     lifecycle: doc.lifecycle || "",
     visibility_intent: doc.visibilityIntent || doc.visibility_intent || "",
+    dedupe_overrides: Array.isArray(doc.dedupeOverrides)
+      ? doc.dedupeOverrides
+      : Array.isArray(doc.dedupe_overrides)
+        ? doc.dedupe_overrides
+        : [],
     audit_log: Array.isArray(doc.auditLog) ? doc.auditLog : [],
     slug: doc.slug || "",
     // Default to false. The caller (e.g. fetchPublicTherapistBySlug)

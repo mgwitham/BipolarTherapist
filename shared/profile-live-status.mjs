@@ -68,6 +68,23 @@ function findDuplicateBlockers(doc, context) {
     .trim()
     .toLowerCase();
 
+  // dedupeOverrides on the therapist doc: an array of other therapist
+  // _ids that an admin has explicitly marked "not a duplicate" — for
+  // example, two clinicians at the same group practice sharing a single
+  // info@ inbox. The override is symmetric: if either side declares it,
+  // we suppress the warning. (The UI always writes both sides, but be
+  // lenient in case only one was patched.)
+  const docOverridesRaw = read(doc, "dedupe_overrides", "dedupeOverrides");
+  const docOverrides = Array.isArray(docOverridesRaw) ? docOverridesRaw : [];
+
+  const isOverridden = function (other) {
+    const otherId = read(other, "id", "_id");
+    if (!otherId || !docId) return false;
+    if (docOverrides.includes(otherId)) return true;
+    const otherOverridesRaw = read(other, "dedupe_overrides", "dedupeOverrides");
+    return Array.isArray(otherOverridesRaw) && otherOverridesRaw.includes(docId);
+  };
+
   const matches = function (other, basis) {
     const otherId = read(other, "id", "_id");
     if (otherId && docId && otherId === docId) return null;
@@ -91,7 +108,7 @@ function findDuplicateBlockers(doc, context) {
   if (license) {
     for (const t of therapists) {
       const m = matches(t, "license");
-      if (m) {
+      if (m && !isOverridden(t)) {
         out.push(`Duplicate detected: another therapist (${m}) shares this license number`);
         break;
       }
@@ -107,7 +124,7 @@ function findDuplicateBlockers(doc, context) {
   if (email) {
     for (const t of therapists) {
       const m = matches(t, "email");
-      if (m) {
+      if (m && !isOverridden(t)) {
         out.push(`Duplicate detected: another therapist (${m}) shares this email address`);
         break;
       }

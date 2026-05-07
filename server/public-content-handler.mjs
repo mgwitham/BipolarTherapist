@@ -63,6 +63,7 @@ const PUBLIC_THERAPIST_PROJECTION = `{
   status,
   lifecycle,
   visibilityIntent,
+  dedupeOverrides,
   "slug": slug.current
 }`;
 

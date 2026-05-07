@@ -208,6 +208,15 @@ export const therapistType = defineType({
       group: "practice",
     }),
     defineField({
+      name: "dedupeOverrides",
+      title: "Not-a-duplicate overrides",
+      type: "array",
+      of: [defineArrayMember({ type: "string" })],
+      group: "practice",
+      description:
+        "Other therapist _ids that an admin has marked 'not a duplicate of this one' — for example, two clinicians at the same group practice sharing one info@ inbox. The duplicate detector skips pairs in each other's override list.",
+    }),
+    defineField({
       name: "claimedAt",
       title: "Claimed at",
       type: "datetime",
