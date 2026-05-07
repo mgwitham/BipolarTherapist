@@ -255,11 +255,11 @@ function refreshTable() {
             : "";
 
       return `<tr data-id="${esc(t._id)}" style="cursor:pointer;${dueBg}">
-      <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "—")}</td>
-      <td style="padding:11px 14px;color:#6b7280;">${esc(t.email || "—")}</td>
+      <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "-")}</td>
+      <td style="padding:11px 14px;color:#6b7280;">${esc(t.email || "-")}</td>
       <td style="padding:11px 14px;">${pill(s)}</td>
       <td style="padding:11px 14px;text-align:center;color:#6b7280;">${sent}</td>
-      <td style="padding:11px 14px;color:#6b7280;">${relTime(last) || "—"}</td>
+      <td style="padding:11px 14px;color:#6b7280;">${relTime(last) || "-"}</td>
       <td style="padding:11px 14px;white-space:nowrap;">
         ${sendLabel ? `<button class="send-btn btn-secondary" data-id="${esc(t._id)}" style="margin-right:6px;color:#2a5f6e;border-color:#2a5f6e;">${sendLabel}</button>` : ""}
         <button class="view-btn btn-secondary" data-id="${esc(t._id)}">View</button>
@@ -337,7 +337,7 @@ function renderPanelContent(t) {
   return `
     <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
       <div>
-        <div style="font-size:16px;font-weight:700;">${esc(t.name || "—")}</div>
+        <div style="font-size:16px;font-weight:700;">${esc(t.name || "-")}</div>
         ${t.profileUrl ? `<a href="${esc(t.profileUrl)}" target="_blank" rel="noopener" style="font-size:12px;color:#2a5f6e;margin-top:4px;display:inline-block;">View live profile →</a>` : ""}
       </div>
       <button id="panel-close" style="background:none;border:none;font-size:22px;color:#9ca3af;line-height:1;padding:0;flex-shrink:0;">×</button>
@@ -374,18 +374,18 @@ function renderPanelContent(t) {
         <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;font-size:13px;color:#6b7280;">
           ${
             status === "opted_out"
-              ? "This therapist opted out — do not email."
+              ? "This therapist opted out. Do not email."
               : status === "replied"
-                ? "This therapist replied — handle in your inbox; don't auto-send another email."
+                ? "This therapist replied. Handle in your inbox; don't auto-send another email."
                 : status === "bounced"
-                  ? "Email bounced — verify the address before retrying."
-                  : "Already claimed or paid — no outreach needed."
+                  ? "Email bounced. Verify the address before retrying."
+                  : "Already claimed or paid. No outreach needed."
           }
         </div>
       `
           : !t.email && !(t.website || t.sourceUrl)
             ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;font-size:13px;color:#92400e;">
-                No email or website on file — can't reach this therapist.
+                No email or website on file. Can't reach this therapist.
               </div>`
             : gmailComposerHtml(t, defaultTemplate, t.email ? "email" : "form")
       }
@@ -404,7 +404,7 @@ function renderPanelContent(t) {
               e.template?.startsWith("email_1") ? "Initial outreach" : "Follow-up"
             }${e.template?.endsWith("_via_form") ? " (contact form)" : ""}</div>
             <div style="color:#6b7280;font-size:12px;margin-top:2px;">${esc(e.subject)}</div>
-            <div style="color:#9ca3af;font-size:12px;margin-top:2px;">${e.sentAt ? new Date(e.sentAt).toLocaleString() : "—"}</div>
+            <div style="color:#9ca3af;font-size:12px;margin-top:2px;">${e.sentAt ? new Date(e.sentAt).toLocaleString() : "-"}</div>
           </div>`,
               )
               .join("")
@@ -456,9 +456,9 @@ Michael`,
     subject: `Patients in ${city} are searching for bipolar specialists`,
     body: `Hi ${first},
 
-Patients in California search every week for therapists who truly understand bipolar disorder, not just mood issues in general. That search is harder than it should be.
+Every week, patients across California search for therapists who truly understand bipolar disorder, not just mood issues in general. That search is harder than it should be.
 
-I built BipolarTherapyHub to fix that. Based on your public practice info, I added a profile for you:
+I built BipolarTherapyHub to fix that, and I added a profile for you:
 
 ${profileUrl}
 
@@ -663,7 +663,7 @@ function setupPanelListeners(t) {
       await navigator.clipboard.writeText(messageText);
     } catch {
       if (msgEl) {
-        msgEl.textContent = "Couldn't copy to clipboard — copy from the composer by hand.";
+        msgEl.textContent = "Couldn't copy to clipboard. Copy from the composer by hand.";
         msgEl.style.color = "#b45309";
       }
     }
