@@ -4039,28 +4039,31 @@ body.dir-vb .dir-vb-modal-body .sidebar {
 body.dir-vb .dir-vb-section {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  padding: 0;
+  gap: 0.6rem;
+  padding: 1rem 0 0;
   border: none;
+  border-top: 1px solid rgba(26, 122, 143, 0.09);
   margin: 0;
 }
 
-/* Location section spans full width since it has 2 paired inputs */
 body.dir-vb .dir-vb-section:first-child {
-  grid-column: 1 / -1;
+  padding-top: 0;
+  border-top: none;
 }
 
 body.dir-vb .dir-vb-section-head {
   margin: 0;
 }
 
+/* Section titles become small category markers — one clear text level */
 body.dir-vb .dir-vb-section-head h3 {
   margin: 0;
-  font-family: "Lora", Georgia, serif;
-  font-size: 0.98rem;
-  font-weight: 600;
-  color: var(--navy);
-  letter-spacing: -0.005em;
+  font-family: inherit;
+  font-size: 0.64rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--teal-dark, #1a7a8f);
 }
 
 body.dir-vb .dir-vb-section-head p {
@@ -4085,12 +4088,9 @@ body.dir-vb .dir-vb-section-body .filter-group {
   min-width: 0;
 }
 
+/* Sub-labels hidden — placeholders carry the meaning, avoiding 3-level text hierarchy */
 body.dir-vb .dir-vb-section-body .filter-group label {
-  font-size: 0.72rem;
-  font-weight: 600;
-  color: var(--muted);
-  text-transform: none;
-  letter-spacing: 0;
+  display: none;
 }
 
 body.dir-vb .dir-vb-section-body .filter-group select,
@@ -4109,7 +4109,7 @@ body.dir-vb .dir-vb-section-body .filter-group input[type="text"] {
   width: 100%;
   appearance: none;
   -webkit-appearance: none;
-  box-shadow: 0 1px 2px rgba(14, 77, 95, 0.04);
+  box-shadow: 0 1px 3px rgba(40, 25, 10, 0.07), 0 3px 8px rgba(40, 25, 10, 0.05);
 }
 
 body.dir-vb .dir-vb-section-body .filter-group select {

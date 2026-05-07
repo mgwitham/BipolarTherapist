@@ -342,28 +342,11 @@
 
       <div class="dir-vb-modal-body" id="directoryFilters">
         <div class="sidebar" id="sidebar">
-          <section class="dir-vb-section">
-            <div class="dir-vb-section-head">
-              <h3 id="locationPanelTitle">Location</h3>
-            </div>
-            <div class="dir-vb-section-body">
-              <!-- State select hidden until multi-state launches; CA default
-                   stays in filter state via directory.js defaultFilters -->
-              <select id="state" hidden aria-hidden="true" tabindex="-1">
-                <option value="CA">California</option>
-              </select>
-              <div class="filter-group">
-                <label for="zip" id="cityLabelText">Exact ZIP</label>
-                <input
-                  type="text"
-                  id="zip"
-                  inputmode="numeric"
-                  autocomplete="postal-code"
-                  placeholder="e.g. 90024"
-                />
-              </div>
-            </div>
-          </section>
+          <!-- State select hidden until multi-state launches; CA default
+               stays in filter state via directory.js defaultFilters -->
+          <select id="state" hidden aria-hidden="true" tabindex="-1">
+            <option value="CA">California</option>
+          </select>
 
           <section class="dir-vb-section">
             <div class="dir-vb-section-head">
