@@ -61,7 +61,9 @@ export default async function handler(req, res) {
     claimedAt,
     claimStatus,
     state,
-    licenseNumber
+    licenseNumber,
+    website,
+    sourceUrl
   } | order(coalesce(outreach.lastContactedAt, "1970-01-01") asc)`;
 
   try {

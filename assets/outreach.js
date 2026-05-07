@@ -226,14 +226,18 @@ function refreshTable() {
       const sent = t.outreach?.emailsSent || 0;
       const last = t.outreach?.lastContactedAt;
       const dueBg = isFollowUpDue(t) ? "background:#fffbeb;" : "";
-      const sendLabel =
-        s === "not_contacted"
-          ? "Send email 1"
-          : s === "email_1_sent"
-            ? "Send follow-up"
-            : s === "followed_up"
+      const channel = t.email ? "email" : t.website || t.sourceUrl ? "form" : "";
+      const sendLabel = !channel
+        ? ""
+        : s === "not_contacted"
+          ? channel === "email"
+            ? "Send email 1"
+            : "Open form 1"
+          : s === "email_1_sent" || s === "followed_up"
+            ? channel === "email"
               ? "Send follow-up"
-              : "";
+              : "Open form follow-up"
+            : "";
 
       return `<tr data-id="${esc(t._id)}" style="cursor:pointer;${dueBg}">
       <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "—")}</td>
@@ -334,7 +338,7 @@ function renderPanelContent(t) {
     </div>
 
     <div class="panel-section">
-      <div class="section-label">Email Composer</div>
+      <div class="section-label">${t.email ? "Email Composer" : "Contact Form Helper"}</div>
       ${
         isInactive
           ? `
@@ -346,7 +350,8 @@ function renderPanelContent(t) {
           }
         </div>
       `
-          : `
+          : t.email
+            ? `
         <label style="font-size:13px;font-weight:500;color:#374151;display:block;margin-bottom:6px;">Template</label>
         <select id="template-select" class="form-input" style="margin-bottom:12px;">
           <option value="email_1" ${defaultTemplate === "email_1" ? "selected" : ""}>Initial outreach</option>
@@ -358,6 +363,7 @@ function renderPanelContent(t) {
         <button id="send-email-btn" class="btn-primary" style="width:100%;padding:10px;">Send email</button>
         <div id="send-msg" style="margin-top:8px;font-size:13px;"></div>
       `
+            : contactFormHelperHtml(t, defaultTemplate)
       }
     </div>
 
@@ -370,7 +376,9 @@ function renderPanelContent(t) {
               .map(
                 (e) => `
           <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px;margin-bottom:8px;font-size:13px;">
-            <div style="font-weight:500;">${e.template === "email_1" ? "Initial outreach" : "Follow-up"}</div>
+            <div style="font-weight:500;">${
+              e.template?.startsWith("email_1") ? "Initial outreach" : "Follow-up"
+            }${e.template?.endsWith("_via_form") ? " (contact form)" : ""}</div>
             <div style="color:#6b7280;font-size:12px;margin-top:2px;">${esc(e.subject)}</div>
             <div style="color:#9ca3af;font-size:12px;margin-top:2px;">${e.sentAt ? new Date(e.sentAt).toLocaleString() : "—"}</div>
           </div>`,
@@ -384,6 +392,39 @@ function renderPanelContent(t) {
       <textarea id="panel-notes" class="form-input" style="min-height:90px;resize:vertical;" placeholder="Internal notes…">${esc(t.outreach?.notes || "")}</textarea>
       <button id="save-notes-btn" class="btn-primary" style="margin-top:8px;">Save notes</button>
     </div>
+  `;
+}
+
+function contactFormHelperHtml(t, defaultTemplate) {
+  const target = t.website || t.sourceUrl || "";
+  if (!target) {
+    return `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;font-size:13px;color:#92400e;">
+      No email or website on file — can't reach this therapist.
+    </div>`;
+  }
+  return `
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;font-size:13px;margin-bottom:12px;color:#374151;">
+      No email on file. Use this helper to fill out their contact form.
+    </div>
+    <label style="font-size:13px;font-weight:500;color:#374151;display:block;margin-bottom:6px;">Template</label>
+    <select id="template-select" class="form-input" style="margin-bottom:12px;">
+      <option value="email_1" ${defaultTemplate === "email_1" ? "selected" : ""}>Initial outreach</option>
+      <option value="follow_up" ${defaultTemplate === "follow_up" ? "selected" : ""}>Follow-up</option>
+    </select>
+    <div id="email-preview" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:12px;font-size:13px;margin-bottom:12px;">
+      ${emailPreviewHtml(defaultTemplate, t)}
+    </div>
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:6px;padding:10px 12px;font-size:12px;color:#1e3a8a;margin-bottom:10px;line-height:1.5;">
+      <strong>What happens when you click below:</strong>
+      <ol style="margin:6px 0 0 18px;padding:0;">
+        <li>Message body is copied to your clipboard</li>
+        <li>${esc(target)} opens in a new tab</li>
+        <li>You paste, fix any subject/name fields, and submit by hand</li>
+        <li>This outreach is logged the same as a sent email</li>
+      </ol>
+    </div>
+    <button id="open-form-btn" class="btn-primary" data-target="${esc(target)}" style="width:100%;padding:10px;">Copy message + open contact page</button>
+    <div id="send-msg" style="margin-top:8px;font-size:13px;"></div>
   `;
 }
 
@@ -465,6 +506,75 @@ function setupPanelListeners(t) {
       if (updated) openPanel(updated);
     } else {
       toast("Failed to save status", "error");
+    }
+  });
+
+  document.getElementById("open-form-btn")?.addEventListener("click", async () => {
+    const btn = document.getElementById("open-form-btn");
+    const template = document.getElementById("template-select")?.value || "email_1";
+    const msgEl = document.getElementById("send-msg");
+    const target = btn.dataset.target;
+    if (msgEl) msgEl.textContent = "";
+
+    // Build the message body to copy. Same placeholder source the
+    // email composer renders, kept consistent on purpose so contact
+    // form sends use the same copy as email sends.
+    const subjects = {
+      email_1: "[SUBJECT PLACEHOLDER — Initial outreach]",
+      follow_up: "[SUBJECT PLACEHOLDER — Follow-up]",
+    };
+    const bodies = {
+      email_1: `[BODY PLACEHOLDER — Initial outreach to ${t.name}.]\n\nYour profile: ${t.profileUrl || "N/A"}`,
+      follow_up: `[BODY PLACEHOLDER — Follow-up to ${t.name}.]\n\nYour profile: ${t.profileUrl || "N/A"}`,
+    };
+    const messageText = `Subject: ${subjects[template]}\n\n${bodies[template]}`;
+
+    try {
+      await navigator.clipboard.writeText(messageText);
+    } catch {
+      if (msgEl) {
+        msgEl.textContent = "Couldn't copy to clipboard — copy from the preview above by hand.";
+        msgEl.style.color = "#b45309";
+      }
+    }
+
+    window.open(target, "_blank", "noopener");
+
+    btn.disabled = true;
+    btn.textContent = "Logging…";
+    const { ok, data } = await apiPost("/log-contact-form", {
+      therapistId: t._id,
+      template,
+    });
+    btn.disabled = false;
+    btn.textContent = "Copy message + open contact page";
+
+    if (ok) {
+      toast("Copied + opened. Outreach logged.");
+      const now = new Date().toISOString();
+      mutateTherapist(t._id, (th) => {
+        if (!th.outreach) th.outreach = {};
+        th.outreach.status = template === "email_1" ? "email_1_sent" : "followed_up";
+        th.outreach.emailsSent = (th.outreach.emailsSent || 0) + 1;
+        th.outreach.lastContactedAt = now;
+        th.outreach.emailLog = [
+          ...(th.outreach.emailLog || []),
+          {
+            sentAt: now,
+            template: `${template}_via_form`,
+            subject: template === "email_1" ? "[FORM — Initial outreach]" : "[FORM — Follow-up]",
+          },
+        ];
+      });
+      refreshTable();
+      const updated = state.therapists.find((x) => x._id === t._id);
+      if (updated) openPanel(updated);
+    } else {
+      const msg = data?.error || "Couldn't log outreach";
+      if (msgEl) {
+        msgEl.textContent = msg;
+        msgEl.style.color = "#ef4444";
+      }
     }
   });
 
