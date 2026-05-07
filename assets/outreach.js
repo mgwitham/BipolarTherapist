@@ -6,6 +6,7 @@ const state = {
   therapists: [],
   filters: { status: "", state: "CA", search: "", followUpDue: false },
   selectedId: null,
+  patientSignal: null, // { matchRequests, profileViews, ctaClicks, generatedAt }
 };
 
 // ---- UTILS ----
@@ -173,11 +174,26 @@ function renderDashboard() {
         <button id="logout-btn" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:13px;">Log out</button>
       </div>
 
-      <div style="display:flex;gap:14px;padding:18px 24px 0;flex-shrink:0;">
-        ${statCard("Total", stats.total, "#2a5f6e")}
-        ${statCard("Contacted", stats.contacted, "#3b82f6")}
-        ${statCard("Replied", stats.replied, "#7c3aed")}
-        ${statCard("Reply rate", stats.replyRate + "%", "#f59e0b")}
+      <div style="padding:14px 24px 0;flex-shrink:0;">
+        <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">
+          Outreach (your sends)
+        </div>
+        <div style="display:flex;gap:14px;">
+          ${statCard("Total", stats.total, "#2a5f6e")}
+          ${statCard("Contacted", stats.contacted, "#3b82f6")}
+          ${statCard("Replied", stats.replied, "#7c3aed")}
+          ${statCard("Reply rate", stats.replyRate + "%", "#f59e0b")}
+        </div>
+      </div>
+
+      <div style="padding:14px 24px 0;flex-shrink:0;">
+        <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:baseline;gap:8px;">
+          <span>Patient signal (last 30 days)</span>
+          <span id="patient-signal-trend" style="font-size:10px;font-weight:500;color:#6b7280;text-transform:none;letter-spacing:0;"></span>
+        </div>
+        <div id="patient-signal-row" style="display:flex;gap:14px;">
+          ${patientSignalCardsHtml(state.patientSignal)}
+        </div>
       </div>
 
       <div style="display:flex;gap:10px;align-items:center;padding:14px 24px;flex-shrink:0;flex-wrap:wrap;border-bottom:1px solid #e5e7eb;">
@@ -211,6 +227,11 @@ function renderDashboard() {
 
   refreshTable();
   setupDashboardListeners();
+
+  // Patient signal loads asynchronously so it doesn't block the table.
+  // Reuses cached value while fetching to avoid flash of empty state on
+  // re-render (e.g. after a status save).
+  loadAndRenderPatientSignal();
 }
 
 function statCard(label, value, color) {
@@ -218,6 +239,54 @@ function statCard(label, value, color) {
     <div style="font-size:22px;font-weight:700;color:${color};">${value}</div>
     <div style="font-size:12px;color:#6b7280;margin-top:2px;">${label}</div>
   </div>`;
+}
+
+function patientSignalCardsHtml(signal) {
+  if (!signal) {
+    // Loading state — placeholder cards.
+    return [
+      statCard("Match requests", "…", "#9ca3af"),
+      statCard("Profile views (7d)", "…", "#9ca3af"),
+      statCard("CTA clicks (7d)", "…", "#9ca3af"),
+      statCard("Trend", "…", "#9ca3af"),
+    ].join("");
+  }
+  const mr = signal.matchRequests || {};
+  const views = signal.profileViews || {};
+  const clicks = signal.ctaClicks || {};
+  const trend = mr.trend7dVsPrev7d || "flat";
+  const trendStyle =
+    trend === "growing"
+      ? { label: "↑ growing", color: "#059669" }
+      : trend === "declining"
+        ? { label: "↓ declining", color: "#dc2626" }
+        : { label: "→ flat", color: "#6b7280" };
+  return [
+    statCard(`Match requests (${mr.last30d || 0} this month)`, mr.last7d || 0, "#10b981"),
+    statCard("Profile views (7d)", views.last7d || 0, "#0ea5e9"),
+    statCard("CTA clicks (7d)", clicks.last7d || 0, "#8b5cf6"),
+    statCard(trendStyle.label, "", trendStyle.color),
+  ].join("");
+}
+
+async function fetchPatientSignal() {
+  try {
+    const r = await fetch("/api/review/admin/patient-signal", {
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!r.ok) return null;
+    return await r.json();
+  } catch {
+    return null;
+  }
+}
+
+async function loadAndRenderPatientSignal() {
+  const data = await fetchPatientSignal();
+  state.patientSignal = data;
+  const row = document.getElementById("patient-signal-row");
+  if (row) row.innerHTML = patientSignalCardsHtml(data);
 }
 
 // ---- TABLE ----
