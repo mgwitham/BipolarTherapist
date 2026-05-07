@@ -24,12 +24,18 @@ const REQUEST_TIMEOUT_MS = 10_000;
 const CONCURRENCY = 4;
 const HOST_DELAY_MS = 500;
 const USER_AGENT =
-  "BipolarTherapyHubBot/1.0 (+https://www.bipolartherapyhub.com — verifying directory contact details)";
+  "BipolarTherapyHubBot/1.0 (+https://www.bipolartherapyhub.com - verifying directory contact details)";
 
 const AGGREGATOR_HOSTS = new Set([
   "psychologytoday.com",
   "rula.com",
   "headway.co",
+  "growtherapy.com",
+  "talkiatry.com",
+  "brightside.com",
+  "cerebral.com",
+  "lyrahealth.com",
+  "spring.health",
   "betterhelp.com",
   "talkspace.com",
   "alma.com",
@@ -37,6 +43,7 @@ const AGGREGATOR_HOSTS = new Set([
   "healthgrades.com",
   "wellness.com",
   "vitals.com",
+  "mdofficemail.com",
 ]);
 
 const FREE_MAIL_HOSTS = new Set([
@@ -57,7 +64,38 @@ const EMAIL_BLOCKLIST = new Set([
   "info@example.com",
   "noreply@example.com",
   "support@example.com",
+  "user@domain.com",
+  "hi@mystore.com",
+  "name@email.com",
+  "you@example.com",
+  "email@example.com",
+  "example@example.com",
+  "test@example.com",
+  "admin@example.com",
+  "yourname@email.com",
 ]);
+
+// Domain patterns we never trust as a real contact — Wix Sentry endpoints,
+// Squarespace placeholders, shared aggregator inboxes.
+const EMAIL_DOMAIN_BLOCKLIST = new Set([
+  "sentry-next.wixpress.com",
+  "sentry.wixpress.com",
+  "sentry.io",
+  "growtherapy.com",
+  "headway.co",
+  "rula.com",
+  "talkiatry.com",
+  "brightside.com",
+  "betterhelp.com",
+  "talkspace.com",
+  "mdofficemail.com",
+]);
+
+function isBlockedEmail(email) {
+  if (EMAIL_BLOCKLIST.has(email)) return true;
+  const domain = email.split("@")[1] || "";
+  return EMAIL_DOMAIN_BLOCKLIST.has(domain);
+}
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -167,14 +205,14 @@ function extractEmails(html) {
   MAILTO_RE.lastIndex = 0;
   while ((m = MAILTO_RE.exec(html)) !== null) {
     const email = m[1].trim().toLowerCase();
-    if (email && !EMAIL_BLOCKLIST.has(email)) {
+    if (email && !isBlockedEmail(email)) {
       found.set(email, { viaMailto: true });
     }
   }
   EMAIL_RE.lastIndex = 0;
   while ((m = EMAIL_RE.exec(html)) !== null) {
     const email = m[0].trim().toLowerCase();
-    if (!email || EMAIL_BLOCKLIST.has(email)) continue;
+    if (!email || isBlockedEmail(email)) continue;
     if (!found.has(email)) found.set(email, { viaMailto: false });
   }
   return Array.from(found.entries()).map(([email, meta]) => ({ email, ...meta }));
@@ -206,6 +244,71 @@ async function fetchHtml(url) {
   }
 }
 
+// Pull every absolute href out of the page HTML.
+const HREF_RE = /href\s*=\s*["']([^"'#]+)["']/gi;
+
+// Hosts we never want to follow as "the therapist's practice website."
+const NON_PRACTICE_HOSTS = new Set([
+  ...AGGREGATOR_HOSTS,
+  "facebook.com",
+  "instagram.com",
+  "twitter.com",
+  "x.com",
+  "linkedin.com",
+  "tiktok.com",
+  "youtube.com",
+  "youtu.be",
+  "yelp.com",
+  "google.com",
+  "maps.google.com",
+  "goo.gl",
+  "calendly.com",
+  "simplepractice.com",
+  "therapyportal.com",
+  "tebra.com",
+  "kareo.com",
+  "doxy.me",
+  "headway.co",
+  "github.com",
+  "wordpress.com",
+  "wixsite.com",
+  "squarespace.com",
+  "godaddy.com",
+  "wikipedia.org",
+]);
+
+// Given an aggregator profile page (e.g. Psychology Today), return any
+// outbound links that look like the clinician's actual practice website.
+// Returns at most a handful of candidates, ordered by likelihood.
+function discoverPracticeWebsites(html, originUrl) {
+  const originHost = registrableDomain(hostnameOf(originUrl));
+  const seen = new Set();
+  const candidates = [];
+  let m;
+  HREF_RE.lastIndex = 0;
+  while ((m = HREF_RE.exec(html)) !== null) {
+    let href = m[1].trim();
+    if (!href) continue;
+    if (!/^https?:\/\//i.test(href)) continue; // absolute only
+    if (seen.has(href)) continue;
+    seen.add(href);
+    const host = hostnameOf(href);
+    if (!host) continue;
+    const root = registrableDomain(host);
+    if (root === originHost) continue; // same aggregator
+    if (NON_PRACTICE_HOSTS.has(host) || NON_PRACTICE_HOSTS.has(root)) continue;
+    if (host.endsWith(".gov") || host.endsWith(".edu")) continue;
+    candidates.push(href);
+  }
+  // De-dup by registrable domain so we don't probe the same site twice.
+  const byDomain = new Map();
+  for (const url of candidates) {
+    const root = registrableDomain(hostnameOf(url));
+    if (!byDomain.has(root)) byDomain.set(root, url);
+  }
+  return Array.from(byDomain.values()).slice(0, 3);
+}
+
 function pickBestEmail(candidates, therapist) {
   if (candidates.length === 0) return null;
   const scored = candidates
@@ -232,6 +335,8 @@ async function main() {
   const write = args.has("--write");
   const limitArg = process.argv.find((a) => a.startsWith("--limit="));
   const limit = limitArg ? parseInt(limitArg.split("=")[1], 10) : 0;
+  const thresholdArg = process.argv.find((a) => a.startsWith("--threshold="));
+  const writeThreshold = thresholdArg ? parseInt(thresholdArg.split("=")[1], 10) : 70;
 
   const config = getConfig();
   if (!config.projectId || !config.dataset) {
@@ -254,8 +359,10 @@ async function main() {
   const query = `
     *[_type == "therapist"
       && (!defined(email) || email == "")
-      && defined(sourceUrl)
-      && sourceUrl != ""
+      && (
+        (defined(sourceUrl) && sourceUrl != "") ||
+        (defined(website) && website != "")
+      )
     ] | order(name asc) {
       _id, name, "slug": slug.current, email, website, sourceUrl, supportingSourceUrls
     }
@@ -269,7 +376,11 @@ async function main() {
   let lastFetchByHost = new Map();
 
   async function processOne(t) {
-    const sources = [t.sourceUrl, ...(t.supportingSourceUrls || [])].filter(Boolean);
+    // Try the therapist's own website first (most likely to have email),
+    // then sourceUrl + any supporting sources.
+    const sources = [t.website, t.sourceUrl, ...(t.supportingSourceUrls || [])]
+      .filter(Boolean)
+      .filter((v, i, a) => a.indexOf(v) === i);
     let result = {
       _id: t._id,
       name: t.name,
@@ -283,11 +394,34 @@ async function main() {
       reason: "",
     };
 
+    // Build the list of pages to scrape. For aggregator sourceUrls we
+    // first fetch the aggregator profile and pull out outbound links to
+    // the clinician's actual practice website, then scrape those.
+    const pagesToScrape = []; // { url, viaAggregator }
     for (const url of sources) {
-      if (isAggregator(url)) {
-        result.reason = result.reason || `aggregator:${hostnameOf(url)}`;
+      if (!isAggregator(url)) {
+        pagesToScrape.push({ url, viaAggregator: null });
         continue;
       }
+      const host = hostnameOf(url);
+      const last = lastFetchByHost.get(host) || 0;
+      const wait = Math.max(0, HOST_DELAY_MS - (Date.now() - last));
+      if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+      lastFetchByHost.set(host, Date.now());
+      const aggResp = await fetchHtml(url);
+      if (!aggResp.ok) {
+        result.reason = `aggregator_fetch_failed:${aggResp.status || aggResp.error || "unknown"}`;
+        continue;
+      }
+      const sites = discoverPracticeWebsites(aggResp.html, url);
+      if (sites.length === 0) {
+        result.reason = result.reason || `no_website_on:${hostnameOf(url)}`;
+        continue;
+      }
+      for (const s of sites) pagesToScrape.push({ url: s, viaAggregator: url });
+    }
+
+    for (const { url, viaAggregator } of pagesToScrape) {
       const host = hostnameOf(url);
       const last = lastFetchByHost.get(host) || 0;
       const wait = Math.max(0, HOST_DELAY_MS - (Date.now() - last));
@@ -300,16 +434,17 @@ async function main() {
         continue;
       }
       const candidates = extractEmails(html);
-      const best = pickBestEmail(candidates, t);
+      const best = pickBestEmail(candidates, { ...t, website: t.website || url });
       if (!best) {
         result.reason = "no_email_in_html";
         continue;
       }
       result.foundEmail = best.email;
       result.confidence = best.score;
-      result.evidence = `${url} (via ${best.viaMailto ? "mailto" : "text"})`;
+      const provenance = viaAggregator ? `${url} via ${hostnameOf(viaAggregator)}` : url;
+      result.evidence = `${provenance} (${best.viaMailto ? "mailto" : "text"})`;
       result.reason = "";
-      result.action = best.score >= 70 ? "write" : "review";
+      result.action = best.score >= writeThreshold ? "write" : "review";
       break;
     }
 
@@ -345,8 +480,8 @@ async function main() {
   const skips = rows.filter((r) => r.action === "skip");
   console.log("");
   console.log("Summary:");
-  console.log(`  Auto-write (confidence >= 70): ${writes.length}`);
-  console.log(`  Needs manual review (< 70):    ${reviews.length}`);
+  console.log(`  Auto-write (confidence >= ${writeThreshold}): ${writes.length}`);
+  console.log(`  Needs manual review (< ${writeThreshold}):    ${reviews.length}`);
   console.log(`  No email found:                ${skips.length}`);
 
   // Write CSV preview.
