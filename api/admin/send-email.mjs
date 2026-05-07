@@ -113,6 +113,19 @@ function buildFooter() {
   return { text, html };
 }
 
+// Test sends use OUTREACH_TEST_TO when set. If unset, fall back to the
+// bare email address parsed out of OUTREACH_EMAIL_FROM (e.g. extract
+// `michael@bipolartherapyhub.com` from `Michael <michael@…>`).
+function resolveTestRecipient(fromAddress) {
+  const explicit = (process.env.OUTREACH_TEST_TO || "").trim();
+  if (explicit) return explicit;
+  const match = String(fromAddress || "").match(/<([^>]+)>/);
+  if (match) return match[1].trim();
+  // Bare-address from-field with no <…> wrapper.
+  const trimmed = String(fromAddress || "").trim();
+  return /@/.test(trimmed) ? trimmed : "";
+}
+
 function escapeForHtml(str) {
   return String(str || "")
     .replace(/&/g, "&amp;")
@@ -145,7 +158,13 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { therapistId, template, subject: subjectOverride, body: bodyOverride } = body || {};
+  const {
+    therapistId,
+    template,
+    subject: subjectOverride,
+    body: bodyOverride,
+    sendToSelf,
+  } = body || {};
   if (!therapistId || !template) {
     res.status(400).json({ error: "therapistId and template are required" });
     return;
@@ -186,7 +205,7 @@ export default async function handler(req, res) {
     res.status(404).json({ error: "Therapist not found" });
     return;
   }
-  if (!therapist.email) {
+  if (!sendToSelf && !therapist.email) {
     res.status(400).json({ error: "Therapist has no email address on file" });
     return;
   }
@@ -221,6 +240,35 @@ export default async function handler(req, res) {
   const htmlBodyBase = trimmedBody ? plainTextToHtml(trimmedBody) : tpl.html(therapist);
   const textBody = textBodyBase + footer.text;
   const htmlBody = htmlBodyBase + footer.html;
+
+  // Test send: route to the founder's inbox so you can preview the
+  // exact email a therapist would receive (with their personalization
+  // intact). Adds [TEST] subject prefix so it's obvious in the inbox.
+  // Does not patch Sanity, does not touch outreach status.
+  if (sendToSelf) {
+    const testTo = resolveTestRecipient(fromAddress);
+    if (!testTo) {
+      res.status(500).json({
+        error: "Could not resolve a test recipient. Set OUTREACH_TEST_TO env var.",
+      });
+      return;
+    }
+    try {
+      await resend.emails.send({
+        from: fromAddress,
+        to: testTo,
+        subject: `[TEST] ${subject}`,
+        html: htmlBody,
+        text: textBody,
+      });
+    } catch (err) {
+      console.error("resend test error:", err);
+      res.status(500).json({ error: "Failed to send test", detail: err.message });
+      return;
+    }
+    res.status(200).json({ ok: true, testTo });
+    return;
+  }
 
   try {
     await resend.emails.send({
