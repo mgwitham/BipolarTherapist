@@ -19,6 +19,7 @@ import { verifyLicense } from "./dca-license-client.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
 import { handleAnalyticsRoutes } from "./review-analytics-routes.mjs";
 import { handleEngagementRoutes } from "./review-engagement-routes.mjs";
+import { handleResendWebhookRoutes } from "./review-resend-webhook-routes.mjs";
 import { handleMatchRoutes } from "./review-match-routes.mjs";
 import { handleSavedListRoutes } from "./review-saved-list-routes.mjs";
 import { handleStripeRoutes } from "./review-stripe-routes.mjs";
@@ -789,6 +790,12 @@ function createReviewRouteModules() {
       deps: {
         parseBody,
         sendJson,
+      },
+    },
+    {
+      handler: handleResendWebhookRoutes,
+      deps: {
+        parseRawBody,
       },
     },
     {

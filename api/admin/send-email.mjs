@@ -4,26 +4,63 @@ import { verifyAdminSession } from "../_adminAuth.mjs";
 
 const VALID_TEMPLATES = new Set(["email_1", "follow_up"]);
 
-// TODO: Replace placeholder subject/body with real copy before sending live emails.
+// Strip leading title (Dr., Mr., etc.) and take the first word.
+function firstName(fullName) {
+  const tokens = String(fullName || "")
+    .replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Mx\.?)\s+/i, "")
+    .trim()
+    .split(/\s+/);
+  return tokens[0] || "there";
+}
+
+// Fallback copy used when the composer ships a blank subject/body
+// (shouldn't happen — the client validates — but defense in depth).
+// Keep this in sync with getTemplateDefaults() in assets/outreach.js.
 const TEMPLATES = {
   email_1: {
-    subject: "[SUBJECT PLACEHOLDER — Initial outreach]",
-    html: (t) =>
-      `<p>[BODY PLACEHOLDER — Initial outreach to ${t.name}.]</p>` +
-      (t.profileUrl ? `<p>Your profile: <a href="${t.profileUrl}">${t.profileUrl}</a></p>` : ""),
-    text: (t) =>
-      `[BODY PLACEHOLDER — Initial outreach to ${t.name}.]\n` +
-      (t.profileUrl ? `\nYour profile: ${t.profileUrl}` : ""),
+    subject: "Your BipolarTherapyHub listing",
+    text: (t) => {
+      const first = firstName(t.name);
+      const url = t.profileUrl || "";
+      return [
+        `Hi ${first},`,
+        "",
+        "I built BipolarTherapyHub, a directory specifically for California therapists who treat bipolar disorder. Your practice came up in our research and I added a profile for you:",
+        "",
+        url,
+        "",
+        "It's live and free. To edit anything (bio, photo, fees, specialties), you can claim it in two clicks at the link above. No payment required.",
+        "",
+        "If you don't want to be listed, just reply and I'll remove it today.",
+        "",
+        "Best,",
+        "Michael",
+      ].join("\n");
+    },
+    html: (t) => plainTextToHtml(TEMPLATES.email_1.text(t)),
     nextStatus: "email_1_sent",
   },
   follow_up: {
-    subject: "[SUBJECT PLACEHOLDER — Follow-up]",
-    html: (t) =>
-      `<p>[BODY PLACEHOLDER — Follow-up to ${t.name}.]</p>` +
-      (t.profileUrl ? `<p>Your profile: <a href="${t.profileUrl}">${t.profileUrl}</a></p>` : ""),
-    text: (t) =>
-      `[BODY PLACEHOLDER — Follow-up to ${t.name}.]\n` +
-      (t.profileUrl ? `\nYour profile: ${t.profileUrl}` : ""),
+    subject: "Re: Your BipolarTherapyHub listing",
+    text: (t) => {
+      const first = firstName(t.name);
+      const url = t.profileUrl || "";
+      return [
+        `Hi ${first},`,
+        "",
+        "Bumping this in case it got buried. Your bipolar specialist listing is here:",
+        "",
+        url,
+        "",
+        `Free to claim if you want to edit anything, or reply "remove" and I'll take it down.`,
+        "",
+        "No more emails after this either way.",
+        "",
+        "Best,",
+        "Michael",
+      ].join("\n");
+    },
+    html: (t) => plainTextToHtml(TEMPLATES.follow_up.text(t)),
     nextStatus: "followed_up",
   },
 };
@@ -47,6 +84,34 @@ function plainTextToHtml(text) {
     return "<p>" + block.replace(/\n/g, "<br>") + "</p>";
   });
   return paragraphs.join("");
+}
+
+// CAN-SPAM compliance: every commercial email must include a clear
+// opt-out path and a valid physical postal address. We auto-append a
+// footer to every send so it can't be forgotten per-message. Address
+// comes from the OUTREACH_FOOTER_ADDRESS env var; missing config blocks
+// the send rather than silently skipping the legal requirement.
+function buildFooter() {
+  const address = (process.env.OUTREACH_FOOTER_ADDRESS || "").trim();
+  if (!address) return null;
+  const orgName = process.env.OUTREACH_FOOTER_ORG_NAME || "BipolarTherapyHub";
+  const text = ["", "—", `${orgName} · ${address}`, "Reply STOP and I'll stop emailing you."].join(
+    "\n",
+  );
+  const html =
+    '<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 12px;">' +
+    `<p style="color:#6b7280;font-size:12px;margin:0;">` +
+    `${escapeForHtml(orgName)} · ${escapeForHtml(address)}<br>` +
+    `Reply <strong>STOP</strong> and I'll stop emailing you.` +
+    `</p>`;
+  return { text, html };
+}
+
+function escapeForHtml(str) {
+  return String(str || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 async function parseBody(req) {
@@ -132,13 +197,24 @@ export default async function handler(req, res) {
     return;
   }
 
+  const footer = buildFooter();
+  if (!footer) {
+    res.status(500).json({
+      error:
+        "OUTREACH_FOOTER_ADDRESS is not configured. CAN-SPAM requires a physical postal address on commercial email — set this in Vercel env before sending.",
+    });
+    return;
+  }
+
   const resend = new Resend(resendKey);
   const subject = trimmedSubject || tpl.subject;
-  const textBody = trimmedBody || tpl.text(therapist);
+  const textBodyBase = trimmedBody || tpl.text(therapist);
   // For the HTML version, escape and convert linebreaks so the user's
   // plain-text edits render correctly. The static template falls back
   // to its own pre-built HTML.
-  const htmlBody = trimmedBody ? plainTextToHtml(trimmedBody) : tpl.html(therapist);
+  const htmlBodyBase = trimmedBody ? plainTextToHtml(trimmedBody) : tpl.html(therapist);
+  const textBody = textBodyBase + footer.text;
+  const htmlBody = htmlBodyBase + footer.html;
 
   try {
     await resend.emails.send({

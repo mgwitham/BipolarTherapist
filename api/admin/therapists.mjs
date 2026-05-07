@@ -5,6 +5,8 @@ const VALID_STATUSES = new Set([
   "not_contacted",
   "email_1_sent",
   "followed_up",
+  "replied",
+  "bounced",
   "claimed",
   "paid",
   "opted_out",
