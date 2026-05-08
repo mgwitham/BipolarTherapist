@@ -79,12 +79,21 @@ function serializeForm(form) {
   if (!form) return "";
   const payload = [];
   form.querySelectorAll("input, textarea, select").forEach(function (field) {
+    if (field.type === "radio") return;
     if (!field.id) return;
     payload.push(
       field.id +
         ":" +
         (field.type === "checkbox" ? String(Boolean(field.checked)) : String(field.value || "")),
     );
+  });
+  const radioNames = new Set();
+  form.querySelectorAll("input[type='radio']").forEach(function (r) {
+    radioNames.add(r.name);
+  });
+  radioNames.forEach(function (name) {
+    const checked = form.querySelector('input[name="' + name + '"]:checked');
+    payload.push(name + ":" + (checked ? checked.value : ""));
   });
   return payload.join("|");
 }

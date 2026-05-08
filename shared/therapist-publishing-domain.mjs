@@ -370,6 +370,7 @@ export function normalizePortableCandidate(doc, helpers) {
     credentials: doc.credentials || "",
     title: doc.title || "",
     practice_name: doc.practiceName || "",
+    gender: doc.gender || "",
     city: doc.city || "",
     state: doc.state || "",
     zip: doc.zip || "",
