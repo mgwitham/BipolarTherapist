@@ -61,6 +61,19 @@ export const therapistCandidateType = defineType({
       group: "identity",
     }),
     defineField({
+      name: "gender",
+      title: "Gender",
+      type: "string",
+      group: "identity",
+      options: {
+        list: [
+          { title: "Male", value: "male" },
+          { title: "Female", value: "female" },
+        ],
+        layout: "radio",
+      },
+    }),
+    defineField({
       name: "city",
       title: "City",
       type: "string",

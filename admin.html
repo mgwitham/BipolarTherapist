@@ -5079,6 +5079,24 @@
         font-weight: 700;
         color: var(--slate);
       }
+      .edit-field-radio-label {
+        font-size: 0.74rem;
+        font-weight: 700;
+        color: var(--slate);
+      }
+      .edit-radio-options {
+        display: flex;
+        gap: 1rem;
+        margin-top: 0.15rem;
+      }
+      .edit-radio {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+        font-size: 0.85rem;
+        color: var(--slate);
+        cursor: pointer;
+      }
       .edit-field input[type="text"],
       .edit-field input[type="email"],
       .edit-field input[type="tel"],
@@ -6950,6 +6968,17 @@
               <div class="edit-field" style="grid-column: 1 / -1">
                 <label for="editPracticeName">Practice name</label>
                 <input type="text" id="editPracticeName" autocomplete="off" />
+              </div>
+              <div class="edit-field edit-field--radio-group">
+                <span class="edit-field-radio-label">Gender</span>
+                <div class="edit-radio-options">
+                  <label class="edit-radio"
+                    ><input type="radio" name="editGender" value="male" /> Male</label
+                  >
+                  <label class="edit-radio"
+                    ><input type="radio" name="editGender" value="female" /> Female</label
+                  >
+                </div>
               </div>
             </div>
 

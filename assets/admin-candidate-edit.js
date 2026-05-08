@@ -51,6 +51,20 @@ function getVal(id) {
   return el.value;
 }
 
+function setRadio(name, value) {
+  const form = getForm();
+  if (!form) return;
+  form.querySelectorAll('input[name="' + name + '"]').forEach(function (r) {
+    r.checked = r.value === String(value || "");
+  });
+}
+function getRadio(name) {
+  const form = getForm();
+  if (!form) return "";
+  const checked = form.querySelector('input[name="' + name + '"]:checked');
+  return checked ? checked.value : "";
+}
+
 function setDrawerTitle(label) {
   const titleEl = document.getElementById("editDrawerTitle");
   if (titleEl) titleEl.textContent = label;
@@ -347,6 +361,9 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   setVal("editSessionFeeMin", candidate.session_fee_min);
   setVal("editSessionFeeMax", candidate.session_fee_max);
 
+  // Profile
+  setRadio("editGender", candidate.gender);
+
   // Notes
   setVal("editNotes", candidate.notes);
 
@@ -424,6 +441,9 @@ export function openTherapistEditDrawer(therapist, onSaved) {
   // Lifecycle / visibility
   setVal("editLifecycle", read("lifecycle", "lifecycle") || "draft");
   setVal("editVisibilityIntent", read("visibility_intent", "visibilityIntent") || "listed");
+
+  // Profile
+  setRadio("editGender", read("gender", "gender") || "");
 
   // Notes
   setVal("editNotes", read("notes", "notes") || "");
@@ -555,6 +575,7 @@ export function bindCandidateEditDrawer() {
           credentials: getVal("editCredentials"),
           title: getVal("editTitle"),
           practiceName: getVal("editPracticeName"),
+          gender: getRadio("editGender") || undefined,
           city: getVal("editCity"),
           state: getVal("editState"),
           zip: getVal("editZip"),
@@ -588,6 +609,7 @@ export function bindCandidateEditDrawer() {
           credentials: getVal("editCredentials"),
           title: getVal("editTitle"),
           practice_name: getVal("editPracticeName"),
+          gender: getRadio("editGender") || undefined,
           city: getVal("editCity"),
           state: getVal("editState"),
           zip: getVal("editZip"),

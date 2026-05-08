@@ -5221,18 +5221,21 @@ function buildMatchOutreachDisclosure(entry, options) {
   if (expanded) {
     var firstName = String(therapist.name || "").split(" ")[0] || "them";
     return (
-      '<section class="mx-outreach mx-outreach--expanded" data-mx-outreach="' +
+      '<details open class="mx-outreach mx-outreach--expanded" data-mx-outreach="' +
       escapeHtml(slug) +
       '">' +
+      '<summary class="mx-outreach-expanded-summary">' +
       '<div class="mx-outreach-expanded-header">' +
       '<span class="mx-outreach-expanded-kicker">Next step</span>' +
       '<span class="mx-outreach-expanded-label">Reach out to ' +
       escapeHtml(firstName) +
       "</span>" +
       "</div>" +
+      '<svg class="mx-outreach-chevron mx-outreach-expanded-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      "</summary>" +
       '<div class="mx-outreach-body outreach-script-shell">' +
       inner +
-      "</div></section>"
+      "</div></details>"
     );
   }
   return (

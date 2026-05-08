@@ -121,6 +121,7 @@ export async function handleCandidateRoutes(context) {
       ["credentials", "credentials"],
       ["title", "title"],
       ["practice_name", "practiceName"],
+      ["gender", "gender"],
       ["city", "city"],
       ["state", "state"],
       ["zip", "zip"],
