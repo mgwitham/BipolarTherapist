@@ -636,6 +636,7 @@ export function normalizePortableApplicationDocument(doc, helpers) {
     first_step_expectation: doc.firstStepExpectation || "",
     booking_url: doc.bookingUrl || "",
     practice_name: doc.practiceName || "",
+    gender: doc.gender || "",
     city: doc.city || "",
     state: doc.state || "",
     zip: doc.zip || "",
