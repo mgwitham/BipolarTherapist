@@ -475,6 +475,7 @@ function normalizeAdminTherapist(doc) {
     listing_pause_requested_at: doc.listingPauseRequestedAt || "",
     listing_removal_requested_at: doc.listingRemovalRequestedAt || "",
     practice_name: doc.practiceName || "",
+    gender: doc.gender || "",
     city: doc.city || "",
     state: doc.state || "",
     zip: doc.zip || "",
