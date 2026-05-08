@@ -90,7 +90,7 @@
         top: 0;
       }
 
-      /* ---- NAV (minimal, logo-only — matches privacy/terms pattern) ---- */
+      /* ---- NAV ---- */
       nav {
         background: rgba(255, 255, 255, 0.92);
         backdrop-filter: blur(10px);
@@ -99,6 +99,7 @@
         height: 64px;
         display: flex;
         align-items: center;
+        justify-content: space-between;
         position: sticky;
         top: 0;
         z-index: 100;
@@ -108,9 +109,67 @@
         font-size: 1rem;
         font-weight: 700;
         color: #000;
+        flex-shrink: 0;
       }
       nav a.nav-logo span {
         color: var(--teal);
+      }
+      .nav-links {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .nav-links a {
+        font-family: "Inter", sans-serif;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        color: var(--slate);
+        transition: color 0.2s;
+      }
+      .nav-links a:hover {
+        color: var(--teal);
+      }
+      .nav-link-current {
+        color: var(--teal) !important;
+      }
+      .nav-crisis-item {
+        margin-left: auto;
+      }
+      .nav-crisis-item + .nav-zone-switch-item {
+        margin-left: 0;
+      }
+      .nav-crisis-link {
+        color: var(--navy) !important;
+        font-size: 0.875rem !important;
+        font-weight: 500 !important;
+      }
+      .nav-crisis-link:hover {
+        color: var(--teal) !important;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .nav-zone-switch-item {
+        margin-left: auto;
+      }
+      .nav-zone-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.75rem;
+        color: var(--muted) !important;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        transition:
+          color 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .nav-zone-switch:hover {
+        color: var(--teal-dark) !important;
+        border-color: rgba(26, 122, 143, 0.22);
       }
 
       /* ---- HERO (dark teal, matches homepage gradient) ---- */
