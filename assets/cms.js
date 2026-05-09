@@ -171,6 +171,7 @@ function normalizeTherapist(doc) {
     portal_last_seen_at: doc.portalLastSeenAt || "",
     listing_pause_requested_at: doc.listingPauseRequestedAt || "",
     listing_removal_requested_at: doc.listingRemovalRequestedAt || "",
+    gender: doc.gender || "",
     practice_name: doc.practiceName || doc.practice_name || "",
     city: doc.city || "",
     state: doc.state || "",
