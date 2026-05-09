@@ -1,7 +1,10 @@
 import http from "node:http";
+import { initSentry } from "./sentry.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
 import { createPublicContentHandler } from "./public-content-handler.mjs";
 import { createReviewApiHandler } from "./review-handler.mjs";
+
+initSentry();
 
 async function makeServer() {
   const config = getReviewApiConfig();

@@ -1,3 +1,4 @@
+import "./sentry-init.js";
 import { fetchHomePageContent } from "./cms.js";
 import {
   getExperimentVariant,

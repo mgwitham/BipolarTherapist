@@ -4,6 +4,7 @@
 // creates the therapist + application docs, and returns a portal claim token.
 // On success, hits /applications/free-path-selected then redirects to the portal.
 
+import "./sentry-init.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 
 const INTAKE_ENDPOINT = "/api/review/applications/intake";
