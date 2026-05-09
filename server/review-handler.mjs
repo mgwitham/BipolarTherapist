@@ -997,6 +997,7 @@ export function createReviewApiHandler(configOverride, clientOverride) {
   const routeModules = createReviewRouteModules();
 
   return async function reviewApiHandler(request, response) {
+    const requestId = crypto.randomUUID();
     const origin = request.headers.origin || "";
     const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
     const routePath = normalizeRoutePath(url.pathname);
@@ -1028,6 +1029,7 @@ export function createReviewApiHandler(configOverride, clientOverride) {
             deps: routeModule.deps,
             origin,
             request,
+            requestId,
             response,
             routePath,
             ...(routeModule.includeUrl ? { url } : {}),
@@ -1041,7 +1043,10 @@ export function createReviewApiHandler(configOverride, clientOverride) {
         sendJson(response, 404, { error: "Not found." }, origin, config);
       }
     } catch (error) {
-      log.error("[review-api] Unhandled route error", { err: error?.message || String(error) });
+      log.error("[review-api] Unhandled route error", {
+        requestId,
+        err: error?.message || String(error),
+      });
       Sentry.captureException(error);
       if (!response.writableEnded) {
         const exposeError = process.env.NODE_ENV !== "production";

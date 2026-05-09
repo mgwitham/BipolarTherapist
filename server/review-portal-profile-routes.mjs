@@ -396,7 +396,7 @@ function validatePortalTherapistUpdates(body) {
 }
 
 export async function handlePortalProfileRoutes(context) {
-  const { client, config, deps, origin, request, response, routePath, url } = context;
+  const { client, config, deps, origin, request, requestId, response, routePath, url } = context;
 
   const { getAuthorizedTherapist, parseBody, readListingRemovalToken, sendJson } = deps;
 
@@ -545,6 +545,7 @@ export async function handlePortalProfileRoutes(context) {
       });
     } catch (error) {
       log.error("Sanity asset upload failed for portal photo", {
+        requestId,
         err: error?.message || String(error),
       });
       sendJson(
@@ -913,7 +914,10 @@ export async function handlePortalProfileRoutes(context) {
     } catch (error) {
       // Log and still return generic success; an email-delivery
       // failure should not reveal that the listing exists.
-      log.error("Failed to send listing removal link", { err: error?.message || String(error) });
+      log.error("Failed to send listing removal link", {
+        requestId,
+        err: error?.message || String(error),
+      });
     }
 
     return genericSuccess();

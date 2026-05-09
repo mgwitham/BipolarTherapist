@@ -40,7 +40,7 @@ function isDevLoginEnabled(config) {
 }
 
 export async function handleAuthRoutes(context) {
-  const { client, config, deps, origin, request, response, routePath } = context;
+  const { client, config, deps, origin, request, requestId, response, routePath } = context;
 
   const {
     canAttemptLogin,
@@ -68,7 +68,7 @@ export async function handleAuthRoutes(context) {
         (request.socket && request.socket.remoteAddress) ||
         request.headers["x-forwarded-for"] ||
         "unknown";
-      log.warn("[DEV LOGIN] Route hit in production", { ip: probeIp });
+      log.warn("[DEV LOGIN] Route hit in production", { requestId, ip: probeIp });
       sendJson(response, 404, { error: "Not found." }, origin, config);
       return true;
     }
@@ -112,6 +112,7 @@ export async function handleAuthRoutes(context) {
     // and be loudly traceable.
     if (therapist.listingActive !== false || therapist.status !== "inactive") {
       log.error("[DEV LOGIN] REFUSED: matched active therapist", {
+        requestId,
         email,
         id: therapist._id,
         listingActive: therapist.listingActive,
@@ -124,7 +125,7 @@ export async function handleAuthRoutes(context) {
       (request.socket && request.socket.remoteAddress) ||
       request.headers["x-forwarded-for"] ||
       "unknown";
-    log.error("[DEV LOGIN] Bypass used", { email, ip });
+    log.error("[DEV LOGIN] Bypass used", { requestId, email, ip });
     const sessionToken = createTherapistSession(config, {
       slug,
       email: therapist.claimedByEmail || email,
