@@ -1001,6 +1001,9 @@
       .public-mobile-nav-link {
         text-decoration: none;
       }
+      .mobile-shortlist-nav:not(.is-filled) {
+        display: none;
+      }
       .nav-hamburger {
         display: none;
         flex-direction: column;
@@ -2037,6 +2040,11 @@
         <span class="public-mobile-nav-title">For Therapists</span>
         <span class="public-mobile-nav-copy">List your practice</span>
       </a>
+      <a href="/directory" class="public-mobile-nav-link mobile-shortlist-nav" data-shortlist-link>
+        <span class="public-mobile-nav-kicker">Saved</span>
+        <span class="public-mobile-nav-title">My List</span>
+        <span class="public-mobile-nav-copy">View <span data-shortlist-count>0</span> saved</span>
+      </a>
     </div>
     <main id="main-content">
       <section class="hero" id="startMatch">
@@ -2064,8 +2072,8 @@
               <div class="search-field search-field--prompt">
                 <label for="homepage_interest">What kind of support are you looking for?</label>
                 <select id="homepage_interest">
-                  <option value="therapist" selected>Therapy</option>
-                  <option value="psychiatrist">Psychiatry</option>
+                  <option value="therapist" selected>Talk therapy</option>
+                  <option value="psychiatrist">Medication support</option>
                 </select>
                 <p class="search-care-hint" id="searchCareTypeHint" aria-live="polite"></p>
               </div>

@@ -6572,6 +6572,21 @@ function renderResults(entries, profile) {
   setActionState(true, getMatchAdaptiveStrategy().match_action_copy.status);
   renderPrimaryMatchCards(entries, profile);
   triggerMotion(root, "motion-enter");
+
+  var guidanceEl = document.getElementById("matchResultsGuidance");
+  if (guidanceEl) {
+    guidanceEl.textContent =
+      "Start with your top match. Most therapists respond within 2 business days.";
+    guidanceEl.hidden = false;
+  }
+
+  var zip = String((profile && profile.location_query) || "").trim();
+  if (/^\d{5}$/.test(zip)) {
+    try {
+      window.sessionStorage.setItem("bth_sort_zip_v1", zip);
+    } catch (_) {}
+  }
+
   renderFallbackRecommendation(profile, primaryEntries);
   renderAdaptiveGuidance(profile, entries);
   if (refs.feedbackBar) {

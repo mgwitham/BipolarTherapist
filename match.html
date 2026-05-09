@@ -167,8 +167,8 @@
                       aria-label="What kind of support do you want?"
                     >
                       <option value="">What kind of support do you want?</option>
-                      <option value="Therapy">Therapy</option>
-                      <option value="Psychiatry">Psychiatry</option>
+                      <option value="Therapy">Talk therapy</option>
+                      <option value="Psychiatry">Medication support</option>
                     </select>
                   </div>
                   <div class="refine-primary-sep" role="separator"></div>
@@ -367,7 +367,7 @@
                                 value="Therapy"
                                 checked
                               />
-                              <span>Therapy</span>
+                              <span>Talk therapy</span>
                             </label>
                             <label class="refine-seg-opt">
                               <input
@@ -376,7 +376,7 @@
                                 data-sync-key="care_intent"
                                 value="Psychiatry"
                               />
-                              <span>Psychiatry</span>
+                              <span>Medication support</span>
                             </label>
                             <label class="refine-seg-opt">
                               <input
@@ -705,6 +705,17 @@
             </div>
           </form>
         </div>
+        <div
+          id="matchResultsGuidance"
+          hidden
+          style="
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 0.5rem;
+          "
+        ></div>
         <div id="matchFirstContact"></div>
         <div id="matchFallbackContact"></div>
         <div id="matchOutreach" hidden></div>
