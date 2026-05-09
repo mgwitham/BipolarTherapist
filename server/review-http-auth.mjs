@@ -1,5 +1,9 @@
 import crypto from "node:crypto";
 
+// In-memory store — resets on every Vercel cold start. Provides
+// brute-force protection within a warm process but not across cold starts
+// or concurrent instances. Acceptable for current traffic; upgrade to
+// Vercel KV / Upstash if the admin endpoint is ever targeted.
 const loginAttemptStore = new Map();
 
 // Separate store for intake (signup) rate limiting. Keyed by real client IP
