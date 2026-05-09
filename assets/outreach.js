@@ -522,13 +522,13 @@ Most bipolar patients have already seen three therapists who didn't really get i
 
 Most of them never find that person. So they settle, or they stop looking.
 
-I was that patient for twenty years. It's why I built BipolarTherapyHub — a directory for exactly the patients you serve.
+I was that patient for twenty years. That's why I built BipolarTherapyHub, so the right patients can finally find the right therapist.
 
-I added a free profile for you:
+Your profile is already there:
 
 ${profileUrl}
 
-Two minutes to claim it. No paid rankings, no referral fees. Just the right patients finding you instead of giving up.
+Claim it in two minutes. The patients searching for exactly what you offer will find you instead of giving up.
 
 If you'd rather not be listed, just reply and I'll take it down.
 
