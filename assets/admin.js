@@ -4582,25 +4582,33 @@ async function executeInspectorAction(inspectorAction, inspectorId) {
     if (dataMode === "sanity") {
       if (application.submission_intent === "claim") {
         await updateTherapistApplication(inspectorId, { status: "approved" });
+        adminInspectorActionStatus = "Claim approved from the inspector.";
       } else {
-        await approveTherapistApplication(inspectorId);
+        var approveResult = await approveTherapistApplication(inspectorId);
+        adminInspectorActionStatus = "Application approved for publish from the inspector.";
+        if (approveResult && approveResult.email_warning) {
+          adminInspectorActionStatus +=
+            " Warning: approval email failed to send. Send the therapist a manual portal link.";
+        }
       }
     } else if (application.submission_intent === "claim") {
       updateApplicationReviewMetadata(inspectorId, { status: "approved" });
+      adminInspectorActionStatus = "Claim approved from the inspector.";
     } else {
       approveApplication(inspectorId);
+      adminInspectorActionStatus = "Application approved for publish from the inspector.";
     }
-    adminInspectorActionStatus =
-      application.submission_intent === "claim"
-        ? "Claim approved from the inspector."
-        : "Application approved for publish from the inspector.";
   } else if (inspectorAction === "application_reject") {
     if (dataMode === "sanity") {
-      await rejectTherapistApplicationRemote(inspectorId);
+      var rejectResult = await rejectTherapistApplicationRemote(inspectorId);
+      adminInspectorActionStatus = "Application rejected from the inspector.";
+      if (rejectResult && rejectResult.email_warning) {
+        adminInspectorActionStatus += " Warning: rejection email failed to send.";
+      }
     } else {
       rejectApplication(inspectorId);
+      adminInspectorActionStatus = "Application rejected from the inspector.";
     }
-    adminInspectorActionStatus = "Application rejected from the inspector.";
   } else if (inspectorAction === "application_request_changes") {
     var coaching = getTherapistReviewCoaching(application);
     var requestText =
