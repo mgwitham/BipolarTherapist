@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { log } from "./logger.mjs";
 import { sendPortalContactEmail } from "./review-email.mjs";
 import { validateBody } from "./validate.mjs";
 
@@ -230,12 +231,16 @@ export async function handleRecoveryRoutes(context) {
     try {
       await deps.notifyAdminOfRecoveryRequest(config, created);
     } catch (error) {
-      console.error("Failed to notify admin of recovery request.", error);
+      log.error("Failed to notify admin of recovery request", {
+        err: error?.message || String(error),
+      });
     }
     try {
       await deps.notifyTherapistOfRecoveryReceived(config, created);
     } catch (error) {
-      console.error("Failed to send recovery-received confirmation email.", error);
+      log.error("Failed to send recovery-received confirmation email", {
+        err: error?.message || String(error),
+      });
     }
 
     sendJson(
@@ -593,7 +598,7 @@ export async function handleRecoveryRoutes(context) {
     try {
       await deps.sendRecoveryRejectedEmail(config, recovery, outcomeMessage);
     } catch (error) {
-      console.error("Failed to send rejection email.", error);
+      log.error("Failed to send rejection email", { err: error?.message || String(error) });
     }
 
     const reviewer = deps.getAuthorizedActor(request, config);
@@ -829,7 +834,9 @@ export async function handleRecoveryRoutes(context) {
     try {
       await deps.sendRecoveryConfirmationHeadsUp(config, recovery, maskEmail(channelEmail));
     } catch (error) {
-      console.error("Failed to send heads-up to requester email.", error);
+      log.error("Failed to send heads-up to requester email", {
+        err: error?.message || String(error),
+      });
     }
 
     const nowIso = new Date().toISOString();
@@ -1028,7 +1035,9 @@ export async function handleRecoveryRoutes(context) {
           adminAlert: "therapist_denied_confirmation",
         });
       } catch (error) {
-        console.error("Failed to alert admin of therapist denial.", error);
+        log.error("Failed to alert admin of therapist denial", {
+          err: error?.message || String(error),
+        });
       }
 
       sendJson(

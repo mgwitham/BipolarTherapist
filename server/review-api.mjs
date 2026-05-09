@@ -1,5 +1,6 @@
 import http from "node:http";
 import { initSentry } from "./sentry.mjs";
+import { log } from "./logger.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
 import { createPublicContentHandler } from "./public-content-handler.mjs";
 import { createReviewApiHandler } from "./review-handler.mjs";
@@ -20,13 +21,11 @@ async function makeServer() {
   });
 
   server.listen(config.port, function () {
-    console.log(
-      `Review API ready at http://localhost:${config.port} with ${config.allowedOrigins.length} allowed origin(s).`,
-    );
+    log.info("Review API ready", { port: config.port, origins: config.allowedOrigins.length });
   });
 }
 
 makeServer().catch(function (error) {
-  console.error(error.message || error);
+  log.error("Review API startup failed", { err: error?.message || String(error) });
   process.exitCode = 1;
 });

@@ -1,4 +1,5 @@
 import { createClient } from "@sanity/client";
+import { log } from "./logger.mjs";
 import { normalizeDisplayRole, normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
 import { hasActiveFeatured } from "../shared/therapist-subscription-domain.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
@@ -664,7 +665,9 @@ export function createPublicContentHandler(configOverride, clientOverride) {
 
       sendJson(response, 404, { error: "Not found." }, origin, config);
     } catch (error) {
-      console.error("[public-content-api] Unhandled route error", error);
+      log.error("[public-content-api] Unhandled route error", {
+        err: error?.message || String(error),
+      });
       sendJson(response, 502, { error: "Could not load public content." }, origin, config);
     }
   };

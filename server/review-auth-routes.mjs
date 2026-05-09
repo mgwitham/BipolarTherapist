@@ -1,3 +1,4 @@
+import { log } from "./logger.mjs";
 import {
   ADMIN_SESSION_COOKIE,
   THERAPIST_SESSION_COOKIE,
@@ -67,9 +68,7 @@ export async function handleAuthRoutes(context) {
         (request.socket && request.socket.remoteAddress) ||
         request.headers["x-forwarded-for"] ||
         "unknown";
-      console.warn(
-        `[DEV LOGIN] Route hit in production from ${probeIp} at ${new Date().toISOString()}`,
-      );
+      log.warn("[DEV LOGIN] Route hit in production", { ip: probeIp });
       sendJson(response, 404, { error: "Not found." }, origin, config);
       return true;
     }
@@ -112,10 +111,12 @@ export async function handleAuthRoutes(context) {
     // on a live record is a configuration bug that should fail closed
     // and be loudly traceable.
     if (therapist.listingActive !== false || therapist.status !== "inactive") {
-      console.error(
-        `[DEV LOGIN] REFUSED: ${email} matched therapist ${therapist._id} which is not inactive ` +
-          `(listingActive=${therapist.listingActive}, status=${therapist.status})`,
-      );
+      log.error("[DEV LOGIN] REFUSED: matched active therapist", {
+        email,
+        id: therapist._id,
+        listingActive: therapist.listingActive,
+        status: therapist.status,
+      });
       sendJson(response, 404, { error: "Not found." }, origin, config);
       return true;
     }
@@ -123,7 +124,7 @@ export async function handleAuthRoutes(context) {
       (request.socket && request.socket.remoteAddress) ||
       request.headers["x-forwarded-for"] ||
       "unknown";
-    console.error(`[DEV LOGIN] Bypass used for ${email} at ${new Date().toISOString()} from ${ip}`);
+    log.error("[DEV LOGIN] Bypass used", { email, ip });
     const sessionToken = createTherapistSession(config, {
       slug,
       email: therapist.claimedByEmail || email,

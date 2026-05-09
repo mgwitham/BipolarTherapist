@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { Sentry } from "./sentry.mjs";
+import { log } from "./logger.mjs";
 import { createClient } from "@sanity/client";
 import {
   buildApplicationDocument,
@@ -1040,7 +1041,7 @@ export function createReviewApiHandler(configOverride, clientOverride) {
         sendJson(response, 404, { error: "Not found." }, origin, config);
       }
     } catch (error) {
-      console.error("[review-api] Unhandled route error", error);
+      log.error("[review-api] Unhandled route error", { err: error?.message || String(error) });
       Sentry.captureException(error);
       if (!response.writableEnded) {
         const exposeError = process.env.NODE_ENV !== "production";

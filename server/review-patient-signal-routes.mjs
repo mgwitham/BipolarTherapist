@@ -1,3 +1,5 @@
+import { log } from "./logger.mjs";
+
 // Patient-side signal aggregator for the outreach CRM. Returns rolled-up
 // counts of match requests, profile views, and CTA clicks so the
 // founder can see at a glance whether the directory is generating real
@@ -64,7 +66,7 @@ export async function handlePatientSignalRoutes(context) {
   try {
     raw = await client.fetch(QUERY, params);
   } catch (err) {
-    console.error("patient-signal fetch error:", err);
+    log.error("patient-signal fetch error", { err: err?.message || String(err) });
     response.writeHead(500, { "Content-Type": "application/json" });
     response.end(JSON.stringify({ error: "Failed to compute signal" }));
     return true;

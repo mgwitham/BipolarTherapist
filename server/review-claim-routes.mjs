@@ -1,3 +1,4 @@
+import { log } from "./logger.mjs";
 import { THERAPIST_SESSION_COOKIE, makeSessionHelpers } from "./review-http-auth.mjs";
 
 function normalizeNameForMatch(value) {
@@ -822,12 +823,16 @@ export async function handleClaimRoutes(context) {
       try {
         await deps.notifyAdminOfRecoveryRequest(config, created);
       } catch (error) {
-        console.error("Failed to notify admin of quick-claim manual review.", error);
+        log.error("Failed to notify admin of quick-claim manual review", {
+          err: error?.message || String(error),
+        });
       }
       try {
         await deps.notifyTherapistOfRecoveryReceived(config, created);
       } catch (error) {
-        console.error("Failed to send review-received confirmation email.", error);
+        log.error("Failed to send review-received confirmation email", {
+          err: error?.message || String(error),
+        });
       }
 
       try {
@@ -1181,7 +1186,7 @@ export async function handleClaimRoutes(context) {
           `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
         );
       } catch (error) {
-        console.error("Failed to send portal welcome email.", error);
+        log.error("Failed to send portal welcome email", { err: error?.message || String(error) });
       }
     }
 
