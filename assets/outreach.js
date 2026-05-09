@@ -518,7 +518,7 @@ Michael`,
     subject: `Your bipolar patients can't find you`,
     body: `Hi ${first},
 
-A patient searching for a bipolar specialist isn't looking for "anxiety and depression support." They know the difference. They want someone who understands the cycling, the mixed states, the medication piece.
+Most bipolar patients have already seen three therapists who didn't really get it. They know the difference. They want someone who understands the cycling, the mixed states, the medication piece.
 
 Most of them never find that person. So they settle, or they stop looking.
 
