@@ -445,3 +445,15 @@ export function clearFailedLogins(request) {
   const clientAddress = getClientAddress(request);
   loginAttemptStore.delete(clientAddress);
 }
+
+export function makeSessionHelpers(deps, request, response) {
+  function setSessionCookie(name, token, maxAgeSeconds) {
+    if (typeof deps.buildSessionCookie !== "function") return;
+    response.setHeader("Set-Cookie", deps.buildSessionCookie(request, name, token, maxAgeSeconds));
+  }
+  function clearSessionCookie(name) {
+    if (typeof deps.buildExpiredSessionCookie !== "function") return;
+    response.setHeader("Set-Cookie", deps.buildExpiredSessionCookie(request, name));
+  }
+  return { setSessionCookie, clearSessionCookie };
+}
