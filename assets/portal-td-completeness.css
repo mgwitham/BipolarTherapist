@@ -506,6 +506,25 @@
   border-color: #1a7a8f;
   box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.15);
 }
+.td-radio-group {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 0.25rem;
+}
+.td-radio {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: #0f1f28;
+  cursor: pointer;
+}
+.td-radio input[type="radio"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  accent-color: #1a7a8f;
+  cursor: pointer;
+}
 .td-input-fee {
   width: 7rem;
 }

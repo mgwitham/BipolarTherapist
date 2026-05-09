@@ -121,7 +121,7 @@ function isTotalYearsComplete(t) {
 }
 function isGenderComplete(t) {
   var g = String((t && t.gender) || "").trim();
-  return g === "male" || g === "female";
+  return g === "male" || g === "female" || g === "non_binary";
 }
 
 // ─── Field registry ──────────────────────────────────────────────────
@@ -1105,16 +1105,18 @@ function renderGenderForm(t) {
   var current = String(t.gender || "");
   return (
     '<div class="td-form">' +
-    '<label class="td-form-row"><span class="td-form-label">Gender</span>' +
-    '<select class="td-input" id="tdcGender">' +
-    '<option value="">Select…</option>' +
-    '<option value="male"' +
-    (current === "male" ? " selected" : "") +
-    ">Male</option>" +
-    '<option value="female"' +
-    (current === "female" ? " selected" : "") +
-    ">Female</option>" +
-    "</select></label>" +
+    '<span class="td-form-label">Gender</span>' +
+    '<div class="td-radio-group">' +
+    '<label class="td-radio"><input type="radio" name="tdcGender" value="male"' +
+    (current === "male" ? " checked" : "") +
+    " /> Male</label>" +
+    '<label class="td-radio"><input type="radio" name="tdcGender" value="female"' +
+    (current === "female" ? " checked" : "") +
+    " /> Female</label>" +
+    '<label class="td-radio"><input type="radio" name="tdcGender" value="non_binary"' +
+    (current === "non_binary" ? " checked" : "") +
+    " /> Non-binary</label>" +
+    "</div>" +
     '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="gender">Save</button></div>' +
     "</div>"
   );
@@ -2032,7 +2034,8 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     } else if (key === "total_years") {
       payload.years_experience = Number(bodyEl.querySelector("#tdcTotalYears").value) || 0;
     } else if (key === "gender") {
-      payload.gender = String(bodyEl.querySelector("#tdcGender").value || "");
+      var checkedGender = bodyEl.querySelector('input[name="tdcGender"]:checked');
+      payload.gender = checkedGender ? checkedGender.value : "";
     } else if (key === "practice_name") {
       payload.practice_name = String(bodyEl.querySelector("#tdcPracticeName").value || "").trim();
     } else if (key === "website") {

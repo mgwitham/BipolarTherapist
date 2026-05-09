@@ -2721,6 +2721,9 @@ function buildEditProfileHtml(therapist) {
     '<option value="female"' +
     (t.gender === "female" ? " selected" : "") +
     ">Female</option>" +
+    '<option value="non_binary"' +
+    (t.gender === "non_binary" ? " selected" : "") +
+    ">Non-binary</option>" +
     "</select>" +
     '<p class="portal-hint">Shown on your public profile. Patients may use this to find a provider they feel comfortable with.</p>' +
     "</div>" +
