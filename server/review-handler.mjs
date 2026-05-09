@@ -130,6 +130,10 @@ const publishingHelpers = {
 const MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_PHOTO_UPLOAD_BYTES = 4 * 1024 * 1024;
 const ALLOWED_PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+// In-memory store — resets on every Vercel cold start (i.e. per process).
+// Provides meaningful protection within a warm process. Does NOT carry
+// counts across cold starts or across concurrent instances. Acceptable
+// for current traffic; upgrade to Vercel KV / Upstash if abuse appears.
 const publicWriteRateLimitStore = new Map();
 const PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS = 5000;
 const PUBLIC_WRITE_RATE_LIMITS = {

@@ -325,7 +325,7 @@ export const EMAIL_TEMPLATES = [
     recipient: "therapist",
     source: "server/review-email.mjs:1087 + shared/weekly-digest-domain.mjs",
     preheader:
-      "TODO: text-only template — preheader concept doesn't apply directly. Consider whether to switch to HTML for richer inbox preview.",
+      "Your listing this week: X profile views, Y contact clicks — see the full breakdown inside.",
     invoke: async function (config) {
       const digest = buildWeeklyDigest({
         current: sampleWeeklyDigestPeriods.current,
@@ -344,7 +344,7 @@ export const EMAIL_TEMPLATES = [
     recipient: "admin",
     source: "server/review-founder-digest.mjs:26 + shared/founder-funnel-digest-domain.mjs",
     preheader:
-      "TODO: text-only template — confirm whether plaintext is the right choice for an admin digest, then either switch to HTML or accept that the inbox snippet will quote the body.",
+      "Text-only admin digest. Inbox preview shows first body line: 'Founder digest, last 7 days.'",
     invoke: async function (config) {
       // Founder digest doesn't go through capture; it constructs the payload
       // inline. We replicate that here using the sample funnel events.
@@ -397,7 +397,7 @@ export const EMAIL_TEMPLATES = [
     recipient: "admin",
     source: "server/review-email.mjs:1116",
     preheader:
-      "TODO: text-only admin email — first line of body acts as the de facto preheader. Decide whether to keep plaintext or switch to HTML.",
+      "Text-only admin notification. Inbox preview shows sender name and request type from the first body line.",
     invoke: async function (config) {
       return captureFromSender(function () {
         return sendPortalContactEmail(config, {
