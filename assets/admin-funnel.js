@@ -9,6 +9,7 @@
 
 import { proportionsAreSeparated, wilsonInterval } from "../shared/stats-domain.mjs";
 import { fetchFunnelEventLog } from "./review-api.js";
+import { escapeHtml } from "./escape-html.js";
 
 const DASHBOARD_ID = "adminFunnelDashboard";
 const REFRESH_ID = "adminFunnelRefresh";
@@ -66,12 +67,6 @@ const PORTAL_STEPS = [
   { key: "portal_readiness_crossed_65", label: "Readiness ≥ 65" },
   { key: "portal_readiness_crossed_85", label: "Match-ready (≥ 85)" },
 ];
-
-function escapeHtml(value) {
-  return String(value || "").replace(/[&<>"']/g, function (char) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
-  });
-}
 
 function parsePayload(raw) {
   if (!raw) return {};

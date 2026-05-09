@@ -10,14 +10,7 @@
 // for "this has been broken longest."
 
 import { isProfileLive } from "../shared/profile-live-status.mjs";
-
-function escapeHtml(str) {
-  return String(str || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
+import { escapeHtml } from "./escape-html.js";
 
 function isAdminIntentLive(t) {
   const lifecycle = t.lifecycle || "";

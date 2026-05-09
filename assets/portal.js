@@ -1,4 +1,5 @@
 import "./funnel-analytics.js";
+import { escapeHtml } from "./escape-html.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { mountPortalTdCompleteness, shouldShowCompleteness } from "./portal-td-completeness.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
@@ -36,15 +37,6 @@ var slug = new URLSearchParams(window.location.search).get("slug") || "";
 var token = new URLSearchParams(window.location.search).get("token") || "";
 var devLoginEmail = new URLSearchParams(window.location.search).get("dev_login") || "";
 var claimSessionState = null;
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function normalizeSlugInput(value) {
   var raw = String(value || "").trim();

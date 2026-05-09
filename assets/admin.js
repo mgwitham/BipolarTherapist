@@ -8,6 +8,7 @@ import {
   updateApplicationReviewMetadata,
 } from "./store.js";
 import { fetchPublicTherapists } from "./cms.js";
+import { escapeHtml } from "./escape-html.js";
 
 async function fetchMatchedTherapistForCandidate(candidate) {
   if (!candidate) return null;
@@ -972,15 +973,6 @@ function renderFallbackStats() {
   statsRoot.innerHTML =
     '<div class="mini-status" style="margin-bottom:1rem"><strong>Admin note:</strong> Showing the resilient workflow launcher while the full dashboard reloads.</div>' +
     wrapStatsGroup("Start Here", fallbackCards, "ops-grid");
-}
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 const adminLazyModuleLoaders = import.meta.glob([

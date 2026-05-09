@@ -156,7 +156,7 @@ export function getReviewApiConfig() {
       "https://www.bipolartherapyhub.com",
   };
 
-  config.sessionSecret = config.explicitSessionSecret || config.adminPassword || "";
+  config.sessionSecret = config.explicitSessionSecret || "";
 
   if (!config.projectId || !config.dataset || !config.token) {
     throw new Error("Missing Sanity config or SANITY_API_TOKEN for review API.");
@@ -169,11 +169,7 @@ export function getReviewApiConfig() {
   }
 
   if (!config.sessionSecret) {
-    throw new Error("Missing REVIEW_API_SESSION_SECRET or admin password to sign sessions.");
-  }
-
-  if (process.env.NODE_ENV === "production" && !config.explicitSessionSecret) {
-    throw new Error("Missing REVIEW_API_SESSION_SECRET in production.");
+    throw new Error("Missing REVIEW_API_SESSION_SECRET. Set it to a random string in your .env.");
   }
 
   return config;

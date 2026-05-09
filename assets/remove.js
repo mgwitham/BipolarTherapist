@@ -1,16 +1,8 @@
 import { searchTherapistQuickClaim } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
+import { escapeHtml } from "./escape-html.js";
 
 const REMOVAL_ENDPOINT = "/api/review/portal/listing-removal/request";
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 // Render a toast if the user lands here after clicking a removal confirmation link.
 // The backend redirect targets /remove?removed=ok|expired|invalid.

@@ -4,6 +4,7 @@
 // any surface re-renders the panel automatically.
 
 import { fetchPublicTherapists } from "./cms.js";
+import { escapeHtml } from "./escape-html.js";
 import {
   readList,
   removeFromList,
@@ -134,15 +135,6 @@ var lastFocusedElement = null;
 var therapistCache = null;
 var therapistCachePromise = null;
 var hasOpenedOnce = false;
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function getTherapistProfileHref(slug) {
   if (!slug) return "directory.html";

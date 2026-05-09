@@ -18,16 +18,7 @@
 import { renderPortalCardPreview, updatePortalCardPreview } from "./portal-card-preview.js";
 import { patchTherapistProfile, uploadPortalPhoto } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
-
-function escapeHtml(value) {
-  return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
-    if (ch === "&") return "&amp;";
-    if (ch === "<") return "&lt;";
-    if (ch === ">") return "&gt;";
-    if (ch === '"') return "&quot;";
-    return "&#39;";
-  });
-}
+import { escapeHtml } from "./escape-html.js";
 
 // ─── Score model (mirrors TD-A header) ────────────────────────────────
 

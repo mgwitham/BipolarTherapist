@@ -57,15 +57,16 @@ export async function loadRemoteAdminSnapshot(dependencies) {
     fetchTherapistReviewers,
   } = dependencies;
 
+  const nil = () => null;
   const [applications, candidates, portalRequests, reviewEvents, reviewers, session, therapists] =
     await Promise.all([
-      fetchTherapistApplications(),
-      fetchTherapistCandidates(),
-      fetchTherapistPortalRequests(),
-      fetchReviewEvents({ limit: 50 }),
-      fetchTherapistReviewers(),
-      fetchAdminSession(),
-      fetchPublicTherapists({ strict: true, fresh: true }),
+      fetchTherapistApplications().catch(nil),
+      fetchTherapistCandidates().catch(nil),
+      fetchTherapistPortalRequests().catch(nil),
+      fetchReviewEvents({ limit: 50 }).catch(nil),
+      fetchTherapistReviewers().catch(nil),
+      fetchAdminSession().catch(nil),
+      fetchPublicTherapists({ strict: true, fresh: true }).catch(nil),
     ]);
 
   return {

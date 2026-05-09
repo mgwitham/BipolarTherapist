@@ -1,4 +1,5 @@
 import { updateTherapistCandidate, updateTherapist } from "./review-api.js";
+import { escapeHtml } from "./escape-html.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { isProfileLive } from "../shared/profile-live-status.mjs";
 
@@ -262,14 +263,6 @@ function renderLivePanel() {
       return "<li>" + mark + "<span>" + escapeHtml(text) + "</span></li>";
     })
     .join("");
-}
-
-function escapeHtml(str) {
-  return String(str || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
 }
 
 function renderAuditLog(entries) {

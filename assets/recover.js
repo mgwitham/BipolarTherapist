@@ -1,11 +1,6 @@
 import { requestAccountRecovery } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
-
-function escapeHtml(value) {
-  return String(value || "").replace(/[&<>"']/g, function (char) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
-  });
-}
+import { escapeHtml } from "./escape-html.js";
 
 function showStatus(el, tone, html) {
   if (!el) return;

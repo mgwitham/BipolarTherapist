@@ -1,3 +1,4 @@
+import { escapeHtml } from "./escape-html.js";
 import {
   fetchTherapistMe,
   getTherapistSessionToken,
@@ -110,12 +111,6 @@ function hideFallback(fallbackLink) {
     fallbackLink.hidden = true;
     fallbackLink.onclick = null;
   }
-}
-
-function escapeHtml(value) {
-  return String(value || "").replace(/[&<>"']/g, function (char) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
-  });
 }
 
 // Deterministic avatar color from name initial

@@ -5,6 +5,8 @@
 // queue via createFocusMode({ ... }). Backwards-compatible top-level
 // exports still work as the triage-specific entry point.
 
+import { escapeHtml } from "./escape-html.js";
+
 const FOCUS_CLASS = "is-focus-mode-active";
 const CURRENT_CLASS = "is-focus-current";
 const KEY_HANDLER_PROP = "__focusModeKeyHandler";
@@ -137,15 +139,6 @@ function updateHud(root, index, total, card) {
     keyHints +
     " · <kbd>Esc</kbd> exit" +
     "</div>";
-}
-
-function escapeHtml(value) {
-  return String(value == null ? "" : value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 function attachKeyHandler(root) {

@@ -17,17 +17,10 @@
 // there).
 
 import { isProfileLive } from "../shared/profile-live-status.mjs";
+import { escapeHtml as esc } from "./escape-html.js";
 
 const MIN_CHARS = 2;
 const DEBOUNCE_MS = 200;
-
-function esc(str) {
-  return String(str || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 function highlight(text, query) {
   const str = String(text || "");
