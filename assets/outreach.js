@@ -522,16 +522,22 @@ Michael`,
     };
   }
   return {
-    subject: `I spent years looking for someone like you`,
+    subject: `Your bipolar patients can't find you`,
     body: `Hi ${first},
 
-I've lived with bipolar disorder for 20 years. Finding a therapist who truly understood it, who got the highs as well as the lows, took far too long. That search shouldn't be that hard.
+A patient searching for a bipolar specialist isn't looking for "anxiety and depression support." They know the difference. They want someone who understands the cycling, the mixed states, the medication piece.
 
-I built BipolarTherapyHub to close that gap, and I added a profile for you:
+Most of them never find that person. So they settle, or they stop looking.
+
+I was that patient for twenty years. It's why I built BipolarTherapyHub — a directory for exactly the patients you serve.
+
+I added a free profile for you:
 
 ${profileUrl}
 
-Claiming it takes two minutes. No paid rankings, no referral fees. Just better-matched patients finding you, faster.
+Two minutes to claim it. No paid rankings, no referral fees. Just the right patients finding you instead of giving up.
+
+If you'd rather not be listed, just reply and I'll take it down.
 
 Michael Witham
 BipolarTherapyHub`,
