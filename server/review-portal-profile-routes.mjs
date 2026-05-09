@@ -1,3 +1,4 @@
+import { log } from "./logger.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { appendFunnelEvent } from "./review-analytics-routes.mjs";
@@ -543,7 +544,9 @@ export async function handlePortalProfileRoutes(context) {
         contentType: mimeType,
       });
     } catch (error) {
-      console.error("Sanity asset upload failed for portal photo.", error);
+      log.error("Sanity asset upload failed for portal photo", {
+        err: error?.message || String(error),
+      });
       sendJson(
         response,
         502,
@@ -910,7 +913,7 @@ export async function handlePortalProfileRoutes(context) {
     } catch (error) {
       // Log and still return generic success; an email-delivery
       // failure should not reveal that the listing exists.
-      console.error("Failed to send listing removal link:", error);
+      log.error("Failed to send listing removal link", { err: error?.message || String(error) });
     }
 
     return genericSuccess();

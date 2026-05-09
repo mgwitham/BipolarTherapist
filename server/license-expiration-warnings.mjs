@@ -1,3 +1,5 @@
+import { log } from "./logger.mjs";
+
 // License expiration warning system.
 //
 // Daily cron pass that emails therapists when their CA license is
@@ -90,7 +92,7 @@ export async function runLicenseExpirationWarnings({
   client,
   config,
   dryRun = false,
-  log = console.log,
+  log: logFn = (msg) => log.info(msg),
 } = {}) {
   if (!client) {
     config = config || getReviewApiConfig();
@@ -105,7 +107,7 @@ export async function runLicenseExpirationWarnings({
   const portalBaseUrl = config && config.portalBaseUrl;
   const emailConfigured = hasEmailConfig(config);
   if (!emailConfigured && !dryRun) {
-    log("Email config missing — running as dry-run.");
+    logFn("Email config missing — running as dry-run.");
     dryRun = true;
   }
 
@@ -116,7 +118,7 @@ export async function runLicenseExpirationWarnings({
       "warningsSent": licensureVerification.expirationWarningsSent
     }`,
   );
-  log(`Found ${therapists.length} active+listed therapists with email + expiration date.`);
+  logFn(`Found ${therapists.length} active+listed therapists with email + expiration date.`);
 
   const summary = {
     scanned: therapists.length,
@@ -149,7 +151,7 @@ export async function runLicenseExpirationWarnings({
     }
     const { subject, html, text } = buildEmail(t, threshold, t.exp, portalBaseUrl);
     if (dryRun) {
-      log(`  WOULD SEND ${threshold}d warning to ${t.name} <${t.email}> (expires ${t.exp})`);
+      logFn(`  WOULD SEND ${threshold}d warning to ${t.name} <${t.email}> (expires ${t.exp})`);
       summary.sends.push({ id: t._id, name: t.name, threshold, dryRun: true });
       summary.sent += 1;
       continue;
@@ -174,16 +176,16 @@ export async function runLicenseExpirationWarnings({
         .setIfMissing({ "licensureVerification.expirationWarningsSent": [] })
         .insert("after", "licensureVerification.expirationWarningsSent[-1]", [newEntry])
         .commit();
-      log(`  SENT ${threshold}d warning to ${t.name} <${t.email}>`);
+      logFn(`  SENT ${threshold}d warning to ${t.name} <${t.email}>`);
       summary.sends.push({ id: t._id, name: t.name, threshold });
       summary.sent += 1;
     } catch (err) {
-      log(`  ERR sending ${threshold}d warning to ${t.name}: ${err.message}`);
+      logFn(`  ERR sending ${threshold}d warning to ${t.name}: ${err.message}`);
       summary.errors += 1;
     }
   }
 
-  log(
+  logFn(
     `\nExpiration warnings ${dryRun ? "(dry run) " : ""}complete: sent=${summary.sent} skippedAlreadySent=${summary.skippedAlreadySent} skippedNotDue=${summary.skippedNotDue} errors=${summary.errors}`,
   );
   return summary;
@@ -193,7 +195,7 @@ const isCli = import.meta.url === `file://${process.argv[1]}`;
 if (isCli) {
   const dryRun = process.argv.includes("--dry-run");
   runLicenseExpirationWarnings({ dryRun }).catch((err) => {
-    console.error("Expiration warnings run failed:", err);
+    log.error("Expiration warnings run failed", { err: err?.message || String(err) });
     process.exit(1);
   });
 }

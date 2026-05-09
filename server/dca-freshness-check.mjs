@@ -1,3 +1,5 @@
+import { log } from "./logger.mjs";
+
 // DCA license freshness check.
 //
 // Re-verifies every active+listed therapist against CA DCA, refreshes
@@ -51,7 +53,7 @@ export async function runDcaFreshnessCheck({
   client,
   config,
   dryRun = false,
-  log = console.log,
+  log: logFn = (msg) => log.info(msg),
 } = {}) {
   if (!client) {
     config = config || getReviewApiConfig();
@@ -74,7 +76,7 @@ export async function runDcaFreshnessCheck({
   }`;
 
   const therapists = await client.fetch(query);
-  log(`Found ${therapists.length} active+listed therapists with license numbers.`);
+  logFn(`Found ${therapists.length} active+listed therapists with license numbers.`);
 
   const summary = {
     total: therapists.length,
@@ -106,13 +108,13 @@ export async function runDcaFreshnessCheck({
     try {
       result = await verifyLicense(config, typeCode, cleanNumber);
     } catch (err) {
-      log(`  ERR ${t.name} (${t._id}): ${err.message}`);
+      logFn(`  ERR ${t.name} (${t._id}): ${err.message}`);
       summary.errors += 1;
       continue;
     }
 
     if (!result.verified) {
-      log(`  SKIP ${t.name}: ${result.error}`);
+      logFn(`  SKIP ${t.name}: ${result.error}`);
       summary.skipped += 1;
       continue;
     }
@@ -146,17 +148,17 @@ export async function runDcaFreshnessCheck({
         newDiscipline,
         action: dryRun ? "would_unpublish" : "unpublished",
       });
-      log(
+      logFn(
         `  ⚠ ${dryRun ? "WOULD UNPUBLISH" : "UNPUBLISHED"} ${t.name}: ${
           t.currentStatus || "unknown"
         } → ${newStatus}${pickedUpDiscipline ? " (new discipline)" : ""}`,
       );
     } else {
-      log(`  ✓ ${t.name}: ${newStatus}`);
+      logFn(`  ✓ ${t.name}: ${newStatus}`);
     }
   }
 
-  log(
+  logFn(
     `\nFreshness check ${dryRun ? "(dry run) " : ""}complete: refreshed=${summary.refreshed} unpublished=${summary.autoUnpublished} flaggedNonActive=${summary.flaggedNonActive} flaggedNewDiscipline=${summary.flaggedNewDiscipline} skipped=${summary.skipped} errors=${summary.errors}`,
   );
   return summary;
@@ -167,7 +169,7 @@ const isCli = import.meta.url === `file://${process.argv[1]}`;
 if (isCli) {
   const dryRun = process.argv.includes("--dry-run");
   runDcaFreshnessCheck({ dryRun }).catch((err) => {
-    console.error("Freshness check failed:", err);
+    log.error("Freshness check failed", { err: err?.message || String(err) });
     process.exit(1);
   });
 }

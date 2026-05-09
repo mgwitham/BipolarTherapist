@@ -1,3 +1,4 @@
+import { log } from "./logger.mjs";
 import { renderSavedListEmail } from "../shared/saved-list-email.mjs";
 import { validateEmail } from "../shared/contact-validation.mjs";
 
@@ -114,7 +115,7 @@ export async function handleSavedListRoutes(context) {
       { slugs: slugs },
     );
   } catch (error) {
-    console.error("[saved-list/email] Sanity fetch failed", error);
+    log.error("[saved-list/email] Sanity fetch failed", { err: error?.message || String(error) });
     sendJson(response, 502, { error: "Could not load your saved therapists." }, origin, config);
     return true;
   }
@@ -177,7 +178,7 @@ export async function handleSavedListRoutes(context) {
       return true;
     }
   } catch (error) {
-    console.error("[saved-list/email] Resend send failed", error);
+    log.error("[saved-list/email] Resend send failed", { err: error?.message || String(error) });
     sendJson(response, 502, { error: "Could not send the email. Try again." }, origin, config);
     return true;
   }

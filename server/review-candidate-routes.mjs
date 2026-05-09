@@ -1,3 +1,5 @@
+import { log } from "./logger.mjs";
+
 // Mirrors server/dca-freshness-check.mjs cleanLicenseNumber. Strips
 // credential-prefix tokens, leading non-alnum, and reduces to the
 // trailing digit run with leading zeros removed (DCA API rejects
@@ -40,7 +42,9 @@ async function reverifyCandidateAtPublish(candidate, config, verifyLicense) {
     // Soft-fail on transient API issues — don't block admin's publish
     // decision because of a temporary DCA outage. Cron freshness check
     // will catch any actual status problem on the next run.
-    console.error("DCA reverify threw at publish; allowing publish", err);
+    log.error("DCA reverify threw at publish; allowing publish", {
+      err: err?.message || String(err),
+    });
     return { block: false };
   }
   if (!result || !result.verified) {
