@@ -173,7 +173,7 @@ function getAssetTags() {
 function buildSeoDescription(t) {
   const name = t.name || "Bipolar therapist";
   const creds = t.credentials ? ", " + t.credentials : "";
-  const location = [t.city, t.state].filter(Boolean).join(", ") || "California";
+  const location = [t.city, t.state].filter(Boolean).join(", ") || "";
   const parts = [name + creds + " — bipolar disorder specialist in " + location + "."];
   if (t.accepting_new_patients) parts.push("Accepting new patients.");
   const formats = [];
@@ -319,7 +319,7 @@ function buildJsonLd(t) {
   const address = {
     "@type": "PostalAddress",
     addressLocality: t.city || undefined,
-    addressRegion: t.state || "CA",
+    addressRegion: t.state || undefined,
     postalCode: t.zip || undefined,
     addressCountry: "US",
   };
@@ -412,7 +412,7 @@ function renderSSRProfile(t) {
   const trustSignals = [];
   if (t.license_number) {
     trustSignals.push(
-      `${esc(t.license_state || t.state || "CA")} ${esc(t.credentials || "License")} #${esc(String(t.license_number))}`,
+      `${esc(t.license_state || t.state || "")} ${esc(t.credentials || "License")} #${esc(String(t.license_number))}`.trim(),
     );
   }
   if (t.verification_status === "editorially_verified") trustSignals.push("Editorially verified");
@@ -574,7 +574,7 @@ function renderSSRProfile(t) {
 function buildPage(t) {
   const { linkTags, scriptTags } = getAssetTags();
   const nameWithCreds = t.credentials ? t.name + ", " + t.credentials : t.name;
-  const location = [t.city, t.state].filter(Boolean).join(", ") || "California";
+  const location = [t.city, t.state].filter(Boolean).join(", ") || "";
   const seoTitle = `${nameWithCreds} — Bipolar Therapist in ${location} | BipolarTherapyHub`;
   const seoDescription = buildSeoDescription(t);
   const canonicalUrl = `${ORIGIN}/therapists/${encodeURIComponent(t.slug)}/`;

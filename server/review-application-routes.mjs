@@ -1,5 +1,6 @@
 import { log } from "./logger.mjs";
 import { validateBody } from "./validate.mjs";
+import { DEFAULT_LICENSE_STATE } from "./license-states.mjs";
 
 const INTAKE_SCHEMA = {
   name: { type: "string", required: true, maxLength: 200 },
@@ -108,8 +109,8 @@ export async function handleApplicationRoutes(context) {
       name: name,
       email: email,
       license_number: licenseNumber,
-      license_state: "CA",
-      state: "CA",
+      license_state: DEFAULT_LICENSE_STATE,
+      state: DEFAULT_LICENSE_STATE,
       city: String(body.city || "").trim(),
       zip: String(body.zip || "").trim(),
       credentials: String(body.credentials || "").trim() || "Pending",

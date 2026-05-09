@@ -1,4 +1,5 @@
 import { log } from "./logger.mjs";
+import { SUPPORTED_LICENSE_STATES } from "./license-states.mjs";
 
 // DCA license freshness check.
 //
@@ -93,7 +94,7 @@ export async function runDcaFreshnessCheck({
     const t = therapists[i];
     let typeCode = t.boardCode || LICENSE_TYPE_CODES[t.licenseType] || null;
     if (!typeCode) typeCode = resolveLicenseTypeCode(t.licenseType || "");
-    if (!typeCode || t.licenseState !== "CA") {
+    if (!typeCode || !SUPPORTED_LICENSE_STATES.has(t.licenseState)) {
       summary.skipped += 1;
       continue;
     }
