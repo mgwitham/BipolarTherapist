@@ -1,4 +1,5 @@
 import { fetchDirectoryPageContent } from "./cms.js";
+import { escapeHtml } from "./escape-html.js";
 import { rememberTherapistContactRoute, trackFunnelEvent } from "./funnel-analytics.js";
 import {
   FILTER_BOOLEAN_KEYS,
@@ -123,15 +124,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   function getElement(id) {
     return document.getElementById(id);
-  }
-
-  function escapeHtml(value) {
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
   }
 
   function mulberry32(seed) {

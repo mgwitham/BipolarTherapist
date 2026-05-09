@@ -289,9 +289,17 @@ function prunePublicWriteRateLimitStore(now) {
     }
   }
 
-  while (publicWriteRateLimitStore.size > PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS) {
-    const oldestKey = publicWriteRateLimitStore.keys().next().value;
-    publicWriteRateLimitStore.delete(oldestKey);
+  if (publicWriteRateLimitStore.size > PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS) {
+    let stalestKey = null;
+    let stalestTime = Infinity;
+    for (const [key, entry] of publicWriteRateLimitStore) {
+      const lastSeen = entry.timestamps.length ? Math.max(...entry.timestamps) : 0;
+      if (lastSeen < stalestTime) {
+        stalestTime = lastSeen;
+        stalestKey = key;
+      }
+    }
+    if (stalestKey !== null) publicWriteRateLimitStore.delete(stalestKey);
   }
 }
 
@@ -441,6 +449,12 @@ function normalizeCandidate(doc) {
   });
 }
 
+function resolveSlug(slugField) {
+  if (!slugField) return "";
+  if (typeof slugField === "string") return slugField;
+  return slugField.current || "";
+}
+
 function normalizeAdminTherapist(doc) {
   const fieldReviewStates = normalizeFieldReviewStates(doc && doc.fieldReviewStates, {
     keyStyle: "camelCase",
@@ -520,7 +534,7 @@ function normalizeAdminTherapist(doc) {
     visibility_intent: doc.visibilityIntent || "",
     notes: doc.notes || "",
     audit_log: Array.isArray(doc.auditLog) ? doc.auditLog : [],
-    slug: typeof doc.slug === "string" ? doc.slug : (doc.slug && doc.slug.current) || "",
+    slug: resolveSlug(doc.slug),
     has_paid_subscription: false,
   };
 }
@@ -611,7 +625,7 @@ function buildPortalClaimToken(config, therapist, requesterEmail, options) {
   return createSignedPayload(
     {
       sub: "therapist-portal",
-      slug: therapist.slug.current,
+      slug: resolveSlug(therapist.slug),
       email: requesterEmail,
       exp: Date.now() + ttlMs,
       nonce: crypto.randomBytes(12).toString("hex"),
@@ -680,7 +694,7 @@ function buildListingRemovalToken(config, therapist) {
   return createSignedPayload(
     {
       sub: "listing-removal",
-      slug: therapist.slug.current,
+      slug: resolveSlug(therapist.slug),
       exp: Date.now() + 1000 * 60 * 60 * 24,
       nonce: crypto.randomBytes(12).toString("hex"),
     },
@@ -1021,19 +1035,24 @@ export function createReviewApiHandler(configOverride, clientOverride) {
         }
       }
 
-      sendJson(response, 404, { error: "Not found." }, origin, config);
+      if (!response.writableEnded) {
+        sendJson(response, 404, { error: "Not found." }, origin, config);
+      }
     } catch (error) {
       console.error("[review-api] Unhandled route error", error);
-      const exposeError = process.env.NODE_ENV !== "production";
-      sendJson(
-        response,
-        500,
-        {
-          error: exposeError && error && error.message ? error.message : "Unexpected server error.",
-        },
-        origin,
-        config,
-      );
+      if (!response.writableEnded) {
+        const exposeError = process.env.NODE_ENV !== "production";
+        sendJson(
+          response,
+          500,
+          {
+            error:
+              exposeError && error && error.message ? error.message : "Unexpected server error.",
+          },
+          origin,
+          config,
+        );
+      }
     }
   };
 }

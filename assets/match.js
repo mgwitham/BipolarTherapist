@@ -1,4 +1,5 @@
 import { fetchPublicTherapists } from "./cms.js";
+import { escapeHtml } from "./escape-html.js";
 import {
   clearRenderedMatchPanels,
   getMatchShellRefs,
@@ -239,15 +240,6 @@ var US_STATE_MAP = {
   WYOMING: "WY",
   "DISTRICT OF COLUMBIA": "DC",
 };
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function slugifyForProfile(text) {
   return String(text || "")

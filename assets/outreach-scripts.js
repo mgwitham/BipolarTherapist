@@ -12,24 +12,7 @@
  * outer container (e.g. a <details> disclosure).
  */
 
-function defaultEscapeHtml(value) {
-  return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
-    switch (ch) {
-      case "&":
-        return "&amp;";
-      case "<":
-        return "&lt;";
-      case ">":
-        return "&gt;";
-      case '"':
-        return "&quot;";
-      case "'":
-        return "&#39;";
-      default:
-        return ch;
-    }
-  });
-}
+import { escapeHtml as defaultEscapeHtml } from "./escape-html.js";
 
 function isRealEmailAddress(value) {
   if (!value) return false;

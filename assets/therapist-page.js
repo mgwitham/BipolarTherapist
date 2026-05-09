@@ -1,4 +1,5 @@
 import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
+import { escapeHtml } from "./escape-html.js";
 import { renderRoundAvatar } from "./card-content.js";
 import {
   getDataFreshnessSummary,
@@ -130,15 +131,6 @@ var activeTherapistContactExperimentVariant = "control";
 // href should always be digits-only.
 function normalizeTelUri(phone) {
   return String(phone || "").replace(/[^0-9+]/g, "");
-}
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 // Per-therapist SEO: update/insert meta tags + Schema.org JSON-LD so

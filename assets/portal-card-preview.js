@@ -25,6 +25,7 @@ import {
   getCostLabel,
   renderAvailabilityBadge,
 } from "./card-content.js";
+import { escapeHtml } from "./escape-html.js";
 
 // Portal-specific specialty-pill renderer. Unlike the patient-facing
 // match card (which filters out generic terms like "Bipolar disorder"
@@ -45,16 +46,6 @@ function renderPortalSpecialtyPills(specialties) {
     html += '<span class="bth-pill bth-pill-overflow">+' + overflow + "</span>";
   }
   return '<div class="bth-pill-row">' + html + "</div>";
-}
-
-function escapeHtml(value) {
-  return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
-    if (ch === "&") return "&amp;";
-    if (ch === "<") return "&lt;";
-    if (ch === ">") return "&gt;";
-    if (ch === '"') return "&quot;";
-    return "&#39;";
-  });
 }
 
 // ─── Empty-state predicates ───────────────────────────────────────────

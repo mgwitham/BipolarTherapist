@@ -1,3 +1,5 @@
+import { escapeHtml as esc } from "./escape-html.js";
+
 const API = "/api/admin";
 
 // ---- STATE ----
@@ -10,15 +12,6 @@ const state = {
 };
 
 // ---- UTILS ----
-
-function esc(str) {
-  if (str == null) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 function relTime(dateStr) {
   if (!dateStr) return "";
