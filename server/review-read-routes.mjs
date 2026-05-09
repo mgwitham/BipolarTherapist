@@ -1,3 +1,5 @@
+import { THERAPIST_ADMIN_BY_ID, THERAPIST_ADMIN_BY_SLUG } from "./queries.mjs";
+
 function getEventLane(doc) {
   const eventType = String((doc && doc.eventType) || "");
   if (
@@ -128,19 +130,9 @@ export async function handleReadRoutes(context) {
       return true;
     }
 
-    const doc = await client.fetch(
-      `*[_type == "therapist" && _id == $id][0]{
-        _id, _createdAt, _updatedAt, name, credentials, title, bio, bioPreview, "photo": photo{asset->{url}}, photoSourceType, photoReviewedAt, photoUsagePermissionConfirmed,
-        email, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl,
-        claimStatus, claimedByEmail, claimedAt, portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
-        practiceName, gender, city, state, zip, country, licenseState, licenseNumber,
-        specialties, treatmentModalities, clientPopulations, insuranceAccepted, acceptsTelehealth, acceptsInPerson, acceptingNewPatients,
-        yearsExperience, bipolarYearsExperience, languages, telehealthStates, estimatedWaitTime, careApproach, medicationManagement,
-        verificationStatus, sourceUrl, supportingSourceUrls, sourceReviewedAt, therapistReportedFields, therapistReportedConfirmedAt,
-        fieldReviewStates, sessionFeeMin, sessionFeeMax, slidingScale, listingActive, status, lifecycle, visibilityIntent, notes, auditLog, "slug": slug.current
-      }`,
-      { id: decodeURIComponent(therapistByIdMatch[1]) },
-    );
+    const doc = await client.fetch(THERAPIST_ADMIN_BY_ID, {
+      id: decodeURIComponent(therapistByIdMatch[1]),
+    });
 
     if (!doc) {
       sendJson(response, 404, { error: "Not found." }, origin, config);
@@ -158,19 +150,9 @@ export async function handleReadRoutes(context) {
       return true;
     }
 
-    const doc = await client.fetch(
-      `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, _createdAt, _updatedAt, name, credentials, title, bio, bioPreview, "photo": photo{asset->{url}}, photoSourceType, photoReviewedAt, photoUsagePermissionConfirmed,
-        email, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl,
-        claimStatus, claimedByEmail, claimedAt, portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
-        practiceName, gender, city, state, zip, country, licenseState, licenseNumber,
-        specialties, treatmentModalities, clientPopulations, insuranceAccepted, acceptsTelehealth, acceptsInPerson, acceptingNewPatients,
-        yearsExperience, bipolarYearsExperience, languages, telehealthStates, estimatedWaitTime, careApproach, medicationManagement,
-        verificationStatus, sourceUrl, supportingSourceUrls, sourceReviewedAt, therapistReportedFields, therapistReportedConfirmedAt,
-        fieldReviewStates, sessionFeeMin, sessionFeeMax, slidingScale, listingActive, status, lifecycle, visibilityIntent, notes, auditLog, "slug": slug.current
-      }`,
-      { slug: decodeURIComponent(therapistBySlugMatch[1]) },
-    );
+    const doc = await client.fetch(THERAPIST_ADMIN_BY_SLUG, {
+      slug: decodeURIComponent(therapistBySlugMatch[1]),
+    });
 
     if (!doc) {
       sendJson(response, 404, { error: "Not found." }, origin, config);

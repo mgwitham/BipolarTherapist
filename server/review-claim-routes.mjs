@@ -1,4 +1,5 @@
 import { THERAPIST_SESSION_COOKIE, makeSessionHelpers } from "./review-http-auth.mjs";
+import { THERAPIST_PORTAL_BY_SLUG } from "./queries.mjs";
 
 function normalizeNameForMatch(value) {
   return String(value || "")
@@ -1064,22 +1065,7 @@ export async function handleClaimRoutes(context) {
     // etc. — everything the portal UI needs to render. Previously this
     // returned a slim object and the edit card rendered empty, which
     // also suppressed the review banner (no pre-filled data detected).
-    const therapist = await client.fetch(
-      `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, city, state, zip, practiceName, status, listingActive,
-        claimStatus, claimedByEmail, claimedAt,
-        portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
-        "slug": slug.current,
-        bio, credentials, title, phone, website, bookingUrl,
-        preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation,
-        acceptingNewPatients, acceptsTelehealth, acceptsInPerson,
-        sessionFeeMin, sessionFeeMax, slidingScale,
-        specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
-        careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
-        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount
-      }`,
-      { slug: payload.slug },
-    );
+    const therapist = await client.fetch(THERAPIST_PORTAL_BY_SLUG, { slug: payload.slug });
 
     if (!therapist) {
       sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);

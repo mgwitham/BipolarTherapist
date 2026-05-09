@@ -1,3 +1,4 @@
+import { THERAPIST_PORTAL_BY_SLUG, THERAPIST_PORTAL_SAVE_BY_SLUG } from "./queries.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { appendFunnelEvent } from "./review-analytics-routes.mjs";
@@ -406,22 +407,7 @@ export async function handlePortalProfileRoutes(context) {
       return true;
     }
 
-    const therapist = await client.fetch(
-      `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, city, state, zip, practiceName, status, listingActive,
-        claimStatus, claimedByEmail, claimedAt,
-        portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
-        "slug": slug.current,
-        bio, credentials, title, phone, website, bookingUrl, gender,
-        preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation,
-        acceptingNewPatients, acceptsTelehealth, acceptsInPerson,
-        sessionFeeMin, sessionFeeMax, slidingScale,
-        specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
-        careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
-        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount
-      }`,
-      { slug: session.slug },
-    );
+    const therapist = await client.fetch(THERAPIST_PORTAL_BY_SLUG, { slug: session.slug });
 
     if (!therapist) {
       sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
@@ -711,24 +697,7 @@ export async function handlePortalProfileRoutes(context) {
     patch = patch.set(saveBookkeeping);
     await patch.commit({ visibility: "sync" });
 
-    const updated = await client.fetch(
-      `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, name, email, city, state, zip, practiceName, status, listingActive,
-        claimStatus, claimedByEmail, claimedAt,
-        portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
-        "slug": slug.current,
-        bio, credentials, title, phone, website, bookingUrl, gender,
-        preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation,
-        acceptingNewPatients, acceptsTelehealth, acceptsInPerson,
-        sessionFeeMin, sessionFeeMax, slidingScale,
-        specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
-        careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
-        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount,
-        portalCompletenessScore, portalCompletionFields,
-        "hasPhoto": defined(photo.asset)
-      }`,
-      { slug: session.slug },
-    );
+    const updated = await client.fetch(THERAPIST_PORTAL_SAVE_BY_SLUG, { slug: session.slug });
 
     // Update completeness snapshot async — does not block the response.
     const snapshot = computePortalCompletenessSnapshot(updated);
