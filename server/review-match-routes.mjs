@@ -1,3 +1,20 @@
+import { validateBody } from "./validate.mjs";
+
+const MATCH_REQUEST_SCHEMA = {
+  request_id: { type: "string", required: true, maxLength: 128 },
+  session_id: { type: "string", maxLength: 128 },
+  source_surface: { type: "string", maxLength: 64 },
+  request_summary: { type: "string", maxLength: 2000 },
+};
+
+const MATCH_OUTCOME_SCHEMA = {
+  request_id: { type: "string", maxLength: 128 },
+  therapist_slug: { type: "string", maxLength: 128 },
+  outcome: { type: "string", maxLength: 64 },
+  context_summary: { type: "string", maxLength: 2000 },
+  strategy_snapshot: { type: "string", maxLength: 2000 },
+};
+
 export async function handleMatchRoutes(context) {
   const { client, config, deps, origin, request, response, routePath } = context;
 
@@ -13,6 +30,13 @@ export async function handleMatchRoutes(context) {
   }
 
   const body = await parseBody(request);
+  const schema = routePath === "/match/requests" ? MATCH_REQUEST_SCHEMA : MATCH_OUTCOME_SCHEMA;
+  const validation = validateBody(schema, body);
+  if (!validation.ok) {
+    sendJson(response, 400, { error: validation.error }, origin, config);
+    return true;
+  }
+
   const document =
     routePath === "/match/requests"
       ? buildMatchRequestDocument(body || {})

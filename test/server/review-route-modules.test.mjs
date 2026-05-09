@@ -563,7 +563,7 @@ test("match routes persist public match requests without admin auth", async func
         return {};
       },
       async parseBody() {
-        return { journey_id: "journey-123" };
+        return { request_id: "journey-123", journey_id: "journey-123" };
       },
       sendJson: createSendJson(response),
     },
