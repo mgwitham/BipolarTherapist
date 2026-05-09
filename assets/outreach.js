@@ -151,8 +151,7 @@ function computeStats(list) {
 // then they come back here.
 
 function redirectToAdminLogin() {
-  // Sign in via the existing admin panel, then come back to /outreach.html.
-  window.location.href = "/admin.html";
+  window.location.href = "/admin";
 }
 
 // ---- DASHBOARD SHELL ----
