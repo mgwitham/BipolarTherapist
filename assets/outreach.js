@@ -525,13 +525,13 @@ Michael`,
     subject: `I spent years looking for someone like you`,
     body: `Hi ${first},
 
-I've lived with bipolar disorder for 20 years. Finding a therapist who truly understood it, who got the highs as much as the lows, took far too long. That search shouldn't be that hard.
+I've lived with bipolar disorder for 20 years. Finding a therapist who truly understood it, who got the highs as well as the lows, took far too long. That search shouldn't be that hard.
 
 I built BipolarTherapyHub to close that gap, and I added a profile for you:
 
 ${profileUrl}
 
-Claiming it takes two minutes. No paid rankings, no referral fees. Just the right patients finding you faster.
+Claiming it takes two minutes. No paid rankings, no referral fees. Just better-matched patients finding you, faster.
 
 Michael Witham
 BipolarTherapyHub`,
