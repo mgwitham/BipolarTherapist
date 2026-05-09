@@ -1101,6 +1101,25 @@ var SPECIALTY_OPTIONS = [
 ];
 var TELEHEALTH_STATE_OPTIONS = ["CA", "NY", "TX", "FL", "WA", "CO", "IL", "MA", "OR", "AZ", "NV"];
 
+function renderGenderForm(t) {
+  var current = String(t.gender || "");
+  return (
+    '<div class="td-form">' +
+    '<label class="td-form-row"><span class="td-form-label">Gender</span>' +
+    '<select class="td-input" id="tdcGender">' +
+    '<option value="">Select…</option>' +
+    '<option value="male"' +
+    (current === "male" ? " selected" : "") +
+    ">Male</option>" +
+    '<option value="female"' +
+    (current === "female" ? " selected" : "") +
+    ">Female</option>" +
+    "</select></label>" +
+    '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="gender">Save</button></div>' +
+    "</div>"
+  );
+}
+
 function renderPracticeNameForm(t) {
   return (
     '<div class="td-form">' +
@@ -1227,6 +1246,7 @@ function renderFormBody(field, therapist) {
   if (field.key === "insurance") return renderInsuranceForm(therapist);
   if (field.key === "populations") return renderPopulationsForm(therapist);
   if (field.key === "years") return renderYearsForm(therapist);
+  if (field.key === "gender") return renderGenderForm(therapist);
   if (field.key === "practice_name") return renderPracticeNameForm(therapist);
   if (field.key === "website") return renderWebsiteForm(therapist);
   if (field.key === "languages") return renderLanguagesForm(therapist);
@@ -2011,6 +2031,8 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       payload.bipolar_years_experience = Number(bodyEl.querySelector("#tdcYears").value) || 0;
     } else if (key === "total_years") {
       payload.years_experience = Number(bodyEl.querySelector("#tdcTotalYears").value) || 0;
+    } else if (key === "gender") {
+      payload.gender = String(bodyEl.querySelector("#tdcGender").value || "");
     } else if (key === "practice_name") {
       payload.practice_name = String(bodyEl.querySelector("#tdcPracticeName").value || "").trim();
     } else if (key === "website") {
