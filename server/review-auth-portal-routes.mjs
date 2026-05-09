@@ -390,8 +390,8 @@ function validatePortalTherapistUpdates(body) {
     if (!raw) {
       unsetFields.push("gender");
       touchedBodyKeys.add("gender");
-    } else if (!["male", "female"].includes(raw)) {
-      return { error: "gender must be male or female.", field: "gender" };
+    } else if (!["male", "female", "non_binary"].includes(raw)) {
+      return { error: "gender must be male, female, or non_binary.", field: "gender" };
     } else {
       setFields.gender = raw;
       touchedBodyKeys.add("gender");

@@ -589,7 +589,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     if (filters.gender) {
       chips.push({
         key: "gender",
-        label: filters.gender === "male" ? "Male therapist" : "Female therapist",
+        label:
+          filters.gender === "male"
+            ? "Male therapist"
+            : filters.gender === "female"
+              ? "Female therapist"
+              : "Non-binary therapist",
       });
     }
     if (filters.therapist) {
