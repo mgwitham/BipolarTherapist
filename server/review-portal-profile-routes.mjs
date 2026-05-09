@@ -398,7 +398,19 @@ function validatePortalTherapistUpdates(body) {
 export async function handlePortalProfileRoutes(context) {
   const { client, config, deps, origin, request, requestId, response, routePath, url } = context;
 
-  const { getAuthorizedTherapist, parseBody, readListingRemovalToken, sendJson } = deps;
+  const {
+    getAuthorizedTherapist,
+    parseBody,
+    readListingRemovalToken,
+    refreshTherapistSessionIfStale,
+    sendJson,
+  } = deps;
+
+  // Silently rotate an aging session cookie on every portal request so the
+  // effective window stays sliding rather than expiring at a fixed issuance time.
+  if (refreshTherapistSessionIfStale) {
+    refreshTherapistSessionIfStale(request, response, config);
+  }
 
   if (request.method === "GET" && routePath === "/portal/me") {
     const session = getAuthorizedTherapist(request, config);

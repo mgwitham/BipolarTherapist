@@ -73,6 +73,7 @@ import {
   readAdminSessionFromRequest,
   readSignedPayload,
   recordFailedLogin,
+  refreshTherapistSessionIfStale,
   sendJson,
 } from "./review-http-auth.mjs";
 import { handleOpsRoutes } from "./review-ops-routes.mjs";
@@ -786,6 +787,7 @@ function createReviewRouteModules() {
         readAdminSessionFromRequest,
         recordFailedLogin,
         recordPortalAuthAttempt,
+        refreshTherapistSessionIfStale,
         sendJson,
         sendListingRemovalLink,
         sendPortalClaimLink,
@@ -1002,12 +1004,46 @@ export function createReviewApiHandler(configOverride, clientOverride) {
 
   return async function reviewApiHandler(request, response) {
     const requestId = crypto.randomUUID();
+    const requestStart = Date.now();
     const origin = request.headers.origin || "";
     const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
     const routePath = normalizeRoutePath(url.pathname);
 
+    // Capture the status code written by any sendJson call so we can log it.
+    let capturedStatus = null;
+    const origWriteHead = response.writeHead.bind(response);
+    response.writeHead = function (statusCode, headers) {
+      capturedStatus = statusCode;
+      return origWriteHead(statusCode, headers);
+    };
+
+    log.info("[http] request", { requestId, method: request.method, path: routePath });
+
     if (request.method === "OPTIONS") {
       sendJson(response, 200, { ok: true }, origin, config);
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
+      return;
+    }
+
+    // Health check: cheap Sanity probe so uptime monitors get a real signal.
+    if (routePath === "/health" && request.method === "GET") {
+      const probeStart = Date.now();
+      try {
+        await client.fetch('*[_type == "therapist"][0]{_id}');
+        sendJson(response, 200, { ok: true, latencyMs: Date.now() - probeStart }, origin, config);
+      } catch (err) {
+        log.error("[health] Sanity probe failed", { requestId, err: err?.message || String(err) });
+        sendJson(response, 503, { ok: false, error: "Sanity unreachable" }, origin, config);
+      }
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
       return;
     }
 
@@ -1021,6 +1057,11 @@ export function createReviewApiHandler(configOverride, clientOverride) {
         origin,
         config,
       );
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
       return;
     }
 
@@ -1039,6 +1080,11 @@ export function createReviewApiHandler(configOverride, clientOverride) {
             ...(routeModule.includeUrl ? { url } : {}),
           })
         ) {
+          log.info("[http] response", {
+            requestId,
+            status: capturedStatus,
+            durationMs: Date.now() - requestStart,
+          });
           return;
         }
       }
@@ -1046,6 +1092,11 @@ export function createReviewApiHandler(configOverride, clientOverride) {
       if (!response.writableEnded) {
         sendJson(response, 404, { error: "Not found." }, origin, config);
       }
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
     } catch (error) {
       log.error("[review-api] Unhandled route error", {
         requestId,
@@ -1065,6 +1116,11 @@ export function createReviewApiHandler(configOverride, clientOverride) {
           config,
         );
       }
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
     }
   };
 }

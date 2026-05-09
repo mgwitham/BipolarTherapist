@@ -450,6 +450,30 @@ export function clearFailedLogins(request) {
   loginAttemptStore.delete(clientAddress);
 }
 
+// Rotate the therapist session cookie on every portal request when the token
+// is more than 1 hour old. Keeps the effective window sliding rather than
+// fixed at issuance time, so a therapist editing their listing monthly never
+// gets unexpectedly logged out during a session.
+const SESSION_REFRESH_THRESHOLD_MS = 60 * 60 * 1000;
+
+export function refreshTherapistSessionIfStale(request, response, config) {
+  const token = readSessionToken(request, THERAPIST_SESSION_COOKIE);
+  const payload = readTherapistSession(token, config);
+  if (!payload) return;
+  if (Date.now() - (payload.iat || 0) < SESSION_REFRESH_THRESHOLD_MS) return;
+  const newToken = createTherapistSession(config, {
+    slug: payload.slug,
+    email: payload.email,
+  });
+  const ttl = Number.isFinite(config.therapistSessionTtlMs)
+    ? config.therapistSessionTtlMs
+    : DEFAULT_THERAPIST_SESSION_TTL_MS;
+  response.setHeader(
+    "Set-Cookie",
+    buildSessionCookie(request, THERAPIST_SESSION_COOKIE, newToken, ttl / 1000),
+  );
+}
+
 export function makeSessionHelpers(deps, request, response) {
   function setSessionCookie(name, token, maxAgeSeconds) {
     if (typeof deps.buildSessionCookie !== "function") return;
