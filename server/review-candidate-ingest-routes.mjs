@@ -1,3 +1,5 @@
+import { SUPPORTED_LICENSE_STATES } from "./license-states.mjs";
+
 const MAX_BATCH_SIZE = 50;
 const EXTRACTION_VERSION = "claude-ingest-v1";
 const DEFAULT_SOURCE_TYPE = "manual_research";
@@ -230,7 +232,7 @@ function normalizeIngestRecord(input) {
     title: clampString(input.title, 120),
     practiceName: clampString(input.practice_name || input.practiceName, 160),
     city: clampString(input.city, 120),
-    state: clampString(input.state || "CA", 80),
+    state: clampString(input.state, 80),
     zip: clampString(input.zip, 16),
     licenseState: clampString(input.license_state || input.licenseState, 8),
     licenseNumber: clampString(input.license_number || input.licenseNumber, 40),
@@ -386,7 +388,11 @@ export async function handleCandidateIngestRoutes(context) {
       let licensureVerification = null;
       let confidenceAdjustment = 0;
       let verificationNote = "";
-      if (verifyLicense && normalized.licenseState === "CA" && normalized.licenseNumber) {
+      if (
+        verifyLicense &&
+        SUPPORTED_LICENSE_STATES.has(normalized.licenseState) &&
+        normalized.licenseNumber
+      ) {
         const typeCode = inferLicenseTypeCode(normalized.licenseNumber, normalized.credentials);
         if (typeCode) {
           const result = await verifyLicense(config, typeCode, normalized.licenseNumber);
