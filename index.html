@@ -166,9 +166,10 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap"
       rel="stylesheet"
     />
+    <link rel="stylesheet" href="assets/styles.css" />
     <style>
       *,
       *::before,
@@ -1985,6 +1986,249 @@
           scroll-behavior: auto !important;
         }
       }
+
+      /* --- Step 2a: Hero rebuild --- */
+      .hero {
+        position: relative;
+        overflow: hidden;
+        background: linear-gradient(145deg, #0c2830 0%, #1c4d5c 45%, #26667a 80%, #2d7d96 100%);
+        padding: 80px 40px;
+        min-height: 92vh;
+        display: flex;
+        align-items: center;
+      }
+      .hero-deco {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .hero-deco svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .hero-inner {
+        position: relative;
+        z-index: 2;
+        max-width: 1160px;
+        width: 100%;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 60px;
+        align-items: center;
+      }
+      .hero-eyebrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--teal-300);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        background: rgba(109, 189, 212, 0.12);
+        border: 1px solid rgba(109, 189, 212, 0.25);
+        padding: 6px 14px;
+        border-radius: 20px;
+        margin-bottom: 24px;
+      }
+      .hero-eyebrow svg {
+        width: 12px;
+        height: 12px;
+        flex-shrink: 0;
+      }
+      .hero-h1 {
+        font-family: var(--serif);
+        font-size: clamp(38px, 4.5vw, 58px);
+        color: #fff;
+        line-height: 1.1;
+        margin: 0 0 20px;
+        letter-spacing: -0.02em;
+        font-weight: 400;
+      }
+      .hero-h1 em {
+        font-style: italic;
+        color: var(--teal-300);
+      }
+      .hero-sub {
+        font-size: 17px;
+        color: rgba(255, 255, 255, 0.72);
+        line-height: 1.65;
+        margin: 0 0 32px;
+        max-width: 440px;
+        font-weight: 300;
+      }
+      .hero-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin: 0;
+      }
+      .hero-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 12.5px;
+        color: rgba(255, 255, 255, 0.85);
+        background: rgba(255, 255, 255, 0.09);
+        border: 1px solid rgba(255, 255, 255, 0.16);
+        padding: 6px 14px;
+        border-radius: 20px;
+      }
+      .hero-pill svg {
+        width: 13px;
+        height: 13px;
+        color: var(--teal-300);
+        flex-shrink: 0;
+      }
+      .hero-visual {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .hero-card {
+        background: #fff;
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 24px 64px rgba(0, 0, 0, 0.28);
+        width: 100%;
+        max-width: 460px;
+      }
+      .hero-card-label {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--text-light);
+        text-transform: uppercase;
+        letter-spacing: 0.07em;
+        margin-bottom: 14px;
+      }
+      .hero-field {
+        margin-bottom: 14px;
+      }
+      .hero-field-label {
+        display: block;
+        font-size: 12px;
+        font-weight: 500;
+        color: var(--text-mid);
+        margin-bottom: 6px;
+      }
+      .hero-card select,
+      .hero-card input[type="text"] {
+        width: 100%;
+        border: 1.5px solid #e2eef2;
+        border-radius: 10px;
+        padding: 14px 16px;
+        font-size: 15px;
+        font-family: var(--sans);
+        color: var(--text-dark);
+        background: var(--cream);
+        outline: none;
+        transition:
+          border-color 0.2s,
+          background 0.2s;
+        line-height: 1.2;
+      }
+      .hero-card select:focus,
+      .hero-card input[type="text"]:focus {
+        border-color: var(--teal-400);
+        background: #fff;
+      }
+      .hero-card .search-care-hint {
+        font-size: 12px;
+        color: var(--text-light);
+        margin: 6px 0 0;
+        line-height: 1.4;
+      }
+      .hero-card .zip-resolved {
+        display: block;
+        font-size: 12px;
+        color: var(--text-light);
+        margin-top: 6px;
+        min-height: 1.2em;
+      }
+      .hero-card .zip-helper {
+        font-size: 11.5px;
+        color: var(--text-light);
+        margin-top: 8px;
+      }
+      .hero-card .zip-helper button {
+        background: none;
+        border: none;
+        color: var(--teal-500);
+        font: inherit;
+        padding: 0;
+        cursor: pointer;
+        text-decoration: none;
+      }
+      .hero-card .zip-helper button:hover {
+        text-decoration: underline;
+      }
+      .hero-card .hero-validation-popup {
+        font-size: 12.5px;
+        color: var(--coral-dark);
+        background: var(--coral-light);
+        border: 1px solid rgba(232, 96, 60, 0.25);
+        border-radius: 8px;
+        padding: 10px 12px;
+        margin: 10px 0;
+        display: none;
+      }
+      .hero-card .hero-validation-popup.is-visible {
+        display: block;
+      }
+      .hero-card .search-btn {
+        display: block;
+        width: 100%;
+        margin-top: 6px;
+      }
+      .hero-card-footer {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 14px;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      .hero-card-footer-note {
+        font-size: 11.5px;
+        color: var(--text-light);
+      }
+      .hero-card-footer-link {
+        font-size: 11.5px;
+        color: var(--teal-500);
+        text-decoration: none;
+      }
+      .hero-card-footer-link:hover {
+        text-decoration: underline;
+      }
+
+      @media (max-width: 768px) {
+        .hero {
+          padding: 56px 20px 40px;
+          min-height: auto;
+        }
+        .hero-inner {
+          grid-template-columns: 1fr;
+          gap: 32px;
+        }
+        .hero-h1 {
+          font-size: 34px;
+        }
+        .hero-sub {
+          font-size: 15px;
+          max-width: 100%;
+        }
+        .hero-pill {
+          font-size: 11.5px;
+          padding: 5px 11px;
+        }
+        .hero-card {
+          padding: 20px;
+          max-width: 100%;
+        }
+      }
     </style>
   </head>
   <body>
@@ -2048,43 +2292,115 @@
     </div>
     <main id="main-content">
       <section class="hero" id="startMatch">
-        <h1 class="hero-headline" id="heroTitle">Not every therapist gets bipolar. These do.</h1>
-        <p class="hero-sub">
-          California therapists who specialize in bipolar disorder. A calmer way to find care.
-        </p>
-        <div class="hero-trust-chips" aria-label="What you get">
-          <span class="hero-trust-chip">Bipolar-focused specialists</span>
-          <span class="hero-trust-chip">California licensed, verified</span>
-          <span class="hero-trust-chip">Contact therapists directly. No referral needed.</span>
-          <span class="hero-trust-chip">Free. No account. No insurance.</span>
+        <div class="hero-deco" aria-hidden="true">
+          <svg viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
+            <circle cx="1100" cy="200" r="340" fill="rgba(74,157,181,.07)" />
+            <circle cx="1200" cy="500" r="220" fill="rgba(109,189,212,.05)" />
+            <circle cx="950" cy="650" r="280" fill="rgba(52,127,150,.06)" />
+            <path
+              d="M700 400 Q750 340 800 400 Q850 460 900 400 Q950 340 1000 400 Q1050 460 1100 400 Q1150 340 1200 400"
+              stroke="rgba(109,189,212,.18)"
+              stroke-width="1.5"
+              fill="none"
+            />
+            <path
+              d="M700 430 Q750 370 800 430 Q850 490 900 430 Q950 370 1000 430 Q1050 490 1100 430 Q1150 370 1200 430"
+              stroke="rgba(109,189,212,.1)"
+              stroke-width="1"
+              fill="none"
+            />
+          </svg>
         </div>
-        <div class="tool-shell">
-          <div class="tool-card">
-            <form
-              class="search-box"
-              id="homeSearchForm"
-              action="/match"
-              method="get"
-              novalidate
-              role="search"
-              aria-label="Find bipolar-informed care"
-            >
-              <div class="search-field search-field--prompt">
-                <label for="homepage_interest">What kind of support are you looking for?</label>
-                <select id="homepage_interest">
-                  <option value="therapist" selected>Talk therapy</option>
-                  <option value="psychiatrist">Medication support</option>
-                </select>
-                <p class="search-care-hint" id="searchCareTypeHint" aria-live="polite"></p>
-              </div>
-              <div class="search-field search-field--zip">
-                <label for="location" id="locationLabel">Enter your ZIP code</label>
-                <div class="zip-inline">
+        <div class="hero-inner">
+          <div class="hero-text">
+            <div class="hero-eyebrow">
+              <svg viewBox="0 0 12 12" fill="none" aria-hidden="true">
+                <circle cx="6" cy="6" r="5" stroke="currentColor" stroke-width="1.5" />
+                <circle cx="6" cy="6" r="2" fill="currentColor" />
+              </svg>
+              Bipolar-specialist directory · California
+            </div>
+            <h1 class="hero-h1" id="heroTitle">
+              Not every therapist gets bipolar.<br /><em>These do.</em>
+            </h1>
+            <p class="hero-sub">
+              California therapists who specialize in bipolar disorder. A calmer way to find care.
+            </p>
+            <div class="hero-pills" aria-label="What you get">
+              <span class="hero-pill"
+                ><svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path
+                    d="M2 7L5.5 10.5L12 3.5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  /></svg
+                >Bipolar-focused specialists</span
+              >
+              <span class="hero-pill"
+                ><svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path
+                    d="M2 7L5.5 10.5L12 3.5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  /></svg
+                >California licensed, verified</span
+              >
+              <span class="hero-pill"
+                ><svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path
+                    d="M2 7L5.5 10.5L12 3.5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  /></svg
+                >Contact directly. No referral needed.</span
+              >
+              <span class="hero-pill"
+                ><svg viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                  <path
+                    d="M2 7L5.5 10.5L12 3.5"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  /></svg
+                >Free. No account. No insurance.</span
+              >
+            </div>
+          </div>
+          <div class="hero-visual">
+            <div class="hero-card">
+              <form
+                id="homeSearchForm"
+                action="/match"
+                method="get"
+                novalidate
+                role="search"
+                aria-label="Find bipolar-informed care"
+              >
+                <div class="hero-card-label">Find your specialist</div>
+                <div class="hero-field">
+                  <label for="homepage_interest" class="hero-field-label"
+                    >What kind of support?</label
+                  >
+                  <select id="homepage_interest">
+                    <option value="therapist" selected>Talk therapy</option>
+                    <option value="psychiatrist">Medication support</option>
+                  </select>
+                  <p class="search-care-hint" id="searchCareTypeHint" aria-live="polite"></p>
+                </div>
+                <div class="hero-field">
+                  <label for="location" id="locationLabel" class="hero-field-label">ZIP code</label>
                   <input
                     type="text"
                     id="location"
                     name="location_query"
-                    placeholder="Your ZIP code"
+                    placeholder="Enter ZIP code"
                     inputmode="numeric"
                     autocomplete="postal-code"
                     aria-label="California ZIP code"
@@ -2093,89 +2409,97 @@
                     required
                   />
                   <span class="zip-resolved" id="homeZipResolved" aria-live="polite"></span>
+                  <div class="zip-helper">
+                    California only.
+                    <button type="button" id="waitlistToggle">
+                      Join waitlist for other states →
+                    </button>
+                  </div>
                 </div>
-              </div>
-              <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
-                <div class="hero-validation-list" id="heroValidationList"></div>
-              </div>
-              <input type="hidden" id="homepage_care_intent" name="care_intent" value="" />
-              <input
-                type="hidden"
-                id="homepage_medication_need"
-                name="needs_medication_management"
-                value=""
-              />
-              <div class="search-launch-note">
-                California only.
-                <button type="button" class="search-launch-waitlist" id="waitlistToggle">
-                  Join the waitlist for other states.
+                <div class="hero-validation-popup" id="heroValidationPopup" aria-live="polite">
+                  <div class="hero-validation-list" id="heroValidationList"></div>
+                </div>
+                <input type="hidden" id="homepage_care_intent" name="care_intent" value="" />
+                <input
+                  type="hidden"
+                  id="homepage_medication_need"
+                  name="needs_medication_management"
+                  value=""
+                />
+                <button
+                  type="submit"
+                  class="search-btn btn-primary btn-primary--block"
+                  id="searchButton"
+                >
+                  Find care →
                 </button>
-              </div>
-              <div
-                class="waitlist-panel"
-                id="waitlistPanel"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="waitlistPanelTitle"
-                aria-hidden="true"
-              >
-                <div class="waitlist-panel-card">
-                  <button
-                    type="button"
-                    class="waitlist-panel-close"
-                    id="waitlistClose"
-                    aria-label="Close waitlist"
-                  >
-                    ×
-                  </button>
-                  <div class="waitlist-panel-title" id="waitlistPanelTitle">Join the waitlist</div>
-                  <div class="waitlist-panel-subtitle">
-                    We'll email you when we launch in your state.
-                  </div>
-                  <input type="hidden" id="waitlistCareType" name="care_type" value="" />
-                  <div class="waitlist-panel-row">
-                    <div>
-                      <label for="waitlistEmail">Email address</label>
-                      <input
-                        type="email"
-                        id="waitlistEmail"
-                        placeholder="your@email.com"
-                        autocomplete="email"
-                      />
-                    </div>
-                    <div>
-                      <label for="waitlistState">Your state</label>
-                      <select id="waitlistState">
-                        <option value="">State</option>
-                      </select>
-                    </div>
-                  </div>
-                  <button type="button" class="waitlist-panel-submit" id="waitlistSubmit">
-                    Join waitlist
-                  </button>
-                  <p class="waitlist-panel-privacy">
-                    One email when we launch in your state. Nothing else.
-                  </p>
-                  <div class="waitlist-panel-status" id="waitlistStatus" aria-live="polite"></div>
+                <div class="hero-card-footer">
+                  <span class="hero-card-footer-note">⚡ About 10 seconds. No account.</span>
+                  <a href="/directory" class="hero-card-footer-link">Browse specialists →</a>
                 </div>
-              </div>
-              <div
-                role="status"
-                aria-live="polite"
-                id="searchStatus"
-                style="
-                  position: absolute;
-                  width: 1px;
-                  height: 1px;
-                  overflow: hidden;
-                  clip: rect(0, 0, 0, 0);
-                "
-              ></div>
-              <button type="submit" class="search-btn" id="searchButton">Find care</button>
-            </form>
-            <p class="hero-expectation">About 10 seconds. No account required.</p>
-            <div class="hero-browse-link">
-              <a href="/directory">Or browse specialists instead</a>
+                <div
+                  class="waitlist-panel"
+                  id="waitlistPanel"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="waitlistPanelTitle"
+                  aria-hidden="true"
+                >
+                  <div class="waitlist-panel-card">
+                    <button
+                      type="button"
+                      class="waitlist-panel-close"
+                      id="waitlistClose"
+                      aria-label="Close waitlist"
+                    >
+                      ×
+                    </button>
+                    <div class="waitlist-panel-title" id="waitlistPanelTitle">
+                      Join the waitlist
+                    </div>
+                    <div class="waitlist-panel-subtitle">
+                      We'll email you when we launch in your state.
+                    </div>
+                    <input type="hidden" id="waitlistCareType" name="care_type" value="" />
+                    <div class="waitlist-panel-row">
+                      <div>
+                        <label for="waitlistEmail">Email address</label>
+                        <input
+                          type="email"
+                          id="waitlistEmail"
+                          placeholder="your@email.com"
+                          autocomplete="email"
+                        />
+                      </div>
+                      <div>
+                        <label for="waitlistState">Your state</label>
+                        <select id="waitlistState">
+                          <option value="">State</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button type="button" class="waitlist-panel-submit" id="waitlistSubmit">
+                      Join waitlist
+                    </button>
+                    <p class="waitlist-panel-privacy">
+                      One email when we launch in your state. Nothing else.
+                    </p>
+                    <div class="waitlist-panel-status" id="waitlistStatus" aria-live="polite"></div>
+                  </div>
+                </div>
+                <div
+                  role="status"
+                  aria-live="polite"
+                  id="searchStatus"
+                  style="
+                    position: absolute;
+                    width: 1px;
+                    height: 1px;
+                    overflow: hidden;
+                    clip: rect(0, 0, 0, 0);
+                  "
+                ></div>
+              </form>
             </div>
           </div>
         </div>
