@@ -522,21 +522,19 @@ Michael`,
     };
   }
   return {
-    subject: `Patients in ${city} are searching for bipolar specialists`,
+    subject: `I spent years looking for someone like you`,
     body: `Hi ${first},
 
-Every week, patients across California search for therapists who truly understand bipolar disorder, not just mood issues in general. That search is harder than it should be.
+I've lived with bipolar disorder for 20 years. Finding a therapist who truly understood it, who got the highs as well as the lows, took far too long. That search shouldn't be that hard.
 
-I built BipolarTherapyHub to fix that, and I added a profile for you:
+I built BipolarTherapyHub to close that gap, and I added a profile for you:
 
 ${profileUrl}
 
-It's live and free. To update your bio, photo, fees, or specialties, you can claim it in two clicks. No payment required.
+Claiming it takes two minutes. No paid rankings, no referral fees. Just better-matched patients finding you, faster.
 
-If you'd rather not be listed, just reply and I'll remove it today.
-
-Best,
-Michael`,
+Michael Witham
+BipolarTherapyHub`,
   };
 }
 
