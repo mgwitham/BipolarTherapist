@@ -171,6 +171,11 @@ export function getReviewApiConfig() {
   if (!config.sessionSecret) {
     throw new Error("Missing REVIEW_API_SESSION_SECRET. Set it to a random string in your .env.");
   }
+  if (config.sessionSecret.length < 32) {
+    throw new Error(
+      "REVIEW_API_SESSION_SECRET must be at least 32 characters. Generate one with: node -e \"console.log(require('crypto').randomBytes(32).toString('hex'))\"",
+    );
+  }
 
   return config;
 }

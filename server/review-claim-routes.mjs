@@ -222,7 +222,7 @@ function shapePortalTherapist(therapist) {
 }
 
 export async function handleClaimRoutes(context) {
-  const { client, config, deps, origin, request, response, routePath, url } = context;
+  const { client, config, deps, origin, request, requestId, response, routePath, url } = context;
 
   const {
     canAttemptPortalAuth,
@@ -824,6 +824,7 @@ export async function handleClaimRoutes(context) {
         await deps.notifyAdminOfRecoveryRequest(config, created);
       } catch (error) {
         log.error("Failed to notify admin of quick-claim manual review", {
+          requestId,
           err: error?.message || String(error),
         });
       }
@@ -831,6 +832,7 @@ export async function handleClaimRoutes(context) {
         await deps.notifyTherapistOfRecoveryReceived(config, created);
       } catch (error) {
         log.error("Failed to send review-received confirmation email", {
+          requestId,
           err: error?.message || String(error),
         });
       }
@@ -1030,13 +1032,28 @@ export async function handleClaimRoutes(context) {
       return true;
     }
 
-    await sendPortalClaimLink(
-      config,
-      therapist,
-      requesterEmail,
-      `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
-      { mode: therapist.claimStatus === "claimed" ? "signin" : "claim" },
-    );
+    try {
+      await sendPortalClaimLink(
+        config,
+        therapist,
+        requesterEmail,
+        `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
+        { mode: therapist.claimStatus === "claimed" ? "signin" : "claim" },
+      );
+    } catch (emailError) {
+      log.error("Failed to send portal claim link", {
+        requestId,
+        err: emailError?.message || String(emailError),
+      });
+      sendJson(
+        response,
+        500,
+        { error: "We couldn't send your link right now. Please try again or contact support." },
+        origin,
+        config,
+      );
+      return true;
+    }
 
     await client
       .patch(therapist._id)
@@ -1186,7 +1203,10 @@ export async function handleClaimRoutes(context) {
           `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
         );
       } catch (error) {
-        log.error("Failed to send portal welcome email", { err: error?.message || String(error) });
+        log.error("Failed to send portal welcome email", {
+          requestId,
+          err: error?.message || String(error),
+        });
       }
     }
 
