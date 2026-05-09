@@ -499,19 +499,19 @@ function getTemplateDefaults(template, t) {
   const profileUrl = t.profileUrl || "[your profile URL]";
   if (template === "follow_up") {
     return {
-      subject: `Re: Patients in ${city} are searching for bipolar specialists`,
+      subject: `One more thing about your bipolar patients`,
       body: `Hi ${first},
 
-Quick bump in case the first email got buried. Your bipolar specialist listing is here:
+Someone with bipolar disorder is searching for a specialist right now. They've probably been through a few therapists who didn't understand the full picture. For some of them, you're the right person. They just can't find you yet.
+
+Your profile is still unclaimed:
 
 ${profileUrl}
 
-Free to claim if you want to edit anything, or reply "remove" and I'll take it down.
+Two minutes is all it takes. If it's not for you, just reply and I'll remove it. No more emails after this.
 
-No more emails after this either way.
-
-Best,
-Michael`,
+Michael Witham
+BipolarTherapyHub`,
     };
   }
   return {
