@@ -1253,6 +1253,24 @@ function formatDate(value) {
   return new Date(value).toLocaleString();
 }
 
+const { buildOperatorGuideCard, wrapStatsGroup } = createAdminDashboardCardBuilders({
+  escapeHtml: escapeHtml,
+});
+
+const { getRouteHealthActionItems, queueRouteHealthFollowUp } = createAdminRouteHealthActions({
+  isWebsiteRouteHealthy: isWebsiteRouteHealthy,
+  isBookingRouteHealthy: isBookingRouteHealthy,
+  getTherapistById: function (therapistId) {
+    return (dataMode === "sanity" ? publishedTherapists : getTherapists()).find(function (item) {
+      return String(item && item.id) === String(therapistId);
+    });
+  },
+  reviewerWorkspace: reviewerWorkspace,
+  renderListings: function () {
+    renderListings();
+  },
+});
+
 function buildConfirmationChecklist(item, agenda, preferredPrimaryField) {
   var orderedFields = getPreferredFieldOrder(
     (agenda && agenda.unknown_fields) || [],
