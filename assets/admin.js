@@ -1,3 +1,4 @@
+import "./sentry-init.js";
 import {
   approveApplication,
   getApplications,

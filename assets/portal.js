@@ -1,3 +1,4 @@
+import "./sentry-init.js";
 import "./funnel-analytics.js";
 import { escapeHtml } from "./escape-html.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";

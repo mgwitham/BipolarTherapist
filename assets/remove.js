@@ -1,3 +1,4 @@
+import "./sentry-init.js";
 import { searchTherapistQuickClaim } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { escapeHtml } from "./escape-html.js";

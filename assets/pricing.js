@@ -1,3 +1,4 @@
+import "./sentry-init.js";
 import "./funnel-analytics.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import {

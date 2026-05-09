@@ -1,3 +1,4 @@
+import "./sentry-init.js";
 import { escapeHtml as esc } from "./escape-html.js";
 
 const API = "/api/admin";

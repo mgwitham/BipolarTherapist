@@ -1,3 +1,4 @@
+import "./sentry-init.js";
 import { escapeHtml } from "./escape-html.js";
 import {
   fetchTherapistMe,

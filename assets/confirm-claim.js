@@ -1,3 +1,4 @@
+import "./sentry-init.js";
 import { fetchRecoveryConfirmContext, submitRecoveryConfirmResponse } from "./review-api.js";
 import { escapeHtml } from "./escape-html.js";
 
