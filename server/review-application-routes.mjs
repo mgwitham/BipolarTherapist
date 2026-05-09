@@ -1,3 +1,11 @@
+import { validateBody } from "./validate.mjs";
+
+const INTAKE_SCHEMA = {
+  name: { type: "string", required: true, maxLength: 200 },
+  email: { type: "email", required: true },
+  license_number: { type: "string", required: true, maxLength: 32 },
+};
+
 export async function handleApplicationRoutes(context) {
   const { client, config, deps, origin, request, response, routePath, url } = context;
 
@@ -62,24 +70,20 @@ export async function handleApplicationRoutes(context) {
     recordIntakeAttempt(request);
 
     const body = await parseBody(request);
+    const intakeValidation = validateBody(INTAKE_SCHEMA, body);
+    if (!intakeValidation.ok) {
+      sendJson(response, 400, { error: intakeValidation.error }, origin, config);
+      return true;
+    }
     const name = String(body.name || "").trim();
-    const email = String(body.email || "").trim();
+    const email = String(body.email || "")
+      .trim()
+      .toLowerCase();
     const licenseNumber = String(body.license_number || "")
       .trim()
       .replace(/\s+/g, "");
     const treatsBipolar =
       body.treats_bipolar === true || body.treats_bipolar === "true" || body.treats_bipolar === 1;
-
-    if (!name || !email || !licenseNumber) {
-      sendJson(
-        response,
-        400,
-        { error: "Full name, email, and CA license number are all required." },
-        origin,
-        config,
-      );
-      return true;
-    }
     if (!treatsBipolar) {
       sendJson(
         response,

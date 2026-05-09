@@ -1,6 +1,15 @@
 import crypto from "node:crypto";
 import { sendPortalContactEmail, sendPortalCompletenessNudge } from "./review-email.mjs";
 import { ADMIN_SESSION_COOKIE, THERAPIST_SESSION_COOKIE } from "./review-http-auth.mjs";
+import { validateBody } from "./validate.mjs";
+
+const RECOVERY_REQUEST_SCHEMA = {
+  full_name: { type: "string", required: true, maxLength: 200 },
+  license_number: { type: "string", required: true, maxLength: 32 },
+  requested_email: { type: "email", required: true },
+  prior_email: { type: "email" },
+  reason: { type: "string", maxLength: 2000 },
+};
 
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
@@ -835,10 +844,16 @@ export async function handleAuthAndPortalRoutes(context) {
 
   if (request.method === "POST" && routePath === "/portal/requests") {
     const body = await parseBody(request);
-    const name = String(body.requester_name || "").trim();
-    const email = String(body.requester_email || "").trim();
-    if (!name || !email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-      sendJson(response, 400, { error: "Name and a valid email are required." }, origin, config);
+    const portalRequestValidation = validateBody(
+      {
+        requester_name: { type: "string", required: true, maxLength: 200 },
+        requester_email: { type: "email", required: true },
+        message: { type: "string", maxLength: 2000 },
+      },
+      body,
+    );
+    if (!portalRequestValidation.ok) {
+      sendJson(response, 400, { error: portalRequestValidation.error }, origin, config);
       return true;
     }
     await sendPortalContactEmail(config, body);
@@ -860,6 +875,17 @@ export async function handleAuthAndPortalRoutes(context) {
     if (typeof recordPortalAuthAttempt === "function") recordPortalAuthAttempt(request);
 
     const body = await parseBody(request);
+    const recoveryValidation = validateBody(RECOVERY_REQUEST_SCHEMA, body);
+    if (!recoveryValidation.ok) {
+      sendJson(
+        response,
+        400,
+        { error: recoveryValidation.error, field: recoveryValidation.field },
+        origin,
+        config,
+      );
+      return true;
+    }
     const fullName = String(body.full_name || "").trim();
     const licenseNumber = String(body.license_number || "").trim();
     const requestedEmail = String(body.requested_email || "")
@@ -869,31 +895,6 @@ export async function handleAuthAndPortalRoutes(context) {
       .trim()
       .toLowerCase();
     const reason = String(body.reason || "").trim();
-
-    if (!fullName || !licenseNumber || !requestedEmail) {
-      sendJson(
-        response,
-        400,
-        { error: "Full name, license number, and recovery email are required." },
-        origin,
-        config,
-      );
-      return true;
-    }
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(requestedEmail)) {
-      sendJson(
-        response,
-        400,
-        { error: "Recovery email does not look valid.", field: "requested_email" },
-        origin,
-        config,
-      );
-      return true;
-    }
-    if (fullName.length > 200 || requestedEmail.length > 200 || reason.length > 2000) {
-      sendJson(response, 400, { error: "One of the fields is too long." }, origin, config);
-      return true;
-    }
 
     // Rate limit: max 3 pending requests for the same license.
     const normalizedLicense = normalizeLicenseForMatch(licenseNumber);
