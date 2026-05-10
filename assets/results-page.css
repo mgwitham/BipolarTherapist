@@ -21,6 +21,14 @@
   box-sizing: border-box;
 }
 
+/* The [hidden] attribute must beat our display rules below
+   (.results-skeleton: display:flex, .results-grid: display:grid, etc.
+   — equal specificity, so without !important they would override the
+   browser default that hides [hidden] elements). */
+[hidden] {
+  display: none !important;
+}
+
 html,
 body {
   margin: 0;

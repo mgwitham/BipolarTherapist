@@ -231,6 +231,12 @@ async function bootstrap() {
     return;
   }
 
+  // CA-only directory (MVP). When no care_state is in the URL,
+  // deriveStateFromLocation returns "" because the async zipcodes data
+  // isn't loaded here, and the matching engine's hard-constraint filter
+  // drops every therapist. Default to CA so scoring runs.
+  if (!profile.care_state) profile.care_state = "CA";
+
   showState("loading");
 
   let therapists;
