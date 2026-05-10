@@ -1514,9 +1514,14 @@
       .hero {
         position: relative;
         overflow: hidden;
-        background: linear-gradient(145deg, #0c2830 0%, #1c4d5c 45%, #26667a 80%, #2d7d96 100%);
+        background:
+          radial-gradient(circle, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+          linear-gradient(150deg, #0b2530 0%, #183f4f 40%, #1e5566 75%, #256070 100%);
+        background-size:
+          22px 22px,
+          100% 100%;
         padding: 80px 40px;
-        min-height: 92vh;
+        min-height: calc(100vh - 64px);
         display: flex;
         align-items: center;
       }
@@ -1857,18 +1862,35 @@
       <section class="hero" id="startMatch">
         <div class="hero-deco" aria-hidden="true">
           <svg viewBox="0 0 1400 800" preserveAspectRatio="xMidYMid slice">
-            <circle cx="1100" cy="200" r="340" fill="rgba(74,157,181,.07)" />
-            <circle cx="1200" cy="500" r="220" fill="rgba(109,189,212,.05)" />
-            <circle cx="950" cy="650" r="280" fill="rgba(52,127,150,.06)" />
-            <path
-              d="M700 400 Q750 340 800 400 Q850 460 900 400 Q950 340 1000 400 Q1050 460 1100 400 Q1150 340 1200 400"
-              stroke="rgba(109,189,212,.18)"
-              stroke-width="1.5"
+            <circle
+              cx="1180"
+              cy="120"
+              r="260"
+              stroke="rgba(255,255,255,0.07)"
+              stroke-width="1"
               fill="none"
             />
-            <path
-              d="M700 430 Q750 370 800 430 Q850 490 900 430 Q950 370 1000 430 Q1050 490 1100 430 Q1150 370 1200 430"
-              stroke="rgba(109,189,212,.1)"
+            <circle
+              cx="1180"
+              cy="120"
+              r="400"
+              stroke="rgba(255,255,255,0.055)"
+              stroke-width="1"
+              fill="none"
+            />
+            <circle
+              cx="1180"
+              cy="120"
+              r="540"
+              stroke="rgba(255,255,255,0.04)"
+              stroke-width="1"
+              fill="none"
+            />
+            <circle
+              cx="1180"
+              cy="120"
+              r="680"
+              stroke="rgba(255,255,255,0.025)"
               stroke-width="1"
               fill="none"
             />
