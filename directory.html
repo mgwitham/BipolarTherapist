@@ -449,6 +449,56 @@
             </div>
           </section>
 
+          <!-- Step 5: session fee filter. Number inputs for min/max +
+               sliding scale checkbox. Step 6 moves these into the new
+               drawer / mobile sheet alongside the other secondary filters. -->
+          <section class="dir-vb-section">
+            <div class="dir-vb-section-head">
+              <h3 id="sessionFeePanelTitle">Session fee</h3>
+            </div>
+            <div class="dir-vb-section-body">
+              <div class="dir-fee-range">
+                <label class="dir-fee-range-field">
+                  <span class="dir-fee-range-label">Min</span>
+                  <span class="dir-fee-range-input-wrap">
+                    <span class="dir-fee-range-prefix" aria-hidden="true">$</span>
+                    <input
+                      type="number"
+                      id="session_fee_min"
+                      class="dir-fee-range-input"
+                      inputmode="numeric"
+                      min="0"
+                      step="10"
+                      placeholder="0"
+                      aria-label="Minimum session fee"
+                    />
+                  </span>
+                </label>
+                <span class="dir-fee-range-sep" aria-hidden="true">–</span>
+                <label class="dir-fee-range-field">
+                  <span class="dir-fee-range-label">Max</span>
+                  <span class="dir-fee-range-input-wrap">
+                    <span class="dir-fee-range-prefix" aria-hidden="true">$</span>
+                    <input
+                      type="number"
+                      id="session_fee_max"
+                      class="dir-fee-range-input"
+                      inputmode="numeric"
+                      min="0"
+                      step="10"
+                      placeholder="500"
+                      aria-label="Maximum session fee"
+                    />
+                  </span>
+                </label>
+              </div>
+              <label class="dir-fee-sliding">
+                <input type="checkbox" id="sliding_scale" />
+                <span>Sliding scale available</span>
+              </label>
+            </div>
+          </section>
+
           <section class="dir-vb-section">
             <div class="dir-vb-section-head">
               <h3 id="populationPanelTitle">Population served</h3>

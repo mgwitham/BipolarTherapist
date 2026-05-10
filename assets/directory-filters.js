@@ -7,6 +7,8 @@ export var FILTER_VALUE_KEYS = [
   "bipolar_experience",
   "insurance",
   "gender",
+  "session_fee_min",
+  "session_fee_max",
   "sortBy",
 ];
 
@@ -15,12 +17,17 @@ export var FILTER_VALUE_KEYS = [
 // (?insurance=aetna) keep working. Other keys remain scalar strings.
 export var FILTER_MULTI_VALUE_KEYS = ["specialty", "modality", "population", "insurance"];
 
+// Numeric keys are stored as digit strings (empty string = unset).
+// Filter logic in directory-logic.js coerces to Number for comparison.
+export var FILTER_NUMERIC_VALUE_KEYS = ["session_fee_min", "session_fee_max"];
+
 export var FILTER_BOOLEAN_KEYS = [
   "therapist",
   "psychiatrist",
   "telehealth",
   "in_person",
   "accepting",
+  "sliding_scale",
   "medication_management",
   "responsive_contact",
   "recently_confirmed",
