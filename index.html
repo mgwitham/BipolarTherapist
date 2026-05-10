@@ -911,309 +911,542 @@
       .btn-s:hover {
         background: rgba(255, 255, 255, 0.2);
       }
-      footer {
-        background: var(--navy);
-        color: rgba(255, 255, 255, 0.7);
-        padding: 2.5rem 1.5rem 2rem;
-        text-align: center;
+      /* === Proof strip === */
+      .proof-strip {
+        background: #fff;
+        border-bottom: 1px solid var(--border);
+        padding: 24px 40px;
       }
-      footer .f-logo {
-        font-size: 1rem;
-        font-weight: 700;
-        color: white;
-        margin-bottom: 0.4rem;
-      }
-      footer p {
-        font-size: 0.78rem;
-        margin-bottom: 0.9rem;
-      }
-      footer ul {
+      .proof-inner {
+        max-width: 1160px;
+        margin: 0 auto;
         display: flex;
+        align-items: center;
         justify-content: center;
-        gap: 1.5rem;
-        list-style: none;
-        margin-bottom: 1.5rem;
+        gap: 48px;
         flex-wrap: wrap;
       }
-      footer ul a {
-        color: rgba(255, 255, 255, 0.6);
-        text-decoration: none;
-        font-size: 0.78rem;
-        transition: color 0.2s;
+      .proof-stat {
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
-      footer ul a:hover {
-        color: white;
+      .proof-num {
+        font-family: var(--serif);
+        font-size: 28px;
+        color: var(--teal-600);
+        line-height: 1;
       }
-      footer .disc {
-        font-size: 0.7rem;
-        opacity: 0.5;
-        max-width: 580px;
-        margin: 1.2rem auto 0;
-        line-height: 1.6;
+      .proof-label {
+        font-size: 12.5px;
+        color: var(--text-mid);
+        line-height: 1.4;
+        max-width: 120px;
       }
-      .center-btn {
-        text-align: center;
-        margin-top: 2rem;
+      .proof-divider {
+        width: 1px;
+        height: 36px;
+        background: var(--border);
       }
-      /* Long-scroll homepage sections — below the hero. */
-      .home-section {
-        padding: 4.5rem 1.5rem;
-        border-top: 1px solid var(--border);
+      .proof-quote {
+        font-size: 13px;
+        color: var(--text-mid);
+        font-style: italic;
+        max-width: 320px;
+        line-height: 1.5;
+        padding-left: 16px;
+        border-left: 3px solid var(--teal-300);
       }
-      .home-section-inner {
-        max-width: 1080px;
+      /* === How it works === */
+      .how {
+        background: var(--cream);
+        padding: 96px 40px;
+      }
+      .section-inner {
+        max-width: 1160px;
         margin: 0 auto;
       }
-      .home-section-eyebrow {
-        margin: 0 0 0.5rem;
-        font-size: 0.78rem;
-        font-weight: 700;
+      .section-eyebrow {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--teal-500);
         text-transform: uppercase;
         letter-spacing: 0.1em;
-        color: var(--teal);
+        margin-bottom: 12px;
       }
-      .home-section-title {
-        font-family: "Lora", serif;
-        font-size: clamp(1.65rem, 3vw, 2.2rem);
-        font-weight: 600;
+      .section-h2 {
+        font-family: var(--serif);
+        font-size: clamp(28px, 3vw, 40px);
+        color: var(--text-dark);
+        margin-bottom: 56px;
+        letter-spacing: -0.02em;
+        max-width: 480px;
         line-height: 1.2;
-        color: var(--navy);
-        margin: 0 0 1.75rem;
-        max-width: 760px;
       }
-      .home-section-link {
-        color: var(--teal);
-        font-weight: 700;
-        text-decoration: none;
-      }
-      .home-section-link:hover {
-        color: var(--teal-dark);
-        text-decoration: underline;
-      }
-      /* Section 1 — Why */
-      .home-section--why {
-        background: var(--white);
-        border-top: 0;
-      }
-      .home-why-grid {
+      .steps-grid {
         display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 1.5rem;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 32px;
       }
-      .home-why-card {
-        background: var(--bg);
+      .step-card {
+        background: #fff;
         border: 1px solid var(--border);
         border-radius: 16px;
-        padding: 1.75rem 1.5rem;
+        padding: 32px 28px;
+        transition:
+          box-shadow 0.2s,
+          transform 0.2s;
       }
-      .home-why-icon {
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        background: var(--teal);
-        color: #fff;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 1.05rem;
-        margin-bottom: 1rem;
-      }
-      .home-why-card h3 {
-        font-family: "Lora", serif;
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin: 0 0 0.6rem;
-        color: var(--navy);
-      }
-      .home-why-card p {
-        margin: 0;
-        color: var(--slate);
-        font-size: 0.95rem;
-        line-height: 1.55;
-      }
-      /* Section 2 — How it works */
-      .home-section--how {
-        background: var(--bg);
-      }
-      .home-how-steps {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-        display: grid;
-        grid-template-columns: repeat(3, minmax(0, 1fr));
-        gap: 1.75rem;
-        counter-reset: steps;
-      }
-      .home-how-step {
-        position: relative;
-      }
-      .home-how-num {
-        width: 44px;
-        height: 44px;
-        border-radius: 50%;
-        background: var(--white);
-        border: 2px solid var(--teal);
-        color: var(--teal);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 800;
-        font-size: 1.15rem;
-        margin-bottom: 1rem;
-      }
-      .home-how-step h3 {
-        font-family: "Lora", serif;
-        font-size: 1.2rem;
-        font-weight: 600;
-        margin: 0 0 0.55rem;
-        color: var(--navy);
-      }
-      .home-how-step p {
-        margin: 0;
-        color: var(--slate);
-        font-size: 0.95rem;
-        line-height: 1.55;
-      }
-      .home-how-cta {
-        margin-top: 2rem;
-        font-size: 0.95rem;
-      }
-      /* Section 3 — Educate */
-      .home-section--educate {
-        background: var(--white);
-      }
-      .home-educate-body {
-        max-width: 720px;
-        color: var(--slate);
-        font-size: 1.02rem;
-        line-height: 1.7;
-      }
-      .home-educate-body p {
-        margin: 0 0 1.1rem;
-      }
-      .home-educate-body strong {
-        color: var(--navy);
-      }
-      /* Section 4 — FAQ */
-      .home-section--faq {
-        background: var(--bg);
-      }
-      .home-faq-list {
-        max-width: 780px;
-        display: grid;
-        gap: 0.75rem;
-      }
-      .home-faq-item {
-        background: var(--white);
-        border: 1px solid var(--border);
-        border-radius: 12px;
-        overflow: hidden;
-      }
-      .home-faq-item[open] {
-        border-color: var(--teal);
-      }
-      .home-faq-item summary {
-        cursor: pointer;
-        padding: 1rem 1.2rem;
-        font-weight: 700;
-        color: var(--navy);
-        list-style: none;
-        position: relative;
-        font-size: 1rem;
-      }
-      .home-faq-item summary::-webkit-details-marker {
-        display: none;
-      }
-      .home-faq-item summary::after {
-        content: "+";
-        position: absolute;
-        right: 1.2rem;
-        top: 50%;
-        transform: translateY(-50%);
-        font-size: 1.3rem;
-        font-weight: 400;
-        color: var(--teal);
-      }
-      .home-faq-item[open] summary::after {
-        content: "−";
-      }
-      .home-faq-item p {
-        margin: 0;
-        padding: 0 1.2rem 1.1rem;
-        color: var(--slate);
-        line-height: 1.6;
-        font-size: 0.95rem;
-      }
-      /* Section 5 — Closing CTA */
-      .home-section--closing {
-        background: linear-gradient(180deg, var(--teal) 0%, var(--teal-dark) 100%);
-        color: #fff;
-        text-align: center;
-        padding: 5rem 1.5rem;
-      }
-      .home-closing-inner {
-        max-width: 620px;
-      }
-      .home-section--closing .home-section-title {
-        color: #fff;
-        max-width: none;
-        margin-left: auto;
-        margin-right: auto;
-      }
-      .home-closing-sub {
-        color: #e8f5f8;
-        margin: 0 0 1.75rem;
-        font-size: 1.05rem;
-      }
-      .home-closing-headline {
-        font-family: "Lora", serif;
-        font-size: clamp(1.6rem, 3vw, 2.1rem);
-        font-weight: 600;
-        line-height: 1.3;
-        color: #fff;
-        max-width: none;
-        margin: 0 auto 0.6rem;
-      }
-      .home-closing-btn {
-        display: inline-block;
-        background: #fff;
-        color: var(--teal-dark);
-        font-weight: 700;
-        padding: 0.95rem 1.75rem;
-        border-radius: 12px;
-        text-decoration: none;
-        font-size: 1rem;
-        transition: transform 0.15s ease;
-      }
-      .home-closing-btn:hover {
+      .step-card:hover {
+        box-shadow: 0 8px 32px rgba(52, 127, 150, 0.1);
         transform: translateY(-2px);
       }
-      .footer-patient-row,
-      .footer-therapist-row {
+      .step-num {
+        font-family: var(--serif);
+        font-size: 52px;
+        color: var(--teal-100);
+        line-height: 1;
+        margin-bottom: 16px;
+        display: block;
+      }
+      .step-icon {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: var(--teal-50);
+        border: 1px solid var(--teal-100);
         display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem 1.5rem;
+        align-items: center;
         justify-content: center;
+        margin-bottom: 16px;
+      }
+      .step-icon svg {
+        width: 22px;
+        height: 22px;
+        color: var(--teal-600);
+      }
+      .step-h3 {
+        font-family: var(--serif);
+        font-size: 20px;
+        color: var(--text-dark);
+        margin-bottom: 10px;
+        line-height: 1.25;
+      }
+      .step-body {
+        font-size: 14px;
+        color: var(--text-mid);
+        line-height: 1.65;
+        font-weight: 300;
+      }
+      .steps-cta {
+        margin-top: 40px;
+      }
+      .link-arrow {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 14px;
+        font-weight: 500;
+        color: var(--teal-600);
+        text-decoration: none;
+        transition: gap 0.2s;
+      }
+      .link-arrow:hover {
+        gap: 10px;
+      }
+      /* === Explainer === */
+      .explainer {
+        padding: 96px 40px;
+        background: #fff;
+      }
+      .explainer-grid {
+        max-width: 1160px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 80px;
+        align-items: start;
+      }
+      .explainer-prose p {
+        font-size: 16px;
+        color: var(--text-mid);
+        line-height: 1.75;
+        margin-bottom: 20px;
+        font-weight: 300;
+      }
+      .explainer-checklist {
         list-style: none;
-        padding: 0;
-        margin: 0;
+        margin: 28px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
       }
-      .footer-therapist-row {
-        margin-top: 0.6rem;
-        padding-top: 0.6rem;
-        border-top: 1px solid rgba(255, 255, 255, 0.12);
-        font-size: 0.82rem;
-        opacity: 0.78;
+      .explainer-checklist li {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        font-size: 14.5px;
+        color: var(--text-dark);
+        line-height: 1.5;
       }
-
-      @media (max-width: 860px) {
-        .home-why-grid,
-        .home-how-steps {
-          grid-template-columns: 1fr;
+      .check-icon {
+        width: 22px;
+        height: 22px;
+        border-radius: 50%;
+        background: var(--teal-50);
+        border: 1.5px solid var(--teal-300);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+        margin-top: 1px;
+      }
+      .check-icon svg {
+        width: 12px;
+        height: 12px;
+        color: var(--teal-600);
+      }
+      .callout-card {
+        background: var(--teal-900);
+        border-radius: 20px;
+        padding: 40px 36px;
+        color: #fff;
+      }
+      .callout-card h3 {
+        font-family: var(--serif);
+        font-size: 26px;
+        margin-bottom: 16px;
+        line-height: 1.2;
+      }
+      .callout-card > p {
+        font-size: 13.5px;
+        color: rgba(255, 255, 255, 0.65);
+        line-height: 1.65;
+        margin-bottom: 28px;
+        font-weight: 300;
+      }
+      .callout-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 16px;
+        margin-bottom: 28px;
+      }
+      .callout-stat {
+        background: rgba(255, 255, 255, 0.07);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        padding: 16px;
+      }
+      .callout-stat-num {
+        font-family: var(--serif);
+        font-size: 28px;
+        color: var(--teal-300);
+        line-height: 1;
+        margin-bottom: 4px;
+      }
+      .callout-stat-label {
+        font-size: 11.5px;
+        color: rgba(255, 255, 255, 0.5);
+      }
+      .btn-white {
+        display: block;
+        width: 100%;
+        background: #fff;
+        color: var(--teal-800);
+        font-family: var(--sans);
+        font-size: 14px;
+        font-weight: 600;
+        border: none;
+        border-radius: 10px;
+        padding: 14px;
+        cursor: pointer;
+        text-align: center;
+        text-decoration: none;
+        transition: background 0.2s;
+      }
+      .btn-white:hover {
+        background: var(--teal-50);
+      }
+      /* === FAQ === */
+      .faq {
+        padding: 80px 40px;
+        background: #fff;
+      }
+      .faq-inner {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      .faq-list {
+        margin-top: 40px;
+      }
+      .faq-item {
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        margin-bottom: 10px;
+        overflow: hidden;
+        transition: box-shadow 0.2s;
+      }
+      .faq-item:hover {
+        box-shadow: 0 4px 16px rgba(52, 127, 150, 0.08);
+      }
+      .faq-q {
+        width: 100%;
+        background: none;
+        border: none;
+        padding: 18px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        font-family: var(--sans);
+        font-size: 14.5px;
+        font-weight: 500;
+        color: var(--text-dark);
+        cursor: pointer;
+        text-align: left;
+      }
+      .faq-q svg {
+        width: 18px;
+        height: 18px;
+        color: var(--teal-400);
+        flex-shrink: 0;
+        transition: transform 0.25s;
+      }
+      .faq-item.open .faq-q svg {
+        transform: rotate(45deg);
+      }
+      .faq-a {
+        max-height: 0;
+        overflow: hidden;
+        transition:
+          max-height 0.3s ease,
+          padding 0.3s;
+        font-size: 14px;
+        color: var(--text-mid);
+        line-height: 1.7;
+        font-weight: 300;
+        padding: 0 24px;
+      }
+      .faq-item.open .faq-a {
+        max-height: 300px;
+        padding: 0 24px 20px;
+      }
+      .faq-footer {
+        text-align: center;
+        margin-top: 28px;
+        font-size: 14px;
+        color: var(--text-mid);
+      }
+      .faq-footer a {
+        color: var(--teal-500);
+        text-decoration: none;
+        font-weight: 500;
+      }
+      /* === CTA band === */
+      .cta-band {
+        background: var(--teal-700);
+        padding: 96px 40px;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+      }
+      .cta-band-deco {
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        overflow: hidden;
+      }
+      .cta-band-inner {
+        position: relative;
+        z-index: 2;
+      }
+      .cta-band h2 {
+        font-family: var(--serif);
+        font-size: clamp(32px, 4vw, 52px);
+        color: #fff;
+        line-height: 1.1;
+        margin-bottom: 16px;
+        letter-spacing: -0.02em;
+      }
+      .cta-band > .cta-band-inner > p {
+        font-size: 17px;
+        color: rgba(255, 255, 255, 0.72);
+        margin-bottom: 36px;
+        font-weight: 300;
+      }
+      .btn-cta-white {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: #fff;
+        color: var(--teal-800);
+        font-family: var(--sans);
+        font-size: 15px;
+        font-weight: 600;
+        border: none;
+        border-radius: 10px;
+        padding: 16px 32px;
+        cursor: pointer;
+        text-decoration: none;
+        transition:
+          background 0.2s,
+          transform 0.15s;
+      }
+      .btn-cta-white:hover {
+        background: var(--teal-50);
+        transform: translateY(-2px);
+      }
+      .cta-secondary {
+        display: block;
+        margin-top: 16px;
+        font-size: 13.5px;
+        color: rgba(255, 255, 255, 0.55);
+      }
+      .cta-secondary a {
+        color: rgba(255, 255, 255, 0.75);
+        text-decoration: underline;
+      }
+      /* === Footer === */
+      footer {
+        background: var(--teal-900);
+        padding: 56px 40px 32px;
+        color: rgba(255, 255, 255, 0.6);
+      }
+      .footer-top {
+        max-width: 1160px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr 1fr;
+        gap: 48px;
+        margin-bottom: 48px;
+      }
+      .footer-brand-desc {
+        font-size: 13px;
+        line-height: 1.65;
+        margin-top: 14px;
+        font-weight: 300;
+        max-width: 260px;
+      }
+      .footer-col h4 {
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(255, 255, 255, 0.9);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 16px;
+      }
+      .footer-col a {
+        display: block;
+        font-size: 13.5px;
+        color: rgba(255, 255, 255, 0.5);
+        text-decoration: none;
+        margin-bottom: 10px;
+        transition: color 0.2s;
+      }
+      .footer-col a:hover {
+        color: rgba(255, 255, 255, 0.9);
+      }
+      .footer-bottom {
+        max-width: 1160px;
+        margin: 0 auto;
+        padding-top: 28px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 24px;
+        flex-wrap: wrap;
+      }
+      .footer-legal {
+        font-size: 11.5px;
+        color: rgba(255, 255, 255, 0.35);
+        line-height: 1.6;
+        max-width: 560px;
+      }
+      .footer-crisis {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.5);
+      }
+      .footer-crisis strong {
+        color: rgba(255, 255, 255, 0.8);
+      }
+      /* === Mobile sticky CTA === */
+      .mobile-sticky-cta {
+        display: none;
+      }
+      @media (max-width: 768px) {
+        .proof-strip {
+          padding: 20px;
         }
-        .home-section {
-          padding: 3.25rem 1.25rem;
+        .proof-inner {
+          gap: 20px;
+          flex-direction: column;
+          align-items: flex-start;
+        }
+        .proof-divider {
+          display: none;
+        }
+        .proof-quote {
+          border-left: none;
+          padding-left: 0;
+          border-top: 1px solid var(--border);
+          padding-top: 16px;
+        }
+        .how {
+          padding: 64px 20px;
+        }
+        .steps-grid {
+          grid-template-columns: 1fr;
+          gap: 16px;
+        }
+        .step-card {
+          padding: 24px 20px;
+        }
+        .step-num {
+          font-size: 40px;
+        }
+        .explainer {
+          padding: 64px 20px;
+        }
+        .explainer-grid {
+          grid-template-columns: 1fr;
+          gap: 40px;
+        }
+        .faq {
+          padding: 64px 20px;
+        }
+        .cta-band {
+          padding: 64px 20px;
+        }
+        footer {
+          padding: 48px 20px 80px;
+        }
+        .footer-top {
+          grid-template-columns: 1fr 1fr;
+          gap: 32px;
+        }
+        .footer-bottom {
+          flex-direction: column;
+          gap: 16px;
+        }
+        .mobile-sticky-cta {
+          display: block;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          z-index: 50;
+          background: var(--coral);
+          color: #fff;
+          font-family: var(--sans);
+          font-size: 15px;
+          font-weight: 600;
+          text-align: center;
+          padding: 16px;
+          border: none;
+          cursor: pointer;
+          box-shadow: 0 -4px 20px rgba(232, 96, 60, 0.3);
+          text-decoration: none;
         }
       }
 
@@ -1224,9 +1457,6 @@
         .hero {
           min-height: auto;
           padding: 4rem 1.5rem 3rem;
-        }
-        .home-section {
-          padding: 2.5rem 1.25rem;
         }
         nav {
           height: 56px;
@@ -1848,186 +2078,338 @@
         </div>
       </section>
 
-      <section class="home-section home-section--how" aria-labelledby="how-it-works">
-        <div class="home-section-inner">
-          <p class="home-section-eyebrow">How it works</p>
-          <h2 class="home-section-title" id="how-it-works">
-            Three steps. First matches in 10 seconds.
-          </h2>
-          <ol class="home-how-steps">
-            <li class="home-how-step">
-              <div class="home-how-num">1</div>
-              <h3>Tell us about you</h3>
-              <p>Two questions: care type and ZIP code. No account, no profile, no pressure.</p>
-            </li>
-            <li class="home-how-step">
-              <div class="home-how-num">2</div>
-              <h3>See matched specialists</h3>
-              <p>
-                Ranked by fit: bipolar experience, insurance, availability, distance. Not by who
-                paid the most.
-              </p>
-            </li>
-            <li class="home-how-step">
-              <div class="home-how-num">3</div>
-              <h3>Reach out on your terms</h3>
-              <p>
-                Message, call, or book directly with the therapist. No intermediaries, no automatic
-                intros, no pressure.
-              </p>
-            </li>
-          </ol>
-          <div class="home-how-cta">
-            <a href="#startMatch" class="home-section-link">Start with the guided match →</a>
+      <div class="proof-strip">
+        <div class="proof-inner">
+          <div class="proof-stat">
+            <span class="proof-num">63</span>
+            <span class="proof-label">verified specialists in California</span>
           </div>
-        </div>
-      </section>
-
-      <section class="home-section home-section--educate" aria-labelledby="what-to-look-for">
-        <div class="home-section-inner">
-          <p class="home-section-eyebrow">What to look for</p>
-          <h2 class="home-section-title" id="what-to-look-for">
-            What makes a therapist bipolar-informed?
-          </h2>
-          <div class="home-educate-body">
-            <p>
-              Plenty of therapists list "mood disorders" as a specialty. Fewer have the specific
-              training, supervision, and case volume that bipolar-informed care requires. The
-              difference shows up when symptoms don't fit a textbook: mixed episodes, rapid cycling,
-              postpartum triggers, treatment resistance.
-            </p>
-            <p>
-              Bipolar-informed therapists tend to work in a few recognizable ways. They coordinate
-              with psychiatrists for medication management. They know evidence-based modalities like
-              Interpersonal and Social Rhythm Therapy (IPSRT) and Family-Focused Therapy. They help
-              you spot early warning signs of a mood shift before it becomes an episode. They
-              understand that stability is the long game, not a quick symptom fix.
-            </p>
-            <p>
-              Every profile here surfaces the operational details that actually matter: years
-              treating bipolar specifically, modalities, coordination practices, insurance accepted,
-              estimated wait time. No generic "everything" profiles.
-            </p>
+          <div class="proof-divider"></div>
+          <div class="proof-stat">
+            <span class="proof-num">&lt;48h</span>
+            <span class="proof-label">average first response from therapists</span>
           </div>
-          <p style="margin-top: 1.5rem">
-            <a href="#startMatch" class="home-section-link">Find a bipolar-informed specialist →</a>
+          <div class="proof-divider"></div>
+          <div class="proof-stat">
+            <span class="proof-num">0</span>
+            <span class="proof-label">paid rankings or generalists</span>
+          </div>
+          <div class="proof-divider"></div>
+          <p class="proof-quote">
+            "Finally a therapist who didn't make me explain what bipolar actually feels like."
           </p>
         </div>
+      </div>
+
+      <section class="how" aria-labelledby="how-it-works">
+        <div class="section-inner">
+          <p class="section-eyebrow">How it works</p>
+          <h2 class="section-h2" id="how-it-works">Three steps to your specialist</h2>
+          <div class="steps-grid">
+            <div class="step-card">
+              <span class="step-num">01</span>
+              <div class="step-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <h3 class="step-h3">Tell us about you</h3>
+              <p class="step-body">
+                Two questions: care type and ZIP code. No account, no profile, no pressure. Takes
+                about 10 seconds.
+              </p>
+            </div>
+            <div class="step-card">
+              <span class="step-num">02</span>
+              <div class="step-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <h3 class="step-h3">See matched specialists</h3>
+              <p class="step-body">
+                Ranked by bipolar experience, insurance, availability, and distance. Not by who paid
+                the most.
+              </p>
+            </div>
+            <div class="step-card">
+              <span class="step-num">03</span>
+              <div class="step-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                  <path
+                    d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </div>
+              <h3 class="step-h3">Reach out on your terms</h3>
+              <p class="step-body">
+                Message, call, or book directly. No intermediaries, no automatic intros, no
+                pressure. Your timeline.
+              </p>
+            </div>
+          </div>
+          <div class="steps-cta">
+            <a href="#startMatch" class="link-arrow">Start with the guided match →</a>
+          </div>
+        </div>
       </section>
 
-      <section class="home-section home-section--faq" aria-labelledby="faq">
-        <div class="home-section-inner">
-          <p class="home-section-eyebrow">For patients</p>
-          <h2 class="home-section-title" id="faq">Questions we hear most</h2>
-          <div class="home-faq-list">
-            <details class="home-faq-item" name="faq">
-              <summary>How is this different from Psychology Today?</summary>
+      <section class="explainer" aria-labelledby="what-to-look-for">
+        <div class="explainer-grid">
+          <div class="explainer-prose">
+            <p class="section-eyebrow">What to look for</p>
+            <h2 class="section-h2" id="what-to-look-for" style="margin-bottom: 24px">
+              What makes a therapist bipolar-informed?
+            </h2>
+            <p>
+              Plenty of therapists list "mood disorders" as a specialty. Fewer have the specific
+              training, supervision, and case volume that bipolar-informed care requires.
+            </p>
+            <p>
+              The difference shows up when symptoms don't fit a textbook: mixed episodes, rapid
+              cycling, postpartum triggers, treatment resistance.
+            </p>
+            <ul class="explainer-checklist">
+              <li>
+                <span class="check-icon"
+                  ><svg viewBox="0 0 14 14" fill="none">
+                    <path
+                      d="M2 7L5.5 10.5L12 3.5"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    /></svg
+                ></span>
+                Coordinates with your psychiatrist for medication management
+              </li>
+              <li>
+                <span class="check-icon"
+                  ><svg viewBox="0 0 14 14" fill="none">
+                    <path
+                      d="M2 7L5.5 10.5L12 3.5"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    /></svg
+                ></span>
+                Knows evidence-based modalities like IPSRT and Family-Focused Therapy
+              </li>
+              <li>
+                <span class="check-icon"
+                  ><svg viewBox="0 0 14 14" fill="none">
+                    <path
+                      d="M2 7L5.5 10.5L12 3.5"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    /></svg
+                ></span>
+                Helps you spot early warning signs before an episode develops
+              </li>
+              <li>
+                <span class="check-icon"
+                  ><svg viewBox="0 0 14 14" fill="none">
+                    <path
+                      d="M2 7L5.5 10.5L12 3.5"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    /></svg
+                ></span>
+                Understands stability as the long game, not a quick symptom fix
+              </li>
+            </ul>
+            <a href="#startMatch" class="link-arrow">Find a bipolar-informed specialist →</a>
+          </div>
+          <div>
+            <div class="callout-card">
+              <h3>Every profile surfaces what actually matters</h3>
               <p>
-                Psychology Today is a paid listing where any therapist can claim any specialty. We
-                review every therapist for documented bipolar work before they appear, so
-                generalists claiming everything don't get in. Then the therapist maintains their own
-                profile with the specifics that matter: training, years treating bipolar,
-                modalities, insurance.
+                Years treating bipolar specifically. Modalities. Coordination practices. Insurance
+                accepted. Estimated wait time. No generic "everything" profiles.
               </p>
-            </details>
-            <details class="home-faq-item" name="faq">
-              <summary>Is this free for patients?</summary>
-              <p>Yes, always. Patients pay nothing to search, match, or contact therapists.</p>
-            </details>
-            <details class="home-faq-item" name="faq">
-              <summary>Do I need insurance?</summary>
-              <p>
+              <div class="callout-stats">
+                <div class="callout-stat">
+                  <div class="callout-stat-num">100%</div>
+                  <div class="callout-stat-label">bipolar-specific vetting</div>
+                </div>
+                <div class="callout-stat">
+                  <div class="callout-stat-num">0</div>
+                  <div class="callout-stat-label">paid rankings or generalists</div>
+                </div>
+              </div>
+              <a href="/directory" class="btn-white">Browse the directory →</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="faq" aria-labelledby="faq-heading">
+        <div class="faq-inner">
+          <p class="section-eyebrow">Questions</p>
+          <h2 class="section-h2" id="faq-heading" style="margin-bottom: 0">Common questions</h2>
+          <div class="faq-list">
+            <div class="faq-item open">
+              <button class="faq-q" aria-expanded="true">
+                How is this different from Psychology Today?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+                </svg>
+              </button>
+              <div class="faq-a" role="region">
+                Psychology Today is a paid listing where any therapist can claim any specialty. We
+                only list therapists vetted for bipolar-specific experience — not just "mood
+                disorders" as a checkbox.
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q" aria-expanded="false">
+                Is this free for patients?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+                </svg>
+              </button>
+              <div class="faq-a" role="region">
+                Yes, always. Patients pay nothing to search, match, or contact therapists.
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q" aria-expanded="false">
+                Do I need insurance?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+                </svg>
+              </button>
+              <div class="faq-a" role="region">
                 Not required. Therapists list which insurance plans they accept and whether they
                 offer sliding-scale rates or self-pay. Filter by what applies to you.
-              </p>
-            </details>
-            <details class="home-faq-item" name="faq">
-              <summary>How are therapists vetted?</summary>
-              <p>
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q" aria-expanded="false">
+                How are therapists vetted?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+                </svg>
+              </button>
+              <div class="faq-a" role="region">
                 Every profile is license-verified against the California Department of Consumer
-                Affairs. Bipolar expertise is confirmed through the therapist's listed training,
+                Affairs. Bipolar expertise is confirmed through the therapist's training,
                 bipolar-specific years of experience, treatment modalities, and operational details
-                they personally maintain through a therapist portal.
-              </p>
-            </details>
-            <details class="home-faq-item" name="faq">
-              <summary>What if I also need medication?</summary>
-              <p>
-                Select Psychiatry from the care type dropdown to find psychiatrists and nurse
-                practitioners who manage bipolar medication. Many therapists here also coordinate
-                with prescribers, which you can filter for on the results page.
-              </p>
-            </details>
-            <details class="home-faq-item" name="faq">
-              <summary>Do you have specialists for Bipolar II?</summary>
-              <p>
+                they maintain through a therapist portal.
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q" aria-expanded="false">
+                Do you have specialists for Bipolar II?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+                </svg>
+              </button>
+              <div class="faq-a" role="region">
                 Yes. Every specialist here treats the full bipolar spectrum: Bipolar I, Bipolar II,
                 cyclothymia, and related mood disorders. Many specifically list Bipolar II
                 experience on their profiles.
-              </p>
-            </details>
-            <details class="home-faq-item" name="faq">
-              <summary>How quickly can I get an appointment?</summary>
-              <p>
-                It depends on the therapist. Many profiles list their current wait time. Use the
-                availability filter on the results page to surface therapists who are accepting
-                patients now.
-              </p>
-            </details>
-            <details class="home-faq-item" name="faq">
-              <summary>Is telehealth available?</summary>
-              <p>
-                Many specialists offer telehealth across California. After entering your ZIP, you
-                can filter by telehealth availability on the results page.
-              </p>
-            </details>
+              </div>
+            </div>
+            <div class="faq-item">
+              <button class="faq-q" aria-expanded="false">
+                What if I also need medication?
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 5v14M5 12h14" stroke-linecap="round" />
+                </svg>
+              </button>
+              <div class="faq-a" role="region">
+                Select Psychiatry from the care type dropdown to find psychiatrists and nurse
+                practitioners who manage bipolar medication. Many therapists here also coordinate
+                with prescribers, which you can filter for on the results page.
+              </div>
+            </div>
           </div>
-          <p style="margin-top: 1.5rem; font-size: 0.92rem; color: var(--slate)">
-            Still have questions?
-            <a href="mailto:support@bipolartherapyhub.com" class="home-section-link">Email us →</a>
+          <p class="faq-footer">
+            Still have questions? <a href="mailto:support@bipolartherapyhub.com">Email us →</a>
           </p>
         </div>
       </section>
 
-      <section class="home-section home-section--closing">
-        <div class="home-section-inner home-closing-inner">
-          <p class="home-closing-headline">You've been managing this long enough.</p>
-          <p class="home-closing-sub">Finding the right person takes 10 seconds.</p>
-          <a href="#startMatch" class="home-closing-btn">Find care →</a>
-          <p style="margin-top: 1rem; font-size: 0.82rem; color: rgba(255, 255, 255, 0.78)">
-            Or
-            <a
-              href="/directory"
-              style="color: #fff; text-decoration: underline; text-underline-offset: 3px"
-              >browse the full directory →</a
-            >
-          </p>
+      <section class="cta-band">
+        <div class="cta-band-deco" aria-hidden="true">
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 1400 400"
+            preserveAspectRatio="xMidYMid slice"
+          >
+            <circle cx="200" cy="200" r="300" fill="rgba(255,255,255,.03)" />
+            <circle cx="1200" cy="200" r="250" fill="rgba(255,255,255,.03)" />
+          </svg>
+        </div>
+        <div class="cta-band-inner">
+          <h2>You've been managing this long enough.</h2>
+          <p>Finding the right person takes 10 seconds.</p>
+          <a href="#startMatch" class="btn-cta-white">Find care →</a>
+          <span class="cta-secondary">Or <a href="/directory">browse the full directory</a></span>
         </div>
       </section>
     </main>
 
     <footer>
-      <div class="f-logo">BipolarTherapyHub</div>
-      <p id="footerTagline">
-        Every therapist here is verified for bipolar expertise. No generalists, no paid rankings.
-      </p>
-      <nav aria-label="Footer navigation">
-        <ul class="footer-patient-row">
-          <li><a href="/directory">Find a Therapist</a></li>
-          <li><a href="/about">About</a></li>
-          <li><a href="/privacy">Privacy</a></li>
-          <li><a href="/terms">Terms</a></li>
-        </ul>
-        <ul class="footer-therapist-row">
-          <li><a href="/signup">For Therapists</a></li>
-          <li><a href="/pricing">Pricing</a></li>
-          <li><a href="/claim" id="footerContactLink">Claim a Listing</a></li>
-        </ul>
-      </nav>
-      <div class="disc">
-        BipolarTherapyHub is an information directory only. We do not provide medical advice,
-        diagnoses, or treatment. Always consult a qualified healthcare professional. If you are in
-        crisis, please call or text 988 (Suicide &amp; Crisis Lifeline).
+      <div class="footer-top">
+        <div>
+          <span
+            style="
+              font-family: var(--sans);
+              font-size: 15px;
+              font-weight: 600;
+              color: rgba(255, 255, 255, 0.85);
+            "
+            >BipolarTherapyHub</span
+          >
+          <p class="footer-brand-desc" id="footerTagline">
+            Every therapist here is verified for bipolar expertise. No generalists, no paid
+            rankings.
+          </p>
+        </div>
+        <div class="footer-col">
+          <h4>For Patients</h4>
+          <a href="/directory">Find a Therapist</a>
+          <a href="/directory">Browse Directory</a>
+          <a href="#how-it-works">How It Works</a>
+          <a href="/about">About</a>
+        </div>
+        <div class="footer-col">
+          <h4>For Therapists</h4>
+          <a href="/claim" id="footerContactLink">Claim a Listing</a>
+          <a href="/pricing">Pricing</a>
+          <a href="/signup">Apply to List</a>
+        </div>
+        <div class="footer-col">
+          <h4>Legal</h4>
+          <a href="/privacy">Privacy Policy</a>
+          <a href="/terms">Terms of Use</a>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p class="footer-legal">
+          BipolarTherapyHub is an information directory only. We do not provide medical advice,
+          diagnoses, or treatment. Always consult a qualified healthcare professional. If you are in
+          crisis, please call or text 988 (Suicide &amp; Crisis Lifeline).
+        </p>
+        <p class="footer-crisis">Crisis line: <strong>988</strong></p>
       </div>
     </footer>
 
@@ -2287,6 +2669,26 @@
               submit.disabled = false;
               setStatus("Network error. Try again in a moment.", "error");
             });
+        });
+      })();
+    </script>
+    <a href="#startMatch" class="mobile-sticky-cta">Find care → About 10 seconds</a>
+
+    <script>
+      (function () {
+        document.querySelectorAll(".faq-item .faq-q").forEach(function (btn) {
+          btn.addEventListener("click", function () {
+            var item = btn.closest(".faq-item");
+            var isOpen = item.classList.contains("open");
+            document.querySelectorAll(".faq-item.open").forEach(function (el) {
+              el.classList.remove("open");
+              el.querySelector(".faq-q").setAttribute("aria-expanded", "false");
+            });
+            if (!isOpen) {
+              item.classList.add("open");
+              btn.setAttribute("aria-expanded", "true");
+            }
+          });
         });
       })();
     </script>
