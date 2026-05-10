@@ -472,6 +472,61 @@ function applyTherapistSeo(t) {
 // ─── FAQ items ────────────────────────────────────────────────────────────────
 // Returns [{q, a}] built from live therapist data.
 // Used by both the FAQ section HTML and the FAQPage JSON-LD schema.
+// Step I: substantive answer for "What makes [name] a bipolar specialist?"
+// Pulls from years, evidence-based modalities, care-approach coordination
+// language, and an excerpt of bipolarApproach when present. Falls back to
+// a non-thin generic line if none of those signals are populated.
+function bipolarSpecialistAnswer(t, first) {
+  var parts = [];
+  var years = Number(t.bipolar_years_experience || 0);
+  if (years > 0) {
+    parts.push(
+      first +
+        " has " +
+        years +
+        " years of experience treating bipolar disorder specifically — not just mood disorders in general.",
+    );
+  }
+  var modalitiesList = Array.isArray(t.treatment_modalities) ? t.treatment_modalities : [];
+  if (modalitiesList.length > 0) {
+    var keywords = ["IPSRT", "FFT", "Family-Focused", "DBT", "Interpersonal"];
+    var bipolarMods = modalitiesList.filter(function (m) {
+      var n = String(m || "").toLowerCase();
+      return keywords.some(function (k) {
+        return n.indexOf(k.toLowerCase()) !== -1;
+      });
+    });
+    if (bipolarMods.length > 0) {
+      parts.push(
+        "Their training includes " +
+          bipolarMods.join(", ") +
+          " — evidence-based approaches developed specifically for bipolar care.",
+      );
+    }
+  }
+  if (/coordinat/i.test(String(t.care_approach || ""))) {
+    parts.push(
+      first +
+        " coordinates with psychiatrists on medication management, which is a key marker of bipolar-informed practice.",
+    );
+  }
+  var bipolarApproachText = String(t.bipolar_approach || "").trim();
+  if (bipolarApproachText) {
+    var firstSentence = bipolarApproachText.split(/\.\s/)[0] || bipolarApproachText;
+    firstSentence = firstSentence.trim().replace(/[.\s]+$/, "");
+    if (firstSentence) {
+      parts.push('In their own words: "' + firstSentence + '."');
+    }
+  }
+  if (parts.length === 0) {
+    return (
+      first +
+      " is listed on BipolarTherapyHub because they have been vetted for bipolar-specific experience. Contact them directly to learn more about their approach."
+    );
+  }
+  return parts.join(" ");
+}
+
 function buildFAQItems(t) {
   var name = t.name || "This therapist";
   var first = (t.name || "").split(" ")[0] || "They";
@@ -576,23 +631,13 @@ function buildFAQItems(t) {
     });
   }
 
-  // Q5: Bipolar specialization
-  var modalityNote =
-    modalities.length > 0
-      ? " drawing on " +
-        modalities.slice(0, 3).join(", ") +
-        (modalities.length > 3 ? ", and more" : "") +
-        "."
-      : ".";
+  // Q5: Bipolar specialization. Step I: build a substantive answer from
+  // available Sanity fields (years, modalities, care_approach, bipolar
+  // approach excerpt) so the answer isn't thin when bipolarApproach is
+  // empty.
   items.push({
     q: "What makes " + name + " a bipolar disorder specialist?",
-    a:
-      first +
-      " lists bipolar disorder as a primary specialty and uses evidence-based approaches recognized as effective for mood stabilization" +
-      modalityNote +
-      " " +
-      first +
-      " is listed on Bipolar Therapy Hub, a directory focused exclusively on therapists with verified bipolar expertise.",
+    a: bipolarSpecialistAnswer(t, first),
   });
 
   // Q6: How to schedule
@@ -3016,6 +3061,28 @@ function renderProfile(t, therapistDirectory) {
         : "") +
     "</div>";
 
+  // Step B: Hero pull quote — first sentence of bipolarApproach, capped at
+  // ~120 chars at the nearest word boundary. Renders between the status
+  // row and the name. Skipped if bipolarApproach is empty or the extracted
+  // sentence is too short to be meaningful.
+  var heroPullQuoteHtml = "";
+  var bipolarApproachRaw = String(t.bipolar_approach || "").trim();
+  if (bipolarApproachRaw) {
+    var firstSentence = bipolarApproachRaw.split(/\.\s/)[0] || bipolarApproachRaw;
+    firstSentence = firstSentence.trim().replace(/[.\s]+$/, "");
+    if (firstSentence) firstSentence += ".";
+    if (firstSentence.length > 120) {
+      var trimmed = firstSentence.slice(0, 120);
+      var lastSpace = trimmed.lastIndexOf(" ");
+      if (lastSpace > 60) trimmed = trimmed.slice(0, lastSpace);
+      firstSentence = trimmed.replace(/[\s,;:.—–-]+$/, "") + "…";
+    }
+    if (firstSentence.length > 20) {
+      heroPullQuoteHtml =
+        '<blockquote class="hero-pull-quote">“' + escapeHtml(firstSentence) + "”</blockquote>";
+    }
+  }
+
   var heroTelehealthStates = Array.isArray(t.telehealth_states)
     ? t.telehealth_states.filter(Boolean)
     : [];
@@ -3096,6 +3163,46 @@ function renderProfile(t, therapistDirectory) {
       heroTagsHtml += '<span class="profile-hero-tag-more">+' + modalityOverflow + " more</span>";
     }
     heroTagsHtml += "</div>";
+  }
+
+  // Step A: Match context bar — renders at the very top when the patient
+  // arrived from the results page (sessionStorage was set by the click
+  // handler in match.js). Otherwise nothing renders, so direct visitors
+  // (e.g. from Google) see the page without a results-page reference.
+  var matchContextHtml = "";
+  try {
+    var rawCtx = window.sessionStorage.getItem("bth_match_context");
+    var ctx = rawCtx ? JSON.parse(rawCtx) : null;
+    var ctxReasons = ctx && Array.isArray(ctx.matchReasons) ? ctx.matchReasons.filter(Boolean) : [];
+    if (ctxReasons.length > 0) {
+      var ctxBackHref = "/results";
+      try {
+        var ctxStored = window.sessionStorage.getItem("matchResultsUrl");
+        if (ctxStored) ctxBackHref = ctxStored;
+      } catch (_ctxBackErr) {
+        /* fall back to /results */
+      }
+      var ctxPillsHtml = ctxReasons
+        .map(function (reason) {
+          return '<span class="match-context-pill">' + escapeHtml(String(reason)) + "</span>";
+        })
+        .join("");
+      matchContextHtml =
+        '<div class="match-context-bar" data-profile-match-context>' +
+        '<span class="match-context-label">' +
+        '<i class="ti ti-rosette" aria-hidden="true"></i>' +
+        " Matched for you because" +
+        "</span>" +
+        '<div class="match-context-reasons">' +
+        ctxPillsHtml +
+        "</div>" +
+        '<a href="' +
+        escapeHtml(ctxBackHref) +
+        '" class="match-context-back">See all matches →</a>' +
+        "</div>";
+    }
+  } catch (_matchCtxReadErr) {
+    /* malformed sessionStorage — skip the bar */
   }
 
   // Step 7: Bio card. Truncates to ~280 chars with a Read more / Show less
@@ -3205,10 +3312,39 @@ function renderProfile(t, therapistDirectory) {
       raw: true,
     });
   }
-  // Estimated wait
-  var waitText = String(t.estimated_wait_time || "").trim();
-  if (waitText) {
-    practiceRows.push({ label: "Estimated wait", value: waitText });
+  // Step C: Humanize wait time. Combines availability_posture and
+  // estimated_wait_time into a sentence; row is omitted when neither
+  // is populated. The green dot prefix is added only when accepting.
+  function humanizeWaitTime(doc) {
+    var posture = String(doc.availability_posture || "")
+      .trim()
+      .toLowerCase();
+    var wait = String(doc.estimated_wait_time || "").trim();
+    if (!posture && !wait) return null;
+    var responseMap = {
+      asap: "Typically responds within 24–48 hours",
+      within_week: "Usually responds within a few days",
+      within_month: "New appointments available within a few weeks",
+      waitlist: "Currently has a waitlist — reach out to get added",
+    };
+    var sentence = responseMap[posture] || "";
+    if (wait && !sentence) {
+      sentence = "New patients seen within " + wait;
+    } else if (wait && sentence) {
+      sentence += ". New appointments typically within " + wait;
+    }
+    return sentence || null;
+  }
+  var humanizedWait = humanizeWaitTime(t);
+  if (humanizedWait) {
+    var humanizedHtml = t.accepting_new_patients
+      ? '<span class="profile-detail-avail">' + escapeHtml(humanizedWait) + "</span>"
+      : escapeHtml(humanizedWait);
+    practiceRows.push({
+      label: "Wait time",
+      value: humanizedHtml,
+      raw: true,
+    });
   }
   // Session fee
   var feeMin = fmtUsd(t.session_fee_min);
@@ -3350,14 +3486,24 @@ function renderProfile(t, therapistDirectory) {
     '<div class="profile-reach-draft">' +
     '<div class="profile-reach-draft-label">Written message</div>' +
     '<div class="profile-reach-draft-hint">A calm starting point. Swap in your name or add one personal detail if you\'d like.</div>' +
+    '<div class="draft-personal-wrap">' +
+    '<label class="draft-personal-label" for="draftPersonalNote">Add something personal <span>(optional)</span></label>' +
+    '<textarea id="draftPersonalNote" class="draft-personal-input" rows="2" maxlength="280" placeholder="Anything you’d like ' +
+    escapeHtml(therapistFirstName) +
+    ' to know before you connect — your situation, what you’re looking for, or how you found them."></textarea>' +
+    '<div class="draft-char-count"><span id="draftCharCount">0</span>/280</div>' +
+    "</div>" +
     '<div class="profile-reach-draft-msg" data-profile-draft-text>' +
     draftMessageHtml +
     "</div>" +
     '<div class="profile-reach-draft-foot">' +
     '<button type="button" class="profile-reach-copy" data-profile-copy-draft>' +
-    '<i class="ti ti-copy" aria-hidden="true"></i> Copy message' +
+    '<i class="ti ti-copy" aria-hidden="true"></i> Copy this message' +
     "</button>" +
     "</div>" +
+    '<p class="profile-reach-copy-helper">Then paste it into an email or text to ' +
+    escapeHtml(therapistFirstName) +
+    "</p>" +
     "</div>" +
     reachOutCallScript +
     "</div>";
@@ -3415,6 +3561,27 @@ function renderProfile(t, therapistDirectory) {
       "License verified · " +
       escapeHtml(faqLicenseState + " " + faqLicenseType + " #" + t.license_number) +
       " · California Department of Consumer Affairs" +
+      "</div>";
+  }
+
+  // Step F: Escape valve — gentle "back to your matches" prompt below the
+  // FAQ. Only renders when the match context exists (same gate as the
+  // top context bar). Re-uses the same return URL.
+  var escapeValveHtml = "";
+  if (matchContextHtml) {
+    var escHref = "/results";
+    try {
+      var escStored = window.sessionStorage.getItem("matchResultsUrl");
+      if (escStored) escHref = escStored;
+    } catch (_escErr) {
+      /* fall back */
+    }
+    escapeValveHtml =
+      '<div class="escape-valve">' +
+      '<p class="escape-text">Not sure about this one?</p>' +
+      '<a href="' +
+      escapeHtml(escHref) +
+      '" class="escape-link"><i class="ti ti-arrow-left" aria-hidden="true"></i> See your other matches</a>' +
       "</div>";
   }
 
@@ -3525,10 +3692,34 @@ function renderProfile(t, therapistDirectory) {
     '<span class="profile-side-save-label">Save</span>' +
     "</button>";
 
+  // Step E: Consultation callout — surfaces a green "Free intro call
+  // available" pill in the sidebar when consultation_details is populated
+  // OR when contactGuidance mentions consultation/intro call/15 min.
+  var consultationDetailsText = String(t.consultation_details || "").trim();
+  var consultationFromGuidance =
+    !consultationDetailsText && /consultation|intro call|15[\s-]?min/i.test(contactGuidanceText);
+  var consultCalloutHtml = "";
+  if (consultationDetailsText || consultationFromGuidance) {
+    var consultBody = consultationDetailsText
+      ? consultationDetailsText
+      : "A brief 15-min conversation before committing to a full session.";
+    consultCalloutHtml =
+      '<div class="consult-callout">' +
+      '<i class="ti ti-calendar-check" aria-hidden="true"></i>' +
+      "<div>" +
+      "<strong>Free intro call available</strong>" +
+      "<span>" +
+      escapeHtml(consultBody) +
+      "</span>" +
+      "</div>" +
+      "</div>";
+  }
+
   var sidebarHtml =
     '<div class="profile-side-card">' +
     '<div class="profile-side-eyebrow">Contact</div>' +
     sidePrimaryHtml +
+    consultCalloutHtml +
     (sidePrimaryHtml
       ? '<p class="profile-side-note">After first contact, the next step is usually a brief 15-min consultation before scheduling.</p>'
       : "") +
@@ -3544,11 +3735,13 @@ function renderProfile(t, therapistDirectory) {
     '<div class="profile-hero-main">' +
     '<div class="profile-hero-top">' +
     '<div class="profile-identity">' +
+    matchContextHtml +
     '<div class="card profile-hero-card">' +
     '<div class="profile-hero-top">' +
     heroAvatarHtml +
     '<div class="profile-hero-meta">' +
     heroStatusRow +
+    heroPullQuoteHtml +
     '<h1 class="profile-hero-name">' +
     escapeHtml(t.name) +
     "</h1>" +
@@ -3575,6 +3768,7 @@ function renderProfile(t, therapistDirectory) {
     practiceDetailsHtml +
     reachOutHtml +
     faqCardHtml +
+    escapeValveHtml +
     "</div>" +
     '<div class="profile-hero-right">' +
     sidebarHtml +
@@ -3610,28 +3804,70 @@ function renderProfile(t, therapistDirectory) {
     }
   })();
 
-  // Append mobile sticky bar to body (outside profileWrap so it stays fixed)
-  var existingStickyBar = document.getElementById("profileMobileStickyBar");
+  // Step G: Mobile sticky contact bar — fixed at the bottom of the
+  // viewport on ≤768px. CSS handles show/hide based on viewport. Buttons
+  // mount here outside profileWrap so they stay fixed during scroll.
+  var existingStickyBar = document.getElementById("mobileContactBar");
   if (existingStickyBar) existingStickyBar.remove();
-  var stickyBarHtml = buildMobileStickyBar(t);
-  if (stickyBarHtml) {
-    var stickyContainer = document.createElement("div");
-    stickyContainer.innerHTML = stickyBarHtml;
-    document.body.appendChild(stickyContainer.firstElementChild);
+  var mobilePhone = t.phone ? String(t.phone) : "";
+  var mobileEmail = isRealEmail(t.email) ? String(t.email) : "";
+  var mobilePrimaryHtml = "";
+  if (mobilePhone) {
+    mobilePrimaryHtml =
+      '<button type="button" class="mobile-contact-call" id="mobileCallBtn" data-tel="' +
+      escapeHtml(normalizeTelUri(mobilePhone)) +
+      '">' +
+      '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
+      escapeHtml(therapistFirstName) +
+      "</button>";
+  } else if (mobileEmail) {
+    mobilePrimaryHtml =
+      '<button type="button" class="mobile-contact-call" id="mobileCallBtn" data-mailto="' +
+      escapeHtml(mobileEmail) +
+      '">' +
+      '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
+      escapeHtml(therapistFirstName) +
+      "</button>";
   }
-  // Show mobile sticky bar once hero primary CTA scrolls out of view
-  var heroCta = document.querySelector(".primary-action-frame");
-  var stickyBar = document.getElementById("profileMobileStickyBar");
-  if (heroCta && stickyBar && typeof window.IntersectionObserver === "function") {
-    var stickyObserver = new window.IntersectionObserver(
-      function (entries) {
-        entries.forEach(function (entry) {
-          stickyBar.setAttribute("aria-hidden", entry.isIntersecting ? "true" : "false");
-        });
-      },
-      { threshold: 0.1 },
-    );
-    stickyObserver.observe(heroCta);
+  if (mobilePrimaryHtml) {
+    var stickyContainer = document.createElement("div");
+    stickyContainer.className = "mobile-contact-bar";
+    stickyContainer.id = "mobileContactBar";
+    stickyContainer.innerHTML =
+      mobilePrimaryHtml +
+      '<button type="button" class="mobile-contact-copy" id="mobileCopyBtn">' +
+      '<i class="ti ti-copy" aria-hidden="true"></i> Copy message' +
+      "</button>";
+    document.body.appendChild(stickyContainer);
+    var mobileCallBtn = document.getElementById("mobileCallBtn");
+    if (mobileCallBtn) {
+      mobileCallBtn.addEventListener("click", function () {
+        var tel = this.getAttribute("data-tel");
+        var mail = this.getAttribute("data-mailto");
+        if (tel) window.location.href = "tel:" + tel;
+        else if (mail) window.location.href = "mailto:" + mail;
+      });
+    }
+    var mobileCopyBtn = document.getElementById("mobileCopyBtn");
+    if (mobileCopyBtn) {
+      var mobileCopyDefault = mobileCopyBtn.innerHTML;
+      mobileCopyBtn.addEventListener("click", function () {
+        var msg = document.querySelector("[data-profile-draft-text]");
+        if (!msg) return;
+        var text = msg.innerText || msg.textContent || "";
+        var done = function () {
+          mobileCopyBtn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied';
+          window.setTimeout(function () {
+            mobileCopyBtn.innerHTML = mobileCopyDefault;
+          }, 2000);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, done);
+        } else {
+          done();
+        }
+      });
+    }
   }
 
   bindReportIssueDialog(t);
@@ -3956,14 +4192,39 @@ function renderProfile(t, therapistDirectory) {
       });
     });
 
-  // Step 9: copy-to-clipboard for the reach-out draft, and click-to-dial
-  // for the inline call CTA.
+  // Step 9 + D: copy-to-clipboard for the reach-out draft (with optional
+  // personalization injected before the sign-off), and click-to-dial for
+  // the inline call CTA.
   Array.prototype.slice
     .call(document.querySelectorAll("[data-profile-copy-draft]"))
     .forEach(function (button) {
       var card = button.closest(".profile-reach-card");
       var msgEl = card ? card.querySelector("[data-profile-draft-text]") : null;
       var defaultLabel = button.innerHTML;
+      // Step D: wire the personalization textarea — typing injects a
+      // paragraph before "Thanks so much." and the char counter ticks up.
+      var personalInput = card ? card.querySelector("#draftPersonalNote") : null;
+      var charCount = card ? card.querySelector("#draftCharCount") : null;
+      var baseHtml = msgEl ? msgEl.innerHTML : "";
+      if (personalInput && msgEl) {
+        personalInput.addEventListener("input", function () {
+          var raw = this.value || "";
+          if (charCount) charCount.textContent = String(raw.length);
+          var trimmed = raw.trim();
+          if (trimmed) {
+            var safe = trimmed
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#39;")
+              .replace(/\n/g, "<br>");
+            msgEl.innerHTML = baseHtml.replace("Thanks so much.", safe + "<br><br>Thanks so much.");
+          } else {
+            msgEl.innerHTML = baseHtml;
+          }
+        });
+      }
       button.addEventListener("click", function () {
         if (!msgEl) return;
         var text = msgEl.innerText || msgEl.textContent || "";

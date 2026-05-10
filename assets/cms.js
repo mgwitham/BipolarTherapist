@@ -221,6 +221,7 @@ function normalizeTherapist(doc) {
     care_approach: doc.careApproach || doc.care_approach || "",
     bipolar_approach: doc.bipolarApproach || doc.bipolar_approach || "",
     availability_posture: doc.availabilityPosture || doc.availability_posture || "",
+    consultation_details: doc.consultationDetails || doc.consultation_details || "",
     medication_management:
       doc.medicationManagement !== undefined
         ? Boolean(doc.medicationManagement)
@@ -341,6 +342,7 @@ function normalizeDirectoryTherapist(doc) {
     care_approach: doc.careApproach || doc.care_approach || "",
     bipolar_approach: doc.bipolarApproach || doc.bipolar_approach || "",
     availability_posture: doc.availabilityPosture || doc.availability_posture || "",
+    consultation_details: doc.consultationDetails || doc.consultation_details || "",
     medication_management:
       doc.medicationManagement !== undefined
         ? Boolean(doc.medicationManagement)

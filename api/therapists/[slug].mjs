@@ -658,18 +658,12 @@ ${linkTags}
       <span id="breadcrumbName">${esc(t.name)}</span>
     </div>
 
-    <aside class="ts-claim-banner" id="inPageClaimBanner">
-      <span class="ts-claim-banner-text">Is this your listing?</span>
-      <a href="/claim" id="heroClaimLink" class="ts-claim-banner-cta">Claim your profile →</a>
-    </aside>
-
     <div class="profile-wrap" id="profileWrap" data-ssr-rendered="true">
       ${profileHtml}
     </div>
 
     <footer>
       <p style="margin-bottom:0.4rem"><strong style="color:white">BipolarTherapyHub</strong></p>
-      <p>Is this your listing? <a href="/claim" id="footerClaimLink">Claim or update your listing</a>.</p>
       <p class="footer-legal">
         <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
         <a href="mailto:support@bipolartherapyhub.com">Contact</a>

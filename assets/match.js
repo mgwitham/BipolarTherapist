@@ -6981,6 +6981,56 @@ function refreshIntakeUiFromForm() {
       try {
         window.sessionStorage.setItem(MATCH_RESULTS_URL_KEY, window.location.href);
       } catch (_) {}
+      // Persist a per-therapist match-reason context so the profile page
+      // can render a "Matched for you because" bar at the top. Reasons
+      // are derived from the therapist + the patient's intake (insurance
+      // is the only intake field that maps to a per-card reason today).
+      try {
+        var slugMatch = href.match(/\/therapists\/([^/?#]+)/);
+        var clickedSlug = slugMatch ? decodeURIComponent(slugMatch[1]) : "";
+        var entry = (latestEntries || []).find(function (item) {
+          return item && item.therapist && item.therapist.slug === clickedSlug;
+        });
+        var therapist = entry && entry.therapist;
+        if (therapist) {
+          var profile = latestProfile || {};
+          var insuranceName =
+            profile && typeof profile.insurance === "string" && profile.insurance.trim()
+              ? profile.insurance.trim()
+              : "";
+          var insuranceList = Array.isArray(therapist.insurance_accepted)
+            ? therapist.insurance_accepted
+            : [];
+          var hasInsuranceMatch =
+            insuranceName &&
+            insuranceList.some(function (carrier) {
+              return String(carrier || "")
+                .toLowerCase()
+                .includes(insuranceName.toLowerCase());
+            });
+          var bipolarYears = Number(therapist.bipolar_years_experience || 0);
+          var waitText = String(therapist.estimated_wait_time || "").trim();
+          var reasons = [
+            hasInsuranceMatch ? "Accepts " + insuranceName : null,
+            therapist.accepts_telehealth ? "Telehealth available" : null,
+            bipolarYears > 0 ? bipolarYears + " yrs bipolar experience" : null,
+            waitText ? "Available " + waitText : null,
+            therapist.accepting_new_patients ? "Accepting new patients" : null,
+          ]
+            .filter(Boolean)
+            .slice(0, 4);
+          window.sessionStorage.setItem(
+            "bth_match_context",
+            JSON.stringify({
+              zip: profile && profile.location_query ? profile.location_query : null,
+              careType: null,
+              matchReasons: reasons,
+            }),
+          );
+        }
+      } catch (_matchCtxError) {
+        /* sessionStorage unavailable or unexpected entry shape */
+      }
     }
   });
 })();

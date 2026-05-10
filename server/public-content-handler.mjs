@@ -50,6 +50,7 @@ const PUBLIC_THERAPIST_PROJECTION = `{
   careApproach,
   bipolarApproach,
   availabilityPosture,
+  consultationDetails,
   medicationManagement,
   verificationStatus,
   sourceUrl,

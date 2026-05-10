@@ -185,29 +185,6 @@ nav.profile-nav {
 .breadcrumb a:hover {
   text-decoration: underline;
 }
-.ts-claim-banner {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 14px 32px;
-  background: transparent;
-  border: none;
-  font-size: 12.5px;
-  color: #6b8c96;
-  text-align: center;
-}
-.ts-claim-banner-text {
-  color: #6b8c96;
-}
-.ts-claim-banner-cta {
-  color: #347f96;
-  font-weight: 500;
-  text-decoration: none;
-}
-.ts-claim-banner-cta:hover {
-  text-decoration: underline;
-}
 .profile-wrap {
   max-width: 960px;
   margin: 0 auto;
@@ -3271,4 +3248,266 @@ img.bth-avatar {
   display: block;
   grid-template-columns: none;
   gap: 0;
+}
+
+/* ─── Profile redesign — match context bar (Step A follow-up) ─────────── */
+.match-context-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  background: #ebf7fb;
+  border: 1px solid #6dbdd4;
+  border-radius: 12px;
+  padding: 12px 18px;
+  margin-bottom: 16px;
+}
+.match-context-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #1c4d5c;
+  white-space: nowrap;
+}
+.match-context-label i {
+  font-size: 14px;
+  color: #347f96;
+}
+.match-context-reasons {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  flex: 1;
+  min-width: 0;
+}
+.match-context-pill {
+  font-size: 11px;
+  color: #26667a;
+  background: #d6eff6;
+  border: 1px solid #6dbdd4;
+  border-radius: 20px;
+  padding: 3px 10px;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+.match-context-back {
+  font-size: 12px;
+  color: #347f96;
+  text-decoration: none;
+  white-space: nowrap;
+  margin-left: auto;
+}
+.match-context-back:hover {
+  text-decoration: underline;
+}
+@media (max-width: 768px) {
+  .match-context-bar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px 14px;
+  }
+  .match-context-label {
+    order: 1;
+  }
+  .match-context-reasons {
+    order: 2;
+  }
+  .match-context-back {
+    order: 3;
+    margin-left: 0;
+    text-align: right;
+    padding-top: 4px;
+    border-top: 0.5px solid rgba(109, 189, 212, 0.3);
+  }
+}
+
+/* ─── Profile redesign — hero pull quote (Step B follow-up) ──────────── */
+.hero-pull-quote {
+  font-family: "DM Serif Display", Georgia, serif;
+  font-style: italic;
+  font-size: 16px;
+  color: #26667a;
+  line-height: 1.5;
+  margin: 10px 0 14px;
+  padding-left: 14px;
+  border-left: 3px solid #6dbdd4;
+  border-radius: 0;
+  max-width: 520px;
+}
+
+/* ─── Profile redesign — personal note + copy helper (Step D) ────────── */
+.draft-personal-wrap {
+  margin-bottom: 12px;
+}
+.draft-personal-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #6b8c96;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  display: block;
+  margin-bottom: 6px;
+}
+.draft-personal-label span {
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #6b8c96;
+}
+.draft-personal-input {
+  width: 100%;
+  border: 1.5px solid #e2eaec;
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-family: "DM Sans", system-ui, sans-serif;
+  color: #17323b;
+  background: #fff;
+  resize: none;
+  outline: none;
+  line-height: 1.55;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.draft-personal-input:focus {
+  border-color: #6dbdd4;
+}
+.draft-char-count {
+  font-size: 11px;
+  color: #6b8c96;
+  text-align: right;
+  margin-top: 4px;
+}
+.profile-reach-copy-helper {
+  font-size: 11px;
+  color: #6b8c96;
+  text-align: right;
+  margin: 6px 0 0;
+}
+
+/* ─── Profile redesign — consultation callout (Step E) ───────────────── */
+.consult-callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  background: #d4edd9;
+  border: 1px solid #97c459;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 10px 0;
+}
+.consult-callout i {
+  font-size: 16px;
+  color: #27500a;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.consult-callout strong {
+  font-size: 12px;
+  font-weight: 600;
+  color: #17323b;
+  display: block;
+  margin-bottom: 2px;
+}
+.consult-callout span {
+  font-size: 11.5px;
+  color: #3a5b65;
+  line-height: 1.45;
+}
+
+/* ─── Profile redesign — escape valve (Step F) ──────────────────────── */
+.escape-valve {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #f7f4ef;
+  border-radius: 10px;
+  margin-bottom: 16px;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.escape-text {
+  font-size: 13.5px;
+  color: #6b8c96;
+  margin: 0;
+}
+.escape-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #347f96;
+  text-decoration: none;
+}
+.escape-link i {
+  font-size: 13px;
+}
+.escape-link:hover {
+  text-decoration: underline;
+}
+
+/* ─── Profile redesign — mobile sticky contact bar (Step G) ─────────── */
+.mobile-contact-bar {
+  display: none;
+}
+@media (max-width: 768px) {
+  .mobile-contact-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 200;
+    background: #fff;
+    border-top: 1px solid #e2eaec;
+    padding: 12px 16px;
+    padding-bottom: max(12px, env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  body {
+    padding-bottom: 80px;
+  }
+}
+.mobile-contact-call {
+  background: #e8603c;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: "DM Sans", system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.mobile-contact-call i {
+  font-size: 16px;
+}
+.mobile-contact-copy {
+  background: none;
+  color: #347f96;
+  border: 1.5px solid #6dbdd4;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  font-family: "DM Sans", system-ui, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.mobile-contact-copy i {
+  font-size: 16px;
 }

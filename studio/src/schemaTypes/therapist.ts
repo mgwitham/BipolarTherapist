@@ -349,6 +349,16 @@ export const therapistType = defineType({
       validation: (Rule) => Rule.max(280),
     }),
     defineField({
+      name: "consultationDetails",
+      title: "Consultation details",
+      description:
+        'Free intro / consultation copy (e.g. "15-min phone consult before scheduling"). Surfaces in the patient-facing sidebar callout.',
+      type: "text",
+      rows: 2,
+      group: "trust",
+      validation: (Rule) => Rule.max(280),
+    }),
+    defineField({
       name: "treatmentModalities",
       title: "Treatment modalities",
       type: "array",
