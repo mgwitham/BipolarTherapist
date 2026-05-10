@@ -1,13 +1,6 @@
 import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
 import { renderRoundAvatar } from "./card-content.js";
-import {
-  getDataFreshnessSummary,
-  getEditoriallyVerifiedOperationalCount,
-  getOperationalTrustSummary,
-  getRecentAppliedSummary,
-  getRecentConfirmationSummary,
-  getTherapistMatchReadiness,
-} from "./matching-model.js";
+import { getDataFreshnessSummary, getTherapistMatchReadiness } from "./matching-model.js";
 import {
   getPublicResponsivenessSignal,
   summarizeTherapistContactRouteOutcomes,
@@ -121,7 +114,6 @@ var slug = profileParams.get("slug") || getSlugFromPath(window.location.pathname
 var profileSource = profileParams.get("source") || "";
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 var DIRECTORY_LIST_LIMIT = SAVED_LIST_MAX;
-var SHORTLIST_PRIORITY_OPTIONS = ["Best fit", "Best availability", "Best value"];
 var activeTherapistContactExperimentVariant = "control";
 
 // Strip everything but digits and + so tel: URIs work across iOS, Android,
@@ -709,32 +701,6 @@ function buildFAQSection(t) {
   );
 }
 
-// ─── Jump nav ─────────────────────────────────────────────────────────────────
-function buildJumpNav() {
-  var links = [
-    { id: "section-about", label: "About" },
-    { id: "section-faq", label: "FAQ" },
-  ];
-
-  return (
-    '<nav class="profile-jump-nav" aria-label="Jump to section">' +
-    links
-      .map(function (link) {
-        return (
-          '<a href="#' +
-          link.id +
-          '" class="profile-jump-link" data-section-link="' +
-          link.id +
-          '">' +
-          link.label +
-          "</a>"
-        );
-      })
-      .join("") +
-    "</nav>"
-  );
-}
-
 // ─── Mobile sticky CTA bar ────────────────────────────────────────────────────
 function buildMobileStickyBar(t) {
   var phone = t.phone || null;
@@ -777,210 +743,6 @@ function buildMobileStickyBar(t) {
     "</div>" +
     "</div>"
   );
-}
-
-function renderCompactTagList(items, className, limit, overflowLabel) {
-  var safeItems = (items || []).filter(Boolean);
-  var visibleItems = safeItems.slice(0, limit || safeItems.length);
-  var hiddenCount = Math.max(0, safeItems.length - visibleItems.length);
-
-  return (
-    visibleItems
-      .map(function (item) {
-        return '<span class="' + className + '">' + escapeHtml(item) + "</span>";
-      })
-      .join("") +
-    (hiddenCount
-      ? '<span class="' +
-        className +
-        " " +
-        className +
-        '-overflow">+' +
-        hiddenCount +
-        " more" +
-        (overflowLabel ? " " + escapeHtml(overflowLabel) : "") +
-        "</span>"
-      : "")
-  );
-}
-
-function renderList(items, className) {
-  return (items || [])
-    .filter(Boolean)
-    .map(function (item) {
-      return '<div class="' + className + '">' + escapeHtml(item) + "</div>";
-    })
-    .join("");
-}
-
-function joinNaturalList(items) {
-  var safeItems = (items || []).filter(Boolean);
-  if (!safeItems.length) {
-    return "";
-  }
-  if (safeItems.length === 1) {
-    return safeItems[0];
-  }
-  if (safeItems.length === 2) {
-    return safeItems[0] + " and " + safeItems[1];
-  }
-  return safeItems.slice(0, -1).join(", ") + ", and " + safeItems[safeItems.length - 1];
-}
-
-function formatSourceDate(value) {
-  if (!value) {
-    return "";
-  }
-
-  var date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-
-  return date.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
-}
-
-function getProminentFreshnessSignal(therapist, recentApplied, recentConfirmation, freshness) {
-  if (recentApplied) {
-    return {
-      label: recentApplied.short_label || recentApplied.label,
-      note: recentApplied.note,
-      tone: "fresh",
-    };
-  }
-  if (recentConfirmation) {
-    return {
-      label: recentConfirmation.short_label || recentConfirmation.label,
-      note: recentConfirmation.note,
-      tone: recentConfirmation.tone === "fresh" ? "fresh" : "recent",
-    };
-  }
-  if (freshness) {
-    return {
-      label: freshness.label,
-      note: freshness.note,
-      tone: freshness.status === "fresh" ? "fresh" : "stale",
-    };
-  }
-  return null;
-}
-
-function getSourceHostLabel(value) {
-  if (!value) {
-    return "";
-  }
-
-  try {
-    return new URL(value).hostname.replace(/^www\./, "");
-  } catch (_error) {
-    return "";
-  }
-}
-
-function buildProfileEntryState(source, therapist, backupState) {
-  var value = String(source || "").trim();
-  if (!value) {
-    return {
-      kicker: "Profile handoff",
-      title: "Use this profile to make a stronger first-pass decision.",
-      copy: "This page is built to help you decide quickly whether to contact now, save for later, or keep comparing without reopening the whole directory.",
-      cards: [
-        {
-          label: "What to do here",
-          value:
-            "Check fit, trust, and logistics before you decide whether this is your first outreach.",
-        },
-        {
-          label: "If it does not fit",
-          value:
-            "Return to your list or compare the backup path instead of restarting the whole search.",
-        },
-      ],
-    };
-  }
-
-  if (value === "preview") {
-    return {
-      kicker: "Recommended profile handoff",
-      title: "This profile was surfaced as one of the strongest places to open first.",
-      copy: "Use this screen to confirm whether the recommendation still feels right once you see the trust, logistics, and outreach details together.",
-      cards: [
-        {
-          label: "What to confirm fast",
-          value:
-            "Does the trust and logistics detail here support contacting this therapist before the rest of the list?",
-        },
-        {
-          label: "If it still fits",
-          value: "Move into the recommended outreach path instead of going back to broad browsing.",
-        },
-      ],
-    };
-  }
-
-  if (value === "card_profile" || value === "card_primary") {
-    return {
-      kicker: "Directory handoff",
-      title: "You moved from a saved card into the full profile.",
-      copy: "This is the point where a promising listing becomes a real decision. The sections below are organized to help you validate the card’s promise quickly.",
-      cards: [
-        {
-          label: "What should get clearer",
-          value:
-            "Why this therapist may fit, how credible the profile feels, and what the first outreach should look like.",
-        },
-        {
-          label: "If the promise breaks",
-          value:
-            "Use the list and backup tools here to keep momentum instead of reopening the whole directory.",
-        },
-      ],
-    };
-  }
-
-  if (value === "profile_backup") {
-    return {
-      kicker: "Backup handoff",
-      title: "You are reviewing the backup option in case the first path stalls.",
-      copy: "Treat this page like a pivot screen: decide whether this is a credible second move before you widen the search any further.",
-      cards: [
-        {
-          label: "What matters most",
-          value:
-            "Look for enough trust and practical clarity to justify opening the backup route if timing or fit breaks on the first option.",
-        },
-        {
-          label: "If this works better",
-          value:
-            "Use the contact rail to switch momentum here instead of holding two uncertain paths in your head.",
-        },
-      ],
-    };
-  }
-
-  return {
-    kicker: "Profile handoff",
-    title: "Use this profile to make a stronger first-pass decision.",
-    copy: "This page is built to help you decide quickly whether to contact now, save for later, or keep comparing without reopening the whole directory.",
-    cards: [
-      {
-        label: "What to do here",
-        value:
-          "Check fit, trust, and logistics before you decide whether this is your first outreach.",
-      },
-      {
-        label: "If it does not fit",
-        value:
-          backupState && backupState.backup
-            ? "Review the backup path before widening your search."
-            : "Return to your list and keep the strongest backup in reserve.",
-      },
-    ],
-  };
 }
 
 // buildCallScript and buildOutreachScript are imported from ./outreach-scripts.js
@@ -1265,249 +1027,6 @@ function getContactAnalyticsMeta(therapist, route) {
   };
 }
 
-function getContactTimingGuidance(contactStrategy) {
-  if (!contactStrategy) {
-    return {
-      title: "Review before deciding on contact.",
-      copy: "Use the full profile to decide whether this should become a lead route or stay in reserve.",
-    };
-  }
-
-  if (contactStrategy.confidenceTone === "outcomes") {
-    return {
-      title: "Strong enough to move toward outreach now.",
-      copy: "Past outcomes are doing real work here, so this profile looks more ready for first contact after a quick final review.",
-    };
-  }
-
-  if (contactStrategy.confidenceTone === "behavior") {
-    return {
-      title: "Open now, then decide on first contact.",
-      copy: "Observed route behavior suggests this is close to outreach-ready, but the full profile should still confirm whether it deserves the lead spot.",
-    };
-  }
-
-  return {
-    title: "Pressure-test fit first, then choose whether to contact.",
-    copy: "The route looks usable on profile details alone, but this still works best as a review-first decision before you spend energy reaching out.",
-  };
-}
-
-function clampScore(value) {
-  return Math.max(0, Math.min(100, Math.round(Number(value) || 0)));
-}
-
-function getDecisionTone(score) {
-  if (score >= 80) {
-    return "strong";
-  }
-  if (score >= 60) {
-    return "steady";
-  }
-  return "watch";
-}
-
-function getDecisionLabel(score) {
-  if (score >= 80) {
-    return "Strong";
-  }
-  if (score >= 60) {
-    return "Solid";
-  }
-  return "Needs confirmation";
-}
-
-function buildProfileDecisionSystem(options) {
-  var therapist = options.therapist || {};
-  var readiness = options.readiness || { score: 0 };
-  var freshness = options.freshness || { status: "" };
-  var therapistReportedFields = Array.isArray(options.therapistReportedFields)
-    ? options.therapistReportedFields
-    : [];
-  var responsivenessSignal = options.responsivenessSignal || null;
-  var contactStrategy = options.contactStrategy || null;
-  var sourceReviewedDate = options.sourceReviewedDate || "";
-  var bipolarExperience = Number(therapist.bipolar_years_experience || 0);
-  var explicitBipolarFocus =
-    (therapist.specialties || []).includes("Bipolar I") ||
-    (therapist.specialties || []).includes("Bipolar II");
-  var hasFees = Boolean(
-    therapist.session_fee_min || therapist.session_fee_max || therapist.sliding_scale,
-  );
-  var hasInsurance = Boolean(therapist.insurance_accepted && therapist.insurance_accepted.length);
-  var hasFormat = Boolean(therapist.accepts_telehealth || therapist.accepts_in_person);
-  var fitScore =
-    (explicitBipolarFocus ? 26 : therapist.specialties && therapist.specialties.length ? 14 : 0) +
-    (bipolarExperience >= 8 ? 34 : bipolarExperience >= 3 ? 24 : bipolarExperience ? 14 : 0) +
-    ((therapist.client_populations || []).length ? 12 : 0) +
-    ((therapist.treatment_modalities || []).length ? 10 : 0) +
-    (therapist.medication_management ? 16 : 0);
-  var trustScore =
-    (therapist.verification_status === "editorially_verified" ? 32 : 14) +
-    (sourceReviewedDate ? 18 : 0) +
-    (therapistReportedFields.length ? 18 : 0) +
-    (freshness.status === "fresh" ? 18 : freshness.status ? 10 : 4) +
-    (readiness.score >= 85 ? 14 : readiness.score >= 65 ? 8 : 2);
-  var accessScore =
-    (therapist.accepting_new_patients ? 24 : 10) +
-    (therapist.estimated_wait_time ? 18 : 4) +
-    (hasFormat ? 16 : 4) +
-    (hasInsurance ? 18 : 0) +
-    (hasFees ? 16 : 0) +
-    ((therapist.languages || []).length ? 8 : 0);
-  var actionScore =
-    (contactStrategy && contactStrategy.routeLabel ? 26 : 8) +
-    (contactStrategy && contactStrategy.confidenceTone === "outcomes"
-      ? 26
-      : contactStrategy && contactStrategy.confidenceTone === "behavior"
-        ? 18
-        : 10) +
-    (responsivenessSignal && responsivenessSignal.tone === "positive" ? 20 : 10) +
-    (therapist.preferred_contact_method ? 12 : 6) +
-    (therapist.phone || therapist.email || therapist.website || therapist.booking_url ? 16 : 0);
-
-  fitScore = clampScore(fitScore);
-  trustScore = clampScore(trustScore);
-  accessScore = clampScore(accessScore);
-  actionScore = clampScore(actionScore);
-
-  var overallScore = clampScore((fitScore + trustScore + accessScore + actionScore) / 4);
-  var stanceLabel =
-    overallScore >= 82
-      ? "Ready to contact"
-      : overallScore >= 68
-        ? "Strong list candidate"
-        : overallScore >= 52
-          ? "Worth one focused message"
-          : "Keep as a backup path";
-  var stanceCopy =
-    overallScore >= 82
-      ? "The fit, trust, logistics, and contact signals are aligned well enough that this can be treated like a real lead instead of just another open tab."
-      : overallScore >= 68
-        ? "This profile is carrying enough signal to deserve a spot on your list, but you should still confirm one or two practical details before making it your only next move."
-        : overallScore >= 52
-          ? "The profile is usable, but the smartest move is a short message aimed at the biggest unknowns rather than a full commitment."
-          : "There may still be a fit here, but operational uncertainty is high enough that this works best as a reserve option unless the specialty match is unusually strong.";
-
-  var bestFor = [];
-  if (explicitBipolarFocus || bipolarExperience >= 3) {
-    bestFor.push("People who want clearly documented bipolar-spectrum experience up front.");
-  }
-  if (therapist.medication_management) {
-    bestFor.push(
-      "Anyone who may want medication support or psychiatry coordination in the same path.",
-    );
-  }
-  if (therapist.accepts_telehealth && therapist.accepts_in_person) {
-    bestFor.push("People who want flexibility between telehealth and in-person care.");
-  } else if (therapist.accepts_telehealth) {
-    bestFor.push("People who prefer telehealth or broader location flexibility.");
-  } else if (therapist.accepts_in_person) {
-    bestFor.push("People who want an in-person care option.");
-  }
-  if ((therapist.client_populations || []).length) {
-    bestFor.push(
-      "People looking for support tailored to " +
-        String(therapist.client_populations[0] || "").toLowerCase() +
-        ".",
-    );
-  }
-  if (!bestFor.length) {
-    bestFor.push(
-      "People who are open to confirming fit directly rather than requiring every answer on-page first.",
-    );
-  }
-
-  var confirmFirst = [];
-  if (!therapist.accepting_new_patients || !therapist.estimated_wait_time) {
-    confirmFirst.push("Current opening timeline and whether they are actively taking new clients.");
-  }
-  if (!hasInsurance || !hasFees) {
-    confirmFirst.push(
-      "What your real cost path looks like, including insurance, superbills, or sliding scale.",
-    );
-  }
-  if (!therapistReportedFields.length && freshness.status !== "fresh") {
-    confirmFirst.push("How current the practical details still are before you rely on them.");
-  }
-  if (!confirmFirst.length) {
-    confirmFirst.push(
-      "Personal fit and chemistry, since the operational basics are already more visible than average.",
-    );
-  }
-
-  var managementTitle =
-    overallScore >= 82
-      ? "Treat this like a lead"
-      : overallScore >= 68
-        ? "Save and rank it"
-        : "Keep it organized";
-  var managementCopy =
-    overallScore >= 82
-      ? "Label it, leave one sentence about why it stands out, and move it into outreach instead of re-reviewing it later."
-      : overallScore >= 68
-        ? "Save it with a priority label so you can compare it against one backup without losing your reasoning."
-        : "Use the list note to capture the one thing that keeps this profile alive, then compare it against stronger operational options.";
-
-  return {
-    overallScore: overallScore,
-    scoreLabel: getDecisionLabel(overallScore),
-    stanceLabel: stanceLabel,
-    stanceCopy: stanceCopy,
-    tone: getDecisionTone(overallScore),
-    dimensions: [
-      {
-        label: "Clinical fit",
-        score: fitScore,
-        tone: getDecisionTone(fitScore),
-        summary:
-          fitScore >= 80
-            ? "The specialty signal is strong enough to justify real attention."
-            : fitScore >= 60
-              ? "There is a credible fit story here, but it is not airtight."
-              : "The fit signal is still more implied than proven.",
-      },
-      {
-        label: "Trust signal",
-        score: trustScore,
-        tone: getDecisionTone(trustScore),
-        summary:
-          trustScore >= 80
-            ? "Verification and freshness reduce trust drag meaningfully."
-            : trustScore >= 60
-              ? "There is enough trust to proceed, with a little confirmation."
-              : "Trust is usable, but it still leans on your own validation work.",
-      },
-      {
-        label: "Access clarity",
-        score: accessScore,
-        tone: getDecisionTone(accessScore),
-        summary:
-          accessScore >= 80
-            ? "Timing, format, and cost are more visible than usual."
-            : accessScore >= 60
-              ? "Key logistics are partly visible, but not fully settled."
-              : "Too much of the real-world access path still needs confirmation.",
-      },
-      {
-        label: "Action readiness",
-        score: actionScore,
-        tone: getDecisionTone(actionScore),
-        summary:
-          actionScore >= 80
-            ? "There is a clean first move and a clear fallback if it stalls."
-            : actionScore >= 60
-              ? "You can act here without much confusion."
-              : "The page still needs a more deliberate outreach choice to avoid drift.",
-      },
-    ],
-    bestFor: bestFor.slice(0, 3),
-    confirmFirst: confirmFirst.slice(0, 3),
-    managementTitle: managementTitle,
-    managementCopy: managementCopy,
-  };
-}
-
 function trackDirectoryProfileOpenQuality(therapist, readiness, freshness) {
   if (!profileSource) {
     return;
@@ -1700,54 +1219,6 @@ function buildProfileOutreachQueueState(slugValue) {
   };
 }
 
-function buildProfileFollowThroughItems(latestOutcome, backupState, bestNextStepCopy) {
-  var outcome = latestOutcome ? String(latestOutcome.outcome || "") : "";
-  var backupName =
-    backupState && backupState.therapist && backupState.therapist.name
-      ? backupState.therapist.name
-      : "your backup";
-
-  var replyCopy =
-    outcome === "heard_back"
-      ? "You have a live reply now. Use it to confirm fit, timing, and logistics before you treat this as the clear winner."
-      : outcome === "booked_consult" || outcome === "good_fit_call"
-        ? "A real path is now open here. Stay focused on whether this looks meaningfully better than your backup, not just active."
-        : "If they reply, use that moment to confirm whether this route is actually viable instead of sliding into a vague exchange.";
-  var consultCopy =
-    outcome === "booked_consult" || outcome === "good_fit_call"
-      ? "Go into the consult ready to judge clinical fit, practical fit, and whether the next step feels clear enough to continue."
-      : "If a consult gets booked, compare how concrete the next step feels here versus whether " +
-        backupName +
-        " still deserves to stay warm.";
-  var backupCopy = backupState
-    ? "Keep " +
-      backupName +
-      " warm until this route earns the lead. One good fallback protects momentum without scattering your attention."
-    : "If this route starts to convert, keep one other credible option saved so you are not rebuilding the search if timing slips.";
-
-  return [
-    {
-      label: "If they reply",
-      value: replyCopy,
-      helper:
-        "A strong reply should reduce uncertainty quickly. Look for direct answers on fit, timing, cost, and next step.",
-    },
-    {
-      label: "If a consult gets booked",
-      value: consultCopy,
-      helper:
-        bestNextStepCopy ||
-        "Use the consult to decide whether this deserves the lead spot, not just whether it sounds good in theory.",
-    },
-    {
-      label: "Keep your backup working for you",
-      value: backupCopy,
-      helper:
-        "The goal is calm momentum with insurance. Protect one good fallback instead of reopening the whole search every time a route slows down.",
-    },
-  ];
-}
-
 function getShortlistPriorityRank(value) {
   var normalized = String(value || "").toLowerCase();
   if (normalized === "best fit") {
@@ -1868,49 +1339,6 @@ function buildProfileDecisionMemoryState(slugValue) {
   };
 }
 
-function buildProfileUncertaintyState(therapist, readiness) {
-  var missingFit = !Number(therapist && therapist.bipolar_years_experience);
-  var missingTrust =
-    therapist && therapist.verification_status !== "editorially_verified"
-      ? !therapist.source_reviewed_at && !therapist.therapist_reported_confirmed_at
-      : false;
-  var missingLogistics = !(
-    (therapist && therapist.estimated_wait_time) ||
-    (therapist && therapist.session_fee_min) ||
-    (therapist && therapist.session_fee_max) ||
-    (therapist && therapist.insurance_accepted && therapist.insurance_accepted.length)
-  );
-
-  var unknowns = [];
-  if (missingFit) {
-    unknowns.push("bipolar-specific depth");
-  }
-  if (missingTrust) {
-    unknowns.push("recent source confirmation");
-  }
-  if (missingLogistics) {
-    unknowns.push("timing, fees, or coverage");
-  }
-
-  if (!unknowns.length || (readiness && readiness.score >= 72)) {
-    return null;
-  }
-
-  return {
-    title: "A few decision-critical details are still thin",
-    copy:
-      "The biggest remaining unknowns here are " +
-      joinNaturalList(unknowns) +
-      ". That does not make this a bad option, but it does mean the smartest next move is one focused outreach instead of more page-reading.",
-    actionLabel: "Use the contact plan below",
-    actionCopy:
-      missingLogistics || missingFit
-        ? "Lead with one direct question about fit and one about logistics so you can rule this in or out quickly."
-        : "Use one short message to confirm the missing trust details before investing more time.",
-    tone: "watch",
-  };
-}
-
 function renderQueueActionButtons(queueState) {
   var actions = Array.isArray(queueState && queueState.actions) ? queueState.actions : [];
   if (!actions.length) {
@@ -2019,26 +1447,6 @@ function renderBackupCard(backupState) {
             '">Open backup profile</a>'
           : "")) +
     "</div></div>"
-  );
-}
-
-function renderUncertaintyCard(uncertaintyState) {
-  if (!uncertaintyState) {
-    return "";
-  }
-
-  return (
-    '<div class="profile-uncertainty-card tone-' +
-    escapeHtml(uncertaintyState.tone) +
-    '"><div class="profile-uncertainty-label">How to use this profile well</div><div class="profile-uncertainty-title">' +
-    escapeHtml(uncertaintyState.title) +
-    '</div><div class="profile-uncertainty-copy">' +
-    escapeHtml(uncertaintyState.copy) +
-    '</div><div class="profile-uncertainty-action"><span class="profile-uncertainty-action-label">' +
-    escapeHtml(uncertaintyState.actionLabel) +
-    '</span><span class="profile-uncertainty-action-copy">' +
-    escapeHtml(uncertaintyState.actionCopy) +
-    "</span></div></div>"
   );
 }
 
@@ -2272,117 +1680,11 @@ function bindReportIssueDialog(therapist) {
 function renderProfile(t, therapistDirectory) {
   var readiness = getTherapistMatchReadiness(t);
   var freshness = getDataFreshnessSummary(t);
-  var recentApplied = getRecentAppliedSummary(t);
-  var recentConfirmation = getRecentConfirmationSummary(t);
   var responsivenessSignal = getPublicResponsivenessSignal(t);
   var routePerformance = summarizeTherapistContactRoutePerformance(readFunnelEvents(), t.slug);
   var routeOutcomePerformance = summarizeTherapistContactRouteOutcomes(t);
-  var freshnessSignal = getProminentFreshnessSignal(
-    t,
-    recentApplied,
-    recentConfirmation,
-    freshness,
-  );
-  var decisionMemoryState = buildProfileDecisionMemoryState(t.slug);
-  var uncertaintyState = buildProfileUncertaintyState(t, readiness);
   var backupState = buildProfileBackupState(t, therapistDirectory || []);
-  buildProfileEntryState(profileSource, t, backupState);
-  var outreachQueueState = buildProfileOutreachQueueState(t.slug);
-  var latestOutreachOutcome = getLatestOutreachOutcomeForSlug(t.slug);
   trackDirectoryProfileOpenQuality(t, readiness, freshness);
-  var readinessTitle =
-    readiness.score >= 85
-      ? "High match confidence"
-      : readiness.score >= 65
-        ? "Good match confidence"
-        : "Profile still being completed";
-  var readinessCopy =
-    readiness.score >= 85
-      ? "This profile includes the details people usually need to make a confident save decision."
-      : readiness.score >= 65
-        ? "This profile covers most of the practical and clinical details people usually compare."
-        : "This profile is still lighter than ideal, but there is enough here to judge basic fit and decide whether a first outreach is worth it.";
-  var fitReasons = [];
-  if (t.verification_status === "editorially_verified") {
-    fitReasons.push("editorial verification is in place");
-  }
-  if (getEditoriallyVerifiedOperationalCount(t) >= 2) {
-    fitReasons.push("multiple access details have been editor-verified");
-  }
-  if (Number(t.bipolar_years_experience || 0) >= 8) {
-    fitReasons.push("they have substantial bipolar-specific experience");
-  }
-  if (t.medication_management) {
-    fitReasons.push("they offer medication-management support");
-  }
-  if (t.accepting_new_patients) {
-    fitReasons.push("they appear to be accepting new patients");
-  }
-  if (t.accepts_telehealth) {
-    fitReasons.push("they offer telehealth access");
-  }
-  if (responsivenessSignal && responsivenessSignal.tone === "positive") {
-    fitReasons.push("earlier outreach patterns suggest stronger follow-through");
-  }
-  var likelyFitAudience = [];
-  if (t.medication_management) {
-    likelyFitAudience.push("people who may need psychiatry or medication support");
-  } else if ((t.client_populations || []).length) {
-    likelyFitAudience.push(
-      "people looking for " + String(t.client_populations[0] || "").toLowerCase() + " support",
-    );
-  }
-  if ((t.specialties || []).includes("Bipolar I")) {
-    likelyFitAudience.push("bipolar I care");
-  } else if ((t.specialties || []).includes("Bipolar II")) {
-    likelyFitAudience.push("bipolar II care");
-  } else if ((t.specialties || []).length) {
-    likelyFitAudience.push(String(t.specialties[0] || "").toLowerCase() + " care");
-  }
-  if (t.accepts_telehealth) {
-    likelyFitAudience.push("telehealth access");
-  }
-  var reviewedDetails = [];
-  if (t.verification_status === "editorially_verified") {
-    reviewedDetails.push("license and location");
-    reviewedDetails.push("care format and availability details");
-    reviewedDetails.push("public contact path");
-  }
-  if (t.contact_guidance || t.first_step_expectation) {
-    reviewedDetails.push("first-contact guidance");
-  }
-  var operationalTrustSummary = getOperationalTrustSummary(t);
-  var standoutReasons = [];
-  if (t.verification_status === "editorially_verified") {
-    standoutReasons.push("editorial review is already in place");
-  }
-  if (getEditoriallyVerifiedOperationalCount(t) >= 2) {
-    standoutReasons.push("multiple operational details are editor-verified");
-  }
-  if (Number(t.bipolar_years_experience || 0) >= 8) {
-    standoutReasons.push("bipolar-specific experience is clearly documented");
-  }
-  if (t.medication_management) {
-    standoutReasons.push("psychiatry or medication support is available");
-  }
-  if (t.accepting_new_patients && t.estimated_wait_time) {
-    standoutReasons.push("availability context is clearer than usual");
-  }
-  var standoutCopy = standoutReasons.length
-    ? "What looks especially strong on this profile right now: " +
-      standoutReasons.slice(0, 3).join(", ") +
-      "."
-    : "This profile is most useful for making a quick yes, maybe, or no decision before you spend more time reaching out.";
-  var reachabilityCopy =
-    t.accepting_new_patients && t.estimated_wait_time
-      ? "Reachability looks relatively strong here: the profile shows a clear contact path, indicates new-patient availability, and includes a recent availability note suggesting " +
-        t.estimated_wait_time.toLowerCase() +
-        " timing."
-      : t.accepting_new_patients
-        ? "Reachability looks relatively strong here: the profile suggests this clinician is accepting new patients and gives a clear next step."
-        : t.estimated_wait_time
-          ? "Reachability is partly clear here: the profile includes availability context, but live openings should still be confirmed directly."
-          : "Reachability is decent here: the contact path is clear, even if live timing still needs a quick confirmation.";
   document.title = t.name + " — BipolarTherapyHub";
   applyTherapistSeo(t);
   document.getElementById("breadcrumbName").textContent = t.name;
@@ -2414,13 +1716,6 @@ function renderProfile(t, therapistDirectory) {
     footerClaimLink.href = claimHref;
   }
 
-  var initials = (t.name || "")
-    .split(" ")
-    .map(function (n) {
-      return n[0];
-    })
-    .join("")
-    .substring(0, 2);
   var avatar = renderRoundAvatar(t, "profile");
 
   function isRealEmail(email) {
@@ -2494,32 +1789,9 @@ function renderProfile(t, therapistDirectory) {
   var contactGuidance = String(t.contact_guidance || "").trim();
   var therapistFirstName = (t.name || "").split(" ")[0] || t.name || "this therapist";
   var firstStepExpectation = String(t.first_step_expectation || "").trim();
-  var therapistReportedFields = Array.isArray(t.therapist_reported_fields)
-    ? t.therapist_reported_fields
-    : [];
-  var therapistReportedDate = formatSourceDate(t.therapist_reported_confirmed_at);
-  var sourceReviewedDate = formatSourceDate(t.source_reviewed_at);
-  var sourceHost = getSourceHostLabel(t.source_host);
-  var supportingSourceCount = Number(t.supporting_source_count || 0);
-  var totalExperience = Number(t.years_experience || 0);
-  var bipolarExperience = Number(t.bipolar_years_experience || 0);
-  var quickFitItems = [];
-  var bipolarTrustItems = [];
-  var practicalDetailsItems = [];
-  var contactChecklistItems = [];
   var contactQuestionItems = [];
   var bookingHealthy = isBookingRouteHealthy(t);
   var websiteHealthy = isWebsiteRouteHealthy(t);
-  var contactRouteLabel =
-    t.preferred_contact_method === "booking"
-      ? "Use the booking link"
-      : t.preferred_contact_method === "website" && websiteHealthy
-        ? "Reach out through the practice website"
-        : t.preferred_contact_method === "phone"
-          ? "Call the practice"
-          : t.preferred_contact_method === "email"
-            ? "Email the therapist"
-            : "Reach out using the listed contact method";
   function buildPreferredContactButton() {
     if (t.preferred_contact_method === "booking" && t.booking_url && bookingHealthy) {
       return (
@@ -2619,39 +1891,6 @@ function renderProfile(t, therapistDirectory) {
       '" target="_blank" rel="noopener noreferrer" class="btn-website" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
   }
 
-  var insTags = renderList(t.insurance_accepted, "ins-item");
-  var langPills = renderCompactTagList(t.languages || ["English"], "lang-pill", 3);
-  var telehealthStates = renderCompactTagList(t.telehealth_states, "lang-pill", 4);
-
-  var sourceReviewCopy = sourceReviewedDate
-    ? "This profile was last reviewed against public sources on " +
-      sourceReviewedDate +
-      (sourceHost ? ", with " + sourceHost + " as the primary source" : "") +
-      (supportingSourceCount
-        ? " and " +
-          supportingSourceCount +
-          " supporting source" +
-          (supportingSourceCount > 1 ? "s" : "")
-        : "") +
-      "."
-    : "";
-  var feesHtml = "";
-  if (t.session_fee_min || t.session_fee_max) {
-    feesHtml =
-      '<div class="fee-range">$' +
-      escapeHtml(t.session_fee_min || "") +
-      (t.session_fee_max ? "–$" + escapeHtml(t.session_fee_max) : "") +
-      "/session</div>";
-    if (t.sliding_scale) {
-      feesHtml += '<div class="fee-note">Sliding scale available</div>';
-    }
-  } else if (t.sliding_scale) {
-    feesHtml =
-      '<div class="fee-note">Sliding scale is available. Reach out for the current fee range.</div>';
-  } else {
-    feesHtml =
-      '<div class="fee-note">Fee details are not listed here yet, so cost is worth confirming in your first message.</div>';
-  }
   var bestNextStepCopy =
     firstStepExpectation ||
     (t.preferred_contact_method === "email"
@@ -2666,120 +1905,7 @@ function renderProfile(t, therapistDirectory) {
     routeOutcomePerformance,
   );
   var outreachScript = buildOutreachScript(t, contactStrategy);
-  var shortlistCompareUrl = buildShortlistCompareUrl();
-  var outreachQueueUrl = buildOutreachQueueUrl(t.slug);
-  var decisionSystem = buildProfileDecisionSystem({
-    therapist: t,
-    readiness: readiness,
-    freshness: freshness,
-    therapistReportedFields: therapistReportedFields,
-    responsivenessSignal: responsivenessSignal,
-    contactStrategy: contactStrategy,
-    sourceReviewedDate: sourceReviewedDate,
-  });
-  var contactScriptLabel =
-    activeTherapistContactExperimentVariant === "action_plan"
-      ? "Use this first message"
-      : "Simple outreach script";
-  var contactQuestionsLabel =
-    activeTherapistContactExperimentVariant === "action_plan"
-      ? "Ask these first"
-      : "Good questions to ask";
   var primaryButton = buildPreferredContactButton();
-
-  if (bipolarExperience >= 8) {
-    quickFitItems.push("Strong bipolar-specific experience is documented.");
-  } else if (bipolarExperience >= 3) {
-    quickFitItems.push("Bipolar-specific experience is clearly documented.");
-  }
-  if ((t.specialties || []).includes("Bipolar I") || (t.specialties || []).includes("Bipolar II")) {
-    quickFitItems.push("The listed focus areas explicitly include bipolar-spectrum care.");
-  } else if ((t.specialties || []).length) {
-    quickFitItems.push(
-      "The profile highlights " +
-        String(t.specialties[0] || "").toLowerCase() +
-        " among its focus areas.",
-    );
-  }
-  if ((t.client_populations || []).length) {
-    quickFitItems.push(
-      "This may be especially relevant if you want support tailored to " +
-        String(t.client_populations[0] || "").toLowerCase() +
-        ".",
-    );
-  }
-  if (t.medication_management) {
-    quickFitItems.push("Medication-management support is available here.");
-  }
-  if (t.accepts_telehealth && t.accepts_in_person) {
-    practicalDetailsItems.push("Offers both telehealth and in-person care.");
-  } else if (t.accepts_telehealth) {
-    practicalDetailsItems.push("Offers telehealth care.");
-  } else if (t.accepts_in_person) {
-    practicalDetailsItems.push("Offers in-person care.");
-  }
-  if (t.accepting_new_patients) {
-    practicalDetailsItems.push("The profile indicates they are accepting new patients.");
-  }
-  if (t.estimated_wait_time) {
-    practicalDetailsItems.push("Recent availability note: " + t.estimated_wait_time + ".");
-  }
-  if ((t.insurance_accepted || []).length) {
-    practicalDetailsItems.push(
-      "Insurance info is visible, including " +
-        joinNaturalList(t.insurance_accepted.slice(0, 3)) +
-        ".",
-    );
-  } else if (t.sliding_scale || t.session_fee_min || t.session_fee_max) {
-    practicalDetailsItems.push("Pricing details are surfaced on the page before outreach.");
-  }
-
-  if (t.verification_status === "editorially_verified") {
-    bipolarTrustItems.push("Key profile details were editorially verified.");
-  }
-  if (therapistReportedFields.length) {
-    bipolarTrustItems.push(
-      "Some operational details were confirmed directly by the therapist" +
-        (therapistReportedDate ? " on " + therapistReportedDate : "") +
-        ".",
-    );
-  }
-  if (sourceReviewedDate) {
-    bipolarTrustItems.push(
-      "Public sources were reviewed" +
-        (sourceReviewedDate ? " on " + sourceReviewedDate : "") +
-        (sourceHost ? " using " + sourceHost : "") +
-        ".",
-    );
-  }
-  if (bipolarExperience) {
-    bipolarTrustItems.push(
-      "Bipolar-specific experience is listed as " + bipolarExperience + " years.",
-    );
-  } else if (totalExperience) {
-    bipolarTrustItems.push(
-      "Overall clinical experience is listed as " + totalExperience + " years.",
-    );
-  }
-
-  contactChecklistItems.push(primaryContactLabel || contactRouteLabel);
-  if (contactGuidance) {
-    contactChecklistItems.push(contactGuidance);
-  } else if ((t.specialties || []).length || (t.client_populations || []).length) {
-    contactChecklistItems.push(
-      "Mention what kind of bipolar-related support you want and ask whether it matches their focus.",
-    );
-  }
-  if (t.estimated_wait_time) {
-    contactChecklistItems.push(
-      "Ask whether the current opening timeline is still around " + t.estimated_wait_time + ".",
-    );
-  } else if (t.accepting_new_patients) {
-    contactChecklistItems.push(
-      "Confirm what the current timeline is for a first consult or intake.",
-    );
-  }
-  contactChecklistItems.push(bestNextStepCopy);
 
   contactQuestionItems.push("Do you work often with bipolar-spectrum care like what I need?");
   if (t.estimated_wait_time || t.accepting_new_patients) {
@@ -2796,16 +1922,11 @@ function renderProfile(t, therapistDirectory) {
   }
   contactQuestionItems.push("What usually happens after the first message or consult?");
 
-  var bipolarTrustHtml = renderList(bipolarTrustItems.slice(0, 4), "decision-list-item");
-  var practicalDetailsHtml = renderList(practicalDetailsItems.slice(0, 4), "decision-list-item");
-  var contactQuestionHtml = renderList(contactQuestionItems.slice(0, 4), "contact-checklist-item");
   var contactMessageOpener =
     getFirstMeaningfulSentence(outreachScript) ||
     "Lead with one calm sentence about the kind of bipolar-focused help you want.";
   var contactQuestionPreview = contactQuestionItems.slice(0, 2).join(" ");
   var consultConfirmItems = [];
-  var strongReplyItems = [];
-  var pivotFastItems = [];
 
   consultConfirmItems.push(
     t.accepting_new_patients || t.estimated_wait_time
@@ -2823,45 +1944,7 @@ function renderProfile(t, therapistDirectory) {
       : "Whether their bipolar-related experience and care style match what you want help with right now.",
   );
 
-  strongReplyItems.push(
-    "They answer the fit question directly instead of sending only a generic intake response.",
-  );
-  strongReplyItems.push(
-    "They give a concrete next step, timeline, or availability window instead of leaving you guessing.",
-  );
-  strongReplyItems.push(
-    (t.insurance_accepted || []).length || t.session_fee_min || t.session_fee_max || t.sliding_scale
-      ? "They help clarify cost or insurance fit early instead of making you chase basic logistics."
-      : "They are clear about practical next steps even if some cost details still need follow-up.",
-  );
-
-  pivotFastItems.push(
-    "They cannot explain how they would support the kind of bipolar care you are looking for.",
-  );
-  pivotFastItems.push(
-    "They stay vague about timing, next steps, or whether they are truly taking new clients.",
-  );
-  pivotFastItems.push("The route creates more confusion than clarity after one real follow-up.");
-
   var consultConfirmPreview = consultConfirmItems.slice(0, 2).join(" ");
-  var followThroughItems = buildProfileFollowThroughItems(
-    latestOutreachOutcome,
-    backupState,
-    bestNextStepCopy,
-  );
-  var followThroughHtml = followThroughItems
-    .map(function (item) {
-      return (
-        '<div class="next-step-item"><div class="next-step-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="next-step-value">' +
-        escapeHtml(item.value) +
-        '</div><div class="next-step-helper">' +
-        escapeHtml(item.helper) +
-        "</div></div>"
-      );
-    })
-    .join("");
   var contactPrepCardsHtml = [
     {
       label: "Lead with",
@@ -2908,106 +1991,6 @@ function renderProfile(t, therapistDirectory) {
       );
     })
     .join("");
-  var consultPrepHtml =
-    '<div class="next-step-item"><div class="next-step-label">Use the first reply to judge fit fast</div><div class="next-step-helper">A strong reply should lower uncertainty quickly. If it does not, keep your backup route warm instead of overinvesting here.</div><div class="next-step-question-list">' +
-    renderList(strongReplyItems.slice(0, 3), "contact-checklist-item") +
-    '</div></div><div class="next-step-item"><div class="next-step-label">Confirm before booking or committing</div><div class="next-step-question-list">' +
-    renderList(consultConfirmItems.slice(0, 3), "contact-checklist-item") +
-    '</div></div><div class="next-step-item"><div class="next-step-label">Pivot faster if you hear this</div><div class="next-step-question-list">' +
-    renderList(pivotFastItems.slice(0, 3), "contact-checklist-item") +
-    "</div></div>";
-  var contactTiming = getContactTimingGuidance(contactStrategy);
-  var logisticsSectionLeadHtml =
-    '<div class="section-story-card"><div class="section-story-kicker">Access read</div><div class="section-story-title">' +
-    escapeHtml(
-      t.accepting_new_patients || t.estimated_wait_time
-        ? "The access path is visible enough to act on."
-        : "This is still more of a logistics check than a ready-now option.",
-    ) +
-    '</div><div class="section-story-copy">' +
-    escapeHtml(reachabilityCopy) +
-    "</div></div>";
-  var logisticsSignalStripHtml = [
-    {
-      label: "Openings",
-      value: t.accepting_new_patients ? "Accepting now" : "Confirm directly",
-    },
-    {
-      label: "Coverage",
-      value: (t.insurance_accepted || []).length
-        ? joinNaturalList(t.insurance_accepted.slice(0, 2))
-        : "Ask directly",
-    },
-    {
-      label: "Format",
-      value:
-        t.accepts_telehealth && t.accepts_in_person
-          ? "Telehealth + in-person"
-          : t.accepts_telehealth
-            ? "Telehealth"
-            : t.accepts_in_person
-              ? "In-person"
-              : "Confirm directly",
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="section-mini-stat"><div class="section-mini-stat-label">' +
-        escapeHtml(item.label) +
-        '</div><div class="section-mini-stat-value">' +
-        escapeHtml(item.value) +
-        "</div></div>"
-      );
-    })
-    .join("");
-  var sectionNavHtml = buildJumpNav();
-  var decisionRailRows = [
-    {
-      label: "Best next move now",
-      value: contactStrategy.routeLabel,
-      tone: "green",
-    },
-    {
-      label: "Action timing",
-      value: contactTiming.title,
-      tone: contactStrategy.confidenceTone === "outcomes" ? "green" : "teal",
-    },
-    {
-      label: "Availability",
-      value: t.accepting_new_patients ? "Accepting patients" : "Openings to confirm",
-      tone: t.accepting_new_patients ? "green" : "",
-    },
-    {
-      label: "Insurance",
-      value: (t.insurance_accepted || []).length
-        ? joinNaturalList(t.insurance_accepted.slice(0, 2))
-        : "Coverage to confirm",
-      tone: (t.insurance_accepted || []).length ? "teal" : "",
-    },
-    {
-      label: "Fees",
-      value:
-        t.session_fee_min && t.session_fee_max
-          ? "$" + t.session_fee_min + "-$" + t.session_fee_max
-          : t.sliding_scale
-            ? "Sliding scale"
-            : "Fees to confirm",
-      tone: t.session_fee_min || t.session_fee_max || t.sliding_scale ? "teal" : "",
-    },
-  ]
-    .map(function (item) {
-      return (
-        '<div class="rail-row"><span class="info-label">' +
-        escapeHtml(item.label) +
-        '</span><span class="info-val ' +
-        escapeHtml(item.tone || "") +
-        '">' +
-        escapeHtml(item.value) +
-        "</span></div>"
-      );
-    })
-    .join("");
-
   var secondaryButtons =
     '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to list</button>';
   if (t.phone && t.preferred_contact_method !== "phone") {
@@ -3134,7 +2117,6 @@ function renderProfile(t, therapistDirectory) {
   }
 
   var scrubbedBio = stripScrapedPrefix(stripIntakeStub(t.bio));
-  var scrubbedCareApproach = stripScrapedPrefix(stripIntakeStub(t.care_approach));
   var bioBodyHtml = hasPaidSubscription
     ? renderBioParagraphs(scrubbedBio)
     : scrubbedBio

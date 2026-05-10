@@ -554,33 +554,6 @@ function renderIconCardsSection(section) {
   );
 }
 
-function renderStepsSection(section) {
-  var cards = Array.isArray(section.cards) ? section.cards : [];
-  return (
-    '<section><div class="section-header"><div class="eyebrow">' +
-    escapeHtml(section.eyebrow || "") +
-    "</div><h2>" +
-    escapeHtml(section.title || "") +
-    '</h2></div><div class="steps">' +
-    cards
-      .map(function (card) {
-        return (
-          '<div class="step-card">' +
-          (card.icon ? '<div class="step-icon">' + escapeHtml(card.icon) + "</div>" : "") +
-          '<div class="step-num">' +
-          escapeHtml(card.stepLabel || "") +
-          '</div><div class="step-title">' +
-          escapeHtml(card.title || "") +
-          '</div><div class="step-desc">' +
-          escapeHtml(card.description || "") +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    "</div></section>"
-  );
-}
-
 function renderTestimonialsSection(section) {
   var items = Array.isArray(section.items) ? section.items : [];
   return (
@@ -605,24 +578,6 @@ function renderTestimonialsSection(section) {
       })
       .join("") +
     "</div></section>"
-  );
-}
-
-function renderCtaSection(section) {
-  return (
-    '<section class="cta-sect"><h2>' +
-    escapeHtml(section.title || "") +
-    "</h2><p>" +
-    escapeHtml(section.description || "") +
-    '</p><div class="cta-btns"><a href="' +
-    escapeHtml(section.primaryUrl || "signup.html") +
-    '" class="btn-p">' +
-    escapeHtml(section.primaryLabel || "Primary CTA") +
-    '</a><a href="' +
-    escapeHtml(section.secondaryUrl || "directory.html") +
-    '" class="btn-s">' +
-    escapeHtml(section.secondaryLabel || "Secondary CTA") +
-    "</a></div></section>"
   );
 }
 

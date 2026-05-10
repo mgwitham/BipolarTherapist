@@ -256,9 +256,10 @@
                   </div>
 
                   <div class="refine-advanced-panel">
-                    <!-- Insurance + format + sort (all above the fold) -->
+                    <!-- Inputs + preference pills -->
                     <div class="refine-adv-section">
-                      <div class="refine-quick">
+                      <!-- Insurance + ZIP: side-by-side inputs card -->
+                      <div class="refine-inputs-row">
                         <div class="refine-field" data-intake-field="insurance">
                           <label class="refine-field-lbl" for="insurance">Insurance</label>
                           <div class="refine-autocomplete" data-autocomplete="insurance">
@@ -286,10 +287,104 @@
                             </p>
                           </div>
                         </div>
-                        <div class="refine-field refine-field--format">
+                        <div class="refine-field" data-intake-field="location_query">
+                          <label class="refine-field-lbl" for="location_query_drawer"
+                            >ZIP code</label
+                          >
+                          <div class="refine-autocomplete">
+                            <input
+                              id="location_query_drawer"
+                              name="location_query_drawer"
+                              data-sync-key="location_query"
+                              type="text"
+                              class="refine-input"
+                              placeholder="e.g. 90028"
+                              inputmode="numeric"
+                            />
+                            <span
+                              class="match-zip-resolved"
+                              id="matchZipResolvedDrawer"
+                              aria-live="polite"
+                            ></span>
+                          </div>
+                        </div>
+                      </div>
+                      <!-- Preference pills: Therapist, Care type, Format, Sort by -->
+                      <div class="refine-pills-block">
+                        <div
+                          class="refine-sort-row"
+                          data-intake-field="therapist_gender_preference"
+                        >
+                          <span class="refine-field-lbl" id="refineGenderLabel">Therapist</span>
+                          <div
+                            class="refine-sort-seg"
+                            role="radiogroup"
+                            aria-labelledby="refineGenderLabel"
+                          >
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="therapist_gender_preference"
+                                value=""
+                                checked
+                              />
+                              <span>Any</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="therapist_gender_preference"
+                                value="female"
+                              />
+                              <span>Female</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input type="radio" name="therapist_gender_preference" value="male" />
+                              <span>Male</span>
+                            </label>
+                          </div>
+                        </div>
+                        <div class="refine-sort-row">
+                          <span class="refine-field-lbl" id="refineCareTypeLabel">Care type</span>
+                          <div
+                            class="refine-sort-seg"
+                            role="radiogroup"
+                            aria-labelledby="refineCareTypeLabel"
+                          >
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="care_intent_drawer"
+                                data-sync-key="care_intent"
+                                value="Therapy"
+                                checked
+                              />
+                              <span>Therapy</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="care_intent_drawer"
+                                data-sync-key="care_intent"
+                                value="Psychiatry"
+                              />
+                              <span>Psychiatry</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="care_intent_drawer"
+                                data-sync-key="care_intent"
+                                value=""
+                              />
+                              <span>Either</span>
+                            </label>
+                          </div>
+                        </div>
+                        <div class="refine-sort-row">
                           <span class="refine-field-lbl" id="refineFormatLabel">Format</span>
                           <div
-                            class="refine-format-seg"
+                            class="refine-sort-seg"
                             role="radiogroup"
                             aria-labelledby="refineFormatLabel"
                           >
@@ -307,40 +402,43 @@
                             </label>
                           </div>
                         </div>
-                      </div>
-                      <!-- Sort priority — compact pill row, no header needed -->
-                      <div class="refine-sort-row">
-                        <span class="refine-field-lbl" id="refineSortLabel">Sort by</span>
-                        <div
-                          class="refine-sort-seg"
-                          role="radiogroup"
-                          aria-labelledby="refineSortLabel"
-                        >
-                          <label class="refine-seg-opt">
-                            <input
-                              type="radio"
-                              name="priority_mode"
-                              value="Best overall fit"
-                              checked
-                            />
-                            <span>Best fit</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input type="radio" name="priority_mode" value="Soonest availability" />
-                            <span>Soonest</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input type="radio" name="priority_mode" value="Lowest cost" />
-                            <span>Affordable</span>
-                          </label>
-                          <label class="refine-seg-opt">
-                            <input
-                              type="radio"
-                              name="priority_mode"
-                              value="Highest specialization"
-                            />
-                            <span>Experienced</span>
-                          </label>
+                        <div class="refine-sort-row">
+                          <span class="refine-field-lbl" id="refineSortLabel">Sort by</span>
+                          <div
+                            class="refine-sort-seg"
+                            role="radiogroup"
+                            aria-labelledby="refineSortLabel"
+                          >
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="priority_mode"
+                                value="Best overall fit"
+                                checked
+                              />
+                              <span>Best fit</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="priority_mode"
+                                value="Soonest availability"
+                              />
+                              <span>Soonest</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input type="radio" name="priority_mode" value="Lowest cost" />
+                              <span>Affordable</span>
+                            </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="priority_mode"
+                                value="Highest specialization"
+                              />
+                              <span>Experienced</span>
+                            </label>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -395,66 +493,6 @@
                               class="refine-input"
                               placeholder="English, Spanish…"
                             />
-                          </div>
-                          <div class="match-group" data-intake-field="therapist_gender_preference">
-                            <label class="refine-field-lbl">Therapist gender preference</label>
-                            <div
-                              class="refine-med-opts"
-                              role="radiogroup"
-                              aria-label="Therapist gender preference"
-                            >
-                              <label class="refine-med-opt">
-                                <input
-                                  type="radio"
-                                  name="therapist_gender_preference"
-                                  value=""
-                                  checked
-                                />
-                                <span>No preference</span>
-                              </label>
-                              <label class="refine-med-opt">
-                                <input
-                                  type="radio"
-                                  name="therapist_gender_preference"
-                                  value="female"
-                                />
-                                <span>Female</span>
-                              </label>
-                              <label class="refine-med-opt">
-                                <input
-                                  type="radio"
-                                  name="therapist_gender_preference"
-                                  value="male"
-                                />
-                                <span>Male</span>
-                              </label>
-                            </div>
-                          </div>
-                        </div>
-                        <div class="match-group" data-intake-field="needs_medication_management">
-                          <label class="refine-field-lbl">Do you need medication management?</label>
-                          <div
-                            class="refine-med-opts"
-                            role="radiogroup"
-                            aria-label="Medication management"
-                          >
-                            <label class="refine-med-opt">
-                              <input
-                                type="radio"
-                                name="needs_medication_management"
-                                value="Open to either"
-                                checked
-                              />
-                              <span>Open to either</span>
-                            </label>
-                            <label class="refine-med-opt">
-                              <input type="radio" name="needs_medication_management" value="Yes" />
-                              <span>Yes, needed</span>
-                            </label>
-                            <label class="refine-med-opt">
-                              <input type="radio" name="needs_medication_management" value="No" />
-                              <span>Not needed</span>
-                            </label>
                           </div>
                         </div>
                       </div>
@@ -642,46 +680,7 @@
                       </div>
                     </details>
 
-                    <!-- Adjust search — floated to top via order:-1 CSS -->
-                    <div class="refine-adv-section refine-adv-section--search">
-                      <div class="refine-search-row">
-                        <div class="match-group" data-intake-field="care_intent">
-                          <label class="refine-field-lbl" for="care_intent_drawer"
-                            >Type of care</label
-                          >
-                          <select
-                            id="care_intent_drawer"
-                            name="care_intent_drawer"
-                            data-sync-key="care_intent"
-                          >
-                            <option value="">Any type</option>
-                            <option value="Therapy">Therapy</option>
-                            <option value="Psychiatry">Psychiatry</option>
-                          </select>
-                        </div>
-                        <div class="match-group" data-intake-field="location_query">
-                          <label class="refine-field-lbl" for="location_query_drawer"
-                            >ZIP code</label
-                          >
-                          <div class="match-zip-inline">
-                            <input
-                              id="location_query_drawer"
-                              name="location_query_drawer"
-                              data-sync-key="location_query"
-                              type="text"
-                              placeholder="ZIP code"
-                              inputmode="numeric"
-                            />
-                            <span
-                              class="match-zip-resolved"
-                              id="matchZipResolvedDrawer"
-                              aria-live="polite"
-                            ></span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                    <button type="submit" class="refine-bottom-submit">Show matches</button>
+                    <button type="submit" class="refine-bottom-submit">See your matches</button>
                   </div>
                   <div
                     class="match-refine-live-status"
