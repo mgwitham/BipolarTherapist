@@ -107,7 +107,9 @@ function recordCtaClickSafely(slug, route) {
 }
 
 function getSlugFromPath(pathname) {
-  var match = String(pathname || "").match(/^\/therapists\/([^/]+)\/?$/);
+  var match =
+    String(pathname || "").match(/^\/therapists\/([^/]+)\/?$/) ||
+    String(pathname || "").match(/^\/claim\/preview\/([^/]+)\/?$/);
   return match ? decodeURIComponent(match[1]) : "";
 }
 
@@ -2215,6 +2217,14 @@ function bindReportIssueDialog(therapist) {
 }
 
 function renderProfile(t, therapistDirectory) {
+  // Claim-preview mode: same therapist data, different framing. Set on
+  // the body by claim-preview.html so we can branch render decisions
+  // (banner, sidebar, hidden patient-only sections) without forking
+  // the whole template.
+  var isClaimMode =
+    typeof document !== "undefined" &&
+    document.body &&
+    document.body.classList.contains("is-claim-preview");
   var readiness = getTherapistMatchReadiness(t);
   var freshness = getDataFreshnessSummary(t);
   var recentApplied = getRecentAppliedSummary(t);
@@ -2330,7 +2340,8 @@ function renderProfile(t, therapistDirectory) {
           : "Reachability is decent here: the contact path is clear, even if live timing still needs a quick confirmation.";
   document.title = t.name + " — BipolarTherapyHub";
   applyTherapistSeo(t);
-  document.getElementById("breadcrumbName").textContent = t.name;
+  var breadcrumbNameEl = document.getElementById("breadcrumbName");
+  if (breadcrumbNameEl) breadcrumbNameEl.textContent = t.name;
   if (new URLSearchParams(window.location.search).get("ref") === "match") {
     var breadcrumbDirLink = document.getElementById("breadcrumbDirectoryLink");
     if (breadcrumbDirLink) {
@@ -3728,6 +3739,140 @@ function renderProfile(t, therapistDirectory) {
     sideSaveButton +
     "</div>";
 
+  // ─── Claim-preview mode rendering ─────────────────────────────────────
+  // Top banner above the hero, claim-focused sidebar, and a list of
+  // "what's missing" rows computed from this therapist's actual fields.
+  // Each row deep-links to /claim?slug=[slug] (focus param is reserved for
+  // a follow-up — claim form doesn't honor it yet).
+  var claimBannerHtml = "";
+  var claimSidebarHtml = "";
+  var claimCity = String(t.city || "your city").trim() || "your city";
+  if (isClaimMode) {
+    claimBannerHtml =
+      '<div class="claim-frame-banner">' +
+      '<div class="claim-frame-banner-copy">' +
+      '<div class="claim-frame-banner-eyebrow">Therapist preview</div>' +
+      '<div class="claim-frame-banner-headline">Hi ' +
+      escapeHtml(therapistFirstName) +
+      " — this is what patients see when they search for bipolar specialists in " +
+      escapeHtml(claimCity) +
+      ".</div>" +
+      '<div class="claim-frame-banner-sub">Claim your profile to control your photo, bio, fees, insurance, and how you describe your approach.</div>' +
+      "</div>" +
+      '<a href="/claim?slug=' +
+      encodeURIComponent(t.slug || "") +
+      '" class="claim-frame-banner-cta" data-claim-cta>Claim this profile in 2 min →</a>' +
+      "</div>";
+
+    var missingRows = [];
+    function pushMissing(condition, copy, focus) {
+      if (!condition) return;
+      missingRows.push({ copy: copy, focus: focus || "" });
+    }
+    var bioForMissing = String(t.bio || "").trim();
+    var bipolarApproachForMissing = String(t.bipolar_approach || "").trim();
+    var modalitiesForMissing = Array.isArray(t.treatment_modalities)
+      ? t.treatment_modalities.filter(Boolean)
+      : [];
+    var insuranceForMissing = Array.isArray(t.insurance_accepted)
+      ? t.insurance_accepted.filter(Boolean)
+      : [];
+    var feeMissing = !t.session_fee_min && !t.session_fee_max;
+    var photoMissing = !t.photo_url;
+    var consultationMissing = !String(t.consultation_details || "").trim();
+    var availabilityPostureMissing = !String(t.availability_posture || "").trim();
+    var sourceHostText = String(t.source_host || "").toLowerCase();
+    var bioLooksScraped =
+      bioForMissing &&
+      (sourceHostText.indexOf("psychologytoday") !== -1 ||
+        /^[A-Z][a-z]+ [A-Z][a-z]+, [A-Z]/.test(bioForMissing));
+
+    pushMissing(
+      photoMissing,
+      "Add a photo. Profiles with a real photo get more clicks than ones without.",
+      "photo",
+    );
+    pushMissing(
+      bioLooksScraped || !bioForMissing,
+      bioForMissing
+        ? "Your bio looks pulled from a directory listing. Two sentences in your own words signals authenticity."
+        : "Add a short bio. Even one paragraph helps a patient decide if you sound like a fit.",
+      "bio",
+    );
+    pushMissing(
+      !bipolarApproachForMissing,
+      "Add a bipolar approach statement. Patients comparing therapists prefer the ones who explain how they think about bipolar care.",
+      "bipolarApproach",
+    );
+    pushMissing(
+      !modalitiesForMissing.length,
+      "List the treatment modalities you use (IPSRT, FFT, DBT for bipolar, etc.). Patients filter by these.",
+      "treatmentModalities",
+    );
+    pushMissing(
+      consultationMissing,
+      "Confirm whether you offer a free intro / consultation call. Patients want to know before reaching out.",
+      "consultationDetails",
+    );
+    pushMissing(
+      availabilityPostureMissing,
+      "Tell us your current availability posture (taking new patients within days vs. waitlist). Out-of-date listings get skipped.",
+      "availabilityPosture",
+    );
+    pushMissing(
+      feeMissing,
+      "Confirm your session fee range. Listings without fees get fewer outreach attempts.",
+      "sessionFee",
+    );
+    pushMissing(
+      !insuranceForMissing.length,
+      "Confirm which insurance plans you accept (or whether you're out-of-network only).",
+      "insuranceAccepted",
+    );
+
+    var missingRowsHtml = missingRows.length
+      ? missingRows
+          .slice(0, 6)
+          .map(function (row) {
+            var href =
+              "/claim?slug=" +
+              encodeURIComponent(t.slug || "") +
+              (row.focus ? "&focus=" + encodeURIComponent(row.focus) : "");
+            return (
+              '<a class="claim-missing-row" href="' +
+              escapeHtml(href) +
+              '" data-claim-cta>' +
+              '<i class="ti ti-alert-circle" aria-hidden="true"></i>' +
+              "<span>" +
+              escapeHtml(row.copy) +
+              "</span>" +
+              '<i class="ti ti-arrow-right claim-missing-row-arrow" aria-hidden="true"></i>' +
+              "</a>"
+            );
+          })
+          .join("")
+      : '<div class="claim-missing-empty"><i class="ti ti-circle-check" aria-hidden="true"></i> Your profile already covers the basics. Claim it to keep details accurate as your practice changes.</div>';
+
+    claimSidebarHtml =
+      '<div class="profile-side-card claim-side-card">' +
+      '<div class="profile-side-eyebrow">Your live listing</div>' +
+      '<a href="/claim?slug=' +
+      encodeURIComponent(t.slug || "") +
+      '" class="claim-side-primary" data-claim-cta>Claim this profile in 2 min →</a>' +
+      '<p class="claim-side-note">Free for therapists. Takes about 2 minutes. You can keep editing after.</p>' +
+      '<div class="claim-side-section-title">What you can edit when you claim</div>' +
+      '<ul class="claim-side-edit-list">' +
+      '<li><i class="ti ti-check" aria-hidden="true"></i> Photo, bio, and how you describe your bipolar approach</li>' +
+      '<li><i class="ti ti-check" aria-hidden="true"></i> Session fees, sliding scale, accepted insurance</li>' +
+      '<li><i class="ti ti-check" aria-hidden="true"></i> Treatment modalities and telehealth states</li>' +
+      '<li><i class="ti ti-check" aria-hidden="true"></i> Availability + free intro call details</li>' +
+      '<li><i class="ti ti-check" aria-hidden="true"></i> Direct contact preferences (phone, email, booking link)</li>' +
+      "</ul>" +
+      '<div class="claim-side-section-title claim-side-section-title--missing">What\'s missing right now</div>' +
+      missingRowsHtml +
+      "</div>";
+  }
+
   var html =
     '<div class="profile-layout">' +
     '<main class="profile-main-col">' +
@@ -3735,7 +3880,7 @@ function renderProfile(t, therapistDirectory) {
     '<div class="profile-hero-main">' +
     '<div class="profile-hero-top">' +
     '<div class="profile-identity">' +
-    matchContextHtml +
+    (isClaimMode ? claimBannerHtml : matchContextHtml) +
     '<div class="card profile-hero-card">' +
     '<div class="profile-hero-top">' +
     heroAvatarHtml +
@@ -3766,12 +3911,12 @@ function renderProfile(t, therapistDirectory) {
     bipolarApproachHtml +
     bioCardHtml +
     practiceDetailsHtml +
-    reachOutHtml +
+    (isClaimMode ? "" : reachOutHtml) +
     faqCardHtml +
-    escapeValveHtml +
+    (isClaimMode ? "" : escapeValveHtml) +
     "</div>" +
     '<div class="profile-hero-right">' +
-    sidebarHtml +
+    (isClaimMode ? claimSidebarHtml : sidebarHtml) +
     "</div>" +
     "</div>" +
     "</div>" +
@@ -3807,66 +3952,81 @@ function renderProfile(t, therapistDirectory) {
   // Step G: Mobile sticky contact bar — fixed at the bottom of the
   // viewport on ≤768px. CSS handles show/hide based on viewport. Buttons
   // mount here outside profileWrap so they stay fixed during scroll.
+  // Claim mode swaps the dual-button bar for a single full-width
+  // "Claim this profile" CTA so the page reads end-to-end as a claim flow.
   var existingStickyBar = document.getElementById("mobileContactBar");
   if (existingStickyBar) existingStickyBar.remove();
-  var mobilePhone = t.phone ? String(t.phone) : "";
-  var mobileEmail = isRealEmail(t.email) ? String(t.email) : "";
-  var mobilePrimaryHtml = "";
-  if (mobilePhone) {
-    mobilePrimaryHtml =
-      '<button type="button" class="mobile-contact-call" id="mobileCallBtn" data-tel="' +
-      escapeHtml(normalizeTelUri(mobilePhone)) +
-      '">' +
-      '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
-      escapeHtml(therapistFirstName) +
-      "</button>";
-  } else if (mobileEmail) {
-    mobilePrimaryHtml =
-      '<button type="button" class="mobile-contact-call" id="mobileCallBtn" data-mailto="' +
-      escapeHtml(mobileEmail) +
-      '">' +
-      '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
-      escapeHtml(therapistFirstName) +
-      "</button>";
-  }
-  if (mobilePrimaryHtml) {
-    var stickyContainer = document.createElement("div");
-    stickyContainer.className = "mobile-contact-bar";
-    stickyContainer.id = "mobileContactBar";
-    stickyContainer.innerHTML =
-      mobilePrimaryHtml +
-      '<button type="button" class="mobile-contact-copy" id="mobileCopyBtn">' +
-      '<i class="ti ti-copy" aria-hidden="true"></i> Copy message' +
-      "</button>";
-    document.body.appendChild(stickyContainer);
-    var mobileCallBtn = document.getElementById("mobileCallBtn");
-    if (mobileCallBtn) {
-      mobileCallBtn.addEventListener("click", function () {
-        var tel = this.getAttribute("data-tel");
-        var mail = this.getAttribute("data-mailto");
-        if (tel) window.location.href = "tel:" + tel;
-        else if (mail) window.location.href = "mailto:" + mail;
-      });
+  if (isClaimMode) {
+    var claimSticky = document.createElement("div");
+    claimSticky.className = "mobile-contact-bar mobile-contact-bar--claim";
+    claimSticky.id = "mobileContactBar";
+    claimSticky.innerHTML =
+      '<a href="/claim?slug=' +
+      encodeURIComponent(t.slug || "") +
+      '" class="mobile-contact-call mobile-contact-call--claim" data-claim-cta>' +
+      '<i class="ti ti-shield-check" aria-hidden="true"></i> Claim this profile in 2 min →' +
+      "</a>";
+    document.body.appendChild(claimSticky);
+  } else {
+    var mobilePhone = t.phone ? String(t.phone) : "";
+    var mobileEmail = isRealEmail(t.email) ? String(t.email) : "";
+    var mobilePrimaryHtml = "";
+    if (mobilePhone) {
+      mobilePrimaryHtml =
+        '<button type="button" class="mobile-contact-call" id="mobileCallBtn" data-tel="' +
+        escapeHtml(normalizeTelUri(mobilePhone)) +
+        '">' +
+        '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
+        escapeHtml(therapistFirstName) +
+        "</button>";
+    } else if (mobileEmail) {
+      mobilePrimaryHtml =
+        '<button type="button" class="mobile-contact-call" id="mobileCallBtn" data-mailto="' +
+        escapeHtml(mobileEmail) +
+        '">' +
+        '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
+        escapeHtml(therapistFirstName) +
+        "</button>";
     }
-    var mobileCopyBtn = document.getElementById("mobileCopyBtn");
-    if (mobileCopyBtn) {
-      var mobileCopyDefault = mobileCopyBtn.innerHTML;
-      mobileCopyBtn.addEventListener("click", function () {
-        var msg = document.querySelector("[data-profile-draft-text]");
-        if (!msg) return;
-        var text = msg.innerText || msg.textContent || "";
-        var done = function () {
-          mobileCopyBtn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied';
-          window.setTimeout(function () {
-            mobileCopyBtn.innerHTML = mobileCopyDefault;
-          }, 2000);
-        };
-        if (navigator.clipboard && navigator.clipboard.writeText) {
-          navigator.clipboard.writeText(text).then(done, done);
-        } else {
-          done();
-        }
-      });
+    if (mobilePrimaryHtml) {
+      var stickyContainer = document.createElement("div");
+      stickyContainer.className = "mobile-contact-bar";
+      stickyContainer.id = "mobileContactBar";
+      stickyContainer.innerHTML =
+        mobilePrimaryHtml +
+        '<button type="button" class="mobile-contact-copy" id="mobileCopyBtn">' +
+        '<i class="ti ti-copy" aria-hidden="true"></i> Copy message' +
+        "</button>";
+      document.body.appendChild(stickyContainer);
+      var mobileCallBtn = document.getElementById("mobileCallBtn");
+      if (mobileCallBtn) {
+        mobileCallBtn.addEventListener("click", function () {
+          var tel = this.getAttribute("data-tel");
+          var mail = this.getAttribute("data-mailto");
+          if (tel) window.location.href = "tel:" + tel;
+          else if (mail) window.location.href = "mailto:" + mail;
+        });
+      }
+      var mobileCopyBtn = document.getElementById("mobileCopyBtn");
+      if (mobileCopyBtn) {
+        var mobileCopyDefault = mobileCopyBtn.innerHTML;
+        mobileCopyBtn.addEventListener("click", function () {
+          var msg = document.querySelector("[data-profile-draft-text]");
+          if (!msg) return;
+          var text = msg.innerText || msg.textContent || "";
+          var done = function () {
+            mobileCopyBtn.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied';
+            window.setTimeout(function () {
+              mobileCopyBtn.innerHTML = mobileCopyDefault;
+            }, 2000);
+          };
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(done, done);
+          } else {
+            done();
+          }
+        });
+      }
     }
   }
 

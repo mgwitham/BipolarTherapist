@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <title>Claim your profile · BipolarTherapyHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"
+    />
+    <link rel="stylesheet" href="/assets/therapist-page.css" />
+  </head>
+  <body class="is-claim-preview">
+    <nav class="profile-nav profile-nav--claim">
+      <a href="/" class="profile-nav-logo">
+        <span class="profile-nav-mark" aria-hidden="true">
+          <svg viewBox="0 0 15 15" fill="none">
+            <circle
+              cx="5.5"
+              cy="7.5"
+              r="4"
+              stroke="rgba(255,255,255,.9)"
+              stroke-width="1.2"
+              fill="none"
+            />
+            <circle
+              cx="9.5"
+              cy="7.5"
+              r="4"
+              stroke="rgba(255,255,255,.9)"
+              stroke-width="1.2"
+              fill="none"
+            />
+            <path d="M7.5 4.5 Q6 7.5 7.5 10.5 Q9 7.5 7.5 4.5Z" fill="rgba(255,255,255,.85)" />
+          </svg>
+        </span>
+        <span class="profile-nav-wordmark">Bipolar<span>Therapy</span>Hub</span>
+      </a>
+      <div class="profile-nav-actions">
+        <span class="profile-nav-mode" aria-hidden="true">Therapist preview</span>
+        <a href="/claim" class="profile-nav-claim-cta" data-claim-cta> Claim profile </a>
+      </div>
+    </nav>
+
+    <div class="profile-wrap" id="profileWrap"></div>
+
+    <footer>
+      <p style="margin-bottom: 0.4rem">
+        <strong style="color: white">BipolarTherapyHub</strong>
+      </p>
+      <p class="footer-legal">
+        <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
+        <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+      </p>
+    </footer>
+
+    <script type="module" src="/assets/therapist-page.js"></script>
+  </body>
+</html>

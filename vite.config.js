@@ -23,7 +23,9 @@ export default defineConfig({
       name: "therapist-profile-dev-fallback",
       configureServer(server) {
         server.middlewares.use(function (req, res, next) {
-          if (req.url && /^\/therapists\/[^/]+\/?(\?.*)?$/.test(req.url)) {
+          if (req.url && /^\/claim\/preview\/[^/]+\/?(\?.*)?$/.test(req.url)) {
+            req.url = "/claim-preview.html";
+          } else if (req.url && /^\/therapists\/[^/]+\/?(\?.*)?$/.test(req.url)) {
             req.url = "/therapist.html";
           }
           next();
@@ -43,6 +45,7 @@ export default defineConfig({
         match: resolve(rootDir, "match.html"),
         directory: resolve(rootDir, "directory.html"),
         therapist: resolve(rootDir, "therapist.html"),
+        claimPreview: resolve(rootDir, "claim-preview.html"),
         signup: resolve(rootDir, "signup.html"),
         claim: resolve(rootDir, "claim.html"),
         admin: resolve(rootDir, "admin.html"),
