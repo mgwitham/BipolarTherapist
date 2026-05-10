@@ -5,8 +5,10 @@ import { rememberTherapistContactRoute, trackFunnelEvent } from "./funnel-analyt
 import {
   FILTER_BOOLEAN_KEYS,
   FILTER_VALUE_KEYS,
+  FILTER_MULTI_VALUE_KEYS,
   countActiveFilters,
   syncFilterControlsFromState,
+  toFilterArray,
 } from "./directory-filters.js";
 import {
   applyDirectoryFiltersAction,
@@ -79,6 +81,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   var sortZip = "";
   var DIRECTORY_IP_LOCATION_CACHE_KEY = "bth_directory_ip_location_v1";
   var DIRECTORY_IP_LOCATION_TTL_MS = 12 * 60 * 60 * 1000;
+  var MULTI_SET = new Set(FILTER_MULTI_VALUE_KEYS);
   var defaultFilters = {
     state: "CA",
     zip: "",
@@ -86,11 +89,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     ranking_zip: "",
     ranking_label: "",
     ranking_source: "",
-    specialty: "",
-    modality: "",
-    population: "",
+    specialty: [],
+    modality: [],
+    population: [],
     bipolar_experience: "",
-    insurance: "",
+    insurance: [],
     gender: "",
     therapist: false,
     psychiatrist: false,
@@ -561,24 +564,24 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     if (filters.zip) {
       chips.push({ key: "zip", label: filters.zip });
     }
-    if (filters.specialty) {
-      chips.push({ key: "specialty", label: filters.specialty });
-    }
-    if (filters.modality) {
-      chips.push({ key: "modality", label: filters.modality });
-    }
-    if (filters.population) {
-      chips.push({ key: "population", label: filters.population });
-    }
+    toFilterArray(filters.specialty).forEach(function (v) {
+      chips.push({ key: "specialty", label: v });
+    });
+    toFilterArray(filters.modality).forEach(function (v) {
+      chips.push({ key: "modality", label: v });
+    });
+    toFilterArray(filters.population).forEach(function (v) {
+      chips.push({ key: "population", label: v });
+    });
     if (filters.bipolar_experience) {
       chips.push({
         key: "bipolar_experience",
         label: filters.bipolar_experience + "+ yrs bipolar care",
       });
     }
-    if (filters.insurance) {
-      chips.push({ key: "insurance", label: filters.insurance });
-    }
+    toFilterArray(filters.insurance).forEach(function (v) {
+      chips.push({ key: "insurance", label: v });
+    });
     if (filters.gender) {
       chips.push({
         key: "gender",
@@ -621,9 +624,18 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     if (!filterKey || !(filterKey in filters)) {
       return;
     }
-    filters = Object.assign({}, filters, {
-      [filterKey]: typeof defaultFilters[filterKey] === "boolean" ? false : "",
-    });
+    var nextValue;
+    if (MULTI_SET.has(filterKey)) {
+      // Multi-select keys clear to an empty array (removes ALL selected
+      // values for that key). Removing one specific selected value at a
+      // time is wired in step 6 with the dedicated dropdown chip.
+      nextValue = [];
+    } else if (typeof defaultFilters[filterKey] === "boolean") {
+      nextValue = false;
+    } else {
+      nextValue = "";
+    }
+    filters = Object.assign({}, filters, { [filterKey]: nextValue });
     visibleCount = 24;
     syncFilterControlsFromState(filters, getElement);
     syncInsuranceDisplay();
@@ -941,15 +953,23 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
     var params = new URLSearchParams(window.location.search);
     FILTER_VALUE_KEYS.forEach(function (key) {
-      if (params.get(key)) {
-        filters[key] =
-          key === "sortBy" && !VALID_SORT_OPTIONS.has(params.get(key))
-            ? defaultFilters.sortBy
-            : params.get(key);
-        var input = getElement(key);
-        if (input) {
-          input.value = filters[key];
+      var raw = params.get(key);
+      if (!raw) return;
+      if (MULTI_SET.has(key)) {
+        // Multi-select keys parse comma-separated values. A single
+        // value (?insurance=aetna) becomes a 1-element array, keeping
+        // legacy bookmarks working.
+        filters[key] = toFilterArray(raw);
+        var multiInput = getElement(key);
+        if (multiInput) {
+          multiInput.value = filters[key].length ? filters[key][0] : "";
         }
+        return;
+      }
+      filters[key] = key === "sortBy" && !VALID_SORT_OPTIONS.has(raw) ? defaultFilters.sortBy : raw;
+      var input = getElement(key);
+      if (input) {
+        input.value = filters[key];
       }
     });
 
@@ -986,6 +1006,15 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       if (skipKeys.has(key)) {
         return;
       }
+      if (MULTI_SET.has(key)) {
+        var arr = toFilterArray(filters[key]);
+        if (arr.length) {
+          // Comma-separated multi-value serialization keeps legacy
+          // single-value bookmarks readable.
+          params.set(key, arr.join(","));
+        }
+        return;
+      }
       if (!filters[key]) {
         return;
       }
@@ -1006,6 +1035,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     // duplicate-content sprawl on filtered URLs Google might encounter.
     var meaningfulFilters = Object.keys(filters).some(function (key) {
       if (skipKeys.has(key)) return false;
+      if (MULTI_SET.has(key)) {
+        return toFilterArray(filters[key]).length > 0;
+      }
       if (!filters[key]) return false;
       return filters[key] !== defaultFilters[key];
     });
