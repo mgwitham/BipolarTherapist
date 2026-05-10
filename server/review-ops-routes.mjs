@@ -67,6 +67,7 @@ export async function handleOpsRoutes(context) {
       "credentials",
       "title",
       "practiceName",
+      "gender",
       "city",
       "state",
       "zip",

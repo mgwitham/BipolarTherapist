@@ -691,7 +691,7 @@ test("POST /portal/dev-login logs a warning when the route is hit in production"
     });
     assert.equal(response.statusCode, 404);
     assert.equal(
-      warnings.some((msg) => msg.startsWith("[DEV LOGIN] Route hit in production")),
+      warnings.some((msg) => msg.includes("[DEV LOGIN] Route hit in production")),
       true,
       "expected a '[DEV LOGIN] Route hit in production' warning",
     );

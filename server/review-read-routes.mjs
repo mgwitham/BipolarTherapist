@@ -133,7 +133,7 @@ export async function handleReadRoutes(context) {
         _id, _createdAt, _updatedAt, name, credentials, title, bio, bioPreview, "photo": photo{asset->{url}}, photoSourceType, photoReviewedAt, photoUsagePermissionConfirmed,
         email, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl,
         claimStatus, claimedByEmail, claimedAt, portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
-        practiceName, city, state, zip, country, licenseState, licenseNumber,
+        practiceName, gender, city, state, zip, country, licenseState, licenseNumber,
         specialties, treatmentModalities, clientPopulations, insuranceAccepted, acceptsTelehealth, acceptsInPerson, acceptingNewPatients,
         yearsExperience, bipolarYearsExperience, languages, telehealthStates, estimatedWaitTime, careApproach, medicationManagement,
         verificationStatus, sourceUrl, supportingSourceUrls, sourceReviewedAt, therapistReportedFields, therapistReportedConfirmedAt,
@@ -163,7 +163,7 @@ export async function handleReadRoutes(context) {
         _id, _createdAt, _updatedAt, name, credentials, title, bio, bioPreview, "photo": photo{asset->{url}}, photoSourceType, photoReviewedAt, photoUsagePermissionConfirmed,
         email, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl,
         claimStatus, claimedByEmail, claimedAt, portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
-        practiceName, city, state, zip, country, licenseState, licenseNumber,
+        practiceName, gender, city, state, zip, country, licenseState, licenseNumber,
         specialties, treatmentModalities, clientPopulations, insuranceAccepted, acceptsTelehealth, acceptsInPerson, acceptingNewPatients,
         yearsExperience, bipolarYearsExperience, languages, telehealthStates, estimatedWaitTime, careApproach, medicationManagement,
         verificationStatus, sourceUrl, supportingSourceUrls, sourceReviewedAt, therapistReportedFields, therapistReportedConfirmedAt,
@@ -189,7 +189,7 @@ export async function handleReadRoutes(context) {
 
     const docs = await client.fetch(
       `*[_type == "therapistApplication"] | order(coalesce(submittedAt, _createdAt) desc){
-        _id, _createdAt, _updatedAt, name, email, credentials, title, "photo": photo{asset->{url}}, photoSourceType, photoReviewedAt, photoUsagePermissionConfirmed, practiceName, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl, city, state, zip, country,
+        _id, _createdAt, _updatedAt, name, email, credentials, title, "photo": photo{asset->{url}}, photoSourceType, photoReviewedAt, photoUsagePermissionConfirmed, practiceName, gender, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl, city, state, zip, country,
         licenseState, licenseNumber, bio, careApproach, specialties, treatmentModalities, clientPopulations,
         insuranceAccepted, languages, yearsExperience, bipolarYearsExperience, acceptsTelehealth, acceptsInPerson,
         acceptingNewPatients, telehealthStates, estimatedWaitTime, medicationManagement, verificationStatus,

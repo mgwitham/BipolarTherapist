@@ -1,3 +1,4 @@
+import "./sentry-init.js";
 import { fetchHomePageContent } from "./cms.js";
 import {
   getExperimentVariant,
@@ -7,17 +8,9 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
+import { escapeHtml } from "./escape-html.js";
 
 var activeHomeExperimentVariant = "control";
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function applyHomePageCopy(homePage) {
   if (!homePage) {
@@ -31,7 +24,7 @@ function applyHomePageCopy(homePage) {
   var searchButton = document.getElementById("searchButton");
 
   if (heroTitle && homePage.heroTitle) {
-    heroTitle.textContent = homePage.heroTitle;
+    heroTitle.textContent = homePage.heroTitle.replace(/\s*These do\.?\s*$/i, "").trim();
   }
 
   if (heroDescription && homePage.heroDescription) {

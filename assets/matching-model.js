@@ -132,7 +132,7 @@ export const MATCH_INTAKE_QUESTIONS = [
     prompt: "Do you have a preference for your therapist's gender?",
     type: "radio",
     required: false,
-    options: ["", "female", "male"],
+    options: ["", "female", "male", "non_binary"],
     category: "soft_signal",
   },
 ];

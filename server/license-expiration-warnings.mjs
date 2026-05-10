@@ -1,3 +1,6 @@
+import { log } from "./logger.mjs";
+import { getLicenseStateBoardInfo } from "./license-states.mjs";
+
 // License expiration warning system.
 //
 // Daily cron pass that emails therapists when their CA license is
@@ -51,16 +54,18 @@ export function buildLicenseExpirationEmail(therapist, threshold, expirationDate
 
 function buildEmail(therapist, threshold, expirationDate, portalBaseUrl) {
   const portalLink = portalBaseUrl ? `${String(portalBaseUrl).replace(/\/+$/, "")}/portal` : "";
-  const subject = `Your CA license expires in ${threshold} days — renew before ${expirationDate}`;
-  const heading = `Your CA license expires in ${threshold} days`;
+  const boardInfo = getLicenseStateBoardInfo(therapist.licenseState);
+  const stateAbbr = boardInfo.abbreviation || therapist.licenseState || "your state";
+  const subject = `Your ${stateAbbr} license expires in ${threshold} days — renew before ${expirationDate}`;
+  const heading = `Your ${stateAbbr} license expires in ${threshold} days`;
   const greetingName = therapist.name ? therapist.name.split(/\s+/)[0] : "";
   const preheader = `Renew before ${expirationDate} or your listing pauses.`;
 
-  const bodyHtml = `<p style="margin:0 0 12px 0;">Your California license on file with us expires on <strong>${expirationDate}</strong> — that's <strong>${threshold} days</strong> away.</p>
-<p style="margin:0 0 12px 0;">If you've already renewed with the state board, no action is needed — we re-check CA DCA every week and your status will refresh automatically.</p>
+  const bodyHtml = `<p style="margin:0 0 12px 0;">Your ${boardInfo.fullName} license on file with us expires on <strong>${expirationDate}</strong> — that's <strong>${threshold} days</strong> away.</p>
+<p style="margin:0 0 12px 0;">If you've already renewed with the state board, no action is needed — ${boardInfo.freshnessCheckNote} and your status will refresh automatically.</p>
 <p style="margin:0 0 8px 0;">If you haven't renewed yet:</p>
 <ul style="margin:0 0 16px 1.1rem;padding:0;font-size:14px;line-height:1.55;">
-  <li style="margin-bottom:6px;">Renew with the California Board of Behavioral Sciences / Board of Psychology / Medical Board (whichever issued your license).</li>
+  <li style="margin-bottom:6px;">${boardInfo.renewalInstruction}</li>
   <li style="margin-bottom:6px;">Once the state shows your license active, your directory listing stays live with no work on your end.</li>
   <li style="margin-bottom:0;">If your license lapses, your listing automatically goes inactive until it's renewed — patients won't be matched to you in the meantime.</li>
 </ul>`;
@@ -77,9 +82,9 @@ function buildEmail(therapist, threshold, expirationDate, portalBaseUrl) {
     heading,
     greetingName,
     bodyText:
-      `Your California license on file expires on ${expirationDate} — that's ${threshold} days away. ` +
-      `If you've already renewed, no action is needed — we re-check CA DCA every week and your status will refresh automatically. ` +
-      `If you haven't renewed yet: renew with the appropriate California board. Once the state shows your license active, your directory listing stays live. If your license lapses, your listing goes inactive until it's renewed.`,
+      `Your ${boardInfo.fullName} license on file expires on ${expirationDate} — that's ${threshold} days away. ` +
+      `If you've already renewed, no action is needed — ${boardInfo.freshnessCheckNote} and your status will refresh automatically. ` +
+      `If you haven't renewed yet: ${boardInfo.renewalInstruction} Once the state shows your license active, your directory listing stays live. If your license lapses, your listing goes inactive until it's renewed.`,
     primaryCta: portalLink ? { label: "Manage my listing", url: portalLink } : null,
   });
 
@@ -90,7 +95,7 @@ export async function runLicenseExpirationWarnings({
   client,
   config,
   dryRun = false,
-  log = console.log,
+  log: logFn = (msg) => log.info(msg),
 } = {}) {
   if (!client) {
     config = config || getReviewApiConfig();
@@ -105,7 +110,7 @@ export async function runLicenseExpirationWarnings({
   const portalBaseUrl = config && config.portalBaseUrl;
   const emailConfigured = hasEmailConfig(config);
   if (!emailConfigured && !dryRun) {
-    log("Email config missing — running as dry-run.");
+    logFn("Email config missing — running as dry-run.");
     dryRun = true;
   }
 
@@ -116,7 +121,7 @@ export async function runLicenseExpirationWarnings({
       "warningsSent": licensureVerification.expirationWarningsSent
     }`,
   );
-  log(`Found ${therapists.length} active+listed therapists with email + expiration date.`);
+  logFn(`Found ${therapists.length} active+listed therapists with email + expiration date.`);
 
   const summary = {
     scanned: therapists.length,
@@ -149,7 +154,7 @@ export async function runLicenseExpirationWarnings({
     }
     const { subject, html, text } = buildEmail(t, threshold, t.exp, portalBaseUrl);
     if (dryRun) {
-      log(`  WOULD SEND ${threshold}d warning to ${t.name} <${t.email}> (expires ${t.exp})`);
+      logFn(`  WOULD SEND ${threshold}d warning to ${t.name} <${t.email}> (expires ${t.exp})`);
       summary.sends.push({ id: t._id, name: t.name, threshold, dryRun: true });
       summary.sent += 1;
       continue;
@@ -174,16 +179,16 @@ export async function runLicenseExpirationWarnings({
         .setIfMissing({ "licensureVerification.expirationWarningsSent": [] })
         .insert("after", "licensureVerification.expirationWarningsSent[-1]", [newEntry])
         .commit();
-      log(`  SENT ${threshold}d warning to ${t.name} <${t.email}>`);
+      logFn(`  SENT ${threshold}d warning to ${t.name} <${t.email}>`);
       summary.sends.push({ id: t._id, name: t.name, threshold });
       summary.sent += 1;
     } catch (err) {
-      log(`  ERR sending ${threshold}d warning to ${t.name}: ${err.message}`);
+      logFn(`  ERR sending ${threshold}d warning to ${t.name}: ${err.message}`);
       summary.errors += 1;
     }
   }
 
-  log(
+  logFn(
     `\nExpiration warnings ${dryRun ? "(dry run) " : ""}complete: sent=${summary.sent} skippedAlreadySent=${summary.skippedAlreadySent} skippedNotDue=${summary.skippedNotDue} errors=${summary.errors}`,
   );
   return summary;
@@ -193,7 +198,7 @@ const isCli = import.meta.url === `file://${process.argv[1]}`;
 if (isCli) {
   const dryRun = process.argv.includes("--dry-run");
   runLicenseExpirationWarnings({ dryRun }).catch((err) => {
-    console.error("Expiration warnings run failed:", err);
+    log.error("Expiration warnings run failed", { err: err?.message || String(err) });
     process.exit(1);
   });
 }

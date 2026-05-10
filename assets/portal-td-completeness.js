@@ -18,16 +18,7 @@
 import { renderPortalCardPreview, updatePortalCardPreview } from "./portal-card-preview.js";
 import { patchTherapistProfile, uploadPortalPhoto } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
-
-function escapeHtml(value) {
-  return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
-    if (ch === "&") return "&amp;";
-    if (ch === "<") return "&lt;";
-    if (ch === ">") return "&gt;";
-    if (ch === '"') return "&quot;";
-    return "&#39;";
-  });
-}
+import { escapeHtml } from "./escape-html.js";
 
 // ─── Score model (mirrors TD-A header) ────────────────────────────────
 
@@ -121,7 +112,7 @@ function isTotalYearsComplete(t) {
 }
 function isGenderComplete(t) {
   var g = String((t && t.gender) || "").trim();
-  return g === "male" || g === "female";
+  return g === "male" || g === "female" || g === "non_binary";
 }
 
 // ─── Field registry ──────────────────────────────────────────────────
@@ -1101,6 +1092,27 @@ var SPECIALTY_OPTIONS = [
 ];
 var TELEHEALTH_STATE_OPTIONS = ["CA", "NY", "TX", "FL", "WA", "CO", "IL", "MA", "OR", "AZ", "NV"];
 
+function renderGenderForm(t) {
+  var current = String(t.gender || "");
+  return (
+    '<div class="td-form">' +
+    '<span class="td-form-label">Gender</span>' +
+    '<div class="td-radio-group">' +
+    '<label class="td-radio"><input type="radio" name="tdcGender" value="male"' +
+    (current === "male" ? " checked" : "") +
+    " /> Male</label>" +
+    '<label class="td-radio"><input type="radio" name="tdcGender" value="female"' +
+    (current === "female" ? " checked" : "") +
+    " /> Female</label>" +
+    '<label class="td-radio"><input type="radio" name="tdcGender" value="non_binary"' +
+    (current === "non_binary" ? " checked" : "") +
+    " /> Non-binary</label>" +
+    "</div>" +
+    '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="gender">Save</button></div>' +
+    "</div>"
+  );
+}
+
 function renderPracticeNameForm(t) {
   return (
     '<div class="td-form">' +
@@ -1227,6 +1239,7 @@ function renderFormBody(field, therapist) {
   if (field.key === "insurance") return renderInsuranceForm(therapist);
   if (field.key === "populations") return renderPopulationsForm(therapist);
   if (field.key === "years") return renderYearsForm(therapist);
+  if (field.key === "gender") return renderGenderForm(therapist);
   if (field.key === "practice_name") return renderPracticeNameForm(therapist);
   if (field.key === "website") return renderWebsiteForm(therapist);
   if (field.key === "languages") return renderLanguagesForm(therapist);
@@ -2011,6 +2024,9 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       payload.bipolar_years_experience = Number(bodyEl.querySelector("#tdcYears").value) || 0;
     } else if (key === "total_years") {
       payload.years_experience = Number(bodyEl.querySelector("#tdcTotalYears").value) || 0;
+    } else if (key === "gender") {
+      var checkedGender = bodyEl.querySelector('input[name="tdcGender"]:checked');
+      payload.gender = checkedGender ? checkedGender.value : "";
     } else if (key === "practice_name") {
       payload.practice_name = String(bodyEl.querySelector("#tdcPracticeName").value || "").trim();
     } else if (key === "website") {

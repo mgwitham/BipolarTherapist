@@ -1,4 +1,5 @@
 import { updateTherapistCandidate, updateTherapist } from "./review-api.js";
+import { escapeHtml } from "./escape-html.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { isProfileLive } from "../shared/profile-live-status.mjs";
 
@@ -51,6 +52,20 @@ function getVal(id) {
   return el.value;
 }
 
+function setRadio(name, value) {
+  const form = getForm();
+  if (!form) return;
+  form.querySelectorAll('input[name="' + name + '"]').forEach(function (r) {
+    r.checked = r.value === String(value || "");
+  });
+}
+function getRadio(name) {
+  const form = getForm();
+  if (!form) return "";
+  const checked = form.querySelector('input[name="' + name + '"]:checked');
+  return checked ? checked.value : "";
+}
+
 function setDrawerTitle(label) {
   const titleEl = document.getElementById("editDrawerTitle");
   if (titleEl) titleEl.textContent = label;
@@ -65,12 +80,21 @@ function serializeForm(form) {
   if (!form) return "";
   const payload = [];
   form.querySelectorAll("input, textarea, select").forEach(function (field) {
+    if (field.type === "radio") return;
     if (!field.id) return;
     payload.push(
       field.id +
         ":" +
         (field.type === "checkbox" ? String(Boolean(field.checked)) : String(field.value || "")),
     );
+  });
+  const radioNames = new Set();
+  form.querySelectorAll("input[type='radio']").forEach(function (r) {
+    radioNames.add(r.name);
+  });
+  radioNames.forEach(function (name) {
+    const checked = form.querySelector('input[name="' + name + '"]:checked');
+    payload.push(name + ":" + (checked ? checked.value : ""));
   });
   return payload.join("|");
 }
@@ -241,14 +265,6 @@ function renderLivePanel() {
     .join("");
 }
 
-function escapeHtml(str) {
-  return String(str || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
-
 function renderAuditLog(entries) {
   const container = document.getElementById("editAuditLog");
   if (!container) return;
@@ -347,6 +363,9 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   setVal("editSessionFeeMin", candidate.session_fee_min);
   setVal("editSessionFeeMax", candidate.session_fee_max);
 
+  // Profile
+  setRadio("editGender", candidate.gender);
+
   // Notes
   setVal("editNotes", candidate.notes);
 
@@ -424,6 +443,9 @@ export function openTherapistEditDrawer(therapist, onSaved) {
   // Lifecycle / visibility
   setVal("editLifecycle", read("lifecycle", "lifecycle") || "draft");
   setVal("editVisibilityIntent", read("visibility_intent", "visibilityIntent") || "listed");
+
+  // Profile
+  setRadio("editGender", read("gender", "gender") || "");
 
   // Notes
   setVal("editNotes", read("notes", "notes") || "");
@@ -555,6 +577,7 @@ export function bindCandidateEditDrawer() {
           credentials: getVal("editCredentials"),
           title: getVal("editTitle"),
           practiceName: getVal("editPracticeName"),
+          gender: getRadio("editGender") || undefined,
           city: getVal("editCity"),
           state: getVal("editState"),
           zip: getVal("editZip"),
@@ -588,6 +611,7 @@ export function bindCandidateEditDrawer() {
           credentials: getVal("editCredentials"),
           title: getVal("editTitle"),
           practice_name: getVal("editPracticeName"),
+          gender: getRadio("editGender") || undefined,
           city: getVal("editCity"),
           state: getVal("editState"),
           zip: getVal("editZip"),

@@ -1,4 +1,6 @@
+import "./sentry-init.js";
 import { fetchRecoveryConfirmContext, submitRecoveryConfirmResponse } from "./review-api.js";
+import { escapeHtml } from "./escape-html.js";
 
 const CONTEXT_ID = "confirmContext";
 const ACTIONS_ID = "confirmActions";
@@ -7,12 +9,6 @@ const HEADING_ID = "confirmHeading";
 const LEDE_ID = "confirmLede";
 const YES_ID = "confirmYes";
 const NO_ID = "confirmNo";
-
-function escapeHtml(value) {
-  return String(value || "").replace(/[&<>"']/g, function (char) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
-  });
-}
 
 function setStatus(tone, message) {
   const node = document.getElementById(STATUS_ID);

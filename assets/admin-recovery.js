@@ -4,6 +4,7 @@
 // is verified manually by the admin (DCA lookup, phone call, etc.)
 // before clicking Approve.
 
+import { escapeHtml } from "./escape-html.js";
 import {
   approveRecoveryRequest,
   fetchRecoveryRequests,
@@ -16,12 +17,6 @@ const DASHBOARD_ID = "adminRecoveryDashboard";
 const REFRESH_ID = "adminRecoveryRefresh";
 const STATUS_ID = "adminRecoveryStatus";
 const TAB_COUNT_ID = "navCountRecovery";
-
-function escapeHtml(value) {
-  return String(value || "").replace(/[&<>"']/g, function (char) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
-  });
-}
 
 function formatDate(value) {
   if (!value) return "";

@@ -293,8 +293,11 @@ export function bindApplicationPanelInteractions(root, options) {
               claim_follow_up_response_at: new Date().toISOString(),
             });
           }
-          if (action === "publish") await options.approveTherapistApplication(id);
-          if (action === "reject") await options.rejectTherapistApplicationRemote(id);
+          var approveResult = null;
+          var rejectResult = null;
+          if (action === "publish") approveResult = await options.approveTherapistApplication(id);
+          if (action === "reject")
+            rejectResult = await options.rejectTherapistApplicationRemote(id);
           if (action === "reviewing") {
             await options.updateTherapistApplication(id, { status: "reviewing" });
           }
@@ -340,6 +343,13 @@ export function bindApplicationPanelInteractions(root, options) {
                               : action === "save-notes"
                                 ? "Completed: notes saved on this application."
                                 : "";
+          if (action === "publish" && approveResult && approveResult.email_warning) {
+            successMessage +=
+              " Warning: approval email failed to send. Send the therapist a manual portal link.";
+          }
+          if (action === "reject" && rejectResult && rejectResult.email_warning) {
+            successMessage += " Warning: rejection email failed to send.";
+          }
           options.setCoachActionStatus(root, id, successMessage);
           setApplicationActionFlash(id, successMessage);
         } else {

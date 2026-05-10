@@ -7,15 +7,7 @@ import {
   renderAvailabilityBadge,
 } from "./card-content.js";
 import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+import { escapeHtml } from "./escape-html.js";
 
 var DIR_REASON_GENERIC = {
   "bipolar disorder": true,

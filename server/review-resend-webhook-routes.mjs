@@ -1,3 +1,5 @@
+import { log } from "./logger.mjs";
+
 // Resend webhook receiver. Verifies the Svix signature, then patches
 // any therapist whose email matches a bounce or complaint so the CRM
 // stops sending to bad addresses.
@@ -145,7 +147,7 @@ export async function handleResendWebhookRoutes(context) {
       { emails: recipientLower },
     );
   } catch (err) {
-    console.error("resend webhook fetch error:", err);
+    log.error("resend webhook fetch error", { err: err?.message || String(err) });
     response.writeHead(500, { "Content-Type": "application/json" });
     response.end(JSON.stringify({ error: "Sanity fetch failed" }));
     return true;
@@ -189,7 +191,7 @@ export async function handleResendWebhookRoutes(context) {
         .commit({ visibility: "async" });
       patched++;
     } catch (err) {
-      console.error(`resend webhook patch failed for ${t._id}:`, err);
+      log.error("resend webhook patch failed", { id: t._id, err: err?.message || String(err) });
     }
   }
 

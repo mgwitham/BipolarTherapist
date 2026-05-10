@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>Your matches · BipolarTherapyHub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"
+    />
+    <link rel="stylesheet" href="assets/results-page.css" />
+  </head>
+  <body>
+    <nav class="results-nav">
+      <a href="/" class="nav-logo" aria-label="BipolarTherapyHub home">
+        <svg
+          class="logo-mark"
+          viewBox="0 0 32 32"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          aria-hidden="true"
+        >
+          <rect width="32" height="32" rx="8" fill="url(#resultsNavGrad)" />
+          <circle
+            cx="12"
+            cy="16"
+            r="5"
+            stroke="white"
+            stroke-width="1.5"
+            fill="none"
+            opacity=".9"
+          />
+          <circle
+            cx="20"
+            cy="16"
+            r="5"
+            stroke="white"
+            stroke-width="1.5"
+            fill="none"
+            opacity=".9"
+          />
+          <path d="M16 12.5 Q14 16 16 19.5 Q18 16 16 12.5Z" fill="white" opacity=".85" />
+          <defs>
+            <linearGradient
+              id="resultsNavGrad"
+              x1="0"
+              y1="0"
+              x2="32"
+              y2="32"
+              gradientUnits="userSpaceOnUse"
+            >
+              <stop offset="0%" stop-color="#347F96" />
+              <stop offset="100%" stop-color="#143A46" />
+            </linearGradient>
+          </defs>
+        </svg>
+        <span class="logo-wordmark">Bipolar<span>Therapy</span>Hub</span>
+      </a>
+      <div class="results-nav-actions">
+        <a href="tel:988" class="nav-crisis" aria-label="In crisis? Call 988">
+          <i class="ti ti-phone" aria-hidden="true"></i>
+          <span class="nav-crisis-label">In crisis? Call 988</span>
+        </a>
+        <a href="/directory" class="nav-saved" aria-label="Saved therapists">
+          <i class="ti ti-bookmark" aria-hidden="true"></i>
+          <span class="nav-saved-label">Saved</span>
+          <span class="saved-count" data-saved-count hidden>0</span>
+        </a>
+        <a href="/directory" class="nav-browse" aria-label="Browse all therapists">
+          <i class="ti ti-list-search" aria-hidden="true"></i>
+          <span class="nav-browse-label">Browse all</span>
+        </a>
+        <a href="/match" class="nav-edit-search">Start over</a>
+      </div>
+    </nav>
+
+    <main id="resultsMain">
+      <div class="results-header">
+        <h1 class="results-h1">
+          <span data-results-count>0</span> bipolar-informed matches for you
+        </h1>
+        <div class="results-filters" data-results-filters>
+          <!-- Filter pills are populated by JS in a later step.
+               Static example pill below shows the styling target. -->
+          <a href="/match" class="filter-edit-btn" data-results-edit>
+            <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>
+            Edit
+          </a>
+        </div>
+      </div>
+
+      <!-- Cards container — populated by assets/results.js after fetch. -->
+      <section class="results-list" data-results-list>
+        <div data-results-cards hidden></div>
+
+        <!-- Static example markup retained for visual QA only. results.js
+             never reads or modifies this block. Remove once the wired
+             render is signed off. -->
+        <template data-results-static-example>
+          <div class="best-match-label">
+            <i class="ti ti-rosette" aria-hidden="true"></i>
+            <span>Top match</span>
+          </div>
+          <article
+            class="featured-card"
+            data-card
+            data-card-rank="1"
+            data-card-id="example-jordan-morales"
+          >
+            <div class="featured-card-header">
+              <div class="card-avatar avatar-teal" aria-hidden="true">JM</div>
+              <div class="card-ident">
+                <h2 class="card-name">
+                  Jordan Morales,
+                  <span class="card-creds">PhD</span>
+                </h2>
+                <p class="card-title">Clinical Psychologist</p>
+                <p class="card-reason" data-card-reason>
+                  Rapid cycling · in person · accepts Aetna
+                </p>
+              </div>
+              <button
+                type="button"
+                class="card-save"
+                data-card-save
+                aria-label="Save this therapist"
+                aria-pressed="false"
+              >
+                <i class="ti ti-bookmark" aria-hidden="true"></i>
+                <span class="card-save-label">Save</span>
+              </button>
+            </div>
+
+            <div class="bipolar-years-badge">
+              <span class="bipolar-years-num">15</span>
+              <span class="bipolar-years-label">years<br />treating bipolar specifically</span>
+            </div>
+
+            <ul class="specialty-tags">
+              <li class="specialty-tag">Bipolar I &amp; II</li>
+              <li class="specialty-tag">Rapid cycling</li>
+              <li class="specialty-tag specialty-tag-modality">IPSRT</li>
+              <li class="specialty-tag specialty-tag-modality">DBT</li>
+            </ul>
+
+            <ul class="card-meta">
+              <li class="card-meta-item">In-person &amp; virtual</li>
+              <li class="card-meta-item">2.4 mi</li>
+              <li class="card-meta-item">$180 · sliding scale</li>
+              <li class="card-meta-item card-meta-avail">
+                <span class="avail-dot" aria-hidden="true"></span>Available now
+              </li>
+              <li class="card-meta-item">Aetna, BCBS, +3</li>
+            </ul>
+
+            <div class="card-actions">
+              <a href="#" class="card-cta-primary" data-card-profile>
+                View profile
+                <i class="ti ti-arrow-right" aria-hidden="true"></i>
+              </a>
+            </div>
+          </article>
+
+          <!-- ── RESULTS GRID (Section 4) ────────────────────────
+             Static example. Step 6 replaces with JS render. -->
+          <p class="grid-section-label" data-grid-label>
+            <span><span data-grid-count>7</span> more matches</span>
+          </p>
+          <div class="results-grid" data-results-grid>
+            <article
+              class="grid-card"
+              data-card
+              data-card-rank="2"
+              data-card-id="example-sam-rivera"
+            >
+              <div class="grid-card-header">
+                <div class="card-avatar card-avatar-sm avatar-purple" aria-hidden="true">SR</div>
+                <div class="card-ident">
+                  <h3 class="card-name card-name-sm">
+                    Sam Rivera, <span class="card-creds">LMFT</span>
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  class="card-save"
+                  data-card-save
+                  aria-label="Save this therapist"
+                  aria-pressed="false"
+                >
+                  <i class="ti ti-bookmark" aria-hidden="true"></i>
+                  <span class="card-save-label">Save</span>
+                </button>
+              </div>
+              <ul class="specialty-tags">
+                <li class="specialty-tag">Bipolar II</li>
+                <li class="specialty-tag specialty-tag-modality">FFT</li>
+                <li class="specialty-tag-more">+2 more</li>
+              </ul>
+              <ul class="card-meta card-meta-sm">
+                <li class="card-meta-item">Virtual</li>
+                <li class="card-meta-item">$140</li>
+                <li class="card-meta-item card-meta-avail">
+                  <span class="avail-dot" aria-hidden="true"></span>This week
+                </li>
+              </ul>
+              <div class="card-actions">
+                <a href="#" class="card-cta-grid" data-card-profile>
+                  View profile
+                  <i class="ti ti-arrow-right" aria-hidden="true"></i>
+                </a>
+              </div>
+            </article>
+
+            <article
+              class="grid-card"
+              data-card
+              data-card-rank="3"
+              data-card-id="example-alex-chen"
+            >
+              <div class="grid-card-header">
+                <div class="card-avatar card-avatar-sm avatar-amber" aria-hidden="true">AC</div>
+                <div class="card-ident">
+                  <h3 class="card-name card-name-sm">
+                    Alex Chen, <span class="card-creds">PsyD</span>
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  class="card-save"
+                  data-card-save
+                  aria-label="Save this therapist"
+                  aria-pressed="false"
+                >
+                  <i class="ti ti-bookmark" aria-hidden="true"></i>
+                  <span class="card-save-label">Save</span>
+                </button>
+              </div>
+              <ul class="specialty-tags">
+                <li class="specialty-tag">Bipolar I &amp; II</li>
+                <li class="specialty-tag specialty-tag-modality">DBT</li>
+              </ul>
+              <ul class="card-meta card-meta-sm">
+                <li class="card-meta-item">In-person</li>
+                <li class="card-meta-item">3.1 mi</li>
+                <li class="card-meta-item">$200</li>
+              </ul>
+              <div class="card-actions">
+                <a href="#" class="card-cta-grid" data-card-profile>
+                  View profile
+                  <i class="ti ti-arrow-right" aria-hidden="true"></i>
+                </a>
+              </div>
+            </article>
+          </div>
+        </template>
+
+        <!-- ── FOOTER PROMPT — soft escape after grid ─────── -->
+        <p class="results-footer-prompt" data-results-footer hidden>
+          None of these the right fit?
+          <a href="/directory"
+            >Browse all California therapists
+            <i class="ti ti-arrow-right" aria-hidden="true"></i>
+          </a>
+        </p>
+
+        <!-- ── LOADING STATE (Section 6) ──────────────────────
+             Hidden by default. Toggle `data-state="loading"` on
+             `.results-list` (or unhide this block) to display. -->
+        <div class="results-skeleton" data-results-skeleton hidden>
+          <div class="skeleton-best-match"></div>
+          <div class="skeleton-featured">
+            <div class="skeleton-row">
+              <div class="skeleton-bar skeleton-avatar"></div>
+              <div class="skeleton-stack">
+                <div class="skeleton-bar skeleton-line skeleton-line-name"></div>
+                <div class="skeleton-bar skeleton-line skeleton-line-sub"></div>
+              </div>
+            </div>
+            <div class="skeleton-bar skeleton-block skeleton-years"></div>
+            <div class="skeleton-bar skeleton-block skeleton-tags"></div>
+            <div class="skeleton-bar skeleton-block skeleton-meta"></div>
+            <div class="skeleton-bar skeleton-block skeleton-cta"></div>
+          </div>
+          <div class="skeleton-grid">
+            <div class="skeleton-card">
+              <div class="skeleton-bar skeleton-avatar skeleton-avatar-sm"></div>
+              <div class="skeleton-bar skeleton-line skeleton-line-name"></div>
+              <div class="skeleton-bar skeleton-block skeleton-years-sm"></div>
+              <div class="skeleton-bar skeleton-block skeleton-tags"></div>
+              <div class="skeleton-bar skeleton-block skeleton-cta"></div>
+            </div>
+            <div class="skeleton-card">
+              <div class="skeleton-bar skeleton-avatar skeleton-avatar-sm"></div>
+              <div class="skeleton-bar skeleton-line skeleton-line-name"></div>
+              <div class="skeleton-bar skeleton-block skeleton-years-sm"></div>
+              <div class="skeleton-bar skeleton-block skeleton-tags"></div>
+              <div class="skeleton-bar skeleton-block skeleton-cta"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── EMPTY STATE (Section 6) ─────────────────────── -->
+        <div class="results-empty" data-results-empty hidden>
+          <i class="ti ti-search-off results-empty-icon" aria-hidden="true"></i>
+          <h2 class="results-empty-h">No exact matches found</h2>
+          <p class="results-empty-body">
+            Try widening your search. Remove the availability filter or expand your ZIP radius.
+          </p>
+          <a href="/match" class="results-empty-link">
+            Edit search
+            <i class="ti ti-arrow-right" aria-hidden="true"></i>
+          </a>
+        </div>
+      </section>
+    </main>
+    <script type="module" src="assets/results.js"></script>
+    <script type="module" src="assets/results-save.js"></script>
+    <script type="module" src="assets/results-analytics.js"></script>
+  </body>
+</html>

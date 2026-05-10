@@ -1,4 +1,6 @@
+import "./sentry-init.js";
 import { fetchDirectoryPageContent } from "./cms.js";
+import { escapeHtml } from "./escape-html.js";
 import { rememberTherapistContactRoute, trackFunnelEvent } from "./funnel-analytics.js";
 import {
   FILTER_BOOLEAN_KEYS,
@@ -123,15 +125,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   function getElement(id) {
     return document.getElementById(id);
-  }
-
-  function escapeHtml(value) {
-    return String(value || "")
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&#39;");
   }
 
   function mulberry32(seed) {
@@ -589,7 +582,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     if (filters.gender) {
       chips.push({
         key: "gender",
-        label: filters.gender === "male" ? "Male therapist" : "Female therapist",
+        label:
+          filters.gender === "male"
+            ? "Male therapist"
+            : filters.gender === "female"
+              ? "Female therapist"
+              : "Non-binary therapist",
       });
     }
     if (filters.therapist) {

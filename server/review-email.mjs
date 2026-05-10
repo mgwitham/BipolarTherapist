@@ -1,3 +1,5 @@
+import { log } from "./logger.mjs";
+
 export function hasEmailConfig(config) {
   return Boolean(config.resendApiKey && config.emailFrom && config.notificationTo);
 }
@@ -32,11 +34,9 @@ function applyDevRedirect(config, payload) {
   }
 
   if (process.env.NODE_ENV === "production") {
-    console.error(
-      "[email] CRITICAL — EMAIL_DEV_REDIRECT is set in production. Refusing to send. " +
-        "Unset this env var immediately. Original recipients: " +
-        JSON.stringify(payload.to || []),
-    );
+    log.error("[email] CRITICAL — EMAIL_DEV_REDIRECT is set in production. Refusing to send.", {
+      recipients: payload.to || [],
+    });
     throw new Error("EMAIL_DEV_REDIRECT must not be set in production.");
   }
 
@@ -58,14 +58,11 @@ function applyDevRedirect(config, payload) {
     text: payload.text ? textBanner + payload.text : textBanner,
   };
 
-  console.log(
-    "[email] DEV REDIRECT — to: " +
-      redirect +
-      " | original: " +
-      originalTo +
-      " | subject: " +
-      String(payload.subject || ""),
-  );
+  log.info("[email] DEV REDIRECT", {
+    to: redirect,
+    original: originalTo,
+    subject: String(payload.subject || ""),
+  });
 
   return { payload: redirectedPayload, redirected: true };
 }
@@ -87,7 +84,7 @@ export async function sendEmail(config, payload) {
   // by this switch — that's intentional, the founder still needs to ship
   // intentional outreach from the CRM.
   if (String(process.env.EMAIL_KILL_SWITCH || "").toLowerCase() === "true") {
-    console.warn("[email] kill switch active. Skipping send to:", payload?.to);
+    log.warn("[email] kill switch active — skipping send", { to: payload?.to });
     return { skipped: true, killed: true };
   }
 

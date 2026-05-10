@@ -563,7 +563,7 @@ test("match routes persist public match requests without admin auth", async func
         return {};
       },
       async parseBody() {
-        return { journey_id: "journey-123" };
+        return { request_id: "journey-123", journey_id: "journey-123" };
       },
       sendJson: createSendJson(response),
     },
@@ -1498,4 +1498,33 @@ test("top-level review handler returns and exports provider observations for aut
   assert.equal(exportResponse.statusCode, 200);
   assert.match(String(exportResponse.rawBody || ""), /provider_id,field_name,raw_value/);
   assert.match(String(exportResponse.rawBody || ""), /provider-ca-88804,languages/);
+});
+
+test("health check: returns 200 with ok and latencyMs when Sanity is reachable", async function () {
+  const { client } = createMemoryClient({});
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const response = await runHandlerRequest(handler, {
+    headers: { host: "localhost:8787" },
+    method: "GET",
+    url: "/health",
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.ok, true);
+  assert.ok(typeof response.payload.latencyMs === "number", "expected numeric latencyMs");
+});
+
+test("health check: returns 503 when Sanity fetch throws", async function () {
+  const brokenClient = {
+    fetch: async () => {
+      throw new Error("Sanity connection refused");
+    },
+  };
+  const handler = createReviewApiHandler(createTestApiConfig(), brokenClient);
+  const response = await runHandlerRequest(handler, {
+    headers: { host: "localhost:8787" },
+    method: "GET",
+    url: "/health",
+  });
+  assert.equal(response.statusCode, 503);
+  assert.equal(response.payload.ok, false);
 });

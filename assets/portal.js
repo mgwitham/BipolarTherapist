@@ -1,4 +1,6 @@
+import "./sentry-init.js";
 import "./funnel-analytics.js";
+import { escapeHtml } from "./escape-html.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { mountPortalTdCompleteness, shouldShowCompleteness } from "./portal-td-completeness.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
@@ -36,15 +38,6 @@ var slug = new URLSearchParams(window.location.search).get("slug") || "";
 var token = new URLSearchParams(window.location.search).get("token") || "";
 var devLoginEmail = new URLSearchParams(window.location.search).get("dev_login") || "";
 var claimSessionState = null;
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function normalizeSlugInput(value) {
   var raw = String(value || "").trim();
@@ -816,6 +809,9 @@ function renderLookupState(options) {
     'aria-describedby="portalSignInHelper portalSignInFeedback" />' +
     '<p id="portalSignInHelper" class="portal-signin-helper">' +
     "We'll email a secure sign-in link to the address on your listing. It usually arrives within a minute." +
+    "</p>" +
+    '<p class="portal-signin-helper">' +
+    'Not sure which email is on your listing? <a href="/claim">Find your listing →</a>' +
     "</p>" +
     '<p class="portal-signin-security">' +
     "No password needed. We'll email you a sign-in link, valid for 24 hours." +
@@ -2409,22 +2405,40 @@ function updateReadinessUi(baseTherapist, form) {
   if (labelEl) labelEl.textContent = readiness.label;
 
   if (nudgeEl) {
-    var nextBest = computeNextBestAdd(projected);
-    if (nextBest) {
-      nudgeEl.innerHTML =
-        "<strong>Biggest next jump:</strong> " +
-        escapeHtml(nextBest.label) +
-        " would move you from <strong>" +
-        nextBest.from +
-        "</strong> to <strong>" +
-        nextBest.to +
-        "</strong>.";
-      nudgeEl.hidden = false;
-    } else if (score >= 90) {
-      nudgeEl.textContent = "Your profile is match-ready. Keep the details fresh.";
+    if (score >= 90) {
+      nudgeEl.innerHTML = "Your profile is match-ready. Keep the details fresh.";
       nudgeEl.hidden = false;
     } else {
-      nudgeEl.hidden = true;
+      var baseScore = getTherapistMatchReadiness(projected).score;
+      var ranked = NEXT_BEST_FIELDS.filter(function (f) {
+        return f.isEmpty(projected);
+      })
+        .map(function (f) {
+          var to = getTherapistMatchReadiness(f.stub(projected)).score;
+          return { label: f.label, delta: to - baseScore, to: to };
+        })
+        .filter(function (f) {
+          return f.delta > 0;
+        })
+        .sort(function (a, b) {
+          return b.delta - a.delta;
+        })
+        .slice(0, 3);
+
+      if (ranked.length) {
+        nudgeEl.innerHTML =
+          "<strong>Top profile gaps:</strong>" +
+          '<ul style="margin:0.4rem 0 0 1.1rem;padding:0;font-size:0.875rem;">' +
+          ranked
+            .map(function (f) {
+              return "<li>" + escapeHtml(f.label) + " <em>(+" + f.delta + " pts)</em></li>";
+            })
+            .join("") +
+          "</ul>";
+        nudgeEl.hidden = false;
+      } else {
+        nudgeEl.hidden = true;
+      }
     }
   }
 
@@ -2721,6 +2735,9 @@ function buildEditProfileHtml(therapist) {
     '<option value="female"' +
     (t.gender === "female" ? " selected" : "") +
     ">Female</option>" +
+    '<option value="non_binary"' +
+    (t.gender === "non_binary" ? " selected" : "") +
+    ">Non-binary</option>" +
     "</select>" +
     '<p class="portal-hint">Shown on your public profile. Patients may use this to find a provider they feel comfortable with.</p>' +
     "</div>" +

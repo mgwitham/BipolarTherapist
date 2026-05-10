@@ -1,3 +1,6 @@
+import "./sentry-init.js";
+import { escapeHtml as esc } from "./escape-html.js";
+
 const API = "/api/admin";
 
 // ---- STATE ----
@@ -10,15 +13,6 @@ const state = {
 };
 
 // ---- UTILS ----
-
-function esc(str) {
-  if (str == null) return "";
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 function relTime(dateStr) {
   if (!dateStr) return "";
@@ -157,8 +151,7 @@ function computeStats(list) {
 // then they come back here.
 
 function redirectToAdminLogin() {
-  // Sign in via the existing admin panel, then come back to /outreach.html.
-  window.location.href = "/admin.html";
+  window.location.href = "/admin";
 }
 
 // ---- DASHBOARD SHELL ----
@@ -506,37 +499,41 @@ function getTemplateDefaults(template, t) {
   const profileUrl = t.profileUrl || "[your profile URL]";
   if (template === "follow_up") {
     return {
-      subject: `Re: Patients in ${city} are searching for bipolar specialists`,
+      subject: `One more thing about your bipolar patients`,
       body: `Hi ${first},
 
-Quick bump in case the first email got buried. Your bipolar specialist listing is here:
+Someone with bipolar disorder is searching for a specialist right now. They've probably been through a few therapists who didn't understand the full picture. For some of them, you're the right person. They just can't find you yet.
+
+Your profile is still unclaimed:
 
 ${profileUrl}
 
-Free to claim if you want to edit anything, or reply "remove" and I'll take it down.
+Two minutes is all it takes. If it's not for you, just reply and I'll remove it. No more emails after this.
 
-No more emails after this either way.
-
-Best,
-Michael`,
+Michael Witham
+BipolarTherapyHub`,
     };
   }
   return {
-    subject: `Patients in ${city} are searching for bipolar specialists`,
+    subject: `Your bipolar patients can't find you`,
     body: `Hi ${first},
 
-Every week, patients across California search for therapists who truly understand bipolar disorder, not just mood issues in general. That search is harder than it should be.
+Most bipolar patients have already seen three therapists who didn't really get it. They know the difference. They want someone who understands the cycling, the mixed states, the medication piece.
 
-I built BipolarTherapyHub to fix that, and I added a profile for you:
+Most of them never find that person. So they settle, or they stop looking.
+
+I was that patient for twenty years. That's why I built BipolarTherapyHub, so the right patients can finally find the right therapist.
+
+Your profile is already there:
 
 ${profileUrl}
 
-It's live and free. To update your bio, photo, fees, or specialties, you can claim it in two clicks. No payment required.
+Claim it in two minutes. The patients searching for exactly what you offer will find you instead of giving up.
 
-If you'd rather not be listed, just reply and I'll remove it today.
+If you'd rather not be listed, just reply and I'll take it down.
 
-Best,
-Michael`,
+Michael Witham
+BipolarTherapyHub`,
   };
 }
 

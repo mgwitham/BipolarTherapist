@@ -67,7 +67,7 @@ export default async function handler(req, res) {
     licenseNumber,
     website,
     sourceUrl
-  } | order(coalesce(outreach.lastContactedAt, "1970-01-01") asc)`;
+  } | order(coalesce(outreach.lastContactedAt, "1970-01-01") desc)`;
 
   try {
     const client = getSanityClient();

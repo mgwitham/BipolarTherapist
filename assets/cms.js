@@ -171,6 +171,7 @@ function normalizeTherapist(doc) {
     portal_last_seen_at: doc.portalLastSeenAt || "",
     listing_pause_requested_at: doc.listingPauseRequestedAt || "",
     listing_removal_requested_at: doc.listingRemovalRequestedAt || "",
+    gender: doc.gender || "",
     practice_name: doc.practiceName || doc.practice_name || "",
     city: doc.city || "",
     state: doc.state || "",
@@ -218,6 +219,8 @@ function normalizeTherapist(doc) {
         : [],
     estimated_wait_time: doc.estimatedWaitTime || doc.estimated_wait_time || "",
     care_approach: doc.careApproach || doc.care_approach || "",
+    bipolar_approach: doc.bipolarApproach || doc.bipolar_approach || "",
+    availability_posture: doc.availabilityPosture || doc.availability_posture || "",
     medication_management:
       doc.medicationManagement !== undefined
         ? Boolean(doc.medicationManagement)
@@ -336,6 +339,8 @@ function normalizeDirectoryTherapist(doc) {
     bipolar_years_experience: doc.bipolarYearsExperience || doc.bipolar_years_experience || null,
     estimated_wait_time: doc.estimatedWaitTime || doc.estimated_wait_time || "",
     care_approach: doc.careApproach || doc.care_approach || "",
+    bipolar_approach: doc.bipolarApproach || doc.bipolar_approach || "",
+    availability_posture: doc.availabilityPosture || doc.availability_posture || "",
     medication_management:
       doc.medicationManagement !== undefined
         ? Boolean(doc.medicationManagement)

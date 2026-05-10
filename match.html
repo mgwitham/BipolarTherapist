@@ -61,7 +61,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Lora:wght@400;600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap"
       rel="stylesheet"
     />
     <link rel="stylesheet" href="assets/styles.css" />
@@ -167,8 +167,8 @@
                       aria-label="What kind of support do you want?"
                     >
                       <option value="">What kind of support do you want?</option>
-                      <option value="Therapy">Therapy</option>
-                      <option value="Psychiatry">Psychiatry</option>
+                      <option value="Therapy">Talk therapy</option>
+                      <option value="Psychiatry">Medication support</option>
                     </select>
                   </div>
                   <div class="refine-primary-sep" role="separator"></div>
@@ -342,6 +342,14 @@
                               <input type="radio" name="therapist_gender_preference" value="male" />
                               <span>Male</span>
                             </label>
+                            <label class="refine-seg-opt">
+                              <input
+                                type="radio"
+                                name="therapist_gender_preference"
+                                value="non_binary"
+                              />
+                              <span>Non-binary</span>
+                            </label>
                           </div>
                         </div>
                         <div class="refine-sort-row">
@@ -359,7 +367,7 @@
                                 value="Therapy"
                                 checked
                               />
-                              <span>Therapy</span>
+                              <span>Talk therapy</span>
                             </label>
                             <label class="refine-seg-opt">
                               <input
@@ -368,7 +376,7 @@
                                 data-sync-key="care_intent"
                                 value="Psychiatry"
                               />
-                              <span>Psychiatry</span>
+                              <span>Medication support</span>
                             </label>
                             <label class="refine-seg-opt">
                               <input
@@ -697,6 +705,17 @@
             </div>
           </form>
         </div>
+        <div
+          id="matchResultsGuidance"
+          hidden
+          style="
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            color: #6b7280;
+            border-top: 1px solid #e5e7eb;
+            margin-top: 0.5rem;
+          "
+        ></div>
         <div id="matchFirstContact"></div>
         <div id="matchFallbackContact"></div>
         <div id="matchOutreach" hidden></div>

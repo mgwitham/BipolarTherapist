@@ -20,6 +20,7 @@ export const sampleTherapist = {
   title: "Therapist",
   practiceName: "Rivera Therapy PLLC",
   licenseNumber: "109462",
+  licenseState: "CA",
   licenseExpiration: "2027-08-31",
   bipolarYearsExperience: 8,
   acceptsTelehealth: true,

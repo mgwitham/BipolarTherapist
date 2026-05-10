@@ -1,5 +1,15 @@
+import { log } from "./logger.mjs";
+import { validateBody } from "./validate.mjs";
+import { DEFAULT_LICENSE_STATE } from "./license-states.mjs";
+
+const INTAKE_SCHEMA = {
+  name: { type: "string", required: true, maxLength: 200 },
+  email: { type: "email", required: true },
+  license_number: { type: "string", required: true, maxLength: 32 },
+};
+
 export async function handleApplicationRoutes(context) {
-  const { client, config, deps, origin, request, response, routePath, url } = context;
+  const { client, config, deps, origin, request, requestId, response, routePath, url } = context;
 
   const {
     canAttemptIntake,
@@ -62,24 +72,20 @@ export async function handleApplicationRoutes(context) {
     recordIntakeAttempt(request);
 
     const body = await parseBody(request);
+    const intakeValidation = validateBody(INTAKE_SCHEMA, body);
+    if (!intakeValidation.ok) {
+      sendJson(response, 400, { error: intakeValidation.error }, origin, config);
+      return true;
+    }
     const name = String(body.name || "").trim();
-    const email = String(body.email || "").trim();
+    const email = String(body.email || "")
+      .trim()
+      .toLowerCase();
     const licenseNumber = String(body.license_number || "")
       .trim()
       .replace(/\s+/g, "");
     const treatsBipolar =
       body.treats_bipolar === true || body.treats_bipolar === "true" || body.treats_bipolar === 1;
-
-    if (!name || !email || !licenseNumber) {
-      sendJson(
-        response,
-        400,
-        { error: "Full name, email, and CA license number are all required." },
-        origin,
-        config,
-      );
-      return true;
-    }
     if (!treatsBipolar) {
       sendJson(
         response,
@@ -103,8 +109,8 @@ export async function handleApplicationRoutes(context) {
       name: name,
       email: email,
       license_number: licenseNumber,
-      license_state: "CA",
-      state: "CA",
+      license_state: DEFAULT_LICENSE_STATE,
+      state: DEFAULT_LICENSE_STATE,
       city: String(body.city || "").trim(),
       zip: String(body.zip || "").trim(),
       credentials: String(body.credentials || "").trim() || "Pending",
@@ -163,15 +169,14 @@ export async function handleApplicationRoutes(context) {
           (request.socket && request.socket.remoteAddress) ||
           request.headers["x-forwarded-for"] ||
           "unknown";
-        console.warn(
-          `[DEV SENTINEL] TEST-0000 submitted in production from ${probeIp} at ${new Date().toISOString()}`,
-        );
+        log.warn("[DEV SENTINEL] TEST-0000 submitted in production", { requestId, ip: probeIp });
         verification = { verified: false, error: "not_found" };
       } else if (!isDevBypassEnabled(config)) {
         verification = { verified: false, error: "not_found" };
       } else {
-        console.warn(
-          `[DEV BYPASS] Sentinel license TEST-0000 used at intake — skipping DCA verification`,
+        log.warn(
+          "[DEV BYPASS] Sentinel license TEST-0000 used at intake — skipping DCA verification",
+          { requestId },
         );
         verification = buildSentinelVerification(name);
       }
@@ -179,7 +184,10 @@ export async function handleApplicationRoutes(context) {
       try {
         verification = await verifyLicenseAcrossCaTypes(config, licenseNumber);
       } catch (error) {
-        console.error("DCA verification threw at intake", error);
+        log.error("DCA verification threw at intake", {
+          requestId,
+          err: error?.message || String(error),
+        });
         verification = { verified: false, error: "dca_unreachable" };
       }
     }
@@ -305,7 +313,10 @@ export async function handleApplicationRoutes(context) {
         .set({ publishedTherapistId: therapistCreated._id })
         .commit();
     } catch (linkError) {
-      console.error("Failed to link application -> therapist", linkError);
+      log.error("Failed to link application -> therapist", {
+        requestId,
+        err: linkError?.message || String(linkError),
+      });
     }
 
     // Admin email stays on the signup-instant path — it's the admin's
@@ -313,7 +324,10 @@ export async function handleApplicationRoutes(context) {
     try {
       await notifyAdminOfSubmission(config, applicationCreated);
     } catch (emailError) {
-      console.error("Failed to send admin-notify email for signup intake.", emailError);
+      log.error("Failed to send admin-notify email for signup intake", {
+        requestId,
+        err: emailError?.message || String(emailError),
+      });
     }
 
     // Compose Stripe checkout + portal claim token so the client can
@@ -333,7 +347,10 @@ export async function handleApplicationRoutes(context) {
       stripeUrl = (checkout && checkout.url) || "";
     } catch (error) {
       checkoutError = error && error.message ? error.message : "checkout_unavailable";
-      console.error("Stripe checkout session failed at intake", error);
+      log.error("Stripe checkout session failed at intake", {
+        requestId,
+        err: error?.message || String(error),
+      });
     }
 
     const claimToken = buildPortalClaimToken(config, therapistCreated, email, {
@@ -394,7 +411,10 @@ export async function handleApplicationRoutes(context) {
       await sendPortalClaimLink(config, therapist, payload.email, portalBaseUrl);
       emailSent = true;
     } catch (error) {
-      console.error("Failed to send free-path claim email", error);
+      log.error("Failed to send free-path claim email", {
+        requestId,
+        err: error?.message || String(error),
+      });
     }
     sendJson(response, 200, { ok: true, email_sent: emailSent }, origin, config);
     return true;
@@ -435,11 +455,17 @@ export async function handleApplicationRoutes(context) {
     try {
       await notifyAdminOfSubmission(config, created);
     } catch (error) {
-      console.error("Failed to send new-submission email.", error);
+      log.error("Failed to send new-submission email", {
+        requestId,
+        err: error?.message || String(error),
+      });
     }
     // Async DCA license verification — don't block the response
     runDcaVerification(client, config, created, body).catch(function (err) {
-      console.error("DCA license verification failed for " + created._id, err);
+      log.error("DCA license verification failed", {
+        id: created._id,
+        err: err?.message || String(err),
+      });
     });
     sendJson(response, 201, normalizeApplication(created), origin, config);
     return true;
@@ -753,6 +779,7 @@ export async function handleApplicationRoutes(context) {
     // token, 7-day TTL, bound to the applicant's email. Same token
     // flow as /portal/quick-claim — the portal treats either path
     // identically once the token is verified.
+    let approvalEmailFailed = false;
     try {
       const portalBaseUrl =
         url && url.protocol && url.host
@@ -768,10 +795,29 @@ export async function handleApplicationRoutes(context) {
         buildPortalClaimToken,
       });
     } catch (error) {
-      console.error("Failed to send approval email.", error);
+      approvalEmailFailed = true;
+      log.error("Failed to send approval email", {
+        requestId,
+        err: error?.message || String(error),
+      });
     }
 
-    sendJson(response, 200, { ok: true, therapistId }, origin, config);
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        therapistId,
+        ...(approvalEmailFailed
+          ? {
+              email_warning:
+                "Approval email failed to send. The therapist will need a manual portal link.",
+            }
+          : {}),
+      },
+      origin,
+      config,
+    );
     return true;
   }
 
@@ -812,15 +858,29 @@ export async function handleApplicationRoutes(context) {
       )
       .commit({ visibility: "sync" });
 
+    let rejectionEmailFailed = false;
     if (application) {
       try {
         await notifyApplicantOfDecision(config, application, "rejected");
       } catch (error) {
-        console.error("Failed to send rejection email.", error);
+        rejectionEmailFailed = true;
+        log.error("Failed to send rejection email", {
+          requestId,
+          err: error?.message || String(error),
+        });
       }
     }
 
-    sendJson(response, 200, { ok: true }, origin, config);
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        ...(rejectionEmailFailed ? { email_warning: "Rejection email failed to send." } : {}),
+      },
+      origin,
+      config,
+    );
     return true;
   }
 
@@ -864,7 +924,7 @@ async function runDcaVerification(client, config, application, body) {
 
   var result = await verifyLicense(config, typeCode, licenseNumber);
   if (!result.verified) {
-    console.log("DCA verification not confirmed for " + application._id + ": " + result.error);
+    log.info("DCA verification not confirmed", { id: application._id, error: result.error });
     return;
   }
 
@@ -872,12 +932,10 @@ async function runDcaVerification(client, config, application, body) {
     .patch(application._id)
     .set({ licensureVerification: result.licensureVerification })
     .commit();
-  console.log(
-    "DCA license verified for " +
-      application._id +
-      ": " +
-      result.licensureVerification.primaryStatus,
-  );
+  log.info("DCA license verified", {
+    id: application._id,
+    status: result.licensureVerification.primaryStatus,
+  });
 }
 
 // Synchronous fan-out DCA verification for the signup-intake path.

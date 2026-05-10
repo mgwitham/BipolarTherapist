@@ -1,4 +1,6 @@
+import "./sentry-init.js";
 import { fetchPublicTherapists } from "./cms.js";
+import { escapeHtml } from "./escape-html.js";
 import {
   clearRenderedMatchPanels,
   getMatchShellRefs,
@@ -214,15 +216,6 @@ var US_STATE_MAP = {
   WYOMING: "WY",
   "DISTRICT OF COLUMBIA": "DC",
 };
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function slugifyForProfile(text) {
   return String(text || "")
@@ -4377,18 +4370,21 @@ function buildMatchOutreachDisclosure(entry, options) {
   if (expanded) {
     var firstName = String(therapist.name || "").split(" ")[0] || "them";
     return (
-      '<section class="mx-outreach mx-outreach--expanded" data-mx-outreach="' +
+      '<details open class="mx-outreach mx-outreach--expanded" data-mx-outreach="' +
       escapeHtml(slug) +
       '">' +
+      '<summary class="mx-outreach-expanded-summary">' +
       '<div class="mx-outreach-expanded-header">' +
       '<span class="mx-outreach-expanded-kicker">Next step</span>' +
       '<span class="mx-outreach-expanded-label">Reach out to ' +
       escapeHtml(firstName) +
       "</span>" +
       "</div>" +
+      '<svg class="mx-outreach-chevron mx-outreach-expanded-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      "</summary>" +
       '<div class="mx-outreach-body outreach-script-shell">' +
       inner +
-      "</div></section>"
+      "</div></details>"
     );
   }
   return (
@@ -5731,6 +5727,21 @@ function renderResults(entries, profile) {
   setActionState(true, getMatchAdaptiveStrategy().match_action_copy.status);
   renderPrimaryMatchCards(entries, profile);
   triggerMotion(root, "motion-enter");
+
+  var guidanceEl = document.getElementById("matchResultsGuidance");
+  if (guidanceEl) {
+    guidanceEl.textContent =
+      "Start with your top match. Most therapists respond within 2 business days.";
+    guidanceEl.hidden = false;
+  }
+
+  var zip = String((profile && profile.location_query) || "").trim();
+  if (/^\d{5}$/.test(zip)) {
+    try {
+      window.sessionStorage.setItem("bth_sort_zip_v1", zip);
+    } catch (_) {}
+  }
+
   renderFallbackRecommendation(profile, primaryEntries);
   renderAdaptiveGuidance(profile, entries);
   if (refs.feedbackBar) {
@@ -5783,19 +5794,34 @@ async function handleSubmit(event) {
     root.innerHTML = MATCH_LOADING_SKELETON_HTML;
   }
 
-  var loadStart = Date.now();
-  await ensureZipcodesReadyForProfile(profile);
-  var elapsed = Date.now() - loadStart;
-  if (elapsed < 500) {
-    await new Promise(function (resolve) {
-      window.setTimeout(resolve, 500 - elapsed);
-    });
-  }
-
-  executeMatch(profile, {
-    scroll: true,
-    source: currentJourneyId ? "match_refine" : "match_page",
+  // Submission now hands off to /results, which reads the same URL
+  // params, scores, and renders the new card design. /match keeps
+  // working as today on direct visits — only the post-submit render
+  // path moved.
+  var params = new URLSearchParams();
+  var scalarKeys = [
+    "care_intent",
+    "location_query",
+    "care_state",
+    "care_format",
+    "needs_medication_management",
+    "insurance",
+    "budget_max",
+    "urgency",
+    "priority_mode",
+    "therapist_gender_preference",
+  ];
+  scalarKeys.forEach(function (k) {
+    var v = profile && profile[k];
+    if (v != null && String(v) !== "") params.set(k, String(v));
   });
+  ["bipolar_focus", "preferred_modalities", "population_fit", "language_preferences"].forEach(
+    function (k) {
+      var v = profile && profile[k];
+      if (Array.isArray(v) && v.length) params.set(k, v.join(","));
+    },
+  );
+  window.location.assign("/results?" + params.toString());
 }
 
 function renderDirectoryShortlist(slugs) {

@@ -1,4 +1,6 @@
 import crypto from "node:crypto";
+import { Sentry } from "./sentry.mjs";
+import { log } from "./logger.mjs";
 import { createClient } from "@sanity/client";
 import {
   buildApplicationDocument,
@@ -71,6 +73,7 @@ import {
   readAdminSessionFromRequest,
   readSignedPayload,
   recordFailedLogin,
+  refreshTherapistSessionIfStale,
   sendJson,
 } from "./review-http-auth.mjs";
 import { handleOpsRoutes } from "./review-ops-routes.mjs";
@@ -128,6 +131,10 @@ const publishingHelpers = {
 const MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_PHOTO_UPLOAD_BYTES = 4 * 1024 * 1024;
 const ALLOWED_PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+// In-memory store — resets on every Vercel cold start (i.e. per process).
+// Provides meaningful protection within a warm process. Does NOT carry
+// counts across cold starts or across concurrent instances. Acceptable
+// for current traffic; upgrade to Vercel KV / Upstash if abuse appears.
 const publicWriteRateLimitStore = new Map();
 const PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS = 5000;
 const PUBLIC_WRITE_RATE_LIMITS = {
@@ -289,9 +296,17 @@ function prunePublicWriteRateLimitStore(now) {
     }
   }
 
-  while (publicWriteRateLimitStore.size > PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS) {
-    const oldestKey = publicWriteRateLimitStore.keys().next().value;
-    publicWriteRateLimitStore.delete(oldestKey);
+  if (publicWriteRateLimitStore.size > PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS) {
+    let stalestKey = null;
+    let stalestTime = Infinity;
+    for (const [key, entry] of publicWriteRateLimitStore) {
+      const lastSeen = entry.timestamps.length ? Math.max(...entry.timestamps) : 0;
+      if (lastSeen < stalestTime) {
+        stalestTime = lastSeen;
+        stalestKey = key;
+      }
+    }
+    if (stalestKey !== null) publicWriteRateLimitStore.delete(stalestKey);
   }
 }
 
@@ -441,6 +456,12 @@ function normalizeCandidate(doc) {
   });
 }
 
+function resolveSlug(slugField) {
+  if (!slugField) return "";
+  if (typeof slugField === "string") return slugField;
+  return slugField.current || "";
+}
+
 function normalizeAdminTherapist(doc) {
   const fieldReviewStates = normalizeFieldReviewStates(doc && doc.fieldReviewStates, {
     keyStyle: "camelCase",
@@ -475,6 +496,7 @@ function normalizeAdminTherapist(doc) {
     listing_pause_requested_at: doc.listingPauseRequestedAt || "",
     listing_removal_requested_at: doc.listingRemovalRequestedAt || "",
     practice_name: doc.practiceName || "",
+    gender: doc.gender || "",
     city: doc.city || "",
     state: doc.state || "",
     zip: doc.zip || "",
@@ -519,7 +541,7 @@ function normalizeAdminTherapist(doc) {
     visibility_intent: doc.visibilityIntent || "",
     notes: doc.notes || "",
     audit_log: Array.isArray(doc.auditLog) ? doc.auditLog : [],
-    slug: typeof doc.slug === "string" ? doc.slug : (doc.slug && doc.slug.current) || "",
+    slug: resolveSlug(doc.slug),
     has_paid_subscription: false,
   };
 }
@@ -610,7 +632,7 @@ function buildPortalClaimToken(config, therapist, requesterEmail, options) {
   return createSignedPayload(
     {
       sub: "therapist-portal",
-      slug: therapist.slug.current,
+      slug: resolveSlug(therapist.slug),
       email: requesterEmail,
       exp: Date.now() + ttlMs,
       nonce: crypto.randomBytes(12).toString("hex"),
@@ -679,7 +701,7 @@ function buildListingRemovalToken(config, therapist) {
   return createSignedPayload(
     {
       sub: "listing-removal",
-      slug: therapist.slug.current,
+      slug: resolveSlug(therapist.slug),
       exp: Date.now() + 1000 * 60 * 60 * 24,
       nonce: crypto.randomBytes(12).toString("hex"),
     },
@@ -765,6 +787,7 @@ function createReviewRouteModules() {
         readAdminSessionFromRequest,
         recordFailedLogin,
         recordPortalAuthAttempt,
+        refreshTherapistSessionIfStale,
         sendJson,
         sendListingRemovalLink,
         sendPortalClaimLink,
@@ -980,12 +1003,47 @@ export function createReviewApiHandler(configOverride, clientOverride) {
   const routeModules = createReviewRouteModules();
 
   return async function reviewApiHandler(request, response) {
+    const requestId = crypto.randomUUID();
+    const requestStart = Date.now();
     const origin = request.headers.origin || "";
     const url = new URL(request.url || "/", `http://${request.headers.host || "localhost"}`);
     const routePath = normalizeRoutePath(url.pathname);
 
+    // Capture the status code written by any sendJson call so we can log it.
+    let capturedStatus = null;
+    const origWriteHead = response.writeHead.bind(response);
+    response.writeHead = function (statusCode, headers) {
+      capturedStatus = statusCode;
+      return origWriteHead(statusCode, headers);
+    };
+
+    log.info("[http] request", { requestId, method: request.method, path: routePath });
+
     if (request.method === "OPTIONS") {
       sendJson(response, 200, { ok: true }, origin, config);
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
+      return;
+    }
+
+    // Health check: cheap Sanity probe so uptime monitors get a real signal.
+    if (routePath === "/health" && request.method === "GET") {
+      const probeStart = Date.now();
+      try {
+        await client.fetch('*[_type == "therapist"][0]{_id}');
+        sendJson(response, 200, { ok: true, latencyMs: Date.now() - probeStart }, origin, config);
+      } catch (err) {
+        log.error("[health] Sanity probe failed", { requestId, err: err?.message || String(err) });
+        sendJson(response, 503, { ok: false, error: "Sanity unreachable" }, origin, config);
+      }
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
       return;
     }
 
@@ -999,6 +1057,11 @@ export function createReviewApiHandler(configOverride, clientOverride) {
         origin,
         config,
       );
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
       return;
     }
 
@@ -1011,28 +1074,53 @@ export function createReviewApiHandler(configOverride, clientOverride) {
             deps: routeModule.deps,
             origin,
             request,
+            requestId,
             response,
             routePath,
             ...(routeModule.includeUrl ? { url } : {}),
           })
         ) {
+          log.info("[http] response", {
+            requestId,
+            status: capturedStatus,
+            durationMs: Date.now() - requestStart,
+          });
           return;
         }
       }
 
-      sendJson(response, 404, { error: "Not found." }, origin, config);
+      if (!response.writableEnded) {
+        sendJson(response, 404, { error: "Not found." }, origin, config);
+      }
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
     } catch (error) {
-      console.error("[review-api] Unhandled route error", error);
-      const exposeError = process.env.NODE_ENV !== "production";
-      sendJson(
-        response,
-        500,
-        {
-          error: exposeError && error && error.message ? error.message : "Unexpected server error.",
-        },
-        origin,
-        config,
-      );
+      log.error("[review-api] Unhandled route error", {
+        requestId,
+        err: error?.message || String(error),
+      });
+      Sentry.captureException(error);
+      if (!response.writableEnded) {
+        const exposeError = process.env.NODE_ENV !== "production";
+        sendJson(
+          response,
+          500,
+          {
+            error:
+              exposeError && error && error.message ? error.message : "Unexpected server error.",
+          },
+          origin,
+          config,
+        );
+      }
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
     }
   };
 }

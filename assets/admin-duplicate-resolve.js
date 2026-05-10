@@ -24,6 +24,7 @@ import {
   updateTherapistCandidate,
 } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
+import { escapeHtml } from "./escape-html.js";
 
 const COMPARE_FIELDS = [
   // [snake_case, camelCase, human-readable label]
@@ -44,14 +45,6 @@ let _therapist = null;
 let _counterpartKind = null; // "candidate" | "therapist"
 let _counterpart = null;
 let _onResolved = null;
-
-function escapeHtml(str) {
-  return String(str || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 function read(doc, snake, camel) {
   if (!doc) return undefined;

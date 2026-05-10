@@ -1,0 +1,1192 @@
+/* Results page — design tokens (mirrors homepage redesign) */
+:root {
+  --teal-900: #0c2830;
+  --teal-700: #1c4d5c;
+  --teal-500: #347f96;
+  --teal-300: #6dbdd4;
+  --teal-100: #d6eff6;
+  --teal-50: #ebf7fb;
+  --coral: #e8603c;
+  --coral-dark: #c44e2c;
+  --cream: #f7f4ef;
+  --text-dark: #17323b;
+  --text-mid: #3a5b65;
+  --text-light: #6b8c96;
+  --border: rgba(52, 127, 150, 0.15);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* The [hidden] attribute must beat our display rules below
+   (.results-skeleton: display:flex, .results-grid: display:grid, etc.
+   — equal specificity, so without !important they would override the
+   browser default that hides [hidden] elements). */
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: var(--cream);
+  color: var(--text-dark);
+  font-family:
+    "DM Sans",
+    system-ui,
+    -apple-system,
+    sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* ─────────────────────────────────────────────────────────
+   SECTION 1 — RESULTS NAV
+   ───────────────────────────────────────────────────────── */
+.results-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  height: 56px;
+  background: var(--teal-900);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.results-nav .nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #fff;
+}
+
+.results-nav .logo-mark {
+  width: 28px;
+  height: 28px;
+  display: block;
+}
+
+.results-nav .logo-wordmark {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #fff;
+}
+
+.results-nav .logo-wordmark span {
+  color: var(--teal-300);
+}
+
+.results-nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+
+/* Saved */
+.nav-saved {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.15s ease;
+}
+
+.nav-saved:hover {
+  color: #fff;
+}
+
+.nav-saved .ti {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.saved-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 16px;
+  padding: 1px 6px;
+  border-radius: 20px;
+  background: var(--teal-500);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 1;
+  transition: transform 0.18s ease;
+}
+
+.saved-count[hidden] {
+  display: none;
+}
+
+.saved-count.is-bumping {
+  transform: scale(1.2);
+}
+
+/* Browse all — parallel exit to /directory. Plain text link,
+   same visual weight as Saved so neither competes with Edit search. */
+.nav-browse {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  transition: color 0.15s ease;
+}
+
+.nav-browse:hover {
+  color: #fff;
+}
+
+.nav-browse .ti {
+  font-size: 16px;
+  line-height: 1;
+}
+
+/* Crisis pill */
+.nav-crisis {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 20px;
+  font-size: 11.5px;
+  color: rgba(255, 255, 255, 0.5);
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.nav-crisis:hover {
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
+.nav-crisis .ti {
+  font-size: 13px;
+  line-height: 1;
+}
+
+/* Start over — matches Saved / Browse all weight + opacity so no
+   single nav action visually dominates. */
+.nav-edit-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 12.5px;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.nav-edit-search:hover {
+  color: #fff;
+}
+
+/* Mobile */
+@media (max-width: 768px) {
+  .results-nav {
+    padding: 0 16px;
+  }
+
+  .results-nav-actions {
+    gap: 12px;
+  }
+
+  .nav-saved-label,
+  .nav-browse-label,
+  .nav-crisis-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .nav-crisis {
+    padding: 6px 8px;
+  }
+
+  .nav-crisis .ti {
+    font-size: 14px;
+  }
+
+  .nav-edit-search {
+    font-size: 12px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   SECTION 2 — PAGE HEADER
+   ───────────────────────────────────────────────────────── */
+.results-header {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 28px 20px 0;
+}
+
+.results-eyebrow {
+  margin: 0 0 8px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--teal-500);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.results-h1 {
+  margin: 0 0 6px;
+  font-family: "DM Serif Display", Georgia, serif;
+  font-weight: 400;
+  font-size: 26px;
+  line-height: 1.2;
+  color: var(--text-dark);
+  letter-spacing: -0.005em;
+}
+
+.results-filters {
+  margin-top: 14px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 11px;
+  border: 1px solid var(--teal-300);
+  border-radius: 20px;
+  background: var(--teal-100);
+  color: #143a46;
+  font-family: inherit;
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.filter-pill .ti {
+  font-size: 12px;
+  color: var(--teal-500);
+}
+
+.filter-edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 6px;
+  border: none;
+  background: none;
+  color: var(--teal-500);
+  font-family: inherit;
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.filter-edit-btn:hover {
+  color: var(--teal-700);
+}
+
+.filter-edit-btn .ti {
+  font-size: 12px;
+}
+
+@media (max-width: 768px) {
+  .results-header {
+    padding: 20px 16px 0;
+  }
+
+  .results-h1 {
+    font-size: 22px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   SECTION 3 — FEATURED CARD
+   ───────────────────────────────────────────────────────── */
+.results-list {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 20px 20px 60px;
+}
+
+.best-match-label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 6px 16px;
+  background: #ebf7fb;
+  border: 1px solid var(--teal-300);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+}
+
+.best-match-label .ti {
+  font-size: 13px;
+  color: var(--teal-500);
+}
+
+.best-match-label span {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #1c4d5c;
+}
+
+.featured-card {
+  position: relative;
+  background: #fff;
+  border: 1.5px solid var(--teal-300);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.featured-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--teal-500);
+  box-shadow: 0 8px 24px -12px rgba(28, 77, 92, 0.25);
+}
+
+/* Header row */
+.featured-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+/* Avatar */
+.card-avatar {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+/* Neutral teal monogram for missing photos. The rotating-color palette
+   read playful for a healthcare context, so all variants resolve to the
+   same calm teal. Real photos (when available) replace the monogram. */
+.card-avatar,
+.avatar-teal,
+.avatar-purple,
+.avatar-amber,
+.avatar-blue,
+.avatar-sage,
+.avatar-coral {
+  background: var(--teal-100);
+  color: var(--teal-700);
+}
+
+/* Identity */
+.card-ident {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-name {
+  margin: 0 0 2px;
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-dark);
+  line-height: 1.3;
+}
+
+.card-creds {
+  font-weight: 400;
+  color: var(--text-mid);
+}
+
+.card-title {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--text-light);
+}
+
+/* "Why this match" reason — featured card only. Sits under the title. */
+.card-reason {
+  margin: 6px 0 0;
+  font-size: 12.5px;
+  color: var(--text-mid);
+  line-height: 1.45;
+}
+
+/* Header bookmark (icon-only) — borderless, sits quiet until hover.
+   Z-indexed above the card-link overlay so the click reaches it. */
+.card-save {
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  border-radius: 50%;
+  color: var(--text-light);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.card-save .ti {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.card-save .card-save-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.card-save:hover {
+  color: var(--teal-500);
+  background: var(--teal-50);
+}
+
+.card-save[aria-pressed="true"] {
+  color: var(--teal-500);
+  background: var(--teal-50);
+}
+
+/* Bipolar years badge — KEY DIFFERENTIATOR */
+.bipolar-years-badge {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  background: #ebf7fb;
+  border: 1px solid #b8dde8;
+  border-radius: 6px;
+}
+
+.bipolar-years-num {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c4d5c;
+  line-height: 1;
+}
+
+.bipolar-years-label {
+  font-size: 11px;
+  color: var(--teal-500);
+  line-height: 1.3;
+}
+
+/* Specialty tags */
+.specialty-tags {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.specialty-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  background: #ebf7fb;
+  border: 1px solid #b8dde8;
+  border-radius: 20px;
+  font-size: 11px;
+  color: #1c4d5c;
+}
+
+/* Modality tags (DBT, IPSRT, FFT…) — outline only, so bipolar-specific
+   tags pop and modalities recede as supporting detail. */
+.specialty-tag-modality {
+  background: transparent;
+  border-color: #d0dfe5;
+  color: var(--text-mid);
+}
+
+.specialty-tag-more {
+  font-size: 11px;
+  color: var(--text-light);
+}
+
+/* Meta row */
+.card-meta {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  font-size: 12px;
+  color: var(--text-light);
+  line-height: 1.5;
+}
+
+.card-meta-item {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Separator after every item except the last. ::after stays attached
+   to its item on wrap, so wrapped lines don't carry orphan dots. */
+.card-meta-item:not(:last-child)::after {
+  content: "·";
+  margin: 0 8px;
+  color: #c5d5da;
+}
+
+.card-meta-avail {
+  color: #2a7040;
+  font-weight: 500;
+}
+
+.avail-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  margin-right: 6px;
+  border-radius: 50%;
+  background: #3b9b5a;
+}
+
+/* CTA row — single primary action; bookmark lives in the header. */
+.card-actions {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+/* Primary CTA — also serves as the full-card click target via ::after.
+   The button itself stays static so its ::after positions relative to the
+   nearest positioned ancestor (the .featured-card) and covers the whole
+   card. Bookmark sits above via its own position:relative + z-index. */
+.card-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--teal-700);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 20px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.card-cta-primary::after,
+.card-cta-grid::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.card-cta-primary:hover {
+  background: var(--teal-900);
+  transform: translateY(-1px);
+}
+
+.card-cta-primary .ti {
+  font-size: 14px;
+}
+
+.card-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid #b8dde8;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-family: inherit;
+  font-size: 12.5px;
+  color: var(--teal-500);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease;
+}
+
+.card-cta-secondary .ti {
+  font-size: 14px;
+}
+
+.card-cta-secondary:hover {
+  background: var(--teal-50);
+}
+
+.card-cta-secondary[aria-pressed="true"] {
+  border-color: var(--teal-500);
+  background: var(--teal-50);
+}
+
+@media (max-width: 768px) {
+  .results-list {
+    padding: 16px 16px 48px;
+  }
+
+  .featured-card {
+    padding: 16px;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   SECTION 4 — RESULTS GRID
+   ───────────────────────────────────────────────────────── */
+.grid-section-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 24px 0 10px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-light);
+}
+
+.grid-section-label::after {
+  content: "";
+  flex: 1;
+  height: 0.5px;
+  background: #d8e8ec;
+}
+
+.results-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.grid-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: #fff;
+  border: 0.5px solid #e2eaec;
+  border-radius: 12px;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
+.grid-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--teal-300);
+  box-shadow: 0 6px 18px -10px rgba(28, 77, 92, 0.2);
+}
+
+.grid-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.card-avatar-sm {
+  width: 36px;
+  height: 36px;
+  font-size: 12px;
+}
+
+.card-name-sm {
+  font-size: 14px;
+}
+
+.bipolar-years-badge-sm .bipolar-years-num {
+  font-size: 12px;
+}
+
+.bipolar-years-badge-sm .bipolar-years-label {
+  font-size: 10px;
+}
+
+.card-meta-sm {
+  font-size: 11px;
+}
+
+.card-meta-sm .card-meta-item:not(:last-child)::after {
+  margin: 0 6px;
+}
+
+/* Grid CTA — teal, not coral. Coral reserved for the featured card. */
+.card-cta-grid {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 14px;
+  background: var(--teal-500);
+  color: #fff;
+  border: none;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    transform 0.15s ease;
+}
+
+.card-cta-grid:hover {
+  background: var(--teal-700);
+  transform: translateY(-1px);
+}
+
+.card-cta-grid .ti {
+  font-size: 13px;
+}
+
+.card-cta-secondary-sm {
+  padding: 7px 12px;
+  font-size: 12px;
+}
+
+.card-cta-secondary-sm .ti {
+  font-size: 13px;
+}
+
+@media (max-width: 768px) {
+  .results-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Footer prompt — soft escape after the grid. Mirrors nav "Browse all"
+   in-context so users who scroll to the end aren't dead-ended. */
+.results-footer-prompt {
+  margin: 32px 0 0;
+  padding: 24px 16px;
+  text-align: center;
+  font-size: 13.5px;
+  color: var(--text-light);
+  border-top: 0.5px solid #e2eaec;
+}
+
+.results-footer-prompt a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 6px;
+  color: var(--teal-500);
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.results-footer-prompt a:hover {
+  color: var(--teal-700);
+}
+
+.results-footer-prompt .ti {
+  font-size: 14px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   SECTION 6 — LOADING + EMPTY STATES
+   ───────────────────────────────────────────────────────── */
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.results-skeleton {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.skeleton-bar {
+  background: var(--cream);
+  border-radius: 6px;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-best-match {
+  height: 24px;
+  background: var(--teal-50);
+  border: 1px solid var(--teal-300);
+  border-bottom: none;
+  border-radius: 10px 10px 0 0;
+  animation: pulse 1.4s ease-in-out infinite;
+}
+
+.skeleton-featured {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+  background: #fff;
+  border: 1.5px solid var(--teal-300);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  margin-bottom: 14px;
+}
+
+.skeleton-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-stack {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.skeleton-avatar-sm {
+  width: 36px;
+  height: 36px;
+}
+
+.skeleton-line {
+  height: 12px;
+}
+
+.skeleton-line-name {
+  width: 60%;
+}
+
+.skeleton-line-sub {
+  width: 40%;
+  height: 10px;
+}
+
+.skeleton-block {
+  height: 14px;
+}
+
+.skeleton-years {
+  width: 180px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.skeleton-years-sm {
+  width: 120px;
+  height: 26px;
+  border-radius: 6px;
+}
+
+.skeleton-tags {
+  width: 70%;
+  height: 22px;
+  border-radius: 20px;
+}
+
+.skeleton-meta {
+  width: 85%;
+}
+
+.skeleton-cta {
+  width: 100%;
+  height: 36px;
+  border-radius: 8px;
+}
+
+.skeleton-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.skeleton-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px;
+  background: #fff;
+  border: 0.5px solid #e2eaec;
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .skeleton-grid {
+    grid-template-columns: 1fr;
+  }
+  .skeleton-featured {
+    padding: 16px;
+  }
+}
+
+/* Empty state */
+.results-empty {
+  text-align: center;
+  padding: 60px 24px;
+}
+
+.results-empty-icon {
+  display: inline-block;
+  font-size: 36px;
+  color: var(--teal-300);
+  margin-bottom: 14px;
+  line-height: 1;
+}
+
+.results-empty-h {
+  margin: 0 0 10px;
+  font-family: "DM Serif Display", Georgia, serif;
+  font-weight: 400;
+  font-size: 24px;
+  color: var(--text-dark);
+  line-height: 1.2;
+}
+
+.results-empty-body {
+  margin: 0 auto 18px;
+  max-width: 380px;
+  font-size: 13.5px;
+  color: var(--text-light);
+  line-height: 1.55;
+}
+
+.results-empty-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--teal-500);
+  font-size: 13px;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.results-empty-link:hover {
+  color: var(--teal-700);
+}
+
+.results-empty-link .ti {
+  font-size: 14px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   FOCUS RINGS — visible keyboard focus on every interactive
+   surface. Brand teal, never the browser default.
+   ───────────────────────────────────────────────────────── */
+:focus {
+  outline: none;
+}
+
+.nav-saved:focus-visible,
+.nav-browse:focus-visible,
+.nav-crisis:focus-visible,
+.nav-edit-search:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.nav-logo:focus-visible {
+  outline: 2px solid var(--teal-300);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.filter-edit-btn:focus-visible,
+.results-empty-link:focus-visible,
+.results-footer-prompt a:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.card-save:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 2px;
+}
+
+.card-cta-primary:focus-visible,
+.card-cta-grid:focus-visible {
+  outline: 2px solid var(--teal-900);
+  outline-offset: 3px;
+}
+
+/* ─────────────────────────────────────────────────────────
+   SECTION 8 — MOBILE RESPONSIVE PASS
+   Refinements at narrower breakpoints. Catches edge cases
+   the per-section @media blocks above don't cover.
+   ───────────────────────────────────────────────────────── */
+
+/* Tablet and below already covered above (≤768px). */
+
+/* Phone — refine spacing, touch targets, and the nav layout. */
+@media (max-width: 480px) {
+  .results-nav {
+    padding: 0 12px;
+  }
+
+  .results-nav .logo-wordmark {
+    font-size: 14px;
+  }
+
+  .results-nav-actions {
+    gap: 10px;
+  }
+
+  /* Hit-area for icon-only nav links — bump to 40×40 on phones. */
+  .nav-saved,
+  .nav-browse {
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .nav-saved .ti,
+  .nav-browse .ti {
+    font-size: 18px;
+  }
+
+  /* Saved-count badge floats top-right of the icon when label is hidden. */
+  .nav-saved {
+    position: relative;
+  }
+
+  .saved-count {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 16px;
+    height: 14px;
+    padding: 0 4px;
+    font-size: 9px;
+  }
+
+  .nav-crisis {
+    width: 40px;
+    height: 40px;
+    justify-content: center;
+    padding: 0;
+    border-radius: 50%;
+  }
+
+  .nav-crisis .ti {
+    font-size: 16px;
+  }
+
+  /* Featured card — tighten and grow header save tap target. */
+  .results-list {
+    padding: 12px 12px 40px;
+  }
+
+  .featured-card,
+  .grid-card {
+    padding: 14px;
+  }
+
+  .results-h1 {
+    font-size: 20px;
+  }
+
+  /* Header bookmark — bump to 40×40 on phones for easier tapping. */
+  .card-save {
+    width: 40px;
+    height: 40px;
+  }
+
+  /* CTA row may wrap if the secondary button can't fit beside the primary. */
+  .card-actions {
+    flex-wrap: wrap;
+    row-gap: 8px;
+  }
+
+  .card-cta-primary,
+  .card-cta-grid {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+
+  .card-cta-secondary {
+    flex: 0 1 auto;
+  }
+
+  /* Bipolar years label — single line of body, value beside it. */
+  .bipolar-years-label br {
+    display: none;
+  }
+
+  .bipolar-years-label {
+    line-height: 1.2;
+  }
+
+  /* Section divider label tightens. */
+  .grid-section-label {
+    margin: 18px 0 8px;
+  }
+}
