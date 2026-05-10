@@ -108,3 +108,7 @@ window.addEventListener("storage", (event) => {
 });
 
 restoreFromStorage();
+
+// results.js renders cards asynchronously after fetch — re-restore once
+// the cards land in the DOM so saved state shows on first paint.
+document.addEventListener("results:rendered", restoreFromStorage);

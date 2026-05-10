@@ -6639,19 +6639,34 @@ async function handleSubmit(event) {
     root.innerHTML = MATCH_LOADING_SKELETON_HTML;
   }
 
-  var loadStart = Date.now();
-  await ensureZipcodesReadyForProfile(profile);
-  var elapsed = Date.now() - loadStart;
-  if (elapsed < 500) {
-    await new Promise(function (resolve) {
-      window.setTimeout(resolve, 500 - elapsed);
-    });
-  }
-
-  executeMatch(profile, {
-    scroll: true,
-    source: currentJourneyId ? "match_refine" : "match_page",
+  // Submission now hands off to /results, which reads the same URL
+  // params, scores, and renders the new card design. /match keeps
+  // working as today on direct visits — only the post-submit render
+  // path moved.
+  var params = new URLSearchParams();
+  var scalarKeys = [
+    "care_intent",
+    "location_query",
+    "care_state",
+    "care_format",
+    "needs_medication_management",
+    "insurance",
+    "budget_max",
+    "urgency",
+    "priority_mode",
+    "therapist_gender_preference",
+  ];
+  scalarKeys.forEach(function (k) {
+    var v = profile && profile[k];
+    if (v != null && String(v) !== "") params.set(k, String(v));
   });
+  ["bipolar_focus", "preferred_modalities", "population_fit", "language_preferences"].forEach(
+    function (k) {
+      var v = profile && profile[k];
+      if (Array.isArray(v) && v.length) params.set(k, v.join(","));
+    },
+  );
+  window.location.assign("/results?" + params.toString());
 }
 
 function renderDirectoryShortlist(slugs) {
