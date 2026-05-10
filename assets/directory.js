@@ -95,6 +95,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     bipolar_experience: "",
     insurance: [],
     gender: "",
+    session_fee_min: "",
+    session_fee_max: "",
+    sliding_scale: false,
     therapist: false,
     psychiatrist: false,
     telehealth: false,
@@ -582,6 +585,18 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     toFilterArray(filters.insurance).forEach(function (v) {
       chips.push({ key: "insurance", label: v });
     });
+    if (filters.session_fee_min || filters.session_fee_max) {
+      var min = Number(filters.session_fee_min || 0);
+      var max = Number(filters.session_fee_max || 0);
+      var feeLabel;
+      if (min > 0 && max > 0) feeLabel = "$" + min + "–$" + max + "/session";
+      else if (min > 0) feeLabel = "$" + min + "+ /session";
+      else feeLabel = "Up to $" + max + "/session";
+      chips.push({ key: "session_fee", label: feeLabel });
+    }
+    if (filters.sliding_scale) {
+      chips.push({ key: "sliding_scale", label: "Sliding scale" });
+    }
     if (filters.gender) {
       chips.push({
         key: "gender",
@@ -621,7 +636,17 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function removeActiveFilter(filterKey) {
-    if (!filterKey || !(filterKey in filters)) {
+    if (!filterKey) return;
+    // Compound chip for the fee range — clears both bounds at once.
+    if (filterKey === "session_fee") {
+      filters = Object.assign({}, filters, { session_fee_min: "", session_fee_max: "" });
+      visibleCount = 24;
+      syncFilterControlsFromState(filters, getElement);
+      syncInsuranceDisplay();
+      render();
+      return;
+    }
+    if (!(filterKey in filters)) {
       return;
     }
     var nextValue;

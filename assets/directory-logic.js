@@ -111,6 +111,23 @@ export function matchesDirectoryFilters(filterState, therapist) {
   if (!insuranceFilterMatches(filterState.insurance, therapist.insurance_accepted)) {
     return false;
   }
+  // Session fee range — exclude therapists whose published range is
+  // entirely outside the requested window. Range-overlap test: therapist
+  // is in-range when therapist.max >= filter.min AND therapist.min <= filter.max.
+  // Therapists with no fee data published bypass the filter (we don't
+  // want to hide them just for missing data; step 5 doesn't introduce a
+  // "show only with published fees" toggle).
+  var feeMinFilter = Number(filterState.session_fee_min || 0);
+  var feeMaxFilter = Number(filterState.session_fee_max || 0);
+  if (feeMinFilter > 0 || feeMaxFilter > 0) {
+    var tFeeMin = Number(therapist.session_fee_min || 0);
+    var tFeeMax = Number(therapist.session_fee_max || tFeeMin || 0);
+    if (tFeeMin > 0 || tFeeMax > 0) {
+      if (feeMinFilter > 0 && tFeeMax > 0 && tFeeMax < feeMinFilter) return false;
+      if (feeMaxFilter > 0 && tFeeMin > 0 && tFeeMin > feeMaxFilter) return false;
+    }
+  }
+  if (filterState.sliding_scale && !therapist.sliding_scale) return false;
   if (filterState.gender && therapist.gender !== filterState.gender) return false;
   if (filterState.therapist && !filterState.psychiatrist && isPsychiatrist) return false;
   if (filterState.psychiatrist && !filterState.therapist && !isPsychiatrist) return false;
