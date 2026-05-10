@@ -643,6 +643,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       visibleCount = 24;
       syncFilterControlsFromState(filters, getElement);
       syncInsuranceDisplay();
+      syncDrawerChipPickers();
       render();
       return;
     }
@@ -664,6 +665,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     visibleCount = 24;
     syncFilterControlsFromState(filters, getElement);
     syncInsuranceDisplay();
+    syncDrawerChipPickers();
     render();
   }
 
@@ -1015,6 +1017,10 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     syncFilterControlsFromState(filters, getElement);
     syncInsuranceDisplay();
     syncRankingLocationFromUserZip();
+    // Chip pickers are mounted once at init; subsequent state changes
+    // (URL params, removeActiveFilter, etc.) call syncDrawerChipPickers
+    // to re-paint the pressed/unpressed state.
+    setupDrawerChipPickers();
   }
 
   function updateUrl() {
@@ -1488,6 +1494,149 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     liveFilterTimer = window.setTimeout(function () {
       applyFiltersLive();
     }, 120);
+  }
+
+  // ─── Drawer chip pickers (Step 6) ────────────────────────────────────
+  // Replace the legacy single-value <select> dropdowns inside the
+  // filters modal with multi-select chip groups. Wires directly to
+  // filters[key] (the step-4 array shape) and re-renders results.
+  var DRAWER_CHIP_OPTIONS = {
+    specialty: {
+      multi: true,
+      title: "Bipolar subtype",
+      caption: "Match any of",
+      options: [
+        { value: "Bipolar I", label: "Bipolar I" },
+        { value: "Bipolar II", label: "Bipolar II" },
+        { value: "Cyclothymia", label: "Cyclothymia" },
+      ],
+    },
+    modality: {
+      multi: true,
+      title: "Treatment approach",
+      caption: "Match any of",
+      options: [
+        {
+          value: "Interpersonal and Social Rhythm Therapy (IPSRT)",
+          label: "IPSRT",
+        },
+        { value: "Family-Focused Therapy", label: "Family-Focused Therapy" },
+        { value: "DBT", label: "DBT" },
+        { value: "CBT", label: "CBT" },
+        { value: "Mindfulness-based", label: "Mindfulness-based" },
+      ],
+    },
+    population: {
+      multi: true,
+      title: "Population",
+      caption: "Match any of",
+      options: [
+        { value: "Adults", label: "Adults" },
+        { value: "Adolescents (13-17)", label: "Adolescents" },
+        { value: "Young adults (18-25)", label: "Young adults" },
+        { value: "Older adults (65+)", label: "Older adults" },
+        { value: "LGBTQ+", label: "LGBTQ+" },
+      ],
+    },
+    bipolar_experience: {
+      multi: false,
+      title: "Experience level",
+      caption: "Minimum years treating bipolar",
+      options: [
+        { value: "", label: "Any" },
+        { value: "3", label: "3+ years" },
+        { value: "5", label: "5+ years" },
+        { value: "10", label: "10+ years" },
+      ],
+    },
+  };
+
+  function isChipPressed(filterKey, value) {
+    if (DRAWER_CHIP_OPTIONS[filterKey].multi) {
+      var arr = Array.isArray(filters[filterKey]) ? filters[filterKey] : [];
+      return arr.indexOf(value) !== -1;
+    }
+    return String(filters[filterKey] || "") === String(value);
+  }
+
+  function toggleChipValue(filterKey, value) {
+    var cfg = DRAWER_CHIP_OPTIONS[filterKey];
+    if (cfg.multi) {
+      var arr = Array.isArray(filters[filterKey]) ? filters[filterKey].slice() : [];
+      var idx = arr.indexOf(value);
+      if (idx === -1) arr.push(value);
+      else arr.splice(idx, 1);
+      filters[filterKey] = arr;
+    } else {
+      // Single-select: clicking the already-pressed value clears it (so
+      // "Any" works whether or not the user explicitly clicks it).
+      var current = String(filters[filterKey] || "");
+      if (current === String(value) && value !== "") {
+        filters[filterKey] = "";
+      } else {
+        filters[filterKey] = String(value);
+      }
+    }
+  }
+
+  function setupDrawerChipPicker(filterKey) {
+    var container = document.querySelector('[data-drawer-chip-picker="' + filterKey + '"]');
+    if (!container) return;
+    var cfg = DRAWER_CHIP_OPTIONS[filterKey];
+    container.innerHTML = cfg.options
+      .map(function (opt) {
+        return (
+          '<button type="button" class="dir-drawer-chip" data-chip-value="' +
+          escapeHtml(opt.value) +
+          '" aria-pressed="' +
+          (isChipPressed(filterKey, opt.value) ? "true" : "false") +
+          '">' +
+          escapeHtml(opt.label) +
+          "</button>"
+        );
+      })
+      .join("");
+    // Click handler is bound once per container via a one-time guard
+    // attribute. Subsequent setupDrawerChipPickers() calls (e.g. after a
+    // URL-driven state restore) only re-paint the chip pressed state.
+    if (container.getAttribute("data-chip-bound") === "true") return;
+    container.setAttribute("data-chip-bound", "true");
+    container.addEventListener("click", function (event) {
+      var button = event.target.closest("[data-chip-value]");
+      if (!button) return;
+      var value = button.getAttribute("data-chip-value");
+      toggleChipValue(filterKey, value);
+      // Refresh pressed state on every chip in this group (single-select
+      // needs siblings cleared; multi-select only the clicked one flips).
+      Array.from(container.querySelectorAll("[data-chip-value]")).forEach(function (chip) {
+        chip.setAttribute(
+          "aria-pressed",
+          isChipPressed(filterKey, chip.getAttribute("data-chip-value")) ? "true" : "false",
+        );
+      });
+      visibleCount = 24;
+      render();
+      scheduleLiveFilters();
+    });
+  }
+
+  function setupDrawerChipPickers() {
+    Object.keys(DRAWER_CHIP_OPTIONS).forEach(function (key) {
+      setupDrawerChipPicker(key);
+    });
+  }
+
+  function syncDrawerChipPickers() {
+    Object.keys(DRAWER_CHIP_OPTIONS).forEach(function (filterKey) {
+      var container = document.querySelector('[data-drawer-chip-picker="' + filterKey + '"]');
+      if (!container) return;
+      Array.from(container.querySelectorAll("[data-chip-value]")).forEach(function (chip) {
+        chip.setAttribute(
+          "aria-pressed",
+          isChipPressed(filterKey, chip.getAttribute("data-chip-value")) ? "true" : "false",
+        );
+      });
+    });
   }
 
   function resetFilters() {
