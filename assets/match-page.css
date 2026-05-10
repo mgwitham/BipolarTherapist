@@ -5448,7 +5448,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
   margin: 0;
 }
 
-/* Header refine button — desktop only, sits inline below subtitle */
+/* Header refine button — inline below subtitle; mobile also has a sticky shortcut. */
 .mx-refine-btn--header {
   display: inline-flex;
   align-items: center;
