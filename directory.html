@@ -432,20 +432,45 @@
             </div>
           </section>
 
+          <!-- Step 6: Bipolar subtype chip multi-select. Wires to
+               filters.specialty (the array shape introduced in step 4).
+               The legacy <select id="bipolar_experience"> moves below
+               into the new chip-single-select section. The specialty
+               filter never had a UI before this step. -->
           <section class="dir-vb-section">
             <div class="dir-vb-section-head">
-              <h3 id="bipolarExperiencePanelTitle">Bipolar experience</h3>
+              <h3 id="specialtyPanelTitle">Bipolar subtype</h3>
             </div>
             <div class="dir-vb-section-body">
-              <div class="filter-group">
-                <label for="bipolar_experience">Minimum years</label>
-                <select id="bipolar_experience">
-                  <option value="">Any experience level</option>
-                  <option value="3">3+ years</option>
-                  <option value="5">5+ years</option>
-                  <option value="10">10+ years</option>
-                </select>
-              </div>
+              <div
+                class="dir-drawer-chip-group"
+                data-drawer-chip-picker="specialty"
+                role="group"
+                aria-label="Bipolar subtype"
+              ></div>
+            </div>
+          </section>
+
+          <section class="dir-vb-section">
+            <div class="dir-vb-section-head">
+              <h3 id="bipolarExperiencePanelTitle">Experience level</h3>
+            </div>
+            <div class="dir-vb-section-body">
+              <div
+                class="dir-drawer-chip-group"
+                data-drawer-chip-picker="bipolar_experience"
+                role="radiogroup"
+                aria-label="Minimum years treating bipolar"
+              ></div>
+              <!-- Hidden legacy select kept so syncFilterControlsFromState
+                   has a target for the scalar value; the chip picker is
+                   the visible UI. -->
+              <select id="bipolar_experience" hidden aria-hidden="true" tabindex="-1">
+                <option value="">Any</option>
+                <option value="3">3+</option>
+                <option value="5">5+</option>
+                <option value="10">10+</option>
+              </select>
             </div>
           </section>
 
@@ -501,15 +526,18 @@
 
           <section class="dir-vb-section">
             <div class="dir-vb-section-head">
-              <h3 id="populationPanelTitle">Population served</h3>
+              <h3 id="populationPanelTitle">Population</h3>
             </div>
             <div class="dir-vb-section-body">
-              <div class="filter-group">
-                <label for="population">Population</label>
-                <select id="population">
-                  <option value="">All populations</option>
-                </select>
-              </div>
+              <div
+                class="dir-drawer-chip-group"
+                data-drawer-chip-picker="population"
+                role="group"
+                aria-label="Population"
+              ></div>
+              <select id="population" hidden aria-hidden="true" tabindex="-1">
+                <option value=""></option>
+              </select>
             </div>
           </section>
 
@@ -518,12 +546,15 @@
               <h3>Treatment approach</h3>
             </div>
             <div class="dir-vb-section-body">
-              <div class="filter-group">
-                <label for="modality">Modality</label>
-                <select id="modality">
-                  <option value="">All modalities</option>
-                </select>
-              </div>
+              <div
+                class="dir-drawer-chip-group"
+                data-drawer-chip-picker="modality"
+                role="group"
+                aria-label="Treatment approach"
+              ></div>
+              <select id="modality" hidden aria-hidden="true" tabindex="-1">
+                <option value=""></option>
+              </select>
             </div>
           </section>
 
