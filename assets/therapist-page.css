@@ -49,11 +49,14 @@ html {
   --shadow-card: 0 1px 4px rgba(40, 25, 10, 0.08), 0 8px 24px rgba(40, 25, 10, 0.07);
 }
 body {
-  font-family: "Inter", sans-serif;
-  background:
-    radial-gradient(circle at top left, rgba(42, 156, 179, 0.07), transparent 26%),
-    radial-gradient(circle at top right, rgba(246, 241, 231, 0.75), transparent 28%),
-    linear-gradient(180deg, #f9f7f4 0%, #f7f5f2 42%, #f5f3f0 100%);
+  font-family:
+    "DM Sans",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: #f7f4ef;
   color: var(--navy);
   line-height: 1.6;
 }
@@ -327,19 +330,20 @@ nav.profile-nav {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.6rem;
-  padding: 0.55rem 1rem;
-  background: var(--teal-faint, #e8f5f8);
-  border-bottom: 1px solid rgba(26, 122, 143, 0.16);
-  font-size: 0.85rem;
-  color: var(--teal-dark, #155f70);
+  gap: 6px;
+  padding: 14px 32px;
+  background: transparent;
+  border: none;
+  font-size: 12.5px;
+  color: #6b8c96;
+  text-align: center;
 }
 .ts-claim-banner-text {
-  color: var(--navy, #1d3a4a);
+  color: #6b8c96;
 }
 .ts-claim-banner-cta {
-  color: var(--teal, #1a7a8f);
-  font-weight: 700;
+  color: #347f96;
+  font-weight: 500;
   text-decoration: none;
 }
 .ts-claim-banner-cta:hover {
@@ -2503,7 +2507,7 @@ nav.profile-nav {
   border-radius: 8px;
 }
 footer {
-  background: var(--navy);
+  background: #0c2830;
   color: rgba(255, 255, 255, 0.7);
   padding: 2rem 1.5rem;
   text-align: center;
@@ -2986,29 +2990,30 @@ img.bth-avatar {
   }
 }
 
-/* ── Profile footer actions ──────────────────────────────────────────── */
+/* ── Profile footer actions (Step 12 — full-width below layout) ─────── */
 .profile-foot-actions {
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 0.75rem;
-  padding: 1.25rem 0 0.5rem;
-  margin-top: 2rem;
-  border-top: 1px solid #e2eaf0;
+  gap: 12px;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 16px 32px 24px;
+  border-top: 0.5px solid #e2eaec;
 }
 .profile-foot-back {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  font-size: 0.875rem;
-  font-weight: 500;
-  color: #4a6b7c;
+  gap: 6px;
+  font-size: 13.5px;
+  color: #347f96;
   text-decoration: none;
   transition: color 0.15s;
 }
 .profile-foot-back:hover {
-  color: #1a5c3a;
+  color: #1c4d5c;
+  text-decoration: underline;
 }
 .profile-foot-report {
   appearance: none;
@@ -3016,14 +3021,20 @@ img.bth-avatar {
   border: none;
   padding: 0;
   cursor: pointer;
-  font-size: 0.8rem;
-  color: #9aacb8;
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-size: 12px;
+  color: #c5d5da;
+  font-family: inherit;
+  margin-left: auto;
   transition: color 0.15s;
 }
 .profile-foot-report:hover {
-  color: #5a7a8e;
+  color: #6b8c96;
+  text-decoration: underline;
+}
+@media (max-width: 768px) {
+  .profile-foot-actions {
+    padding: 14px 16px 20px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -3632,4 +3643,489 @@ img.bth-avatar {
   .profile-hero-years-sep {
     display: none;
   }
+}
+
+/* ─── Profile redesign — shared section card primitive ───────────────── */
+.profile-hero-main .profile-section-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 0.5px solid #e2eaec;
+  padding: 28px;
+  margin-bottom: 16px;
+}
+.profile-section-eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #347f96;
+  margin-bottom: 6px;
+}
+.profile-section-h2 {
+  font-family: "DM Serif Display", Georgia, serif;
+  font-size: 20px;
+  color: #17323b;
+  margin: 0 0 14px;
+  line-height: 1.2;
+  font-weight: 400;
+  letter-spacing: -0.005em;
+}
+.profile-section-body {
+  font-size: 15px;
+  color: #3a5b65;
+  line-height: 1.75;
+  font-weight: 300;
+  margin: 0;
+}
+.profile-section-body + .profile-section-body {
+  margin-top: 12px;
+}
+@media (max-width: 768px) {
+  .profile-hero-main .profile-section-card {
+    padding: 20px;
+  }
+}
+
+/* ─── Profile redesign — bio toggle (Step 7) ─────────────────────────── */
+.profile-bio-block {
+  position: relative;
+}
+.profile-bio-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 10px;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 13px;
+  color: #347f96;
+  cursor: pointer;
+  text-decoration: none;
+  font-weight: 500;
+}
+.profile-bio-toggle:hover {
+  color: #1c4d5c;
+  text-decoration: underline;
+}
+
+/* ─── Profile redesign — practice details (Step 8) ────────────────────── */
+.profile-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+.profile-detail-row {
+  padding: 13px 0;
+  border-bottom: 0.5px solid #f2f5f6;
+  min-width: 0;
+}
+.profile-detail-row:nth-child(odd) {
+  padding-right: 20px;
+  border-right: 0.5px solid #f2f5f6;
+}
+.profile-detail-row:nth-child(even) {
+  padding-left: 20px;
+}
+.profile-detail-row:nth-last-child(-n + 2) {
+  border-bottom: none;
+}
+.profile-detail-row--full {
+  grid-column: span 2;
+  border-right: none;
+  padding-right: 0;
+  padding-left: 0;
+}
+.profile-detail-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b8c96;
+  margin-bottom: 4px;
+}
+.profile-detail-value {
+  font-size: 13.5px;
+  color: #17323b;
+  line-height: 1.4;
+}
+.profile-detail-sub {
+  font-size: 12.5px;
+  color: #6b8c96;
+  margin-top: 3px;
+  font-weight: 400;
+}
+.profile-detail-avail {
+  color: #2a7040;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.profile-detail-avail::before {
+  content: "";
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3b9b5a;
+  display: inline-block;
+}
+.profile-detail-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 6px;
+}
+.profile-detail-pill {
+  font-size: 11px;
+  color: #3a5b65;
+  background: #f7f4ef;
+  border: 0.5px solid #d8e8ec;
+  padding: 3px 9px;
+  border-radius: 20px;
+  line-height: 1.4;
+}
+.profile-detail-pill-more {
+  font-size: 11.5px;
+  color: #6b8c96;
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 0;
+}
+@media (max-width: 768px) {
+  .profile-detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .profile-detail-row,
+  .profile-detail-row:nth-child(odd),
+  .profile-detail-row:nth-child(even) {
+    padding-left: 0;
+    padding-right: 0;
+    border-right: none;
+  }
+  .profile-detail-row:nth-last-child(-n + 2) {
+    border-bottom: 0.5px solid #f2f5f6;
+  }
+  .profile-detail-row:last-child {
+    border-bottom: none;
+  }
+  .profile-detail-row--full {
+    grid-column: 1;
+  }
+}
+
+/* ─── Profile redesign — reach out card (Step 9) ─────────────────────── */
+.profile-reach-draft {
+  background: #f7f4ef;
+  border-radius: 12px;
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.profile-reach-draft-label,
+.profile-reach-call-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b8c96;
+  margin-bottom: 4px;
+}
+.profile-reach-draft-hint {
+  font-size: 12px;
+  color: #6b8c96;
+  font-style: italic;
+  margin-bottom: 12px;
+  line-height: 1.5;
+}
+.profile-reach-draft-msg {
+  background: #fff;
+  border: 0.5px solid #e2eaec;
+  border-radius: 10px;
+  padding: 16px;
+  font-size: 14px;
+  color: #17323b;
+  line-height: 1.75;
+  font-weight: 400;
+}
+.profile-reach-draft-foot {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+.profile-reach-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid #b8dde8;
+  border-radius: 8px;
+  padding: 7px 16px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #347f96;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+.profile-reach-copy:hover {
+  background: #ebf7fb;
+}
+.profile-reach-copy.is-copied {
+  background: #ebf7fb;
+  border-color: #6dbdd4;
+  color: #1c4d5c;
+}
+.profile-reach-copy i {
+  font-size: 14px;
+}
+.profile-reach-call {
+  background: #fff;
+  border: 0.5px solid #e2eaec;
+  border-radius: 12px;
+  padding: 18px;
+}
+.profile-reach-call-label {
+  color: #4a9db5;
+  letter-spacing: 0.07em;
+}
+.profile-reach-call-label + .profile-reach-call-body {
+  margin-bottom: 14px;
+}
+.profile-reach-call-body {
+  font-size: 13.5px;
+  color: #3a5b65;
+  line-height: 1.65;
+  margin: 0;
+}
+.profile-reach-call-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #17323b;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 13px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+  margin-top: 18px;
+  transition: background 0.2s;
+}
+.profile-reach-call-cta:hover {
+  background: #0c2830;
+}
+.profile-reach-call-cta i {
+  font-size: 16px;
+}
+
+/* ─── Profile redesign — FAQ + license (Step 10) ─────────────────────── */
+.profile-faq-list {
+  display: block;
+}
+.profile-faq-item {
+  border-bottom: 0.5px solid #f2f5f6;
+  padding: 14px 0;
+}
+.profile-faq-item:first-child {
+  padding-top: 0;
+}
+.profile-faq-item:last-child {
+  border-bottom: none;
+}
+.profile-faq-q {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  color: #17323b;
+  cursor: pointer;
+  text-align: left;
+  line-height: 1.4;
+}
+.profile-faq-q i {
+  font-size: 16px;
+  color: #4a9db5;
+  flex-shrink: 0;
+}
+.profile-faq-a {
+  font-size: 13.5px;
+  color: #3a5b65;
+  line-height: 1.65;
+  margin-top: 10px;
+}
+.profile-faq-license {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: #6b8c96;
+  padding: 18px 0 0;
+  border-top: 0.5px solid #f0f4f5;
+  margin-top: 4px;
+  flex-wrap: wrap;
+  line-height: 1.5;
+}
+.profile-faq-license i {
+  font-size: 16px;
+  color: #3b9b5a;
+  flex-shrink: 0;
+}
+
+/* ─── Profile redesign — sidebar contact card (Step 11) ─────────────── */
+.profile-side-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 0.5px solid #e2eaec;
+  padding: 22px;
+}
+.profile-side-eyebrow {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #6b8c96;
+  margin-bottom: 14px;
+}
+.profile-side-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #e8603c;
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 14.5px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  width: 100%;
+  margin-bottom: 10px;
+  transition:
+    background 0.2s,
+    transform 0.15s;
+}
+.profile-side-primary:hover {
+  background: #c44e2c;
+  transform: translateY(-1px);
+}
+.profile-side-primary i {
+  font-size: 17px;
+}
+.profile-side-note {
+  font-size: 11.5px;
+  color: #6b8c96;
+  line-height: 1.55;
+  text-align: center;
+  margin: 0 0 18px;
+}
+.profile-side-item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 9px 0;
+  border-bottom: 0.5px solid #f7f9fa;
+  font-size: 13.5px;
+  min-width: 0;
+}
+.profile-side-item:last-of-type {
+  border-bottom: none;
+}
+.profile-side-item i {
+  font-size: 17px;
+  color: #4a9db5;
+  flex-shrink: 0;
+  width: 20px;
+}
+.profile-side-item a {
+  color: #347f96;
+  text-decoration: none;
+  min-width: 0;
+  flex: 1;
+}
+.profile-side-item a:hover {
+  text-decoration: underline;
+}
+.profile-side-email {
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+.profile-side-preferred {
+  background: #f7f4ef;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 14px 0 4px;
+}
+.profile-side-preferred-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b8c96;
+  margin-bottom: 4px;
+}
+.profile-side-preferred-text {
+  font-size: 12.5px;
+  color: #3a5b65;
+  line-height: 1.5;
+}
+.profile-side-save {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: none;
+  border: 1px solid #d0dfe5;
+  border-radius: 10px;
+  padding: 11px;
+  font-size: 13px;
+  color: #6b8c96;
+  cursor: pointer;
+  font-family: inherit;
+  width: 100%;
+  margin-top: 14px;
+  transition:
+    border-color 0.2s,
+    color 0.2s,
+    background 0.2s;
+}
+.profile-side-save:hover {
+  border-color: #6dbdd4;
+  color: #347f96;
+}
+.profile-side-save i {
+  font-size: 15px;
+}
+.profile-side-save.is-saved {
+  border-color: #6dbdd4;
+  color: #347f96;
+  background: #f3fafc;
+}
+
+/* ─── Profile redesign — neutralize legacy outer wrappers ───────────── */
+.profile-main-col .profile-identity {
+  display: block;
+  padding: 0;
+  grid-template-columns: none;
+}
+.profile-main-col > .profile-header > .profile-hero-main > .profile-hero-top {
+  display: block;
+  grid-template-columns: none;
+  gap: 0;
 }

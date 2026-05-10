@@ -609,99 +609,6 @@ function buildFAQItems(t) {
   return items;
 }
 
-// ─── Trust bar ────────────────────────────────────────────────────────────────
-function buildTrustBar(t) {
-  var signals = [];
-
-  if (t.license_number) {
-    var licenseState = t.license_state || t.state || "CA";
-    var licenseType = t.credentials || "License";
-    signals.push(licenseState + " " + licenseType + " #" + escapeHtml(String(t.license_number)));
-  }
-
-  if (t.verification_status === "editorially_verified") {
-    signals.push("Editorially verified");
-  }
-
-  if (t.claim_status === "claimed") {
-    signals.push("Profile claimed");
-  }
-
-  if (t.therapist_reported_confirmed_at) {
-    try {
-      var confirmDate = new Date(t.therapist_reported_confirmed_at);
-      if (!isNaN(confirmDate.getTime())) {
-        var month = confirmDate.toLocaleDateString("en-US", { month: "short", year: "numeric" });
-        signals.push("Profile confirmed " + month);
-      }
-    } catch (_e) {
-      /* best-effort */
-    }
-  }
-
-  if (signals.length === 0) return "";
-
-  return (
-    '<div class="profile-trust-bar" aria-label="Verification signals">' +
-    signals
-      .map(function (label) {
-        return (
-          '<span class="profile-trust-signal">' +
-          '<svg class="profile-trust-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/></svg>' +
-          label +
-          "</span>"
-        );
-      })
-      .join("") +
-    "</div>"
-  );
-}
-
-// ─── FAQ section ─────────────────────────────────────────────────────────────
-function buildFAQSection(t) {
-  var items = buildFAQItems(t);
-  var itemsHtml = items
-    .map(function (item, i) {
-      return (
-        '<div class="faq-item" data-faq-item>' +
-        '<button type="button" class="faq-question" aria-expanded="false" aria-controls="faq-answer-' +
-        i +
-        '" data-faq-toggle="' +
-        i +
-        '">' +
-        escapeHtml(item.q) +
-        '<span class="faq-toggle-icon" aria-hidden="true">+</span>' +
-        "</button>" +
-        '<div class="faq-answer" id="faq-answer-' +
-        i +
-        '" role="region" hidden>' +
-        "<p>" +
-        escapeHtml(item.a) +
-        "</p>" +
-        "</div>" +
-        "</div>"
-      );
-    })
-    .join("");
-
-  return (
-    '<section class="profile-section profile-section-collapsible" id="section-faq" data-profile-section>' +
-    '<button type="button" class="profile-section-header" aria-expanded="true">' +
-    '<span><span class="section-kicker">Questions</span><h2>Frequently asked questions</h2></span>' +
-    '<span class="section-toggle">Hide</span>' +
-    "</button>" +
-    '<div class="profile-section-content">' +
-    '<p class="faq-intro">Common questions about ' +
-    escapeHtml(t.name || "this therapist") +
-    ".</p>" +
-    '<div class="faq-list">' +
-    itemsHtml +
-    "</div>" +
-    "</div>" +
-    "</section>"
-  );
-}
-
 // ─── Jump nav ─────────────────────────────────────────────────────────────────
 function buildJumpNav() {
   var links = [
@@ -2414,8 +2321,6 @@ function renderProfile(t, therapistDirectory) {
     })
     .join("")
     .substring(0, 2);
-  var avatar = renderRoundAvatar(t, "profile");
-
   function isRealEmail(email) {
     var value = String(email || "").trim();
     if (!value) return false;
@@ -2429,46 +2334,21 @@ function renderProfile(t, therapistDirectory) {
     return true;
   }
 
-  var acceptingBadge =
-    t.accepting_new_patients === true
-      ? '<span class="status-badge badge-accepting">Accepting new patients</span>'
-      : t.accepting_new_patients === false && t.estimated_wait_time
-        ? '<span class="status-badge badge-wait-known">' +
-          escapeHtml(String(t.estimated_wait_time).toLowerCase()) +
-          " wait</span>"
-        : "";
-
-  var specialtyList = Array.isArray(t.specialties) ? t.specialties : [];
-  var mentionsBipolarSpecialty = specialtyList.some(function (s) {
-    return /bipolar/i.test(String(s || ""));
-  });
   var bipolarYears = Number(t.bipolar_years_experience || 0);
-  var bipolarSpecialistBadge =
-    bipolarYears >= 5
-      ? '<span class="status-badge badge-specialist">' +
-        escapeHtml(bipolarYears + "+ years treating bipolar") +
-        "</span>"
-      : bipolarYears >= 1 || mentionsBipolarSpecialty
-        ? '<span class="status-badge badge-specialist">Bipolar specialist</span>'
-        : "";
-
-  var licenseVerifiedBadge =
-    t.verification_status === "editorially_verified" && t.license_number
-      ? '<span class="status-badge badge-verified">&#10003; License verified</span>'
-      : "";
-
-  // Spec'd primary-action fallback: NEVER drop users onto an external
-  // practice-site link (Psychology Today, etc.). When the clinician has
-  // no usable contact path on this profile, surface a soft "Back to
-  // directory" so the user keeps exploring on-platform.
-  var primaryActionFallback = '<a href="/directory" class="btn-contact">Back to directory</a>';
-
-  var trustPills = renderValuePillRow(t, "value-pill");
 
   var contactBtns = "";
   var primaryContactLabel = String(t.preferred_contact_label || "").trim();
   var contactGuidance = String(t.contact_guidance || "").trim();
-  var therapistFirstName = (t.name || "").split(" ")[0] || t.name || "this therapist";
+  var therapistFirstName = (function () {
+    var titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
+    var words = String(t.name || "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter(function (w) {
+        return !titlePrefix.test(w);
+      });
+    return words[0] || t.name || "this therapist";
+  })();
   var firstStepExpectation = String(t.first_step_expectation || "").trim();
   var therapistReportedFields = Array.isArray(t.therapist_reported_fields)
     ? t.therapist_reported_fields
@@ -3044,7 +2924,7 @@ function renderProfile(t, therapistDirectory) {
     contactPrepCardsHtml +
     "</div>" +
     '<div class="profile-primary-action"><div class="primary-action-frame">' +
-    (primaryButton || primaryActionFallback) +
+    (primaryButton || "") +
     '<div class="profile-primary-caption">' +
     escapeHtml(bestNextStepCopy) +
     "</div></div></div>" +
@@ -3110,77 +2990,6 @@ function renderProfile(t, therapistDirectory) {
   }
 
   var scrubbedBio = stripScrapedPrefix(stripIntakeStub(t.bio));
-  var scrubbedCareApproach = stripScrapedPrefix(stripIntakeStub(t.care_approach));
-  var bioBodyHtml = hasPaidSubscription
-    ? renderBioParagraphs(scrubbedBio)
-    : scrubbedBio
-      ? '<p class="profile-bio-paragraph">' + escapeHtml(scrubbedBio) + "</p>"
-      : '<p class="profile-bio-paragraph profile-bio-empty">No extended bio has been added to this profile yet.</p>';
-
-  var outreachHasTextChannel =
-    isRealEmail(t.email) || (t.website && websiteHealthy) || (t.booking_url && bookingHealthy);
-  var outreachHasPhone = Boolean(t.phone);
-  var outreachCallScript = outreachHasPhone ? buildCallScript(t) : null;
-  var outreachAfterItems = [
-    "Notice how the reply lands — warm, informed, and responsive is a good sign.",
-    "Ask for a short consult call before committing to ongoing sessions.",
-    "It's completely fine to message two or three therapists at once to compare fit.",
-  ];
-  var outreachRenderTipList = function (items) {
-    return (
-      '<ul class="outreach-tip-list">' +
-      items
-        .map(function (item) {
-          return '<li class="outreach-tip-item">' + escapeHtml(item) + "</li>";
-        })
-        .join("") +
-      "</ul>"
-    );
-  };
-  var outreachMessageCardHtml = outreachHasTextChannel
-    ? '<div class="next-step-item is-emphasis" data-profile-outreach-script tabindex="-1"><div class="next-step-label">✉️ Draft first message</div><div class="next-step-helper outreach-card-intro">Use this when you\'re sending an email, a website inquiry, or a booking form.</div><div class="contact-script-shell"><div class="contact-script-preview" id="profileContactScriptPreview">' +
-      escapeHtml(outreachScript) +
-      '</div><div class="contact-script-actions"><button type="button" class="btn-contact" data-profile-copy-script>Copy first message</button><div class="contact-script-helper">Swap the greeting or add one personal detail if you\'d like — you don\'t need to overwork it.</div></div></div></div>'
-    : "";
-  var outreachCallCardHtml = "";
-  if (outreachHasPhone && outreachCallScript) {
-    var outreachPhoneDigits = String(t.phone || "").replace(/[^0-9+]/g, "");
-    outreachCallCardHtml =
-      '<div class="next-step-item is-emphasis"><div class="next-step-label">📞 Calling? Here\'s what to say</div><div class="next-step-helper outreach-card-intro">A calm script for when you pick up the phone. Take a breath — you\'ve got this.</div>' +
-      '<div class="call-script-shell">' +
-      '<div class="call-script-block"><div class="call-script-block-label">When someone answers</div><div class="call-script-block-body"><p>' +
-      escapeHtml(outreachCallScript.liveOpener) +
-      "</p>" +
-      (outreachCallScript.liveContext
-        ? '<p class="call-script-context">' + escapeHtml(outreachCallScript.liveContext) + "</p>"
-        : "") +
-      "</div></div>" +
-      '<div class="call-script-block"><div class="call-script-block-label">If you get voicemail</div><div class="call-script-block-body"><p>' +
-      escapeHtml(outreachCallScript.voicemail) +
-      "</p></div></div>" +
-      (outreachPhoneDigits
-        ? '<a href="tel:' +
-          escapeHtml(outreachPhoneDigits) +
-          '" class="btn-contact call-script-cta">Call ' +
-          escapeHtml(t.phone) +
-          "</a>"
-        : "") +
-      "</div></div>";
-  }
-  var outreachPanelHtml =
-    outreachMessageCardHtml || outreachCallCardHtml
-      ? '<div class="next-step-card">' +
-        outreachMessageCardHtml +
-        outreachCallCardHtml +
-        (contactGuidance
-          ? '<div class="next-step-item"><div class="next-step-label">What this therapist asks you to include</div><div class="outreach-therapist-note">' +
-            escapeHtml(contactGuidance) +
-            "</div></div>"
-          : "") +
-        '<div class="next-step-item"><div class="next-step-label">After you hear back</div>' +
-        outreachRenderTipList(outreachAfterItems) +
-        "</div></div>"
-      : "";
 
   var backNavRef = new URLSearchParams(window.location.search).get("ref") || "";
   var backNavSavedUrl;
@@ -3213,10 +3022,14 @@ function renderProfile(t, therapistDirectory) {
     return HERO_AVATAR_RAMPS[hash % HERO_AVATAR_RAMPS.length];
   }
   function heroInitials(name) {
+    var titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
     var parts = String(name || "")
       .trim()
       .split(/\s+/)
-      .filter(Boolean);
+      .filter(Boolean)
+      .filter(function (p) {
+        return !titlePrefix.test(p);
+      });
     if (!parts.length) return "?";
     if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
@@ -3326,6 +3139,445 @@ function renderProfile(t, therapistDirectory) {
     heroTagsHtml += "</div>";
   }
 
+  // Step 7: Bio card. Truncates to ~280 chars with a Read more / Show less
+  // toggle when longer. Renders nothing if there's no bio to show (per the
+  // graceful-empty-states rule — no "No bio yet" placeholder).
+  var bioCardHtml = "";
+  if (scrubbedBio && String(scrubbedBio).trim()) {
+    var bioRaw = String(scrubbedBio).trim();
+    var bioParagraphs = bioRaw
+      .split(/\n\s*\n+/)
+      .map(function (p) {
+        return p.trim();
+      })
+      .filter(Boolean);
+    if (!bioParagraphs.length) bioParagraphs = [bioRaw];
+    var bioFullPlain = bioParagraphs.join("\n\n");
+    var needsBioTruncate = bioFullPlain.length > 280;
+    var bioPreviewText = "";
+    if (needsBioTruncate) {
+      bioPreviewText = bioFullPlain.slice(0, 280);
+      var lastSpace = bioPreviewText.lastIndexOf(" ");
+      if (lastSpace > 200) bioPreviewText = bioPreviewText.slice(0, lastSpace);
+      bioPreviewText = bioPreviewText.replace(/[\s,;:.—–-]+$/, "") + "…";
+    }
+    var bioFullHtml = bioParagraphs
+      .map(function (p) {
+        return '<p class="profile-section-body">' + escapeHtml(p) + "</p>";
+      })
+      .join("");
+    var bioPreviewHtml = needsBioTruncate
+      ? '<p class="profile-section-body">' + escapeHtml(bioPreviewText) + "</p>"
+      : "";
+    bioCardHtml =
+      '<div class="card profile-section-card">' +
+      '<div class="profile-section-eyebrow">About ' +
+      escapeHtml(therapistFirstName) +
+      "</div>" +
+      '<h2 class="profile-section-h2">In their own words</h2>' +
+      '<div class="profile-bio-block" data-profile-bio-block>' +
+      (needsBioTruncate
+        ? '<div class="profile-bio-preview" data-profile-bio-preview>' +
+          bioPreviewHtml +
+          "</div>" +
+          '<div class="profile-bio-full" data-profile-bio-full hidden>' +
+          bioFullHtml +
+          "</div>" +
+          '<button type="button" class="profile-bio-toggle" data-profile-bio-toggle aria-expanded="false">Read more →</button>'
+        : bioFullHtml) +
+      "</div>" +
+      "</div>";
+  }
+
+  // Step 6: Bipolar approach card. Renders only when populated; otherwise
+  // skipped entirely (no placeholder per spec).
+  var bipolarApproachText = String(t.bipolar_approach || "").trim();
+  var bipolarApproachHtml = "";
+  if (bipolarApproachText) {
+    var approachParagraphs = bipolarApproachText
+      .split(/\n{2,}/)
+      .map(function (p) {
+        return p.trim();
+      })
+      .filter(Boolean);
+    var approachBody = approachParagraphs.length
+      ? approachParagraphs
+          .map(function (p) {
+            return '<p class="profile-section-body">' + escapeHtml(p) + "</p>";
+          })
+          .join("")
+      : '<p class="profile-section-body">' + escapeHtml(bipolarApproachText) + "</p>";
+    bipolarApproachHtml =
+      '<div class="card profile-section-card">' +
+      '<div class="profile-section-eyebrow">Bipolar approach</div>' +
+      '<h2 class="profile-section-h2">How ' +
+      escapeHtml(therapistFirstName) +
+      " thinks about bipolar care</h2>" +
+      approachBody +
+      "</div>";
+  }
+
+  // Step 8: Practice Details card. Each row renders only when its source
+  // field is populated. The .profile-detail--full class on Insurance lets
+  // it span both columns.
+  function fmtUsd(n) {
+    var num = Number(n);
+    if (!isFinite(num) || num <= 0) return "";
+    return "$" + Math.round(num);
+  }
+  var practiceRows = [];
+  // Availability
+  if (t.accepting_new_patients === true || t.accepting_new_patients === false) {
+    var availabilityValue;
+    var availabilityClass = "profile-detail-value";
+    if (t.accepting_new_patients === true) {
+      availabilityValue = '<span class="profile-detail-avail">Accepting new patients</span>';
+      var posture = String(t.availability_posture || "").trim();
+      if (posture) {
+        availabilityValue += '<div class="profile-detail-sub">' + escapeHtml(posture) + "</div>";
+      }
+    } else {
+      availabilityValue = "Not currently accepting";
+    }
+    practiceRows.push({
+      label: "Availability",
+      value: availabilityValue,
+      cls: availabilityClass,
+      raw: true,
+    });
+  }
+  // Estimated wait
+  var waitText = String(t.estimated_wait_time || "").trim();
+  if (waitText) {
+    practiceRows.push({ label: "Estimated wait", value: waitText });
+  }
+  // Session fee
+  var feeMin = fmtUsd(t.session_fee_min);
+  var feeMax = fmtUsd(t.session_fee_max);
+  var feeText = "";
+  if (feeMin && feeMax && feeMin !== feeMax) feeText = feeMin + "–" + feeMax;
+  else if (feeMin) feeText = feeMin;
+  else if (feeMax) feeText = feeMax;
+  if (t.sliding_scale && feeText) feeText += " · Sliding scale available";
+  else if (t.sliding_scale && !feeText) feeText = "Sliding scale available";
+  if (feeText) {
+    practiceRows.push({ label: "Session fee", value: feeText });
+  }
+  // Care mode
+  var careMode = "";
+  if (t.accepts_telehealth && t.accepts_in_person) careMode = "In-person & telehealth";
+  else if (t.accepts_telehealth) careMode = "Telehealth";
+  else if (t.accepts_in_person) careMode = "In-person";
+  if (careMode) {
+    practiceRows.push({ label: "Care mode", value: careMode });
+  }
+  // Languages
+  var langs = (Array.isArray(t.languages) ? t.languages : []).filter(Boolean);
+  if (langs.length) {
+    practiceRows.push({ label: "Languages", value: langs.join(", ") });
+  }
+  // Insurance — full width row, pills
+  var insuranceList = (Array.isArray(t.insurance_accepted) ? t.insurance_accepted : []).filter(
+    Boolean,
+  );
+  var insuranceHtml = "";
+  if (insuranceList.length) {
+    var visibleInsurance = insuranceList.slice(0, 5);
+    var insuranceOverflow = insuranceList.length - visibleInsurance.length;
+    var pillHtml = visibleInsurance
+      .map(function (ins) {
+        return '<span class="profile-detail-pill">' + escapeHtml(String(ins)) + "</span>";
+      })
+      .join("");
+    if (insuranceOverflow > 0) {
+      pillHtml += '<span class="profile-detail-pill-more">+' + insuranceOverflow + " more</span>";
+    }
+    insuranceHtml = '<div class="profile-detail-pills">' + pillHtml + "</div>";
+  }
+  var practiceDetailsHtml = "";
+  if (practiceRows.length || insuranceHtml) {
+    var rowsHtml = practiceRows
+      .map(function (row) {
+        return (
+          '<div class="profile-detail-row">' +
+          '<div class="profile-detail-label">' +
+          escapeHtml(row.label) +
+          "</div>" +
+          '<div class="' +
+          (row.cls || "profile-detail-value") +
+          '">' +
+          (row.raw ? row.value : escapeHtml(row.value)) +
+          "</div>" +
+          "</div>"
+        );
+      })
+      .join("");
+    if (insuranceHtml) {
+      rowsHtml +=
+        '<div class="profile-detail-row profile-detail-row--full">' +
+        '<div class="profile-detail-label">Insurance accepted</div>' +
+        insuranceHtml +
+        "</div>";
+    }
+    practiceDetailsHtml =
+      '<div class="card profile-section-card">' +
+      '<div class="profile-section-eyebrow">Practice details</div>' +
+      '<h2 class="profile-section-h2">What to know before reaching out</h2>' +
+      '<div class="profile-detail-grid">' +
+      rowsHtml +
+      "</div>" +
+      "</div>";
+  }
+
+  // Step 9: Reach Out card. Open by default. Renders even when phone is
+  // missing (call-script block is conditional on phone).
+  var draftMessageText;
+  var contactGuidanceText = String(t.contact_guidance || "").trim();
+  if (contactGuidanceText) {
+    draftMessageText = contactGuidanceText;
+  } else {
+    var careModeWord;
+    if (t.accepts_telehealth && t.accepts_in_person)
+      careModeWord = "either telehealth or in-person";
+    else if (t.accepts_telehealth) careModeWord = "telehealth";
+    else if (t.accepts_in_person) careModeWord = "in-person";
+    else careModeWord = "telehealth or in-person";
+    draftMessageText =
+      "Hi " +
+      therapistFirstName +
+      ",\n\n" +
+      "I found your profile on BipolarTherapyHub and wanted to see if you might be a good fit for bipolar-focused support.\n\n" +
+      "I'm open to " +
+      careModeWord +
+      " care. I'd love to confirm insurance details and whether you have availability in the next few weeks before going further.\n\n" +
+      "Thanks so much.";
+  }
+  var draftMessageHtml = escapeHtml(draftMessageText).replace(/\n/g, "<br>");
+
+  var reachOutCallScript = "";
+  if (t.phone) {
+    var voicemailFirstName = therapistFirstName;
+    reachOutCallScript =
+      '<div class="profile-reach-call">' +
+      '<div class="profile-reach-call-label">Calling? Here\'s what to say</div>' +
+      '<p class="profile-reach-call-body">' +
+      escapeHtml(
+        "When someone answers: “Hi, my name is [your name]. I found " +
+          voicemailFirstName +
+          "’s profile on BipolarTherapyHub and I'm looking for a therapist who specializes in bipolar disorder. Are you currently taking new clients?”",
+      ) +
+      "</p>" +
+      '<div class="profile-reach-call-label">If you get voicemail</div>' +
+      '<p class="profile-reach-call-body">' +
+      escapeHtml(
+        "“Hi, my name is [your name] and my number is [your number]. I found " +
+          voicemailFirstName +
+          "’s profile on BipolarTherapyHub and would love to connect about bipolar-informed care. Please call me back when you have a moment, thank you.”",
+      ) +
+      "</p>" +
+      '<button type="button" class="profile-reach-call-cta" data-profile-call-cta data-tel="' +
+      escapeHtml(normalizeTelUri(t.phone)) +
+      '">' +
+      '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
+      escapeHtml(t.phone) +
+      "</button>" +
+      "</div>";
+  }
+
+  var reachOutHtml =
+    '<div class="card profile-section-card profile-reach-card">' +
+    '<div class="profile-section-eyebrow">Reach out</div>' +
+    '<h2 class="profile-section-h2">We\'ve drafted a message for you</h2>' +
+    '<div class="profile-reach-draft">' +
+    '<div class="profile-reach-draft-label">Written message</div>' +
+    '<div class="profile-reach-draft-hint">A calm starting point. Swap in your name or add one personal detail if you\'d like.</div>' +
+    '<div class="profile-reach-draft-msg" data-profile-draft-text>' +
+    draftMessageHtml +
+    "</div>" +
+    '<div class="profile-reach-draft-foot">' +
+    '<button type="button" class="profile-reach-copy" data-profile-copy-draft>' +
+    '<i class="ti ti-copy" aria-hidden="true"></i> Copy message' +
+    "</button>" +
+    "</div>" +
+    "</div>" +
+    reachOutCallScript +
+    "</div>";
+
+  // Step 10: FAQ card. Renders in the main column (was previously inside
+  // the sidebar's hero-right). Uses the shared buildFAQItems dynamic Q&A;
+  // first item opens by default when accepting new patients is true.
+  var faqItems = buildFAQItems(t);
+  var faqAcceptingOpen = t.accepting_new_patients === true;
+  var faqItemsHtml = faqItems
+    .map(function (item, i) {
+      var isFirst = i === 0;
+      var isOpen = isFirst && faqAcceptingOpen;
+      var iconClass = isOpen
+        ? "ti ti-circle-check"
+        : isFirst && !faqAcceptingOpen
+          ? "ti ti-chevron-down"
+          : "ti ti-chevron-down";
+      var iconStyle = isOpen ? ' style="color:#3b9b5a"' : "";
+      return (
+        '<div class="profile-faq-item' +
+        (isOpen ? " is-open" : "") +
+        '" data-profile-faq-item' +
+        (isFirst && faqAcceptingOpen ? " data-faq-accept-locked" : "") +
+        ">" +
+        '<button type="button" class="profile-faq-q" aria-expanded="' +
+        (isOpen ? "true" : "false") +
+        '" data-profile-faq-toggle>' +
+        "<span>" +
+        escapeHtml(item.q) +
+        "</span>" +
+        '<i class="' +
+        iconClass +
+        '" aria-hidden="true"' +
+        iconStyle +
+        "></i>" +
+        "</button>" +
+        '<div class="profile-faq-a"' +
+        (isOpen ? "" : " hidden") +
+        ">" +
+        escapeHtml(item.a) +
+        "</div>" +
+        "</div>"
+      );
+    })
+    .join("");
+
+  var faqLicenseRow = "";
+  if (t.license_number) {
+    var faqLicenseState = t.license_state || t.state || "CA";
+    var faqLicenseType = t.credentials || "License";
+    faqLicenseRow =
+      '<div class="profile-faq-license">' +
+      '<i class="ti ti-shield-check" aria-hidden="true"></i> ' +
+      "License verified · " +
+      escapeHtml(faqLicenseState + " " + faqLicenseType + " #" + t.license_number) +
+      " · California Department of Consumer Affairs" +
+      "</div>";
+  }
+
+  var faqCardHtml =
+    '<div class="card profile-section-card">' +
+    '<div class="profile-section-eyebrow">Questions</div>' +
+    '<h2 class="profile-section-h2">Common questions about ' +
+    escapeHtml(therapistFirstName) +
+    "</h2>" +
+    '<div class="profile-faq-list">' +
+    faqItemsHtml +
+    "</div>" +
+    faqLicenseRow +
+    "</div>";
+
+  // Step 11: Sidebar contact card. Coral primary CTA prefers phone, falls
+  // back to email. Email anchor word-break for long addresses. Save button
+  // toggles bth_saved_therapists in localStorage and pings the nav badge.
+  var sideHasPhone = Boolean(t.phone);
+  var sideHasEmail = isRealEmail(t.email);
+  var sideHasWebsite = Boolean(t.website);
+  var sideHasBooking = Boolean(t.booking_url) && t.booking_url !== t.website;
+  var preferredContactRaw = String(t.preferred_contact_method || "").trim();
+  var preferredContactLabelMap = {
+    phone: "Phone first.",
+    email: "Email first.",
+    text: "Text first.",
+    sms: "Text first.",
+    booking_url: "Use the booking link.",
+    booking: "Use the booking link.",
+  };
+  var preferredContactCopy = "";
+  if (contactGuidanceText) {
+    preferredContactCopy = contactGuidanceText;
+  } else if (preferredContactRaw) {
+    preferredContactCopy =
+      preferredContactLabelMap[preferredContactRaw.toLowerCase()] ||
+      preferredContactRaw.charAt(0).toUpperCase() + preferredContactRaw.slice(1);
+  }
+
+  var sidePrimaryHtml = "";
+  if (sideHasPhone) {
+    sidePrimaryHtml =
+      '<a href="tel:' +
+      escapeHtml(normalizeTelUri(t.phone)) +
+      '" class="profile-side-primary" data-profile-side-primary>' +
+      '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
+      escapeHtml(t.phone) +
+      "</a>";
+  } else if (sideHasEmail) {
+    sidePrimaryHtml =
+      '<a href="mailto:' +
+      escapeHtml(t.email) +
+      '" class="profile-side-primary" data-profile-side-primary>' +
+      '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
+      escapeHtml(therapistFirstName) +
+      "</a>";
+  }
+
+  var sideContactItems = "";
+  if (sideHasEmail) {
+    sideContactItems +=
+      '<div class="profile-side-item">' +
+      '<i class="ti ti-mail" aria-hidden="true"></i>' +
+      '<a href="mailto:' +
+      escapeHtml(t.email) +
+      '" class="profile-side-email">' +
+      escapeHtml(t.email) +
+      "</a>" +
+      "</div>";
+  }
+  if (sideHasWebsite) {
+    sideContactItems +=
+      '<div class="profile-side-item">' +
+      '<i class="ti ti-world" aria-hidden="true"></i>' +
+      '<a href="' +
+      escapeHtml(t.website) +
+      '" target="_blank" rel="noopener noreferrer">Practice website →</a>' +
+      "</div>";
+  }
+  if (sideHasBooking) {
+    sideContactItems +=
+      '<div class="profile-side-item">' +
+      '<i class="ti ti-calendar" aria-hidden="true"></i>' +
+      '<a href="' +
+      escapeHtml(t.booking_url) +
+      '" target="_blank" rel="noopener noreferrer">Book a consultation →</a>' +
+      "</div>";
+  }
+
+  var sidePreferredBlock = "";
+  if (preferredContactCopy) {
+    sidePreferredBlock =
+      '<div class="profile-side-preferred">' +
+      '<div class="profile-side-preferred-label">Preferred contact</div>' +
+      '<div class="profile-side-preferred-text">' +
+      escapeHtml(preferredContactCopy) +
+      "</div>" +
+      "</div>";
+  }
+
+  var sideSaveId = String(t.slug || t._id || t.name || "").trim();
+  var sideSaveButton =
+    '<button type="button" class="profile-side-save" data-profile-side-save data-save-id="' +
+    escapeHtml(sideSaveId) +
+    '" aria-pressed="false">' +
+    '<i class="ti ti-bookmark" aria-hidden="true"></i>' +
+    '<span class="profile-side-save-label">Save</span>' +
+    "</button>";
+
+  var sidebarHtml =
+    '<div class="profile-side-card">' +
+    '<div class="profile-side-eyebrow">Contact</div>' +
+    sidePrimaryHtml +
+    (sidePrimaryHtml
+      ? '<p class="profile-side-note">After first contact, the next step is usually a brief 15-min consultation before scheduling.</p>'
+      : "") +
+    sideContactItems +
+    sidePreferredBlock +
+    sideSaveButton +
+    "</div>";
+
   var html =
     '<div class="profile-layout">' +
     '<main class="profile-main-col">' +
@@ -3359,90 +3611,21 @@ function renderProfile(t, therapistDirectory) {
     heroYearsHtml +
     heroTagsHtml +
     "</div>" +
-    '<div class="profile-bio-temp">' +
-    '<div class="profile-bio-wrap" data-profile-bio-wrap>' +
-    '<div class="profile-bio-text" id="profileBioPanel">' +
-    bioBodyHtml +
-    "</div>" +
-    '<div class="profile-bio-fade" aria-hidden="true"></div>' +
-    "</div>" +
-    '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>' +
-    (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
-    "</div>" +
+    bipolarApproachHtml +
+    bioCardHtml +
+    practiceDetailsHtml +
+    reachOutHtml +
+    faqCardHtml +
     "</div>" +
     '<div class="profile-hero-right">' +
-    '<div class="profile-contact-card" id="outreach" data-profile-contact-section>' +
-    '<div class="profile-contact-card-label">Contact</div>' +
-    (primaryButton || primaryActionFallback
-      ? '<div class="profile-contact-primary">' +
-        (primaryButton || primaryActionFallback) +
-        '<div class="profile-contact-primary-caption">' +
-        escapeHtml(bestNextStepCopy) +
-        "</div></div>" +
-        '<div class="profile-contact-divider"><span>Other ways to reach</span></div>'
-      : "") +
-    (t.phone
-      ? '<a href="tel:' +
-        escapeHtml(normalizeTelUri(t.phone)) +
-        '" class="profile-contact-row" aria-label="Call ' +
-        escapeHtml(t.name) +
-        '"><span class="profile-contact-icon" aria-hidden="true">📞</span><span class="profile-contact-value">' +
-        escapeHtml(t.phone) +
-        "</span></a>"
-      : "") +
-    (isRealEmail(t.email)
-      ? '<a href="mailto:' +
-        escapeHtml(t.email) +
-        '" class="profile-contact-row" aria-label="Email ' +
-        escapeHtml(t.name) +
-        '" data-copy-email="' +
-        escapeHtml(t.email) +
-        '"><span class="profile-contact-icon" aria-hidden="true">✉️</span><span class="profile-contact-value">' +
-        escapeHtml(t.email) +
-        '</span><span class="profile-contact-copy-hint">Copy</span></a>'
-      : "") +
-    (t.website && websiteHealthy
-      ? '<a href="' +
-        escapeHtml(t.website) +
-        '" target="_blank" rel="noopener noreferrer" class="profile-contact-row" aria-label="Visit ' +
-        escapeHtml(t.name) +
-        '\u2019s website"><span class="profile-contact-icon" aria-hidden="true">🌐</span><span class="profile-contact-value">' +
-        "Practice website →</span></a>" +
-        ""
-      : "") +
-    (t.booking_url && bookingHealthy
-      ? '<a href="' +
-        escapeHtml(t.booking_url) +
-        '" target="_blank" rel="noopener noreferrer" class="profile-contact-row" aria-label="Book with ' +
-        escapeHtml(t.name) +
-        '"><span class="profile-contact-icon" aria-hidden="true">📅</span><span class="profile-contact-value">Booking link</span></a>'
-      : "") +
-    (!t.phone &&
-    !isRealEmail(t.email) &&
-    !(t.website && websiteHealthy) &&
-    !(t.booking_url && bookingHealthy)
-      ? '<div class="profile-contact-empty">No direct contact path listed yet.</div>'
-      : "") +
-    (outreachPanelHtml
-      ? '<button type="button" class="contact-outreach-toggle" aria-expanded="false" aria-controls="contactOutreachPanel" data-outreach-toggle>' +
-        '<span class="profile-contact-icon" aria-hidden="true">✉️</span>' +
-        '<span class="contact-outreach-toggle-label">What to say when you reach out</span>' +
-        '<span class="contact-outreach-chevron" aria-hidden="true">+</span>' +
-        "</button>" +
-        '<div class="contact-outreach-panel" id="contactOutreachPanel" hidden>' +
-        outreachPanelHtml +
-        "</div>"
-      : "") +
-    '<button type="button" class="profile-save-btn" id="profileShortlistButton" data-shortlist-trigger="profile" aria-pressed="false">' +
-    '<span class="profile-save-btn-icon" aria-hidden="true">☆</span>' +
-    '<span class="profile-save-btn-label">Save to list</span>' +
-    "</button>" +
-    "</div>" +
-    buildFAQSection(t) +
+    sidebarHtml +
     "</div>" +
     "</div>" +
     "</div>" +
-    buildTrustBar(t) +
+    "</div>" +
+    "</main>" +
+    '<aside class="profile-side-col" data-profile-side></aside>' +
+    "</div>" +
     '<div class="profile-foot-actions">' +
     '<a href="' +
     escapeHtml(backNav.href) +
@@ -3452,9 +3635,6 @@ function renderProfile(t, therapistDirectory) {
     '<button type="button" class="profile-foot-report" id="profileReportIssueBtn" data-report-slug="' +
     escapeHtml(t.slug || "") +
     '">Report an issue with this listing</button>' +
-    "</div>" +
-    "</main>" +
-    '<aside class="profile-side-col" data-profile-side></aside>' +
     "</div>";
 
   document.getElementById("profileWrap").innerHTML = html;
@@ -3723,33 +3903,156 @@ function renderProfile(t, therapistDirectory) {
         updateShortlistAction(t.slug);
       });
     });
+  // Step 11: sidebar Save toggle. Mirrors the bth_saved_therapists list
+  // in localStorage and re-syncs the nav badge so the count visible at
+  // the top stays consistent with the button state.
   Array.prototype.slice
-    .call(document.querySelectorAll("[data-profile-bio-read-more]"))
+    .call(document.querySelectorAll("[data-profile-side-save]"))
     .forEach(function (button) {
-      var bioWrap = button.previousElementSibling;
-      var bioText = bioWrap ? bioWrap.querySelector(".profile-bio-text") : null;
-      var bioFade = bioWrap ? bioWrap.querySelector(".profile-bio-fade") : null;
-      window.requestAnimationFrame(function () {
-        window.requestAnimationFrame(function () {
-          if (bioText && bioText.scrollHeight <= bioText.clientHeight + 2) {
-            bioText.classList.add("is-expanded");
-            if (bioFade) bioFade.classList.add("is-hidden");
-            button.hidden = true;
-          }
-        });
-      });
+      var id = button.getAttribute("data-save-id") || "";
+      var label = button.querySelector(".profile-side-save-label");
+      var STORAGE_KEY = "bth_saved_therapists";
+      function readSaved() {
+        try {
+          var raw = window.localStorage.getItem(STORAGE_KEY);
+          var list = raw ? JSON.parse(raw) : [];
+          return Array.isArray(list) ? list : [];
+        } catch (_e) {
+          return [];
+        }
+      }
+      function writeSaved(list) {
+        try {
+          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+        } catch (_e) {
+          /* localStorage full or unavailable */
+        }
+      }
+      function syncNavBadge(count) {
+        var badge = document.querySelector("[data-profile-nav-saved-count]");
+        if (!badge) return;
+        badge.textContent = String(count);
+        badge.hidden = count === 0;
+      }
+      function paint(isSaved) {
+        button.classList.toggle("is-saved", isSaved);
+        button.setAttribute("aria-pressed", isSaved ? "true" : "false");
+        if (label) label.textContent = isSaved ? "Saved" : "Save";
+      }
+      var initial = readSaved();
+      paint(id && initial.indexOf(id) !== -1);
       button.addEventListener("click", function () {
-        if (!bioText) return;
-        var expanded = bioText.classList.contains("is-expanded");
+        if (!id) return;
+        var current = readSaved();
+        var idx = current.indexOf(id);
+        if (idx === -1) {
+          current.push(id);
+        } else {
+          current.splice(idx, 1);
+        }
+        writeSaved(current);
+        paint(current.indexOf(id) !== -1);
+        syncNavBadge(current.length);
+      });
+    });
+
+  // Step 10: FAQ accordion. Clicking a closed item opens it and closes
+  // siblings; clicking an open item closes it. The first item, when locked
+  // open by accepting-new-patients, keeps its green check-circle icon.
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-profile-faq-toggle]"))
+    .forEach(function (button) {
+      var item = button.closest("[data-profile-faq-item]");
+      if (!item) return;
+      var answer = item.querySelector(".profile-faq-a");
+      var icon = button.querySelector("i");
+      var locked = item.hasAttribute("data-faq-accept-locked");
+      button.addEventListener("click", function () {
+        var open = item.classList.contains("is-open");
+        if (open) {
+          item.classList.remove("is-open");
+          if (answer) answer.hidden = true;
+          button.setAttribute("aria-expanded", "false");
+          if (icon && !locked) icon.className = "ti ti-chevron-down";
+        } else {
+          var siblings = item.parentNode
+            ? item.parentNode.querySelectorAll("[data-profile-faq-item]")
+            : [];
+          Array.prototype.forEach.call(siblings, function (sib) {
+            if (sib === item) return;
+            sib.classList.remove("is-open");
+            var sibAnswer = sib.querySelector(".profile-faq-a");
+            var sibButton = sib.querySelector("[data-profile-faq-toggle]");
+            var sibIcon = sibButton ? sibButton.querySelector("i") : null;
+            var sibLocked = sib.hasAttribute("data-faq-accept-locked");
+            if (sibAnswer) sibAnswer.hidden = true;
+            if (sibButton) sibButton.setAttribute("aria-expanded", "false");
+            if (sibIcon && !sibLocked) sibIcon.className = "ti ti-chevron-down";
+          });
+          item.classList.add("is-open");
+          if (answer) answer.hidden = false;
+          button.setAttribute("aria-expanded", "true");
+          if (icon && !locked) icon.className = "ti ti-chevron-up";
+        }
+      });
+    });
+
+  // Step 9: copy-to-clipboard for the reach-out draft, and click-to-dial
+  // for the inline call CTA.
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-profile-copy-draft]"))
+    .forEach(function (button) {
+      var card = button.closest(".profile-reach-card");
+      var msgEl = card ? card.querySelector("[data-profile-draft-text]") : null;
+      var defaultLabel = button.innerHTML;
+      button.addEventListener("click", function () {
+        if (!msgEl) return;
+        var text = msgEl.innerText || msgEl.textContent || "";
+        var done = function () {
+          button.classList.add("is-copied");
+          button.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied';
+          window.setTimeout(function () {
+            button.classList.remove("is-copied");
+            button.innerHTML = defaultLabel;
+          }, 2000);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(text).then(done, done);
+        } else {
+          done();
+        }
+      });
+    });
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-profile-call-cta]"))
+    .forEach(function (button) {
+      button.addEventListener("click", function () {
+        var tel = button.getAttribute("data-tel");
+        if (tel) window.location.href = "tel:" + tel;
+      });
+    });
+
+  // Step 7: bio preview/full toggle. The new card renders a 280-char
+  // preview <p> plus a hidden full bio block; clicking the button swaps
+  // visibility and the button label.
+  Array.prototype.slice
+    .call(document.querySelectorAll("[data-profile-bio-toggle]"))
+    .forEach(function (button) {
+      var block = button.closest("[data-profile-bio-block]");
+      if (!block) return;
+      var preview = block.querySelector("[data-profile-bio-preview]");
+      var full = block.querySelector("[data-profile-bio-full]");
+      button.addEventListener("click", function () {
+        var expanded = button.getAttribute("aria-expanded") === "true";
         if (expanded) {
-          bioText.classList.remove("is-expanded");
-          if (bioFade) bioFade.classList.remove("is-hidden");
-          button.textContent = "Read more ↓";
+          if (full) full.hidden = true;
+          if (preview) preview.hidden = false;
+          button.textContent = "Read more →";
           button.setAttribute("aria-expanded", "false");
         } else {
-          bioText.classList.add("is-expanded");
-          if (bioFade) bioFade.classList.add("is-hidden");
-          button.textContent = "Show less ↑";
+          if (preview) preview.hidden = true;
+          if (full) full.hidden = false;
+          button.textContent = "Show less ←";
           button.setAttribute("aria-expanded", "true");
         }
       });
