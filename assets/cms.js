@@ -219,6 +219,8 @@ function normalizeTherapist(doc) {
         : [],
     estimated_wait_time: doc.estimatedWaitTime || doc.estimated_wait_time || "",
     care_approach: doc.careApproach || doc.care_approach || "",
+    bipolar_approach: doc.bipolarApproach || doc.bipolar_approach || "",
+    availability_posture: doc.availabilityPosture || doc.availability_posture || "",
     medication_management:
       doc.medicationManagement !== undefined
         ? Boolean(doc.medicationManagement)
@@ -337,6 +339,8 @@ function normalizeDirectoryTherapist(doc) {
     bipolar_years_experience: doc.bipolarYearsExperience || doc.bipolar_years_experience || null,
     estimated_wait_time: doc.estimatedWaitTime || doc.estimated_wait_time || "",
     care_approach: doc.careApproach || doc.care_approach || "",
+    bipolar_approach: doc.bipolarApproach || doc.bipolar_approach || "",
+    availability_posture: doc.availabilityPosture || doc.availability_posture || "",
     medication_management:
       doc.medicationManagement !== undefined
         ? Boolean(doc.medicationManagement)

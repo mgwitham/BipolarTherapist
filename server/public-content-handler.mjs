@@ -48,6 +48,8 @@ const PUBLIC_THERAPIST_PROJECTION = `{
   telehealthStates,
   estimatedWaitTime,
   careApproach,
+  bipolarApproach,
+  availabilityPosture,
   medicationManagement,
   verificationStatus,
   sourceUrl,
