@@ -260,7 +260,7 @@ nav {
 }
 
 .nav-cta {
-  background: var(--teal) !important;
+  background: var(--coral) !important;
   color: white !important;
   padding: 0.5rem 1.25rem;
   border-radius: 8px;
@@ -268,7 +268,7 @@ nav {
 }
 
 .nav-cta:hover {
-  background: var(--teal-dark) !important;
+  background: var(--coral-dark) !important;
 }
 
 .nav-signin-link {
