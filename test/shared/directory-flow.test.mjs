@@ -55,7 +55,7 @@ test("directory flow harness applies controls, sorts results, and renders the to
   assert.equal(flow.renderState.pageItems[0].slug, "avery-chen");
   assert.equal(flow.renderState.activeFilterCount, 6);
   assert.match(flow.html, /Avery Chen/);
-  assert.match(flow.html, /card-action-primary/);
+  assert.match(flow.html, /dir-card-cta/);
   assert.match(flow.html, /t-card-save|data-shortlist-slug/);
 });
 

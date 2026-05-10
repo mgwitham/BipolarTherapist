@@ -26,7 +26,7 @@ test("directory card render smoke keeps core CTA hierarchy and shortlist hooks i
   assert.match(html, /data-shortlist-slug="jamie-rivera"/);
   assert.match(html, /data-primary-cta="jamie-rivera"/);
   assert.match(html, /data-card-click="jamie-rivera"/);
-  assert.match(html, /t-meta-line|card-action-primary/);
+  assert.match(html, /t-meta-line|dir-card-cta/);
   assert.match(html, /is-saved/);
 });
 
