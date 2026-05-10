@@ -295,44 +295,122 @@ export function renderBackupCardMarkup(options) {
   );
 }
 
+// Bipolar subtype keywords used to derive the expertise-band line. Matches
+// the new design's "Bipolar I, Bipolar II, Cyclothymia" surface.
+var BIPOLAR_SUBTYPE_PATTERNS = [
+  { match: /bipolar\s*i+\b|bipolar\s*2/i, label: "Bipolar II" },
+  { match: /bipolar\s*i\b|bipolar\s*1\b/i, label: "Bipolar I" },
+  { match: /cyclothym/i, label: "Cyclothymia" },
+];
+function getBipolarSubtypes(therapist) {
+  var specs = Array.isArray(therapist.specialties) ? therapist.specialties : [];
+  var found = [];
+  BIPOLAR_SUBTYPE_PATTERNS.forEach(function (pat) {
+    var hit = specs.some(function (s) {
+      return pat.match.test(String(s || ""));
+    });
+    if (hit && found.indexOf(pat.label) === -1) found.push(pat.label);
+  });
+  return found;
+}
+
+function buildExpertiseBand(therapist) {
+  var t = therapist || {};
+  var years = Number(t.bipolar_years_experience || 0);
+  var subtypes = getBipolarSubtypes(t);
+  var modalities = (Array.isArray(t.treatment_modalities) ? t.treatment_modalities : [])
+    .map(function (m) {
+      return String(m || "").trim();
+    })
+    .filter(Boolean)
+    .slice(0, 3);
+
+  var line1 = "";
+  var line2 = "";
+  if (years > 0) {
+    line1 = years + " yr" + (years === 1 ? "" : "s") + " bipolar experience";
+    line2 = subtypes.concat(modalities).slice(0, 4).join(" · ");
+  } else if (subtypes.length) {
+    line1 = subtypes.join(" · ");
+    line2 = modalities.join(" · ");
+  } else if (modalities.length) {
+    line1 = modalities.join(" · ");
+  } else {
+    line1 = "Bipolar specialist";
+  }
+
+  return (
+    '<div class="dir-card-expertise">' +
+    '<div class="dir-card-expertise-line">' +
+    escapeHtml(line1) +
+    "</div>" +
+    (line2 ? '<div class="dir-card-expertise-sub">' + escapeHtml(line2) + "</div>" : "") +
+    "</div>"
+  );
+}
+
+function buildAvailabilityRow(therapist) {
+  var t = therapist || {};
+  if (t.accepting_new_patients === true) {
+    return (
+      '<div class="dir-card-avail dir-card-avail--open">' +
+      '<span class="dir-card-avail-dot" aria-hidden="true"></span>' +
+      "Available now" +
+      "</div>"
+    );
+  }
+  if (t.accepting_new_patients === false) {
+    return (
+      '<div class="dir-card-avail dir-card-avail--closed">' +
+      '<span class="dir-card-avail-dot" aria-hidden="true"></span>' +
+      "Not currently accepting" +
+      "</div>"
+    );
+  }
+  return "";
+}
+
+function buildFormatPriceRow(therapist) {
+  var t = therapist || {};
+  var mode = "";
+  if (t.accepts_telehealth && t.accepts_in_person) mode = "In-person & telehealth";
+  else if (t.accepts_telehealth) mode = "Telehealth";
+  else if (t.accepts_in_person) mode = "In-person";
+
+  var fee = "";
+  if (t.session_fee_min) {
+    var max = t.session_fee_max && t.session_fee_max !== t.session_fee_min;
+    fee = "$" + t.session_fee_min + (max ? "–$" + t.session_fee_max : "") + "/session";
+  }
+
+  var parts = [mode, fee].filter(Boolean);
+  if (!parts.length) return "";
+  return '<div class="dir-card-format">' + escapeHtml(parts.join(" · ")) + "</div>";
+}
+
+function buildInsuranceLine(therapist) {
+  var list = Array.isArray(therapist.insurance_accepted)
+    ? therapist.insurance_accepted.filter(Boolean)
+    : [];
+  if (!list.length) return "";
+  var visible = list.slice(0, 2);
+  var overflow = list.length - visible.length;
+  var copy = visible.join(", ") + (overflow > 0 ? " +" + overflow + " more" : "");
+  return '<div class="dir-card-insurance">' + escapeHtml(copy) + "</div>";
+}
+
 export function renderCardMarkup(options) {
   var model = options.model;
   var therapist = model.therapist;
-  var reasonLine = buildDirectoryReasonLine(therapist);
-  var profileSecondaryHref = buildTherapistProfileHref(therapist.slug, "card_secondary");
-  var profileSecondaryLink =
-    '<a href="' +
-    escapeHtml(profileSecondaryHref) +
-    '" class="card-action-secondary" data-card-profile-link="' +
-    escapeHtml(therapist.slug) +
-    '" data-cta-tier="browse">See full profile' +
-    '<svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true"><path d="M2 9L9 2M9 2H5M9 2V6" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-    "</a>";
-
-  var primaryAction = model.contactRoute
-    ? '<a href="' +
-      escapeHtml(model.contactRoute.href) +
-      '"' +
-      (model.contactRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
-      ' class="card-action-primary" data-primary-cta="' +
-      escapeHtml(therapist.slug) +
-      '" data-cta-tier="browse">' +
-      escapeHtml(model.contactLabel || "Contact therapist") +
-      "</a>" +
-      profileSecondaryLink
-    : '<a href="' +
-      escapeHtml(buildTherapistProfileHref(therapist.slug, "card_primary")) +
-      '" class="card-action-primary" data-primary-cta="' +
-      escapeHtml(therapist.slug) +
-      '" data-cta-tier="browse">View profile</a>';
+  var primaryHref = buildTherapistProfileHref(therapist.slug, "card_primary");
 
   return (
-    '<article class="t-card" data-card-slug="' +
+    '<article class="t-card dir-card" data-card-slug="' +
     escapeHtml(therapist.slug) +
     '" data-card-click="' +
     escapeHtml(therapist.slug) +
     '">' +
-    '<button type="button" class="t-card-save' +
+    '<button type="button" class="t-card-save dir-card-save' +
     (model.shortlisted ? " is-saved" : "") +
     '" data-shortlist-slug="' +
     escapeHtml(therapist.slug) +
@@ -345,26 +423,33 @@ export function renderCardMarkup(options) {
     (model.shortlisted ? "currentColor" : "none") +
     '" aria-hidden="true"><path d="M4 2h8a1 1 0 0 1 1 1v10.5l-5-3-5 3V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
     "</button>" +
-    '<div class="t-card-body">' +
-    '<div class="t-card-head">' +
-    '<div class="t-avatar">' +
+    '<div class="dir-card-body">' +
+    '<div class="dir-card-head">' +
+    '<div class="dir-card-avatar">' +
     renderRoundAvatar(therapist, "card") +
     "</div>" +
-    '<div class="t-info">' +
-    '<div class="t-name">' +
+    '<div class="dir-card-id">' +
+    '<div class="dir-card-name">' +
     escapeHtml(getTherapistDisplayName(therapist.name)) +
     "</div>" +
-    '<div class="t-creds">' +
-    escapeHtml(therapist.credentials || "") +
-    (therapist.title ? " · " + escapeHtml(therapist.title) : "") +
+    (therapist.credentials || therapist.title
+      ? '<div class="dir-card-creds">' +
+        escapeHtml([therapist.credentials, therapist.title].filter(Boolean).join(" · ")) +
+        "</div>"
+      : "") +
     "</div>" +
-    (reasonLine ? '<div class="t-reason">' + escapeHtml(reasonLine) + "</div>" : "") +
     "</div>" +
-    "</div>" +
-    renderSpecialtyPills(therapist) +
-    buildDirectoryInfoRow(therapist) +
-    '<div class="t-card-actions">' +
-    primaryAction +
+    buildExpertiseBand(therapist) +
+    buildAvailabilityRow(therapist) +
+    buildFormatPriceRow(therapist) +
+    buildInsuranceLine(therapist) +
+    '<div class="dir-card-spacer"></div>' +
+    '<div class="dir-card-actions">' +
+    '<a href="' +
+    escapeHtml(primaryHref) +
+    '" class="dir-card-cta" data-primary-cta="' +
+    escapeHtml(therapist.slug) +
+    '" data-cta-tier="browse">View profile →</a>' +
     "</div>" +
     "</div>" +
     "</article>"
