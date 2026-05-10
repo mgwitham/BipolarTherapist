@@ -96,84 +96,35 @@
         </div>
       </div>
 
-      <!-- ── FEATURED CARD (Section 3) ─────────────────────────
-           Static example markup. Step 6 replaces with JS render. -->
+      <!-- Cards container — populated by assets/results.js after fetch. -->
       <section class="results-list" data-results-list>
-        <div class="best-match-label">
-          <i class="ti ti-rosette" aria-hidden="true"></i>
-          <span>Top match</span>
-        </div>
-        <article
-          class="featured-card"
-          data-card
-          data-card-rank="1"
-          data-card-id="example-jordan-morales"
-        >
-          <div class="featured-card-header">
-            <div class="card-avatar avatar-teal" aria-hidden="true">JM</div>
-            <div class="card-ident">
-              <h2 class="card-name">
-                Jordan Morales,
-                <span class="card-creds">PhD</span>
-              </h2>
-              <p class="card-title">Clinical Psychologist</p>
-              <p class="card-reason" data-card-reason>Rapid cycling · in person · accepts Aetna</p>
-            </div>
-            <button
-              type="button"
-              class="card-save"
-              data-card-save
-              aria-label="Save this therapist"
-              aria-pressed="false"
-            >
-              <i class="ti ti-bookmark" aria-hidden="true"></i>
-              <span class="card-save-label">Save</span>
-            </button>
+        <div data-results-cards hidden></div>
+
+        <!-- Static example markup retained for visual QA only. results.js
+             never reads or modifies this block. Remove once the wired
+             render is signed off. -->
+        <template data-results-static-example>
+          <div class="best-match-label">
+            <i class="ti ti-rosette" aria-hidden="true"></i>
+            <span>Top match</span>
           </div>
-
-          <div class="bipolar-years-badge">
-            <span class="bipolar-years-num">15</span>
-            <span class="bipolar-years-label">years<br />treating bipolar specifically</span>
-          </div>
-
-          <ul class="specialty-tags">
-            <li class="specialty-tag">Bipolar I &amp; II</li>
-            <li class="specialty-tag">Rapid cycling</li>
-            <li class="specialty-tag specialty-tag-modality">IPSRT</li>
-            <li class="specialty-tag specialty-tag-modality">DBT</li>
-          </ul>
-
-          <ul class="card-meta">
-            <li class="card-meta-item">In-person &amp; virtual</li>
-            <li class="card-meta-item">2.4 mi</li>
-            <li class="card-meta-item">$180 · sliding scale</li>
-            <li class="card-meta-item card-meta-avail">
-              <span class="avail-dot" aria-hidden="true"></span>Available now
-            </li>
-            <li class="card-meta-item">Aetna, BCBS, +3</li>
-          </ul>
-
-          <div class="card-actions">
-            <a href="#" class="card-cta-primary" data-card-profile>
-              View profile
-              <i class="ti ti-arrow-right" aria-hidden="true"></i>
-            </a>
-          </div>
-        </article>
-
-        <!-- ── RESULTS GRID (Section 4) ────────────────────────
-             Static example. Step 6 replaces with JS render. -->
-        <p class="grid-section-label" data-grid-label>
-          <span><span data-grid-count>7</span> more matches</span>
-        </p>
-        <div class="results-grid" data-results-grid>
-          <article class="grid-card" data-card data-card-rank="2" data-card-id="example-sam-rivera">
-            <div class="grid-card-header">
-              <div class="card-avatar card-avatar-sm avatar-purple" aria-hidden="true">SR</div>
+          <article
+            class="featured-card"
+            data-card
+            data-card-rank="1"
+            data-card-id="example-jordan-morales"
+          >
+            <div class="featured-card-header">
+              <div class="card-avatar avatar-teal" aria-hidden="true">JM</div>
               <div class="card-ident">
-                <h3 class="card-name card-name-sm">
-                  Sam Rivera, <span class="card-creds">LMFT</span>
-                </h3>
+                <h2 class="card-name">
+                  Jordan Morales,
+                  <span class="card-creds">PhD</span>
+                </h2>
+                <p class="card-title">Clinical Psychologist</p>
+                <p class="card-reason" data-card-reason>
+                  Rapid cycling · in person · accepts Aetna
+                </p>
               </div>
               <button
                 type="button"
@@ -186,65 +137,132 @@
                 <span class="card-save-label">Save</span>
               </button>
             </div>
-            <ul class="specialty-tags">
-              <li class="specialty-tag">Bipolar II</li>
-              <li class="specialty-tag specialty-tag-modality">FFT</li>
-              <li class="specialty-tag-more">+2 more</li>
-            </ul>
-            <ul class="card-meta card-meta-sm">
-              <li class="card-meta-item">Virtual</li>
-              <li class="card-meta-item">$140</li>
-              <li class="card-meta-item card-meta-avail">
-                <span class="avail-dot" aria-hidden="true"></span>This week
-              </li>
-            </ul>
-            <div class="card-actions">
-              <a href="#" class="card-cta-grid" data-card-profile>
-                View profile
-                <i class="ti ti-arrow-right" aria-hidden="true"></i>
-              </a>
-            </div>
-          </article>
 
-          <article class="grid-card" data-card data-card-rank="3" data-card-id="example-alex-chen">
-            <div class="grid-card-header">
-              <div class="card-avatar card-avatar-sm avatar-amber" aria-hidden="true">AC</div>
-              <div class="card-ident">
-                <h3 class="card-name card-name-sm">
-                  Alex Chen, <span class="card-creds">PsyD</span>
-                </h3>
-              </div>
-              <button
-                type="button"
-                class="card-save"
-                data-card-save
-                aria-label="Save this therapist"
-                aria-pressed="false"
-              >
-                <i class="ti ti-bookmark" aria-hidden="true"></i>
-                <span class="card-save-label">Save</span>
-              </button>
+            <div class="bipolar-years-badge">
+              <span class="bipolar-years-num">15</span>
+              <span class="bipolar-years-label">years<br />treating bipolar specifically</span>
             </div>
+
             <ul class="specialty-tags">
               <li class="specialty-tag">Bipolar I &amp; II</li>
+              <li class="specialty-tag">Rapid cycling</li>
+              <li class="specialty-tag specialty-tag-modality">IPSRT</li>
               <li class="specialty-tag specialty-tag-modality">DBT</li>
             </ul>
-            <ul class="card-meta card-meta-sm">
-              <li class="card-meta-item">In-person</li>
-              <li class="card-meta-item">3.1 mi</li>
-              <li class="card-meta-item">$200</li>
+
+            <ul class="card-meta">
+              <li class="card-meta-item">In-person &amp; virtual</li>
+              <li class="card-meta-item">2.4 mi</li>
+              <li class="card-meta-item">$180 · sliding scale</li>
+              <li class="card-meta-item card-meta-avail">
+                <span class="avail-dot" aria-hidden="true"></span>Available now
+              </li>
+              <li class="card-meta-item">Aetna, BCBS, +3</li>
             </ul>
+
             <div class="card-actions">
-              <a href="#" class="card-cta-grid" data-card-profile>
+              <a href="#" class="card-cta-primary" data-card-profile>
                 View profile
                 <i class="ti ti-arrow-right" aria-hidden="true"></i>
               </a>
             </div>
           </article>
-        </div>
+
+          <!-- ── RESULTS GRID (Section 4) ────────────────────────
+             Static example. Step 6 replaces with JS render. -->
+          <p class="grid-section-label" data-grid-label>
+            <span><span data-grid-count>7</span> more matches</span>
+          </p>
+          <div class="results-grid" data-results-grid>
+            <article
+              class="grid-card"
+              data-card
+              data-card-rank="2"
+              data-card-id="example-sam-rivera"
+            >
+              <div class="grid-card-header">
+                <div class="card-avatar card-avatar-sm avatar-purple" aria-hidden="true">SR</div>
+                <div class="card-ident">
+                  <h3 class="card-name card-name-sm">
+                    Sam Rivera, <span class="card-creds">LMFT</span>
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  class="card-save"
+                  data-card-save
+                  aria-label="Save this therapist"
+                  aria-pressed="false"
+                >
+                  <i class="ti ti-bookmark" aria-hidden="true"></i>
+                  <span class="card-save-label">Save</span>
+                </button>
+              </div>
+              <ul class="specialty-tags">
+                <li class="specialty-tag">Bipolar II</li>
+                <li class="specialty-tag specialty-tag-modality">FFT</li>
+                <li class="specialty-tag-more">+2 more</li>
+              </ul>
+              <ul class="card-meta card-meta-sm">
+                <li class="card-meta-item">Virtual</li>
+                <li class="card-meta-item">$140</li>
+                <li class="card-meta-item card-meta-avail">
+                  <span class="avail-dot" aria-hidden="true"></span>This week
+                </li>
+              </ul>
+              <div class="card-actions">
+                <a href="#" class="card-cta-grid" data-card-profile>
+                  View profile
+                  <i class="ti ti-arrow-right" aria-hidden="true"></i>
+                </a>
+              </div>
+            </article>
+
+            <article
+              class="grid-card"
+              data-card
+              data-card-rank="3"
+              data-card-id="example-alex-chen"
+            >
+              <div class="grid-card-header">
+                <div class="card-avatar card-avatar-sm avatar-amber" aria-hidden="true">AC</div>
+                <div class="card-ident">
+                  <h3 class="card-name card-name-sm">
+                    Alex Chen, <span class="card-creds">PsyD</span>
+                  </h3>
+                </div>
+                <button
+                  type="button"
+                  class="card-save"
+                  data-card-save
+                  aria-label="Save this therapist"
+                  aria-pressed="false"
+                >
+                  <i class="ti ti-bookmark" aria-hidden="true"></i>
+                  <span class="card-save-label">Save</span>
+                </button>
+              </div>
+              <ul class="specialty-tags">
+                <li class="specialty-tag">Bipolar I &amp; II</li>
+                <li class="specialty-tag specialty-tag-modality">DBT</li>
+              </ul>
+              <ul class="card-meta card-meta-sm">
+                <li class="card-meta-item">In-person</li>
+                <li class="card-meta-item">3.1 mi</li>
+                <li class="card-meta-item">$200</li>
+              </ul>
+              <div class="card-actions">
+                <a href="#" class="card-cta-grid" data-card-profile>
+                  View profile
+                  <i class="ti ti-arrow-right" aria-hidden="true"></i>
+                </a>
+              </div>
+            </article>
+          </div>
+        </template>
 
         <!-- ── FOOTER PROMPT — soft escape after grid ─────── -->
-        <p class="results-footer-prompt" data-results-footer>
+        <p class="results-footer-prompt" data-results-footer hidden>
           None of these the right fit?
           <a href="/directory"
             >Browse all California therapists
@@ -302,6 +320,7 @@
         </div>
       </section>
     </main>
+    <script type="module" src="assets/results.js"></script>
     <script type="module" src="assets/results-save.js"></script>
     <script type="module" src="assets/results-analytics.js"></script>
   </body>
