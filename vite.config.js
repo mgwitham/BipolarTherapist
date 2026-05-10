@@ -41,6 +41,7 @@ export default defineConfig({
       input: {
         index: resolve(rootDir, "index.html"),
         match: resolve(rootDir, "match.html"),
+        results: resolve(rootDir, "results.html"),
         directory: resolve(rootDir, "directory.html"),
         therapist: resolve(rootDir, "therapist.html"),
         signup: resolve(rootDir, "signup.html"),
