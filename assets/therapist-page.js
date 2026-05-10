@@ -2892,47 +2892,6 @@ function renderProfile(t, therapistDirectory) {
     '<a href="/portal?slug=' +
     encodeURIComponent(t.slug) +
     '" class="btn-website">Claim or manage profile</a>';
-  contactBtns =
-    '<div class="profile-actions-intro"><div class="profile-actions-intro-label">Recommended first move</div><div class="profile-actions-intro-title">' +
-    escapeHtml(contactStrategy.routeLabel) +
-    '</div><div class="profile-actions-intro-copy">' +
-    escapeHtml(contactStrategy.routeReason) +
-    "</div></div>" +
-    '<div class="profile-actions-header"><div class="profile-actions-kicker">Outreach cockpit</div><div class="profile-actions-title">Make one strong first move, not three hesitant ones.</div><div class="profile-actions-microcopy">This rail is built to help you choose the safest route, send a more credible first message, and know exactly when to pivot if the first path stalls.</div></div>' +
-    '<div class="contact-strategy-card"><div class="contact-strategy-kicker">Best outreach path</div><div class="contact-strategy-title">' +
-    escapeHtml(contactStrategy.routeLabel) +
-    '</div><div class="contact-strategy-copy">' +
-    escapeHtml(contactStrategy.routeReason) +
-    '</div><div class="contact-strategy-highlight"><strong>Why this route now:</strong> ' +
-    escapeHtml(contactStrategy.proofLine) +
-    '</div><div class="contact-strategy-confidence tone-' +
-    escapeHtml(contactStrategy.confidenceTone) +
-    '"><div class="contact-strategy-confidence-label">' +
-    escapeHtml(contactStrategy.confidenceLabel) +
-    '</div><div class="contact-strategy-confidence-note">' +
-    escapeHtml(contactStrategy.confidenceNote) +
-    '</div></div><div class="contact-strategy-grid"><div class="contact-strategy-item"><div class="contact-strategy-label">Expected reply window</div><div class="contact-strategy-value ' +
-    escapeHtml(contactStrategy.timingTone) +
-    '">' +
-    escapeHtml(contactStrategy.replyWindowCopy) +
-    '</div></div><div class="contact-strategy-item"><div class="contact-strategy-label">Follow up if needed</div><div class="contact-strategy-value">' +
-    escapeHtml(contactStrategy.followUpCopy) +
-    '</div></div><div class="contact-strategy-item"><div class="contact-strategy-label">If this stalls</div><div class="contact-strategy-value">' +
-    escapeHtml(contactStrategy.backupPlanCopy) +
-    "</div></div></div></div>" +
-    '<div class="profile-cockpit-strip">' +
-    contactPrepCardsHtml +
-    "</div>" +
-    '<div class="profile-primary-action"><div class="primary-action-frame">' +
-    (primaryButton || "") +
-    '<div class="profile-primary-caption">' +
-    escapeHtml(bestNextStepCopy) +
-    "</div></div></div>" +
-    renderBackupCard(backupState) +
-    '<div class="profile-secondary-actions"><div class="profile-secondary-label">More ways to act</div>' +
-    secondaryButtons +
-    "</div>";
-  void contactBtns;
 
   // Paid subscribers get an enhanced bio presentation: paragraph breaks
   // preserved, expanded by default, no "Read full bio" collapse. Free
