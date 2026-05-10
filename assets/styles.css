@@ -235,6 +235,22 @@ nav {
   color: var(--teal);
 }
 
+.nav-dark .nav-links a {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.nav-dark .nav-links a:hover {
+  color: #fff !important;
+}
+
+.nav-dark .nav-zone-switch {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.nav-dark .nav-zone-switch:hover {
+  color: #fff !important;
+}
+
 .nav-link-current {
   color: var(--teal) !important;
 }
