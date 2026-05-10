@@ -2457,23 +2457,6 @@ function renderProfile(t, therapistDirectory) {
       ? '<span class="status-badge badge-verified">&#10003; License verified</span>'
       : "";
 
-  // Featured italic quote from the clinician's care_approach. Always
-  // surfaces when populated (claimed clinicians get quotation marks; the
-  // matching cascade-slot styling on cards/modal is the same family).
-  var telehealthStatesList = Array.isArray(t.telehealth_states)
-    ? t.telehealth_states.filter(Boolean)
-    : [];
-  var heroTelehealthLine = "";
-  if (telehealthStatesList.length) {
-    var shown = telehealthStatesList.slice(0, 6).join(", ");
-    var extra =
-      telehealthStatesList.length > 6 ? " +" + (telehealthStatesList.length - 6) + " more" : "";
-    heroTelehealthLine =
-      '<div class="hero-telehealth-line"><strong>Telehealth:</strong> ' +
-      escapeHtml(shown + extra) +
-      "</div>";
-  }
-
   // Spec'd primary-action fallback: NEVER drop users onto an external
   // practice-site link (Psychology Today, etc.). When the clinician has
   // no usable contact path on this profile, surface a soft "Back to
@@ -3209,34 +3192,174 @@ function renderProfile(t, therapistDirectory) {
       ? { href: backNavSavedUrl || "/match?mode=form", label: "← Back to your matches" }
       : { href: "/directory", label: "← Back to directory" };
 
+  // ─── Hero card helpers (Step 5 redesign) ──────────────────────────────
+  // 6-color avatar palette per redesign spec. Hash on slug so a clinician's
+  // chip color stays stable across visits. Local to this page so we don't
+  // disturb the 4-color palette used in match cards.
+  var HERO_AVATAR_RAMPS = [
+    { bg: "#D6EFF6", ink: "#1C4D5C" }, // teal
+    { bg: "#E8E4F8", ink: "#3C3489" }, // purple
+    { bg: "#FAE8C0", ink: "#633806" }, // amber
+    { bg: "#D8EAF8", ink: "#0C447C" }, // blue
+    { bg: "#D4EDD9", ink: "#27500A" }, // sage
+    { bg: "#FAE0D6", ink: "#712B13" }, // coral
+  ];
+  function heroAvatarPalette(slug) {
+    var key = String(slug || t.name || "");
+    var hash = 0;
+    for (var i = 0; i < key.length; i += 1) {
+      hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+    }
+    return HERO_AVATAR_RAMPS[hash % HERO_AVATAR_RAMPS.length];
+  }
+  function heroInitials(name) {
+    var parts = String(name || "")
+      .trim()
+      .split(/\s+/)
+      .filter(Boolean);
+    if (!parts.length) return "?";
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  }
+  var heroPalette = heroAvatarPalette(t.slug);
+  var heroAvatarHtml = t.photo_url
+    ? '<img src="' +
+      escapeHtml(t.photo_url) +
+      '" alt="" class="profile-hero-avatar" loading="lazy" decoding="async" />'
+    : '<span class="profile-hero-avatar" style="background:' +
+      heroPalette.bg +
+      ";color:" +
+      heroPalette.ink +
+      '">' +
+      escapeHtml(heroInitials(t.name)) +
+      "</span>";
+
+  var heroStatusRow =
+    '<div class="profile-hero-status">' +
+    '<span class="profile-hero-badge profile-hero-badge--bp">Bipolar-informed profile</span>' +
+    (t.accepting_new_patients === true
+      ? '<span class="profile-hero-badge profile-hero-badge--accepting">Accepting new patients</span>'
+      : t.accepting_new_patients === false
+        ? '<span class="profile-hero-badge profile-hero-badge--closed">Not currently accepting</span>'
+        : "") +
+    "</div>";
+
+  var heroTelehealthStates = Array.isArray(t.telehealth_states)
+    ? t.telehealth_states.filter(Boolean)
+    : [];
+  var heroLocationParts = [];
+  if (t.city) heroLocationParts.push(escapeHtml(t.city));
+  if (t.state) heroLocationParts.push(escapeHtml(t.state));
+  var heroLocationLine = heroLocationParts.join(", ");
+  if (t.accepts_telehealth && heroTelehealthStates.length) {
+    var thShown = heroTelehealthStates.slice(0, 6).join(", ");
+    var thExtra =
+      heroTelehealthStates.length > 6 ? " +" + (heroTelehealthStates.length - 6) + " more" : "";
+    heroLocationLine +=
+      ' <span class="profile-hero-loc-sep">·</span> Telehealth available in ' +
+      escapeHtml(thShown + thExtra);
+  } else if (t.accepts_telehealth) {
+    heroLocationLine += ' <span class="profile-hero-loc-sep">·</span> Telehealth available';
+  }
+
+  var heroYearsHtml = "";
+  if (bipolarYears > 0) {
+    var coordinatesText = /coordinat/i.test(String(t.care_approach || ""))
+      ? "Coordinates with psychiatrists"
+      : "";
+    var bipolarPopulations = (
+      Array.isArray(t.client_populations) ? t.client_populations : []
+    ).filter(function (p) {
+      return /bipolar|cycl|mixed|hypoman|mood|mania/i.test(String(p || ""));
+    });
+    var subtypesText = bipolarPopulations.slice(0, 4).join(", ");
+    heroYearsHtml =
+      '<div class="profile-hero-years">' +
+      '<div class="profile-hero-years-icon"><i class="ti ti-certificate" aria-hidden="true"></i></div>' +
+      '<div class="profile-hero-years-main">' +
+      '<div class="profile-hero-years-num">' +
+      escapeHtml(bipolarYears + (bipolarYears === 1 ? " year" : " years")) +
+      "</div>" +
+      '<div class="profile-hero-years-sub">treating bipolar specifically</div>' +
+      "</div>" +
+      (coordinatesText || subtypesText
+        ? '<div class="profile-hero-years-sep" aria-hidden="true"></div>' +
+          '<div class="profile-hero-years-detail">' +
+          (coordinatesText ? "<strong>" + escapeHtml(coordinatesText) + "</strong>" : "") +
+          escapeHtml(subtypesText) +
+          "</div>"
+        : "") +
+      "</div>";
+  }
+
+  var modalityList = (Array.isArray(t.treatment_modalities) ? t.treatment_modalities : []).filter(
+    Boolean,
+  );
+  function isPrimaryHeroModality(name) {
+    var n = String(name || "").toLowerCase();
+    if (/ipsrt|interpersonal\s+and\s+social\s+rhythm/.test(n)) return true;
+    if (/\bfft\b|family.?focused/.test(n)) return true;
+    if (/dbt.*bipolar|bipolar.*dbt|dbt-for-bipolar/.test(n)) return true;
+    return false;
+  }
+  var primaryModalities = modalityList.filter(isPrimaryHeroModality);
+  var secondaryModalities = modalityList.filter(function (m) {
+    return !isPrimaryHeroModality(m);
+  });
+  var orderedModalities = primaryModalities.concat(secondaryModalities);
+  var visibleModalities = orderedModalities.slice(0, 6);
+  var modalityOverflow = orderedModalities.length - visibleModalities.length;
+  var heroTagsHtml = "";
+  if (visibleModalities.length) {
+    heroTagsHtml = '<div class="profile-hero-tags">';
+    visibleModalities.forEach(function (m) {
+      heroTagsHtml +=
+        '<span class="profile-hero-tag ' +
+        (isPrimaryHeroModality(m) ? "profile-hero-tag--primary" : "profile-hero-tag--secondary") +
+        '">' +
+        escapeHtml(m) +
+        "</span>";
+    });
+    if (modalityOverflow > 0) {
+      heroTagsHtml += '<span class="profile-hero-tag-more">+' + modalityOverflow + " more</span>";
+    }
+    heroTagsHtml += "</div>";
+  }
+
   var html =
+    '<div class="profile-layout">' +
+    '<main class="profile-main-col">' +
     '<div class="profile-header" id="section-about" data-profile-section>' +
     '<div class="profile-hero-main">' +
     '<div class="profile-hero-top">' +
     '<div class="profile-identity">' +
-    '<div class="avatar">' +
-    avatar +
-    "</div>" +
-    '<div class="profile-main"><div class="profile-eyebrow-row"><div class="eyebrow">Bipolar-informed therapist profile</div>' +
-    acceptingBadge +
-    "</div>" +
-    "<h1>" +
+    '<div class="card profile-hero-card">' +
+    '<div class="profile-hero-top">' +
+    heroAvatarHtml +
+    '<div class="profile-hero-meta">' +
+    heroStatusRow +
+    '<h1 class="profile-hero-name">' +
     escapeHtml(t.name) +
     "</h1>" +
-    (t.credentials ? '<div class="creds">' + escapeHtml(t.credentials) + "</div>" : "") +
-    (t.title ? '<div class="title-text">' + escapeHtml(t.title) + "</div>" : "") +
+    (t.credentials || t.title
+      ? '<div class="profile-hero-cred">' +
+        [t.credentials, t.title].filter(Boolean).map(escapeHtml).join(" · ") +
+        "</div>"
+      : "") +
     (t.practice_name
-      ? '<div class="title-text practice-line">' + escapeHtml(t.practice_name) + "</div>"
+      ? '<div class="profile-hero-practice">' + escapeHtml(t.practice_name) + "</div>"
       : "") +
-    '<div class="location">📍 ' +
-    escapeHtml(t.city) +
-    ", " +
-    escapeHtml(t.state) +
+    (heroLocationLine
+      ? '<div class="profile-hero-loc"><i class="ti ti-map-pin" aria-hidden="true"></i> ' +
+        heroLocationLine +
+        "</div>"
+      : "") +
     "</div>" +
-    (bipolarSpecialistBadge || licenseVerifiedBadge
-      ? '<div class="hero-badge-row">' + bipolarSpecialistBadge + licenseVerifiedBadge + "</div>"
-      : "") +
-    heroTelehealthLine +
+    "</div>" +
+    heroYearsHtml +
+    heroTagsHtml +
+    "</div>" +
+    '<div class="profile-bio-temp">' +
     '<div class="profile-bio-wrap" data-profile-bio-wrap>' +
     '<div class="profile-bio-text" id="profileBioPanel">' +
     bioBodyHtml +
@@ -3244,9 +3367,9 @@ function renderProfile(t, therapistDirectory) {
     '<div class="profile-bio-fade" aria-hidden="true"></div>' +
     "</div>" +
     '<button type="button" class="profile-bio-read-more" data-profile-bio-read-more aria-expanded="false" aria-controls="profileBioPanel">Read more ↓</button>' +
-    '<div class="hero-meta">' +
     (trustPills ? '<div class="trust-pills">' + trustPills + "</div>" : "") +
-    "</div></div></div>" +
+    "</div>" +
+    "</div>" +
     '<div class="profile-hero-right">' +
     '<div class="profile-contact-card" id="outreach" data-profile-contact-section>' +
     '<div class="profile-contact-card-label">Contact</div>' +
@@ -3329,9 +3452,24 @@ function renderProfile(t, therapistDirectory) {
     '<button type="button" class="profile-foot-report" id="profileReportIssueBtn" data-report-slug="' +
     escapeHtml(t.slug || "") +
     '">Report an issue with this listing</button>' +
+    "</div>" +
+    "</main>" +
+    '<aside class="profile-side-col" data-profile-side></aside>' +
     "</div>";
 
   document.getElementById("profileWrap").innerHTML = html;
+
+  // Step 4 layout: hero-right (contact card + FAQ) is rendered inside the
+  // hero-top grid for backwards compatibility; move it into the sidebar
+  // <aside> so the new two-column layout takes effect without rewriting
+  // every interior render branch in this single step.
+  (function liftHeroRightToSidebar() {
+    var heroRight = document.querySelector(".profile-hero-right");
+    var sideCol = document.querySelector("[data-profile-side]");
+    if (heroRight && sideCol) {
+      sideCol.appendChild(heroRight);
+    }
+  })();
 
   // Append mobile sticky bar to body (outside profileWrap so it stays fixed)
   var existingStickyBar = document.getElementById("profileMobileStickyBar");
