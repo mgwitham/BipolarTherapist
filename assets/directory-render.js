@@ -113,16 +113,19 @@ function renderFitReasons(model, limit) {
   );
 }
 
-export function renderEmptyStateMarkup(directoryPage) {
+export function renderEmptyStateMarkup(_directoryPage) {
+  // Step 9: empty state per directory redesign spec. Centered headline +
+  // subtext + "Clear all filters" CTA. The directory.js render flow
+  // appends a "You might also consider" section below this when a
+  // loosened search returns at least one result.
   return (
-    '<div class="empty-state"><div class="empty-state-kicker">No results</div><h3>' +
-    escapeHtml((directoryPage && directoryPage.emptyStateTitle) || "No therapists found") +
-    "</h3><p>" +
-    escapeHtml(
-      (directoryPage && directoryPage.emptyStateDescription) ||
-        "Try adjusting your filters or search terms.",
-    ) +
-    '</p><div class="empty-state-grid"><div class="empty-state-card"><div class="empty-state-card-label">Loosen a filter</div><div class="empty-state-card-copy">Remove one filter at a time to see which one is narrowing the field too hard.</div></div><div class="empty-state-card"><div class="empty-state-card-label">Clear ZIP match</div><div class="empty-state-card-copy">The exact-ZIP filter is strict. Clear it, then use the sort-near-ZIP field to prioritize by distance instead.</div></div><div class="empty-state-card"><div class="empty-state-card-label">Try guided match</div><div class="empty-state-card-copy"><a href="/match.html" style="color:inherit;text-decoration:underline">Answer four questions</a> for a shorter, more personal list before broadening your search.</div></div></div></div>'
+    '<div class="dir-empty-state">' +
+    '<h3 class="dir-empty-state-h3">No specialists match these filters</h3>' +
+    '<p class="dir-empty-state-copy">Try removing a filter to see more options.</p>' +
+    '<button type="button" class="dir-empty-state-cta" id="dirEmptyClearAll">' +
+    "Clear all filters" +
+    "</button>" +
+    "</div>"
   );
 }
 
