@@ -344,9 +344,7 @@ function buildExpertiseBand(therapist) {
     '<div class="dir-card-expertise-line">' +
     escapeHtml(line1) +
     "</div>" +
-    (line2
-      ? '<div class="dir-card-expertise-sub">' + escapeHtml(line2) + "</div>"
-      : "") +
+    (line2 ? '<div class="dir-card-expertise-sub">' + escapeHtml(line2) + "</div>" : "") +
     "</div>"
   );
 }
@@ -436,9 +434,7 @@ export function renderCardMarkup(options) {
     "</div>" +
     (therapist.credentials || therapist.title
       ? '<div class="dir-card-creds">' +
-        escapeHtml(
-          [therapist.credentials, therapist.title].filter(Boolean).join(" · "),
-        ) +
+        escapeHtml([therapist.credentials, therapist.title].filter(Boolean).join(" · ")) +
         "</div>"
       : "") +
     "</div>" +

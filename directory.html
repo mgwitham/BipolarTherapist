@@ -106,172 +106,205 @@
       </a>
     </div>
 
-    <!-- Simple intro — no gradient hero, no panel, no curation framing -->
-    <div class="dir-intro">
-      <div class="dir-intro-inner">
-        <div class="dir-intro-kicker">Find a specialist</div>
-        <h1 id="directoryHeroTitle">Find a bipolar disorder specialist</h1>
-        <p id="directoryHeroDescription">
-          Verified therapists and psychiatrists. No paid rankings. No generalists.
-        </p>
+    <!-- Compact page header — title + live result count. No hero, no
+         subtitle. Old kicker/description elements live in JS as legacy
+         IDs (directoryHeroTitle / directoryHeroDescription) — kept as
+         hidden mirrors so directory.js text updates don't throw. -->
+    <header class="dir-header">
+      <div class="dir-header-inner">
+        <h1 class="dir-header-title" id="directoryHeroTitle">Find a bipolar disorder specialist</h1>
+        <span class="dir-header-count" id="resultsCount" aria-live="polite"
+          >Finding bipolar-informed options…</span
+        >
       </div>
-    </div>
+      <span hidden id="directoryHeroDescription"></span>
+    </header>
 
     <main class="dir-vb-main">
       <div class="dir-vb-canvas">
-        <!-- Controls bar: quick chips + more filters + ZIP + sort -->
-        <div class="dir-vb-bar-wrap">
-          <div class="dir-vb-bar" role="region" aria-label="Filters and sort">
-            <!-- Quick filter chips -->
-            <div class="dir-chips-row">
-              <div class="dir-location-badge" aria-label="Currently showing California">
-                <svg width="11" height="11" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+        <!-- Filter bar — chip row on the left, sort on the right.
+             Step 3 of directory redesign: 5 boolean toggle chips wire to
+             the existing __dirVbToggleChip handler. Insurance and Gender
+             chips open the existing modal for now (dedicated dropdowns
+             ship with the drawer rework in step 6). The hidden backing
+             inputs below keep directory.js working unchanged. -->
+        <div class="dir-filter-bar-wrap">
+          <div class="dir-filter-bar" role="region" aria-label="Filters and sort">
+            <div class="dir-filter-chip-row" role="group" aria-label="Quick filters">
+              <button
+                type="button"
+                class="dir-filter-chip"
+                data-chip-for="accepting"
+                aria-pressed="false"
+                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              >
+                <span id="acceptingLabelText">Accepting new patients</span>
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip"
+                data-chip-for="telehealth"
+                aria-pressed="false"
+                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              >
+                <span id="telehealthLabelText">Telehealth</span>
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip"
+                data-chip-for="in_person"
+                aria-pressed="false"
+                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              >
+                <span id="inPersonLabelText">In-person</span>
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip"
+                data-chip-for="therapist"
+                aria-pressed="false"
+                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              >
+                <span>Therapist</span>
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip"
+                data-chip-for="psychiatrist"
+                aria-pressed="false"
+                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              >
+                <span>Psychiatrist</span>
+              </button>
+
+              <!-- Insurance + Gender chips placeholder-open the existing
+                   modal; step 6 will swap these for dedicated dropdowns. -->
+              <button
+                type="button"
+                class="dir-filter-chip dir-filter-chip--dropdown"
+                id="dirInsuranceChip"
+                aria-haspopup="dialog"
+                onclick="window.__dirVbOpenModal && window.__dirVbOpenModal()"
+              >
+                <span>Insurance</span>
+                <svg
+                  class="dir-filter-chip-caret"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 10 10"
+                  fill="none"
+                  aria-hidden="true"
+                >
                   <path
-                    d="M6 1C4.07 1 2.5 2.57 2.5 4.5c0 2.625 3.5 6.5 3.5 6.5s3.5-3.875 3.5-6.5C9.5 2.57 7.93 1 6 1z"
+                    d="M2 4l3 3 3-3"
                     stroke="currentColor"
-                    stroke-width="1.3"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
                     stroke-linejoin="round"
                   />
-                  <circle cx="6" cy="4.5" r="1.1" fill="currentColor" />
                 </svg>
-                <span>California</span>
-              </div>
-              <div class="dir-vb-chips" id="dirVbChips" role="group" aria-label="Quick filters">
-                <button
-                  type="button"
-                  class="dir-vb-chip"
-                  data-chip-for="accepting"
-                  aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
+              </button>
+              <button
+                type="button"
+                class="dir-filter-chip dir-filter-chip--dropdown"
+                id="dirGenderChip"
+                aria-haspopup="dialog"
+                onclick="window.__dirVbOpenModal && window.__dirVbOpenModal()"
+              >
+                <span>Gender</span>
+                <svg
+                  class="dir-filter-chip-caret"
+                  width="10"
+                  height="10"
+                  viewBox="0 0 10 10"
+                  fill="none"
+                  aria-hidden="true"
                 >
-                  <span id="acceptingLabelText">Accepting new</span>
-                </button>
-                <button
-                  type="button"
-                  class="dir-vb-chip"
-                  data-chip-for="telehealth"
-                  aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-                >
-                  <span id="telehealthLabelText">Telehealth</span>
-                </button>
-                <button
-                  type="button"
-                  class="dir-vb-chip"
-                  data-chip-for="in_person"
-                  aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-                >
-                  <span id="inPersonLabelText">In person</span>
-                </button>
-                <button
-                  type="button"
-                  class="dir-vb-chip"
-                  data-chip-for="therapist"
-                  aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-                >
-                  <span>Therapist</span>
-                </button>
-                <button
-                  type="button"
-                  class="dir-vb-chip"
-                  data-chip-for="psychiatrist"
-                  aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-                >
-                  <span>Psychiatrist</span>
-                </button>
-                <button
-                  type="button"
-                  class="dir-vb-chip"
-                  data-chip-for="medication_management"
-                  aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
-                >
-                  <span>Medication support</span>
-                </button>
-              </div>
+                  <path
+                    d="M2 4l3 3 3-3"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </button>
 
               <button
                 type="button"
-                class="dir-vb-filters-btn"
+                class="dir-filter-more"
                 id="dirVbModalOpen"
                 aria-haspopup="dialog"
               >
-                <span class="dir-vb-filters-icon" aria-hidden="true">
-                  <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                    <path
-                      d="M2 4h12M4 8h8M6 12h4"
-                      stroke="currentColor"
-                      stroke-width="1.8"
-                      stroke-linecap="round"
-                    />
-                  </svg>
-                </span>
+                <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+                  <path
+                    d="M2 4h12M4 8h8M6 12h4"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                  />
+                </svg>
                 <span>More filters</span>
-                <span class="dir-vb-filters-count" id="filterCount"></span>
+                <span class="dir-filter-more-count" id="filterCount" hidden>0</span>
               </button>
             </div>
 
-            <!-- ZIP + sort row -->
-            <div class="dir-sort-zip-row">
-              <div class="dir-zip-field">
-                <label for="sortZip" class="dir-field-label">Sort near ZIP</label>
-                <input
-                  type="text"
-                  id="sortZip"
-                  class="dir-zip-input"
-                  inputmode="numeric"
-                  maxlength="5"
-                  placeholder="e.g. 90401"
-                  autocomplete="postal-code"
-                />
-              </div>
-              <div class="dir-sort-field">
-                <label for="sortBy" class="dir-field-label">Sort by</label>
-                <select id="sortBy">
+            <div class="dir-filter-sort">
+              <input
+                type="text"
+                id="sortZip"
+                class="dir-filter-zip"
+                inputmode="numeric"
+                maxlength="5"
+                placeholder="ZIP"
+                autocomplete="postal-code"
+                aria-label="Sort near ZIP"
+              />
+              <label class="dir-filter-sort-field">
+                <span class="dir-filter-sort-label">Sort</span>
+                <select id="sortBy" class="dir-filter-sort-select">
                   <option value="stable_random">Best match</option>
-                  <option value="near_zip" id="sortNearZipOption" hidden>Near ZIP</option>
-                  <option value="most_experienced">Most bipolar experience</option>
-                  <option value="soonest_availability">Soonest availability</option>
+                  <option value="near_zip" id="sortNearZipOption" hidden>Near me</option>
+                  <option value="most_experienced">Most experience</option>
+                  <option value="soonest_availability">Soonest available</option>
                   <option value="lowest_fee">Lowest fee</option>
                 </select>
-              </div>
+              </label>
             </div>
+          </div>
 
-            <!-- Hidden checkbox inputs — backing store for chip toggles -->
-            <div class="dir-vb-hidden-inputs" aria-hidden="true">
-              <input type="checkbox" id="accepting" />
-              <input type="checkbox" id="telehealth" />
-              <input type="checkbox" id="in_person" />
-              <input type="checkbox" id="therapist" />
-              <input type="checkbox" id="psychiatrist" />
-              <input type="checkbox" id="medication_management" />
-              <input type="checkbox" id="responsive_contact" />
-              <input type="checkbox" id="recently_confirmed" />
-            </div>
+          <!-- Active summary bar — populated by directory.js via #activeFilterChips,
+               which becomes a plain text rollup ("Filtering by: X · Y · Z") under
+               the new design. Existing chip markup still renders here for backward
+               compat until step 4 swaps it to the new active-summary format. -->
+          <div class="dir-filter-summary" id="dirFilterSummary" hidden>
+            <span class="dir-filter-summary-label">Filtering by:</span>
+            <span class="dir-filter-summary-list" id="dirFilterSummaryList"></span>
+            <button type="button" class="dir-filter-clear" id="focusClearFiltersButton">
+              Clear all
+            </button>
+          </div>
+
+          <!-- Hidden checkbox inputs — backing store for chip toggles -->
+          <div class="dir-vb-hidden-inputs" aria-hidden="true">
+            <input type="checkbox" id="accepting" />
+            <input type="checkbox" id="telehealth" />
+            <input type="checkbox" id="in_person" />
+            <input type="checkbox" id="therapist" />
+            <input type="checkbox" id="psychiatrist" />
+            <input type="checkbox" id="medication_management" />
+            <input type="checkbox" id="responsive_contact" />
+            <input type="checkbox" id="recently_confirmed" />
           </div>
         </div>
 
-        <!-- Results count + active filter chips -->
-        <div class="dir-results-bar">
-          <div class="dir-results-count-wrap">
-            <span class="results-count" id="resultsCount" aria-live="polite"
-              >Finding bipolar-informed options...</span
-            >
-          </div>
+        <!-- Active filter chips container kept for legacy JS writes (directory.js
+             still writes pill chips here). Hidden in the redesign — step 4 swaps
+             the active-summary render to the new plain-text .dir-filter-summary
+             rollup. The clear-all button uses the new ID in .dir-filter-summary. -->
+        <div class="dir-results-bar" hidden>
           <div class="dir-active-filters-wrap">
             <div class="dir-active-chips" id="activeFilterChips"></div>
-            <button
-              type="button"
-              class="dir-clear-btn"
-              id="focusClearFiltersButton"
-              hidden
-              aria-label="Clear all active filters"
-            >
-              Clear filters
-            </button>
           </div>
         </div>
 
@@ -602,6 +635,9 @@
           }
         }
         openBtn.addEventListener("click", open);
+        // Expose open() so the new Insurance / Gender chips on the filter
+        // bar can reuse the modal until they get dedicated dropdowns in step 6.
+        window.__dirVbOpenModal = open;
         document.querySelectorAll("[data-dir-vb-modal-close]").forEach(function (el) {
           el.addEventListener("click", close);
         });
