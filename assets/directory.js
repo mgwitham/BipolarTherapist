@@ -74,7 +74,14 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
     return;
   }
-  var visibleCount = 24;
+  // Step 8: numbered pagination — currentPage replaces the legacy
+  // visibleCount load-more counter. Page size is 12 (constant in
+  // directory-controller.js). The legacy visibleCount is kept here as
+  // an alias for code paths (renderCurrentPageOnly, mobile sticky bar)
+  // that still reference it; it now mirrors currentPage * 12 to stay
+  // a safe upper bound for slice operations.
+  var currentPage = 1;
+  var visibleCount = 12;
   var activeDetailsSlug = "";
   var lastDetailsTrigger = null;
   var stableOrderMap = null;
@@ -640,7 +647,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     // Compound chip for the fee range — clears both bounds at once.
     if (filterKey === "session_fee") {
       filters = Object.assign({}, filters, { session_fee_min: "", session_fee_max: "" });
-      visibleCount = 24;
+      visibleCount = 12;
+      currentPage = 1;
       syncFilterControlsFromState(filters, getElement);
       syncInsuranceDisplay();
       syncDrawerChipPickers();
@@ -662,7 +670,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       nextValue = "";
     }
     filters = Object.assign({}, filters, { [filterKey]: nextValue });
-    visibleCount = 24;
+    visibleCount = 12;
+    currentPage = 1;
     syncFilterControlsFromState(filters, getElement);
     syncInsuranceDisplay();
     syncDrawerChipPickers();
@@ -1014,6 +1023,14 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       }
     }
 
+    // Step 8: hydrate currentPage from `?page=N`. Clamped to >= 1; the
+    // upper bound is enforced by buildDirectoryRenderState when the
+    // filter result count is known.
+    var pageParam = Number(params.get("page") || 0);
+    if (Number.isFinite(pageParam) && pageParam > 1) {
+      currentPage = pageParam;
+    }
+
     syncFilterControlsFromState(filters, getElement);
     syncInsuranceDisplay();
     syncRankingLocationFromUserZip();
@@ -1056,6 +1073,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
     if (sortZip) {
       params.set("sortZip", sortZip);
+    }
+    // Step 8: page number persists in the URL. Page 1 is omitted to keep
+    // the canonical /directory URL clean.
+    if (currentPage > 1) {
+      params.set("page", String(currentPage));
     }
     var query = params.toString();
     var basePath = window.location.pathname.replace(/\/$/, "") || "/directory";
@@ -1129,11 +1151,135 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
 
     if (!pageItems.length) {
-      grid.innerHTML = renderEmptyStateMarkup(directoryPage);
+      // Step 9: empty state + "You might also consider" loosened-search
+      // section. Build a loosened result set by dropping each active
+      // filter one at a time and picking the variant that returns the
+      // most therapists. Show up to 2 cards.
+      var emptyHtml = renderEmptyStateMarkup(directoryPage);
+      var loosenedHtml = renderLoosenedResultsSection();
+      grid.innerHTML = emptyHtml + loosenedHtml;
+      // Bind the in-empty-state clear button to the same reset action
+      // used by the active-filter strip's clear-all link.
+      var emptyClearBtn = document.getElementById("dirEmptyClearAll");
+      if (emptyClearBtn) {
+        emptyClearBtn.addEventListener("click", resetFilters);
+      }
       return;
     }
 
-    grid.innerHTML = pageItems.map(renderCard).join("");
+    // Step 7: inject a match nudge after the 12th card (between rows 6
+    // and 7 in the 2-col grid). Quiet, secondary-background card
+    // spanning both columns — no icon, no illustration per spec.
+    var cardHtmlList = pageItems.map(renderCard);
+    if (cardHtmlList.length > 12) {
+      cardHtmlList.splice(12, 0, renderMatchNudgeMarkup());
+    }
+    grid.innerHTML = cardHtmlList.join("");
+  }
+
+  // Step 9: "You might also consider" — when the current filter set
+  // returns nothing, try dropping each active filter one at a time and
+  // pick the relaxation that yields the most results. Return up to 2
+  // cards. If even the broadest single-drop returns nothing, render
+  // nothing (the empty-state copy carries the message alone).
+  function renderLoosenedResultsSection() {
+    var ACTIVE_VALUE_KEYS = [
+      "specialty",
+      "modality",
+      "population",
+      "insurance",
+      "bipolar_experience",
+      "gender",
+      "session_fee_min",
+      "session_fee_max",
+    ];
+    var ACTIVE_BOOLEAN_KEYS = [
+      "therapist",
+      "psychiatrist",
+      "telehealth",
+      "in_person",
+      "accepting",
+      "medication_management",
+      "sliding_scale",
+    ];
+    var allActive = ACTIVE_VALUE_KEYS.concat(ACTIVE_BOOLEAN_KEYS).filter(function (key) {
+      var val = filters[key];
+      if (Array.isArray(val)) return val.length > 0;
+      if (typeof val === "boolean") return val;
+      return Boolean(val);
+    });
+    if (!allActive.length) return ""; // No filters to drop.
+
+    var best = { dropped: null, results: [] };
+    allActive.forEach(function (key) {
+      var probe = Object.assign({}, filters);
+      if (Array.isArray(filters[key])) probe[key] = [];
+      else if (typeof filters[key] === "boolean") probe[key] = false;
+      else probe[key] = "";
+      var hits = therapists.filter(function (t) {
+        return matchesDirectoryFilters(probe, t);
+      });
+      if (hits.length > best.results.length) {
+        best = { dropped: key, results: hits };
+      }
+    });
+
+    if (!best.results.length) return "";
+
+    var sampleCards = best.results.slice(0, 2).map(function (t) {
+      var model = buildCardViewModel({
+        therapist: t,
+        filters: filters,
+        shortlist: shortlist,
+      });
+      return renderCardMarkup({ model: model });
+    });
+
+    var droppedLabels = {
+      specialty: "Bipolar subtype",
+      modality: "Treatment approach",
+      population: "Population",
+      insurance: "Insurance",
+      bipolar_experience: "Experience level",
+      gender: "Gender",
+      session_fee_min: "Session fee",
+      session_fee_max: "Session fee",
+      therapist: "Therapist",
+      psychiatrist: "Psychiatrist",
+      telehealth: "Telehealth",
+      in_person: "In-person",
+      accepting: "Accepting new patients",
+      medication_management: "Medication management",
+      sliding_scale: "Sliding scale",
+    };
+    var droppedLabel = droppedLabels[best.dropped] || best.dropped;
+
+    return (
+      '<section class="dir-loosened">' +
+      '<div class="dir-loosened-head">' +
+      '<h4 class="dir-loosened-title">You might also consider</h4>' +
+      '<p class="dir-loosened-sub">These don\'t match all of your filters — we relaxed the <strong>' +
+      escapeHtml(droppedLabel) +
+      "</strong> filter to surface options.</p>" +
+      "</div>" +
+      '<div class="dir-loosened-grid">' +
+      sampleCards.join("") +
+      "</div>" +
+      "</section>"
+    );
+  }
+
+  function renderMatchNudgeMarkup() {
+    return (
+      '<aside class="dir-match-nudge" data-event="directory_match_nudge_click">' +
+      '<p class="dir-match-nudge-copy">' +
+      "Not sure who to choose? Answer a few questions and we'll narrow it down." +
+      "</p>" +
+      '<a class="dir-match-nudge-cta" href="/match?mode=form" data-cta-tier="nudge">' +
+      "Get matched →" +
+      "</a>" +
+      "</aside>"
+    );
   }
 
   function renderBrowseEmptyState() {
@@ -1276,12 +1422,69 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     pendingMotionSlug = "";
   }
 
-  function renderLoadMore(hasMore) {
+  // Step 8: numbered pagination replaces the load-more pattern.
+  // Renders Previous / page numbers (max 5 visible, ellipsis for
+  // overflow) / Next. The page numbers, Previous, and Next all use
+  // data-page attributes that the click handler reads. URL is
+  // updated via updateUrl() so reload + back/forward work.
+  function renderPagination(renderState) {
     var wrap = getElement("dirLoadMoreWrap");
     if (!wrap) {
       return;
     }
-    wrap.innerHTML = hasMore ? renderLoadMoreMarkup() : "";
+    var totalPages = renderState.totalPages || 1;
+    var page = renderState.currentPage || 1;
+    if (totalPages <= 1) {
+      wrap.innerHTML = "";
+      return;
+    }
+
+    function pageButton(n, isCurrent) {
+      return (
+        '<button type="button" class="dir-pagination-num' +
+        (isCurrent ? " is-current" : "") +
+        '" data-page="' +
+        n +
+        '" aria-current="' +
+        (isCurrent ? "page" : "false") +
+        '" aria-label="Page ' +
+        n +
+        '">' +
+        n +
+        "</button>"
+      );
+    }
+
+    // Build the visible page-number window. Always show first + last;
+    // the spec says max 5 visible with ellipsis for the gap.
+    var nums = [];
+    var window = 1; // how many neighbors on each side of `page`
+    var start = Math.max(2, page - window);
+    var end = Math.min(totalPages - 1, page + window);
+    nums.push(pageButton(1, page === 1));
+    if (start > 2) nums.push('<span class="dir-pagination-gap">…</span>');
+    for (var n = start; n <= end; n += 1) nums.push(pageButton(n, n === page));
+    if (end < totalPages - 1) nums.push('<span class="dir-pagination-gap">…</span>');
+    if (totalPages > 1) nums.push(pageButton(totalPages, page === totalPages));
+
+    var prevDisabled = page <= 1;
+    var nextDisabled = page >= totalPages;
+    wrap.innerHTML =
+      '<nav class="dir-pagination" aria-label="Results pagination">' +
+      '<button type="button" class="dir-pagination-step" data-page="' +
+      (page - 1) +
+      '" ' +
+      (prevDisabled ? "disabled" : "") +
+      ' aria-label="Previous page">← Previous</button>' +
+      '<div class="dir-pagination-nums">' +
+      nums.join("") +
+      "</div>" +
+      '<button type="button" class="dir-pagination-step" data-page="' +
+      (page + 1) +
+      '" ' +
+      (nextDisabled ? "disabled" : "") +
+      ' aria-label="Next page">Next →</button>' +
+      "</nav>";
   }
 
   function updateJsonLd(results) {
@@ -1370,7 +1573,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   function renderCurrentPageOnly(results) {
     var renderState = buildDirectoryRenderState({
       results: results,
-      visibleCount: visibleCount,
+      currentPage: currentPage,
       filters: getFilters(),
       directoryPage: directoryPage,
     });
@@ -1380,7 +1583,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     } else {
       renderResultsGrid(renderState.pageItems);
     }
-    renderLoadMore(renderState.hasMore);
+    renderPagination(renderState);
     pulsePendingCard();
     observeCards(getElement("resultsGrid"));
   }
@@ -1389,10 +1592,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     var currentFilters = getFilters();
     var renderState = buildDirectoryRenderState({
       results: getFilteredWithFilters(currentFilters),
-      visibleCount: visibleCount,
+      currentPage: currentPage,
       filters: currentFilters,
       directoryPage: directoryPage,
     });
+    currentPage = renderState.currentPage;
     var results = renderState.results;
     var pageItems = renderState.pageItems;
     var count = getElement("resultsCount");
@@ -1419,14 +1623,14 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
     if (!results.length) {
       renderResultsGrid([]);
-      renderLoadMore(false);
+      renderPagination({ totalPages: 1, currentPage: 1 });
       updateUrl();
       return;
     }
 
     renderResultsGrid(pageItems);
     pulsePendingCard();
-    renderLoadMore(renderState.hasMore);
+    renderPagination(renderState);
     observeCards(getElement("resultsGrid"));
     updateUrl();
   }
@@ -1456,7 +1660,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       getElement: getElement,
     });
     filters = nextState.filters;
-    visibleCount = 24;
+    visibleCount = 12;
+    currentPage = 1;
     syncRankingLocationFromUserZip();
     trackFunnelEvent("directory_filters_applied", {
       active_filter_count: countActiveFilters(filters),
@@ -1479,7 +1684,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       getElement: getElement,
     });
     filters = nextState.filters;
-    visibleCount = 24;
+    visibleCount = 12;
+    currentPage = 1;
     syncRankingLocationFromUserZip();
     render();
     ensureIpRankingLocation().then(function (didUpdate) {
@@ -1614,7 +1820,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
           isChipPressed(filterKey, chip.getAttribute("data-chip-value")) ? "true" : "false",
         );
       });
-      visibleCount = 24;
+      visibleCount = 12;
+      currentPage = 1;
       render();
       scheduleLiveFilters();
     });
@@ -1642,7 +1849,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   function resetFilters() {
     var nextState = resetDirectoryFiltersAction(defaultFilters);
     filters = nextState.filters;
-    visibleCount = 24;
+    visibleCount = 12;
+    currentPage = 1;
     syncFilterControlsFromState(filters, getElement);
     syncInsuranceDisplay();
     syncRankingLocationFromUserZip();
@@ -1770,16 +1978,26 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function handleLoadMoreClick(event) {
-    var btn = event.target.closest("#dirLoadMoreBtn");
-    if (!btn) {
+    // Step 8: this used to handle the load-more button. Now it handles
+    // numbered pagination clicks (Previous / Next / page-number buttons).
+    var pageBtn = event.target.closest("[data-page]");
+    if (!pageBtn || pageBtn.hasAttribute("disabled")) {
       return;
     }
-    visibleCount += 24;
-    trackFunnelEvent("directory_load_more_clicked", {
-      visible_count: visibleCount,
+    var nextPage = Number(pageBtn.getAttribute("data-page"));
+    if (!Number.isFinite(nextPage) || nextPage < 1) return;
+    currentPage = nextPage;
+    trackFunnelEvent("directory_pagination_clicked", {
+      page: currentPage,
       sort_by: filters.sortBy,
     });
-    renderCurrentPageOnly(getFiltered());
+    render();
+    // Scroll the grid back into view so the user doesn't land
+    // mid-page-2 with the prev page still visible at the top.
+    var grid = getElement("resultsGrid");
+    if (grid && typeof grid.scrollIntoView === "function") {
+      grid.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
   }
 
   var sortZipTimer = 0;
@@ -1809,7 +2027,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         sortByEl.value = "stable_random";
       }
     }
-    visibleCount = 24;
+    visibleCount = 12;
+    currentPage = 1;
     filteredResultsCacheKey = "";
     render();
   }
@@ -2123,7 +2342,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         sortBy: sortByEl.value,
       });
       filters = nextState.filters;
-      visibleCount = 24;
+      visibleCount = 12;
+      currentPage = 1;
       syncRankingLocationFromUserZip();
       trackFunnelEvent("directory_sort_changed", { sort_by: filters.sortBy });
       filteredResultsCacheKey = "";

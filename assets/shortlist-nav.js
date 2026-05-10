@@ -36,12 +36,12 @@ function updateShortlistNav() {
   document.querySelectorAll("[data-shortlist-link]").forEach(function (element) {
     element.href = buildShortlistHref(shortlist);
     element.classList.toggle("is-filled", count > 0);
-    element.setAttribute("title", count ? "Open My List (" + count + " saved)" : "Open My List");
+    element.setAttribute("title", count ? "View Saved (" + count + " saved)" : "View Saved");
     element.setAttribute(
       "aria-label",
       count
-        ? "Open My List with " + count + " saved therapist" + (count > 1 ? "s" : "")
-        : "Open My List (empty)",
+        ? "View Saved with " + count + " saved therapist" + (count > 1 ? "s" : "")
+        : "View Saved (empty)",
     );
   });
 
