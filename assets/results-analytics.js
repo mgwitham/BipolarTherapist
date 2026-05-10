@@ -40,9 +40,9 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  // Nav: Edit search.
+  // Nav: Start over (fresh intake — distinct intent from refining).
   if (event.target.closest(".nav-edit-search")) {
-    trackFunnelEvent("match_results_edit_search_clicked", { source: "nav" });
+    trackFunnelEvent("match_results_start_over_clicked", { source: "nav" });
     return;
   }
 
