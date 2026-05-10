@@ -618,11 +618,10 @@ a {
 }
 
 /* Primary CTA — also serves as the full-card click target via ::after.
-   The pseudo-element overlays the entire card; bookmark/links above it
-   carry their own z-index so they remain individually clickable. */
+   The button itself stays static so its ::after positions relative to the
+   nearest positioned ancestor (the .featured-card) and covers the whole
+   card. Bookmark sits above via its own position:relative + z-index. */
 .card-cta-primary {
-  position: relative;
-  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -644,18 +643,6 @@ a {
   content: "";
   position: absolute;
   inset: 0;
-  border-radius: inherit;
-}
-
-/* Hoist the anchor's overlay to fill the parent card. */
-.featured-card .card-cta-primary::after {
-  inset: -20px;
-  border-radius: 0 0 14px 14px;
-}
-
-.grid-card .card-cta-grid::after {
-  inset: -16px;
-  border-radius: 12px;
 }
 
 .card-cta-primary:hover {
@@ -788,8 +775,6 @@ a {
 
 /* Grid CTA — teal, not coral. Coral reserved for the featured card. */
 .card-cta-grid {
-  position: relative;
-  z-index: 2;
   display: inline-flex;
   align-items: center;
   gap: 5px;
