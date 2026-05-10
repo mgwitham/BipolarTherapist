@@ -466,3 +466,79 @@
     min-width: 0;
   }
 }
+
+/* ─── Directory redesign — session fee filter (Step 5) ──────────────── */
+.dir-fee-range {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+.dir-fee-range-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+  min-width: 0;
+}
+.dir-fee-range-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: #6b8c96;
+}
+.dir-fee-range-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+.dir-fee-range-prefix {
+  position: absolute;
+  left: 11px;
+  font-size: 13px;
+  color: #6b8c96;
+  pointer-events: none;
+}
+.dir-fee-range-input {
+  width: 100%;
+  height: 36px;
+  border: 1px solid #d8e8ec;
+  border-radius: 8px;
+  padding: 0 12px 0 22px;
+  font-size: 13.5px;
+  color: #17323b;
+  font-family: inherit;
+  background: #fff;
+  outline: none;
+  transition: border-color 0.15s ease;
+  -moz-appearance: textfield;
+}
+.dir-fee-range-input::-webkit-outer-spin-button,
+.dir-fee-range-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.dir-fee-range-input:focus {
+  border-color: #6dbdd4;
+}
+.dir-fee-range-sep {
+  font-size: 14px;
+  color: #6b8c96;
+  margin-top: 18px;
+  font-weight: 400;
+}
+.dir-fee-sliding {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #3a5b65;
+  cursor: pointer;
+}
+.dir-fee-sliding input {
+  width: 16px;
+  height: 16px;
+  accent-color: #347f96;
+  cursor: pointer;
+}

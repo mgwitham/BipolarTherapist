@@ -10,6 +10,37 @@ import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 import { getInPersonProximityBonus, getZipDistanceMiles } from "./zip-lookup.js";
 import { insuranceMatches } from "../shared/therapist-picker-options.mjs";
+import { toFilterArray } from "./directory-filters.js";
+
+// Multi-select filter helper — "any selected value of the filter set
+// is present in the therapist's list". Used by specialty / modality /
+// population matchers after the step-4 state-shape migration.
+function arrayAnyMatch(filterValue, therapistValues) {
+  var filterArr = toFilterArray(filterValue);
+  if (!filterArr.length) return true;
+  var therapistArr = Array.isArray(therapistValues) ? therapistValues : [];
+  if (!therapistArr.length) return false;
+  var therapistSet = new Set(
+    therapistArr.map(function (v) {
+      return String(v || "").trim();
+    }),
+  );
+  return filterArr.some(function (v) {
+    return therapistSet.has(v);
+  });
+}
+
+// Insurance multi-select uses the fuzzy `insuranceMatches` helper from
+// the shared picker options module so brand aliases (e.g. "BCBS" vs
+// "Blue Cross Blue Shield") still match. Returns true when ANY of the
+// user's selected carriers fuzzy-matches the therapist's accepted list.
+function insuranceFilterMatches(filterValue, therapistValues) {
+  var filterArr = toFilterArray(filterValue);
+  if (!filterArr.length) return true;
+  return filterArr.some(function (v) {
+    return insuranceMatches(v, therapistValues);
+  });
+}
 
 var responsivenessRankCache = new WeakMap();
 var freshnessBadgeCache = new WeakMap();
@@ -56,19 +87,13 @@ export function matchesDirectoryFilters(filterState, therapist) {
   var isPsychiatrist = isPsychiatristProvider(therapist);
 
   if (filterState.state && therapist.state !== filterState.state) return false;
-  if (filterState.specialty && !(therapist.specialties || []).includes(filterState.specialty)) {
+  if (!arrayAnyMatch(filterState.specialty, therapist.specialties)) {
     return false;
   }
-  if (
-    filterState.modality &&
-    !(therapist.treatment_modalities || []).includes(filterState.modality)
-  ) {
+  if (!arrayAnyMatch(filterState.modality, therapist.treatment_modalities)) {
     return false;
   }
-  if (
-    filterState.population &&
-    !(therapist.client_populations || []).includes(filterState.population)
-  ) {
+  if (!arrayAnyMatch(filterState.population, therapist.client_populations)) {
     return false;
   }
   if (
@@ -83,12 +108,26 @@ export function matchesDirectoryFilters(filterState, therapist) {
   ) {
     return false;
   }
-  if (
-    filterState.insurance &&
-    !insuranceMatches(filterState.insurance, therapist.insurance_accepted)
-  ) {
+  if (!insuranceFilterMatches(filterState.insurance, therapist.insurance_accepted)) {
     return false;
   }
+  // Session fee range — exclude therapists whose published range is
+  // entirely outside the requested window. Range-overlap test: therapist
+  // is in-range when therapist.max >= filter.min AND therapist.min <= filter.max.
+  // Therapists with no fee data published bypass the filter (we don't
+  // want to hide them just for missing data; step 5 doesn't introduce a
+  // "show only with published fees" toggle).
+  var feeMinFilter = Number(filterState.session_fee_min || 0);
+  var feeMaxFilter = Number(filterState.session_fee_max || 0);
+  if (feeMinFilter > 0 || feeMaxFilter > 0) {
+    var tFeeMin = Number(therapist.session_fee_min || 0);
+    var tFeeMax = Number(therapist.session_fee_max || tFeeMin || 0);
+    if (tFeeMin > 0 || tFeeMax > 0) {
+      if (feeMinFilter > 0 && tFeeMax > 0 && tFeeMax < feeMinFilter) return false;
+      if (feeMaxFilter > 0 && tFeeMin > 0 && tFeeMin > feeMaxFilter) return false;
+    }
+  }
+  if (filterState.sliding_scale && !therapist.sliding_scale) return false;
   if (filterState.gender && therapist.gender !== filterState.gender) return false;
   if (filterState.therapist && !filterState.psychiatrist && isPsychiatrist) return false;
   if (filterState.psychiatrist && !filterState.therapist && !isPsychiatrist) return false;
@@ -544,27 +583,40 @@ export function buildCardTrustSnapshot(therapist) {
 export function buildCardFitSummary(filterState, therapist) {
   var reasons = [];
 
-  if (filterState.specialty && (therapist.specialties || []).includes(filterState.specialty)) {
-    reasons.push("focuses on " + filterState.specialty.toLowerCase());
+  // Find the first overlap so we can quote the actual matched value in
+  // the fit-summary reason ("focuses on Bipolar II"). Multi-select keys
+  // can hold N values; reason copy stays singular for readability.
+  function findOverlap(filterValue, therapistValues) {
+    var filterArr = toFilterArray(filterValue);
+    if (!filterArr.length) return "";
+    var therapistArr = Array.isArray(therapistValues) ? therapistValues : [];
+    if (!therapistArr.length) return "";
+    var therapistSet = new Set(
+      therapistArr.map(function (v) {
+        return String(v || "").trim();
+      }),
+    );
+    for (var i = 0; i < filterArr.length; i += 1) {
+      if (therapistSet.has(filterArr[i])) return filterArr[i];
+    }
+    return "";
   }
-  if (
-    filterState.modality &&
-    (therapist.treatment_modalities || []).includes(filterState.modality)
-  ) {
-    reasons.push("offers " + filterState.modality);
+  function findInsuranceOverlap(filterValue, therapistValues) {
+    var filterArr = toFilterArray(filterValue);
+    for (var i = 0; i < filterArr.length; i += 1) {
+      if (insuranceMatches(filterArr[i], therapistValues)) return filterArr[i];
+    }
+    return "";
   }
-  if (
-    filterState.population &&
-    (therapist.client_populations || []).includes(filterState.population)
-  ) {
-    reasons.push("works with " + filterState.population.toLowerCase());
-  }
-  if (
-    filterState.insurance &&
-    insuranceMatches(filterState.insurance, therapist.insurance_accepted)
-  ) {
-    reasons.push("accepts " + filterState.insurance);
-  }
+
+  var specMatch = findOverlap(filterState.specialty, therapist.specialties);
+  if (specMatch) reasons.push("focuses on " + specMatch.toLowerCase());
+  var modMatch = findOverlap(filterState.modality, therapist.treatment_modalities);
+  if (modMatch) reasons.push("offers " + modMatch);
+  var popMatch = findOverlap(filterState.population, therapist.client_populations);
+  if (popMatch) reasons.push("works with " + popMatch.toLowerCase());
+  var insMatch = findInsuranceOverlap(filterState.insurance, therapist.insurance_accepted);
+  if (insMatch) reasons.push("accepts " + insMatch);
   if (filterState.telehealth && therapist.accepts_telehealth) {
     reasons.push("offers telehealth");
   }
@@ -612,26 +664,20 @@ export function getMatchScore(filterState, therapist) {
   var quality = getCachedMerchandisingQuality(therapist);
   var responsivenessRank = getResponsivenessRank(therapist);
 
-  if (filterState.specialty && (therapist.specialties || []).includes(filterState.specialty)) {
-    score += 26;
+  // Multi-select filters: award the score when ANY of the user's selected
+  // values matches the therapist's array. (Pre-step-4 used .includes on a
+  // single string value.)
+  if (arrayAnyMatch(filterState.specialty, therapist.specialties)) {
+    if (toFilterArray(filterState.specialty).length > 0) score += 26;
   }
-  if (
-    filterState.modality &&
-    (therapist.treatment_modalities || []).includes(filterState.modality)
-  ) {
-    score += 18;
+  if (arrayAnyMatch(filterState.modality, therapist.treatment_modalities)) {
+    if (toFilterArray(filterState.modality).length > 0) score += 18;
   }
-  if (
-    filterState.population &&
-    (therapist.client_populations || []).includes(filterState.population)
-  ) {
-    score += 18;
+  if (arrayAnyMatch(filterState.population, therapist.client_populations)) {
+    if (toFilterArray(filterState.population).length > 0) score += 18;
   }
-  if (
-    filterState.insurance &&
-    insuranceMatches(filterState.insurance, therapist.insurance_accepted)
-  ) {
-    score += 12;
+  if (insuranceFilterMatches(filterState.insurance, therapist.insurance_accepted)) {
+    if (toFilterArray(filterState.insurance).length > 0) score += 12;
   }
   if (filterState.state && therapist.state === filterState.state) {
     score += 10;

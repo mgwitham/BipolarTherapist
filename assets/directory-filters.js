@@ -7,8 +7,19 @@ export var FILTER_VALUE_KEYS = [
   "bipolar_experience",
   "insurance",
   "gender",
+  "session_fee_min",
+  "session_fee_max",
   "sortBy",
 ];
+
+// Multi-select keys hold an array of strings rather than a single value.
+// URL serialization uses comma separation so single-value bookmarks
+// (?insurance=aetna) keep working. Other keys remain scalar strings.
+export var FILTER_MULTI_VALUE_KEYS = ["specialty", "modality", "population", "insurance"];
+
+// Numeric keys are stored as digit strings (empty string = unset).
+// Filter logic in directory-logic.js coerces to Number for comparison.
+export var FILTER_NUMERIC_VALUE_KEYS = ["session_fee_min", "session_fee_max"];
 
 export var FILTER_BOOLEAN_KEYS = [
   "therapist",
@@ -16,6 +27,7 @@ export var FILTER_BOOLEAN_KEYS = [
   "telehealth",
   "in_person",
   "accepting",
+  "sliding_scale",
   "medication_management",
   "responsive_contact",
   "recently_confirmed",
@@ -25,16 +37,58 @@ export var ACTIVE_FILTER_KEYS = FILTER_VALUE_KEYS.filter(function (key) {
   return key !== "sortBy";
 }).concat(FILTER_BOOLEAN_KEYS);
 
+function isMultiKey(key) {
+  return FILTER_MULTI_VALUE_KEYS.indexOf(key) !== -1;
+}
+
+// Normalize a stored filter value into a string array. Accepts
+// arrays as-is, single comma-separated strings, plain strings, or
+// empty/nullish (returns []).
+export function toFilterArray(value) {
+  if (Array.isArray(value)) {
+    return value
+      .map(function (v) {
+        return String(v || "").trim();
+      })
+      .filter(Boolean);
+  }
+  if (value === null || value === undefined) return [];
+  var raw = String(value).trim();
+  if (!raw) return [];
+  return raw
+    .split(",")
+    .map(function (v) {
+      return v.trim();
+    })
+    .filter(Boolean);
+}
+
+function isFilterValueActive(key, value) {
+  if (isMultiKey(key)) {
+    return Array.isArray(value) ? value.length > 0 : Boolean(value);
+  }
+  return Boolean(value);
+}
+
 export function countActiveFilters(filterState) {
   return ACTIVE_FILTER_KEYS.filter(function (key) {
-    return Boolean(filterState[key]);
+    return isFilterValueActive(key, filterState[key]);
   }).length;
 }
 
 export function syncFilterControlsFromState(filterState, getElement) {
   FILTER_VALUE_KEYS.forEach(function (key) {
     var input = getElement(key);
-    if (input) {
+    if (!input) return;
+    if (isMultiKey(key)) {
+      // The legacy modal still uses single-value inputs. Surface the
+      // first selected value so single-input UIs (insurance autocomplete,
+      // specialty / modality / population selects) keep displaying
+      // something coherent. Step 6 swaps these for multi-select chip
+      // pickers that read the array directly.
+      var arr = toFilterArray(filterState[key]);
+      input.value = arr.length ? arr[0] : "";
+    } else {
       input.value = filterState[key];
     }
   });
@@ -55,7 +109,23 @@ export function readFilterStateFromControls(baseFilterState, getElement) {
     if (!input) {
       return;
     }
-    nextFilterState[key] = input.value.trim();
+    if (isMultiKey(key)) {
+      // The legacy modal writes single values; wrap them so downstream
+      // consumers always see an array. If the same key has been seeded
+      // from a multi-value URL, preserve the existing array unless the
+      // input has overwritten it with a different value.
+      var inputValue = input.value.trim();
+      var existing = toFilterArray(baseFilterState[key]);
+      if (!inputValue) {
+        nextFilterState[key] = [];
+      } else if (existing.length && existing[0] === inputValue) {
+        nextFilterState[key] = existing;
+      } else {
+        nextFilterState[key] = [inputValue];
+      }
+    } else {
+      nextFilterState[key] = input.value.trim();
+    }
   });
 
   FILTER_BOOLEAN_KEYS.forEach(function (key) {
