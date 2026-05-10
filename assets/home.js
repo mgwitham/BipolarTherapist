@@ -24,7 +24,7 @@ function applyHomePageCopy(homePage) {
   var searchButton = document.getElementById("searchButton");
 
   if (heroTitle && homePage.heroTitle) {
-    heroTitle.textContent = homePage.heroTitle;
+    heroTitle.textContent = homePage.heroTitle.replace(/\s*These do\.?\s*$/i, "").trim();
   }
 
   if (heroDescription && homePage.heroDescription) {
