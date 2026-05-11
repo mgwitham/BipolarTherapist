@@ -16,9 +16,10 @@
       href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"
     />
     <link rel="stylesheet" href="assets/results-page.css" />
+    <link rel="stylesheet" href="assets/public-nav.css" />
   </head>
   <body>
-    <nav class="results-nav">
+    <nav aria-label="Main navigation" class="nav-dark">
       <a href="/" class="nav-logo" aria-label="BipolarTherapyHub home">
         <svg
           class="logo-mark"
@@ -61,25 +62,62 @@
             </linearGradient>
           </defs>
         </svg>
-        <span class="logo-wordmark">Bipolar<span>Therapy</span>Hub</span>
+        <span class="logo-wordmark">BipolarTherapy<span>Hub</span></span>
       </a>
-      <div class="results-nav-actions">
-        <a href="tel:988" class="nav-crisis" aria-label="In crisis? Call 988">
-          <i class="ti ti-phone" aria-hidden="true"></i>
-          <span class="nav-crisis-label">In crisis? Call 988</span>
-        </a>
-        <a href="/directory" class="nav-saved" aria-label="Saved therapists">
-          <i class="ti ti-bookmark" aria-hidden="true"></i>
-          <span class="nav-saved-label">Saved</span>
-          <span class="saved-count" data-saved-count hidden>0</span>
-        </a>
-        <a href="/directory" class="nav-browse" aria-label="Browse all therapists">
-          <i class="ti ti-list-search" aria-hidden="true"></i>
-          <span class="nav-browse-label">Browse all</span>
-        </a>
-        <a href="/match" class="nav-edit-search">Start over</a>
-      </div>
+      <button
+        class="nav-hamburger"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobileNav"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <ul class="nav-links">
+        <li><a href="/directory">Browse Directory</a></li>
+        <li>
+          <!-- nav-saved + data-saved-count preserved so results-analytics.js
+               (.nav-saved click tracking) and results-save.js (badge updates
+               on save) keep working alongside the unified nav-shortlist
+               wiring used elsewhere. -->
+          <a href="/directory" class="nav-shortlist nav-saved" data-shortlist-link
+            >Saved
+            <span class="nav-shortlist-count" data-shortlist-count data-saved-count hidden
+              >0</span
+            ></a
+          >
+        </li>
+        <!-- nav-edit-search class is preserved; results-analytics.js tracks
+             clicks on this selector to log the "start over" funnel event. -->
+        <li><a href="/match" class="nav-edit-search">Start over</a></li>
+        <li>
+          <a href="tel:988" class="nav-crisis-link">In crisis? Call or text 988</a>
+        </li>
+      </ul>
     </nav>
+    <div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+      <a href="/" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Home</span>
+        <span class="public-mobile-nav-title">Homepage</span>
+        <span class="public-mobile-nav-copy">Start fresh</span>
+      </a>
+      <a href="/directory" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-kicker">Browse</span>
+        <span class="public-mobile-nav-title">Find a therapist</span>
+        <span class="public-mobile-nav-copy">Full directory</span>
+      </a>
+      <a href="/directory" class="public-mobile-nav-link nav-shortlist" data-shortlist-link>
+        <span class="public-mobile-nav-kicker">Saved</span>
+        <span class="public-mobile-nav-title">My list</span>
+        <span class="public-mobile-nav-copy">View <span data-shortlist-count>0</span> saved</span>
+      </a>
+      <a href="/match" class="public-mobile-nav-link nav-edit-search">
+        <span class="public-mobile-nav-kicker">Restart</span>
+        <span class="public-mobile-nav-title">Start over</span>
+        <span class="public-mobile-nav-copy">Edit your answers</span>
+      </a>
+    </div>
 
     <main id="resultsMain">
       <div class="results-header">
@@ -323,5 +361,7 @@
     <script type="module" src="assets/results.js"></script>
     <script type="module" src="assets/results-save.js"></script>
     <script type="module" src="assets/results-analytics.js"></script>
+    <script type="module" src="assets/shortlist-nav.js"></script>
+    <script type="module" src="assets/nav.js"></script>
   </body>
 </html>

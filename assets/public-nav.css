@@ -1,0 +1,243 @@
+/* Canonical public-site nav. Extracted from index.html so every patient-
+   facing page renders the same dark-teal sticky header with identical
+   font, sizing, link color, and crisis-pill treatment. Loaded after
+   page-specific stylesheets so it wins on visual properties. */
+
+nav[aria-label="Main navigation"] {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(12, 40, 48, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+  padding: 0 40px;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: none;
+}
+
+nav[aria-label="Main navigation"] .nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+nav[aria-label="Main navigation"] .logo-mark {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+nav[aria-label="Main navigation"] .logo-wordmark {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.01em;
+}
+
+nav[aria-label="Main navigation"] .logo-wordmark span {
+  color: #6dbdd4;
+}
+
+nav[aria-label="Main navigation"] .nav-links {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+nav[aria-label="Main navigation"] .nav-links a,
+nav[aria-label="Main navigation"] .nav-links a.nav-link-current,
+nav[aria-label="Main navigation"] .nav-links a.nav-zone-switch,
+nav[aria-label="Main navigation"] .nav-links a.nav-shortlist {
+  font-family: "DM Sans", system-ui, sans-serif !important;
+  font-size: 13.5px !important;
+  font-weight: 400 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
+  color: rgba(255, 255, 255, 0.82) !important;
+  text-decoration: none;
+  transition: color 0.2s;
+  white-space: nowrap;
+  border: 0;
+  background: transparent;
+}
+
+nav[aria-label="Main navigation"] .nav-links a:hover {
+  color: #fff !important;
+}
+
+nav[aria-label="Main navigation"] .nav-links a[aria-current="page"],
+nav[aria-label="Main navigation"] .nav-link-current {
+  color: #fff !important;
+}
+
+nav[aria-label="Main navigation"] .nav-crisis-link {
+  font-size: 12.5px !important;
+  color: rgba(255, 255, 255, 0.78) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  padding: 5px 14px !important;
+  border-radius: 20px !important;
+  font-weight: 400 !important;
+  transition: all 0.2s !important;
+}
+
+nav[aria-label="Main navigation"] .nav-crisis-link:hover {
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  color: #fff !important;
+  text-decoration: none !important;
+}
+
+nav[aria-label="Main navigation"] .nav-zone-switch {
+  color: rgba(255, 255, 255, 0.82) !important;
+  font-size: 13.5px !important;
+  border: 0 !important;
+  background: transparent !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+}
+
+nav[aria-label="Main navigation"] .nav-zone-switch:hover {
+  color: #fff !important;
+  background: transparent !important;
+}
+
+nav[aria-label="Main navigation"] .nav-shortlist-count {
+  display: inline-block;
+  margin-left: 4px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.14);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #fff;
+  min-width: 18px;
+  text-align: center;
+}
+
+nav[aria-label="Main navigation"] .nav-shortlist-count[hidden] {
+  display: none;
+}
+
+nav[aria-label="Main navigation"] .nav-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+  color: #fff;
+}
+
+nav[aria-label="Main navigation"] .nav-hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+
+nav[aria-label="Main navigation"] .nav-hamburger[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+nav[aria-label="Main navigation"] .nav-hamburger[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+
+nav[aria-label="Main navigation"] .nav-hamburger[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+@media (max-width: 768px) {
+  nav[aria-label="Main navigation"] {
+    padding: 0 16px;
+  }
+  nav[aria-label="Main navigation"] .nav-links {
+    display: none;
+  }
+  nav[aria-label="Main navigation"] .nav-hamburger {
+    display: flex;
+  }
+}
+
+.public-mobile-nav {
+  display: none;
+}
+
+.public-mobile-nav.is-open {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  position: fixed;
+  top: 64px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(12, 40, 48, 0.98);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  z-index: 99;
+  overflow-y: auto;
+  padding: 1rem;
+}
+
+.public-mobile-nav-link {
+  display: block;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #fff;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.public-mobile-nav-link:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.public-mobile-nav-link.is-current {
+  background: rgba(109, 189, 212, 0.16);
+  border-color: rgba(109, 189, 212, 0.36);
+}
+
+.public-mobile-nav-kicker {
+  display: block;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.6);
+  margin-bottom: 2px;
+}
+
+.public-mobile-nav-title {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.25;
+}
+
+.public-mobile-nav-copy {
+  display: block;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 2px;
+}
