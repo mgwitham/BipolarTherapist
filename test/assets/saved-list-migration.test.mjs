@@ -30,14 +30,8 @@ globalThis.window = globalThis.window || {
 };
 
 const savedList = await import("../../assets/saved-list.js");
-const {
-  STORAGE_KEY,
-  LEGACY_STORAGE_KEY,
-  MAX_ENTRIES,
-  clearList,
-  migrateLegacyStore,
-  readList,
-} = savedList;
+const { STORAGE_KEY, LEGACY_STORAGE_KEY, MAX_ENTRIES, clearList, migrateLegacyStore, readList } =
+  savedList;
 
 function resetStorage(initial) {
   globalThis.window.localStorage = createStorage(initial || {});
