@@ -40,28 +40,19 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  // Nav: Start over (fresh intake — distinct intent from refining).
-  if (event.target.closest(".nav-edit-search")) {
-    trackFunnelEvent("match_results_start_over_clicked", { source: "nav" });
-    return;
-  }
-
-  // Nav: Browse all.
-  if (event.target.closest(".nav-browse")) {
-    trackFunnelEvent("match_results_browse_all_clicked", { source: "nav" });
-    return;
-  }
-
-  // Nav: Saved (count link).
-  if (event.target.closest(".nav-saved")) {
+  // Nav: Saved (count link). Backed by the shared shortlist store, so
+  // we read the canonical count rather than scraping the badge.
+  if (event.target.closest(".nav-shortlist, .nav-saved")) {
     trackFunnelEvent("match_results_saved_link_clicked", {
-      saved_count: Number(document.querySelector("[data-saved-count]")?.textContent) || 0,
+      saved_count:
+        Number(document.querySelector("[data-shortlist-count], [data-saved-count]")?.textContent) ||
+        0,
     });
     return;
   }
 
   // Nav: Crisis line.
-  if (event.target.closest(".nav-crisis")) {
+  if (event.target.closest(".nav-crisis-link, .nav-crisis")) {
     trackFunnelEvent("match_results_crisis_clicked", { source: "nav" });
     return;
   }

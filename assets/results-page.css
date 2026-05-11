@@ -854,11 +854,6 @@ a {
   outline: none;
 }
 
-.nav-edit-search:focus-visible {
-  outline: 2px solid #fff;
-  outline-offset: 3px;
-  border-radius: 4px;
-}
 
 .filter-edit-btn:focus-visible,
 .results-empty-link:focus-visible,
