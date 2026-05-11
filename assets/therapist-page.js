@@ -1594,7 +1594,7 @@ function renderProfile(t, therapistDirectory) {
       try {
         savedMatchUrl = window.sessionStorage.getItem("matchResultsUrl");
       } catch (_) {}
-      breadcrumbDirLink.href = savedMatchUrl || "/match?mode=form";
+      breadcrumbDirLink.href = savedMatchUrl || "/results";
     }
   }
   // navClaimLink was removed from the nav (moved into heroClaimLink
@@ -1947,7 +1947,7 @@ function renderProfile(t, therapistDirectory) {
   } catch (_) {}
   var backNav =
     backNavRef === "match"
-      ? { href: backNavSavedUrl || "/match?mode=form", label: "← Back to your matches" }
+      ? { href: backNavSavedUrl || "/results", label: "← Back to your matches" }
       : { href: "/directory", label: "← Back to directory" };
 
   // ─── Hero card helpers (Step 5 redesign) ──────────────────────────────

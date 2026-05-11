@@ -1275,7 +1275,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       '<p class="dir-match-nudge-copy">' +
       "Not sure who to choose? Answer a few questions and we'll narrow it down." +
       "</p>" +
-      '<a class="dir-match-nudge-cta" href="/match?mode=form" data-cta-tier="nudge">' +
+      '<a class="dir-match-nudge-cta" href="/#startMatch" data-cta-tier="nudge">' +
       "Get matched →" +
       "</a>" +
       "</aside>"
