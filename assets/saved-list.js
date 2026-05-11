@@ -209,3 +209,68 @@ export function subscribe(handler) {
 export function clearList() {
   return writeList([]);
 }
+
+// One-time migration from the pre-unification storage key. Older builds
+// kept results-page and profile-page saves under "bth_saved_therapists"
+// as a flat string[] of slugs, separate from this module's canonical
+// "bth_directory_shortlist_v1" store. Merge any unsaved slugs into the
+// canonical list (capped at MAX_ENTRIES), then delete the legacy key so
+// this only runs once per browser.
+export const LEGACY_STORAGE_KEY = "bth_saved_therapists";
+
+export function migrateLegacyStore() {
+  var win = safeWindow();
+  if (!win || !win.localStorage) return { migrated: 0, skipped: 0 };
+  var raw = null;
+  try {
+    raw = win.localStorage.getItem(LEGACY_STORAGE_KEY);
+  } catch (_readError) {
+    return { migrated: 0, skipped: 0 };
+  }
+  if (raw === null) return { migrated: 0, skipped: 0 };
+  var legacy = [];
+  try {
+    var parsed = JSON.parse(raw);
+    legacy = Array.isArray(parsed) ? parsed : [];
+  } catch (_parseError) {
+    legacy = [];
+  }
+  var current = readList();
+  var seen = Object.create(null);
+  current.forEach(function (item) {
+    seen[item.slug] = true;
+  });
+  var migrated = 0;
+  var skipped = 0;
+  var next = current.slice();
+  for (var i = 0; i < legacy.length; i++) {
+    if (next.length >= MAX_ENTRIES) {
+      skipped += legacy.length - i;
+      break;
+    }
+    var entry = normalizeEntry(legacy[i]);
+    if (!entry) {
+      skipped++;
+      continue;
+    }
+    if (seen[entry.slug]) {
+      skipped++;
+      continue;
+    }
+    seen[entry.slug] = true;
+    next.push(entry);
+    migrated++;
+  }
+  if (migrated > 0) {
+    writeList(next);
+  }
+  try {
+    win.localStorage.removeItem(LEGACY_STORAGE_KEY);
+  } catch (_removeError) {
+    // localStorage unavailable — best-effort, the next migration call is
+    // still safe (writeList dedupes by slug).
+  }
+  return { migrated: migrated, skipped: skipped };
+}
+
+migrateLegacyStore();

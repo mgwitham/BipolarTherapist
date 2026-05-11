@@ -18,6 +18,7 @@ import {
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 import { submitTherapistCtaClick, submitTherapistProfileView } from "./review-api.js";
 import { buildOutreachScript } from "./outreach-scripts.js";
+import { isSaved, toggleSaved, subscribe } from "./saved-list.js";
 import { initValuePillPopover } from "./therapist-pills.js";
 import {
   MAX_ENTRIES as SAVED_LIST_MAX,
@@ -2851,56 +2852,27 @@ function renderProfile(t, therapistDirectory) {
         updateShortlistAction(t.slug);
       });
     });
-  // Step 11: sidebar Save toggle. Mirrors the bth_saved_therapists list
-  // in localStorage and re-syncs the nav badge so the count visible at
-  // the top stays consistent with the button state.
+  // Sidebar Save toggle. Reads/writes through saved-list.js so the
+  // button stays in sync with directory cards, results cards, and the
+  // nav badge — and updates live if the same user saves from another
+  // tab via the subscribe() callback.
   Array.prototype.slice
     .call(document.querySelectorAll("[data-profile-side-save]"))
     .forEach(function (button) {
-      var id = button.getAttribute("data-save-id") || "";
+      var slug = button.getAttribute("data-save-id") || "";
       var label = button.querySelector(".profile-side-save-label");
-      var STORAGE_KEY = "bth_saved_therapists";
-      function readSaved() {
-        try {
-          var raw = window.localStorage.getItem(STORAGE_KEY);
-          var list = raw ? JSON.parse(raw) : [];
-          return Array.isArray(list) ? list : [];
-        } catch (_e) {
-          return [];
-        }
+      function paint(savedState) {
+        button.classList.toggle("is-saved", savedState);
+        button.setAttribute("aria-pressed", savedState ? "true" : "false");
+        if (label) label.textContent = savedState ? "Saved" : "Save";
       }
-      function writeSaved(list) {
-        try {
-          window.localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
-        } catch (_e) {
-          /* localStorage full or unavailable */
-        }
-      }
-      function syncNavBadge(count) {
-        var badge = document.querySelector("[data-profile-nav-saved-count]");
-        if (!badge) return;
-        badge.textContent = String(count);
-        badge.hidden = count === 0;
-      }
-      function paint(isSaved) {
-        button.classList.toggle("is-saved", isSaved);
-        button.setAttribute("aria-pressed", isSaved ? "true" : "false");
-        if (label) label.textContent = isSaved ? "Saved" : "Save";
-      }
-      var initial = readSaved();
-      paint(id && initial.indexOf(id) !== -1);
+      paint(slug && isSaved(slug));
       button.addEventListener("click", function () {
-        if (!id) return;
-        var current = readSaved();
-        var idx = current.indexOf(id);
-        if (idx === -1) {
-          current.push(id);
-        } else {
-          current.splice(idx, 1);
-        }
-        writeSaved(current);
-        paint(current.indexOf(id) !== -1);
-        syncNavBadge(current.length);
+        if (!slug) return;
+        toggleSaved(slug, { surface: "profile_sidebar" });
+      });
+      subscribe(function () {
+        paint(slug && isSaved(slug));
       });
     });
 
