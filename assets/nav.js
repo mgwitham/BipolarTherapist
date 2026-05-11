@@ -21,10 +21,28 @@
   // guided form, but only a rendered match results URL earns "Your Matches".
   // Runs synchronously on module parse (modules are deferred, so DOM is ready).
   try {
-    var DEFAULT_MATCH_HREF = "/match?mode=form";
+    var DEFAULT_MATCH_HREF = "/#startMatch";
+    var MATCH_RESULTS_URL_KEY = "matchResultsUrl";
     var storedResultsUrl = "";
     try {
-      storedResultsUrl = window.sessionStorage.getItem("matchResultsUrl") || "";
+      // sessionStorage is the original source (written by match.js), but it
+      // dies when the tab closes — leaving "Your matches" stranded the next
+      // day. Mirror into localStorage on read so the link survives tab
+      // restarts. Reads fall back to localStorage when sessionStorage is empty.
+      storedResultsUrl = window.sessionStorage.getItem(MATCH_RESULTS_URL_KEY) || "";
+      if (storedResultsUrl) {
+        try {
+          window.localStorage.setItem(MATCH_RESULTS_URL_KEY, storedResultsUrl);
+        } catch (_mirrorError) {
+          // localStorage full or unavailable — keep sessionStorage value.
+        }
+      } else {
+        try {
+          storedResultsUrl = window.localStorage.getItem(MATCH_RESULTS_URL_KEY) || "";
+        } catch (_fallbackError) {
+          storedResultsUrl = "";
+        }
+      }
     } catch (_storageError) {
       storedResultsUrl = "";
     }
@@ -45,16 +63,12 @@
       }
     }
 
-    var lastSearch = JSON.parse(window.localStorage.getItem("bth_last_search") || "null");
-    var hasSearch = Boolean(lastSearch && lastSearch.location_query);
-    var zip = hasSearch ? String(lastSearch.location_query) : "";
     var resultsHref = getSafeMatchResultsHref(storedResultsUrl);
     var hasMatchResults = Boolean(resultsHref);
-    var matchHref = hasMatchResults
-      ? resultsHref
-      : hasSearch
-        ? DEFAULT_MATCH_HREF + "&location_query=" + encodeURIComponent(zip)
-        : DEFAULT_MATCH_HREF;
+    // No-results path always points to the homepage form (#startMatch).
+    // The homepage itself reads localStorage.bth_last_search and prefills
+    // location, so we don't need to thread it through the URL.
+    var matchHref = hasMatchResults ? resultsHref : DEFAULT_MATCH_HREF;
 
     // Desktop link
     var desktopLink = document.getElementById("navBrowseLink");

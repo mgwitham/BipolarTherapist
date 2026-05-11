@@ -54,199 +54,10 @@ a {
 /* ─────────────────────────────────────────────────────────
    SECTION 1 — RESULTS NAV
    ───────────────────────────────────────────────────────── */
-.results-nav {
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  height: 56px;
-  background: var(--teal-900);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 24px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.results-nav .nav-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: #fff;
-}
-
-.results-nav .logo-mark {
-  width: 28px;
-  height: 28px;
-  display: block;
-}
-
-.results-nav .logo-wordmark {
-  font-family: "DM Sans", system-ui, sans-serif;
-  font-size: 15px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: #fff;
-}
-
-.results-nav .logo-wordmark span {
-  color: var(--teal-300);
-}
-
-.results-nav-actions {
-  display: flex;
-  align-items: center;
-  gap: 18px;
-}
-
-/* Saved */
-.nav-saved {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12.5px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.7);
-  transition: color 0.15s ease;
-}
-
-.nav-saved:hover {
-  color: #fff;
-}
-
-.nav-saved .ti {
-  font-size: 16px;
-  line-height: 1;
-}
-
-.saved-count {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 18px;
-  height: 16px;
-  padding: 1px 6px;
-  border-radius: 20px;
-  background: var(--teal-500);
-  color: #fff;
-  font-size: 10px;
-  font-weight: 600;
-  line-height: 1;
-  transition: transform 0.18s ease;
-}
-
-.saved-count[hidden] {
-  display: none;
-}
-
-.saved-count.is-bumping {
-  transform: scale(1.2);
-}
-
-/* Browse all — parallel exit to /directory. Plain text link,
-   same visual weight as Saved so neither competes with Edit search. */
-.nav-browse {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  font-size: 12.5px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.7);
-  transition: color 0.15s ease;
-}
-
-.nav-browse:hover {
-  color: #fff;
-}
-
-.nav-browse .ti {
-  font-size: 16px;
-  line-height: 1;
-}
-
-/* Crisis pill */
-.nav-crisis {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 20px;
-  font-size: 11.5px;
-  color: rgba(255, 255, 255, 0.5);
-  transition:
-    color 0.15s ease,
-    border-color 0.15s ease;
-}
-
-.nav-crisis:hover {
-  color: rgba(255, 255, 255, 0.85);
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-.nav-crisis .ti {
-  font-size: 13px;
-  line-height: 1;
-}
-
-/* Start over — matches Saved / Browse all weight + opacity so no
-   single nav action visually dominates. */
-.nav-edit-search {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  background: none;
-  border: none;
-  padding: 0;
-  font-family: inherit;
-  font-size: 12.5px;
-  font-weight: 400;
-  color: rgba(255, 255, 255, 0.7);
-  cursor: pointer;
-  transition: color 0.15s ease;
-}
-
-.nav-edit-search:hover {
-  color: #fff;
-}
-
-/* Mobile */
-@media (max-width: 768px) {
-  .results-nav {
-    padding: 0 16px;
-  }
-
-  .results-nav-actions {
-    gap: 12px;
-  }
-
-  .nav-saved-label,
-  .nav-browse-label,
-  .nav-crisis-label {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    margin: -1px;
-    padding: 0;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
-  }
-
-  .nav-crisis {
-    padding: 6px 8px;
-  }
-
-  .nav-crisis .ti {
-    font-size: 14px;
-  }
-
-  .nav-edit-search {
-    font-size: 12px;
-  }
-}
+/* Results-page nav now uses the shared markup + styles in
+   assets/public-nav.css. The previous `.results-nav` / `.nav-saved` /
+   `.nav-browse` / `.nav-crisis` / `.saved-count` rules were removed when
+   the markup was unified. */
 
 /* ─────────────────────────────────────────────────────────
    SECTION 2 — PAGE HEADER
@@ -1043,17 +854,8 @@ a {
   outline: none;
 }
 
-.nav-saved:focus-visible,
-.nav-browse:focus-visible,
-.nav-crisis:focus-visible,
 .nav-edit-search:focus-visible {
   outline: 2px solid #fff;
-  outline-offset: 3px;
-  border-radius: 4px;
-}
-
-.nav-logo:focus-visible {
-  outline: 2px solid var(--teal-300);
   outline-offset: 3px;
   border-radius: 4px;
 }
@@ -1085,61 +887,10 @@ a {
 
 /* Tablet and below already covered above (≤768px). */
 
-/* Phone — refine spacing, touch targets, and the nav layout. */
+/* Phone — refine spacing, touch targets, and the nav layout.
+   Nav-specific rules moved to assets/public-nav.css with the shared
+   nav markup. */
 @media (max-width: 480px) {
-  .results-nav {
-    padding: 0 12px;
-  }
-
-  .results-nav .logo-wordmark {
-    font-size: 14px;
-  }
-
-  .results-nav-actions {
-    gap: 10px;
-  }
-
-  /* Hit-area for icon-only nav links — bump to 40×40 on phones. */
-  .nav-saved,
-  .nav-browse {
-    width: 40px;
-    height: 40px;
-    justify-content: center;
-    gap: 0;
-  }
-
-  .nav-saved .ti,
-  .nav-browse .ti {
-    font-size: 18px;
-  }
-
-  /* Saved-count badge floats top-right of the icon when label is hidden. */
-  .nav-saved {
-    position: relative;
-  }
-
-  .saved-count {
-    position: absolute;
-    top: 4px;
-    right: 4px;
-    min-width: 16px;
-    height: 14px;
-    padding: 0 4px;
-    font-size: 9px;
-  }
-
-  .nav-crisis {
-    width: 40px;
-    height: 40px;
-    justify-content: center;
-    padding: 0;
-    border-radius: 50%;
-  }
-
-  .nav-crisis .ti {
-    font-size: 16px;
-  }
-
   /* Featured card — tighten and grow header save tap target. */
   .results-list {
     padding: 12px 12px 40px;

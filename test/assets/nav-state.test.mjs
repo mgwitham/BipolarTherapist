@@ -90,9 +90,11 @@ test("nav state: a stored homepage ZIP does not imply matches exist", () => {
     },
   });
 
+  // No results URL stored, so Get Matched routes to the homepage form
+  // anchor. The homepage reads bth_last_search itself to prefill location.
   assert.equal(desktopLink.textContent, "Get Matched");
-  assert.equal(desktopLink.href, "/match?mode=form&location_query=90019");
-  assert.equal(mobileLink.href, "/match?mode=form&location_query=90019");
+  assert.equal(desktopLink.href, "/#startMatch");
+  assert.equal(mobileLink.href, "/#startMatch");
   assert.equal(mobileTitle.textContent, "Get matched");
   assert.equal(mobileCopy.textContent, "Start guided match");
 });
@@ -120,7 +122,7 @@ test("nav state: unsafe stored results URLs fall back to a fresh match", () => {
   });
 
   assert.equal(desktopLink.textContent, "Get Matched");
-  assert.equal(desktopLink.href, "/match?mode=form");
-  assert.equal(mobileLink.href, "/match?mode=form");
+  assert.equal(desktopLink.href, "/#startMatch");
+  assert.equal(mobileLink.href, "/#startMatch");
   assert.equal(mobileTitle.textContent, "Get matched");
 });
