@@ -14,6 +14,16 @@
       "has": [{ "type": "query", "key": "slug", "value": "(?<slug>.+)" }],
       "destination": "/therapists/:slug",
       "permanent": true
+    },
+    {
+      "source": "/match",
+      "destination": "/",
+      "permanent": true
+    },
+    {
+      "source": "/match.html",
+      "destination": "/",
+      "permanent": true
     }
   ],
   "rewrites": [
