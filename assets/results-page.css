@@ -286,7 +286,7 @@ a {
   background: none;
   border: none;
   border-radius: 50%;
-  color: var(--text-light);
+  color: var(--teal-700);
   cursor: pointer;
   transition:
     color 0.15s ease,
