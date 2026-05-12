@@ -1,0 +1,50 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import test from "node:test";
+
+const signupHtml = readFileSync(
+  fileURLToPath(new URL("../../signup.html", import.meta.url)),
+  "utf8",
+);
+const signupJs = readFileSync(
+  fileURLToPath(new URL("../../assets/signup-new-listing.js", import.meta.url)),
+  "utf8",
+);
+
+test("signup page: public form still leads with the short verified listing flow", () => {
+  assert.match(signupHtml, /Get listed in two minutes/);
+  assert.match(signupHtml, /No credit card to list/);
+  assert.match(signupHtml, /id="newListingForm"/);
+  assert.match(signupHtml, /name="license_number"/);
+  assert.match(signupHtml, /name="zip"/);
+});
+
+test("signup page: intake fetches are explicit same-origin JSON requests", () => {
+  assert.match(signupJs, /credentials: "same-origin"/);
+  assert.match(signupJs, /Accept: "application\/json"/);
+  assert.match(signupJs, /cache: "no-store"/);
+  assert.match(signupJs, /cache: "force-cache"/);
+});
+
+test("signup page: form validation rejects malformed emails before submit", () => {
+  assert.match(signupJs, /function isValidEmail\(raw\)/);
+  assert.match(signupJs, /Enter a valid email address for your welcome link\./);
+  assert.match(signupJs, /const email = form\.elements\.email\.value\.trim\(\)\.toLowerCase\(\)/);
+});
+
+test("signup page: duplicate lookup and photo preview avoid stale or string-built DOM", () => {
+  assert.match(signupJs, /let emailLookupSeq = 0/);
+  assert.match(
+    signupJs,
+    /if \(seq !== emailLookupSeq \|\| emailInput\.value\.trim\(\)\.toLowerCase\(\) !== val\) return/,
+  );
+  assert.match(signupJs, /document\.createElement\("img"\)/);
+  assert.match(signupJs, /preview\.replaceChildren\(img\)/);
+  assert.doesNotMatch(signupJs, /preview\.innerHTML\s*=\s*'<img/);
+});
+
+test("signup page: client-side submit throttle matches the documented window", () => {
+  assert.match(signupJs, /const SUBMIT_RATE_MAX = 3/);
+  assert.match(signupJs, /const SUBMIT_RATE_WINDOW_MS = 10 \* 60 \* 1000/);
+});

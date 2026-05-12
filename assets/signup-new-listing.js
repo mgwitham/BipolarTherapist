@@ -19,7 +19,7 @@ const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 // Function approach).
 const SUBMIT_RATE_KEY = "bth_intake_submissions_v1";
 const SUBMIT_RATE_WINDOW_MS = 10 * 60 * 1000;
-const SUBMIT_RATE_MAX = 10;
+const SUBMIT_RATE_MAX = 3;
 
 function checkSubmitRateLimit() {
   if (window.location.hostname === "127.0.0.1" || window.location.hostname === "localhost") {
@@ -74,6 +74,10 @@ function parseZip(raw) {
   return match ? match[0] : "";
 }
 
+function isValidEmail(raw) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(raw || "").trim());
+}
+
 // Matches the server's normalizeLicenseForMatch: drop non-alnum, strip
 // any leading letters (so "CA A179040" and "A179040" both collapse to
 // "179040" and match cleanly against the stored digit suffix).
@@ -92,7 +96,12 @@ async function lookupByLicense(licenseNumber) {
   // matching — otherwise "A179040" pulls up anyone named Adam/Amir.
   const url = LICENSE_LOOKUP_ENDPOINT + "?licenseOnly=1&q=" + encodeURIComponent(normalized);
   try {
-    const response = await fetch(url, { method: "GET", headers: { Accept: "application/json" } });
+    const response = await fetch(url, {
+      cache: "no-store",
+      credentials: "same-origin",
+      method: "GET",
+      headers: { Accept: "application/json" },
+    });
     if (!response.ok) return null;
     const data = await response.json();
     const results = (data && data.results) || [];
@@ -110,9 +119,16 @@ async function lookupByLicense(licenseNumber) {
 }
 
 async function lookupByEmail(email) {
+  const normalizedEmail = String(email || "")
+    .trim()
+    .toLowerCase();
+  if (!isValidEmail(normalizedEmail)) return null;
   try {
-    const res = await fetch(EMAIL_LOOKUP_ENDPOINT + "?q=" + encodeURIComponent(email), {
+    const res = await fetch(EMAIL_LOOKUP_ENDPOINT + "?q=" + encodeURIComponent(normalizedEmail), {
+      cache: "no-store",
+      credentials: "same-origin",
       method: "GET",
+      headers: { Accept: "application/json" },
     });
     if (!res.ok) return null;
     const data = await res.json();
@@ -217,7 +233,11 @@ function setLiveHint(node, message, pending) {
 let zipTablePromise = null;
 function loadZipTable() {
   if (!zipTablePromise) {
-    zipTablePromise = fetch("/assets/ca-zipcodes.json", { headers: { Accept: "application/json" } })
+    zipTablePromise = fetch("/assets/ca-zipcodes.json", {
+      cache: "force-cache",
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    })
       .then(function (r) {
         if (!r.ok) throw new Error("zip table fetch failed");
         return r.json();
@@ -286,7 +306,7 @@ function hideRecovery() {
 
 async function submitIntake(form, status) {
   const fullName = form.elements.full_name.value.trim();
-  const email = form.elements.email.value.trim();
+  const email = form.elements.email.value.trim().toLowerCase();
   const licenseNumber = form.elements.license_number.value.trim();
   const zipRaw = form.elements.zip.value.trim();
   const zip = parseZip(zipRaw);
@@ -297,6 +317,10 @@ async function submitIntake(form, status) {
 
   if (!fullName || !email || !licenseNumber || !zipRaw) {
     setStatus(status, "Fill in all four fields above before submitting.", "error");
+    return;
+  }
+  if (!isValidEmail(email)) {
+    setStatus(status, "Enter a valid email address for your welcome link.", "error");
     return;
   }
   if (!zip) {
@@ -369,7 +393,8 @@ async function submitIntake(form, status) {
   try {
     const response = await fetch(INTAKE_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
     if (response.status === 409) {
@@ -545,7 +570,8 @@ async function proceedFree(form, formStatus, intakeData, email) {
     // claim token still lands the therapist in the portal right now.
     await fetch(FREE_PATH_ENDPOINT, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify({
         claim_token: intakeData.claim_token,
         email: email,
@@ -585,6 +611,13 @@ function bindPhotoControl() {
   const btnLabel = document.getElementById("newListingPhotoBtnLabel");
   if (!input || !preview || !statusNode || !clearBtn || !btnLabel) return;
 
+  function renderPlaceholder() {
+    const span = document.createElement("span");
+    span.className = "new-listing-photo-placeholder";
+    span.textContent = "📷";
+    preview.replaceChildren(span);
+  }
+
   function setStatusLine(message, tone) {
     statusNode.textContent = message || "";
     statusNode.classList.remove("is-error", "is-success");
@@ -595,7 +628,7 @@ function bindPhotoControl() {
   function reset() {
     pendingPhoto = null;
     input.value = "";
-    preview.innerHTML = '<span class="new-listing-photo-placeholder">📷</span>';
+    renderPlaceholder();
     btnLabel.textContent = "Choose photo";
     clearBtn.hidden = true;
     setStatusLine("", null);
@@ -636,8 +669,11 @@ function bindPhotoControl() {
       bytes: file.size,
       mime: file.type,
     };
-    preview.innerHTML =
-      '<img src="' + dataUrl.replace(/"/g, "&quot;") + '" alt="" class="new-listing-photo-img" />';
+    const img = document.createElement("img");
+    img.src = dataUrl;
+    img.alt = "";
+    img.className = "new-listing-photo-img";
+    preview.replaceChildren(img);
     btnLabel.textContent = "Replace photo";
     clearBtn.hidden = false;
     setStatusLine("Looks great. We'll attach it to your listing.", "success");
@@ -712,10 +748,13 @@ function bindIntakeForm() {
   // C: Email blur duplicate detection
   const emailInput = form.elements.email;
   if (emailInput) {
+    let emailLookupSeq = 0;
     emailInput.addEventListener("blur", async function () {
-      const val = emailInput.value.trim();
+      const val = emailInput.value.trim().toLowerCase();
       if (!val) return;
+      const seq = ++emailLookupSeq;
       const match = await lookupByEmail(val);
+      if (seq !== emailLookupSeq || emailInput.value.trim().toLowerCase() !== val) return;
       if (match && match.slug) {
         const typedName = (form.elements.full_name && form.elements.full_name.value) || "";
         showDupNudge(match, typedName);
