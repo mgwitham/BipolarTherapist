@@ -17,11 +17,13 @@
     },
     {
       "source": "/match",
+      "missing": [{ "type": "query", "key": "shortlist" }],
       "destination": "/",
       "permanent": true
     },
     {
       "source": "/match.html",
+      "missing": [{ "type": "query", "key": "shortlist" }],
       "destination": "/",
       "permanent": true
     }
