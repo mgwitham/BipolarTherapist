@@ -557,6 +557,12 @@ function buildPortalReviewTiming(application) {
 var EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 var SIGNIN_RESEND_COOLDOWN_MS = 30 * 1000;
 
+function normalizeSignInEmail(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase();
+}
+
 function renderSignInFlash(kind) {
   if (!kind) return "";
   if (kind === "signed_out") {
@@ -645,6 +651,7 @@ function renderLookupState(options) {
   var submitBtn = document.getElementById("portalSignInSubmit");
   var feedback = document.getElementById("portalSignInFeedback");
   var lastSentAt = 0;
+  var signInRequestInFlight = false;
 
   if (opts.prefillEmail && emailInput) {
     emailInput.value = opts.prefillEmail;
@@ -679,7 +686,7 @@ function renderLookupState(options) {
 
   form.addEventListener("submit", function (event) {
     event.preventDefault();
-    var email = String((emailInput && emailInput.value) || "").trim();
+    var email = normalizeSignInEmail(emailInput && emailInput.value);
     if (!email) {
       setFeedback("Enter the email on your listing.", "error");
       emailInput && emailInput.focus();
@@ -689,6 +696,12 @@ function renderLookupState(options) {
       setFeedback("That doesn't look like a valid email. Double-check and try again.", "error");
       trackFunnelEvent("portal_signin_invalid_email", {});
       emailInput && emailInput.focus();
+      return;
+    }
+    if (emailInput) {
+      emailInput.value = email;
+    }
+    if (signInRequestInFlight) {
       return;
     }
 
@@ -704,6 +717,7 @@ function renderLookupState(options) {
       return;
     }
 
+    signInRequestInFlight = true;
     setBusy(true, false);
     setFeedback("Sending sign-in link...", "info");
     trackFunnelEvent("portal_signin_requested", { email_domain: email.split("@")[1] || "" });
@@ -712,9 +726,7 @@ function renderLookupState(options) {
         lastSentAt = Date.now();
         setBusy(false, email);
         setFeedback(
-          "If " +
-            email +
-            " is linked to a claimed profile, a sign-in link is on its way. Check your inbox in a moment. Valid for 24 hours.",
+          "If that address is linked to a claimed profile, a sign-in link is on its way. Check your inbox in a moment. Valid for 24 hours.",
           "info",
         );
         trackFunnelEvent("portal_signin_link_sent", {});
@@ -727,6 +739,9 @@ function renderLookupState(options) {
           "error",
         );
         trackFunnelEvent("portal_signin_failure_shown", {});
+      })
+      .finally(function () {
+        signInRequestInFlight = false;
       });
   });
 }
