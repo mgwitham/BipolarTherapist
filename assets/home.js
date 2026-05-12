@@ -974,6 +974,16 @@ function initHomeSearchForm() {
   try {
     var content = await fetchHomePageContent();
 
+    var therapistCount =
+      (content.stats && Number(content.stats.total_therapists)) ||
+      (Array.isArray(content.therapists) ? content.therapists.length : 0);
+    if (therapistCount > 0) {
+      var countEl = document.querySelector("[data-proof-therapist-count]");
+      if (countEl) {
+        countEl.textContent = String(therapistCount);
+      }
+    }
+
     applyHomePageCopy(content.homePage);
     applySiteSettings(content.siteSettings);
     activeHomeExperimentVariant = getExperimentVariant("homepage_messaging", [
