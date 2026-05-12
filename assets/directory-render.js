@@ -1,64 +1,6 @@
-import {
-  renderRoundAvatar,
-  renderSpecialtyPills,
-  getCardLocationLabel,
-  getFeeLabel,
-  getInsuranceLabel,
-  renderAvailabilityBadge,
-} from "./card-content.js";
+import { renderRoundAvatar } from "./card-content.js";
 import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
 import { escapeHtml } from "./escape-html.js";
-
-var DIR_REASON_GENERIC = {
-  "bipolar disorder": true,
-  "bipolar i": true,
-  "bipolar ii": true,
-  "bipolar 1": true,
-  "bipolar 2": true,
-  "mood disorder": true,
-  "mood disorders": true,
-  psychosis: true,
-};
-
-function buildDirectoryReasonLine(therapist) {
-  var t = therapist || {};
-  var years = Number(t.bipolar_years_experience || 0);
-  if (years > 0) {
-    return years + " yr" + (years === 1 ? "" : "s") + " bipolar experience";
-  }
-  var specs = Array.isArray(t.specialties) ? t.specialties : [];
-  for (var i = 0; i < specs.length; i++) {
-    var s = String(specs[i] || "").trim();
-    if (/bipolar|cycl|mixed/i.test(s) && !DIR_REASON_GENERIC[s.toLowerCase()]) {
-      return s + " specialist";
-    }
-  }
-  return "";
-}
-
-function buildDirectoryInfoRow(therapist) {
-  var t = therapist || {};
-  var parts = [];
-
-  var locLabel = getCardLocationLabel(t, {});
-  if (locLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(locLabel) + "</span>");
-
-  var feeLabel = getFeeLabel(t);
-  if (feeLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(feeLabel) + "</span>");
-
-  var availHtml = renderAvailabilityBadge(t);
-  if (availHtml) parts.push('<span class="bth-card-info-item">' + availHtml + "</span>");
-
-  var insLabel = getInsuranceLabel(t);
-  if (insLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(insLabel) + "</span>");
-
-  if (!parts.length) return "";
-  return (
-    '<div class="bth-card-info">' +
-    parts.join('<span class="bth-card-info-dot" aria-hidden="true">·</span>') +
-    "</div>"
-  );
-}
 
 function buildTherapistProfileHref(slug, source) {
   var cleanSlug = String(slug || "").trim();
