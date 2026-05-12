@@ -126,6 +126,20 @@ function normalizeTelUri(phone) {
   return String(phone || "").replace(/[^0-9+]/g, "");
 }
 
+function safeExternalUrl(value) {
+  var raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  try {
+    var url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch (_error) {
+    return "";
+  }
+}
+
 // Per-therapist SEO: update/insert meta tags + Schema.org JSON-LD so
 // each /therapists/X/ has unique title, description, OG tags,
 // and structured data. Injected client-side after the therapist fetch
@@ -334,6 +348,7 @@ function buildTherapistJsonLd(t) {
         encodeURIComponent(t.license_number),
     );
   }
+  var photoUrl = safeExternalUrl(t.photo_url);
   var person = {
     "@context": "https://schema.org",
     "@type": "Person",
@@ -343,7 +358,7 @@ function buildTherapistJsonLd(t) {
     knowsAbout: ["Bipolar disorder", "Psychotherapy", "Mental health"],
     address: address,
     description: bioDescription,
-    image: t.photo_url || undefined,
+    image: photoUrl || undefined,
     telephone: t.phone || undefined,
     email: t.email || undefined,
     sameAs: sameAsLinks.length > 0 ? sameAsLinks : undefined,
@@ -427,8 +442,9 @@ function applyTherapistSeo(t) {
   upsertMeta("property", "og:url", canonicalUrl);
   upsertMeta("property", "og:title", seoTitle);
   upsertMeta("property", "og:description", seoDescription);
-  if (t.photo_url) {
-    upsertMeta("property", "og:image", t.photo_url);
+  var photoUrl = safeExternalUrl(t.photo_url);
+  if (photoUrl) {
+    upsertMeta("property", "og:image", photoUrl);
   }
   upsertMeta("name", "twitter:card", "summary");
   upsertMeta("name", "twitter:title", seoTitle);
@@ -604,7 +620,7 @@ function buildFAQItems(t) {
 // ─── Mobile sticky CTA bar ────────────────────────────────────────────────────
 function buildMobileStickyBar(t) {
   var phone = t.phone || null;
-  var website = t.website || t.booking_url || null;
+  var website = safeExternalUrl(t.website) || safeExternalUrl(t.booking_url);
   var phoneDigits = phone ? phone.replace(/[^0-9+]/g, "") : null;
   var fee_min = t.session_fee_min;
   var fee_max = t.session_fee_max;
@@ -1643,22 +1659,24 @@ function renderProfile(t, therapistDirectory) {
   })();
   var firstStepExpectation = String(t.first_step_expectation || "").trim();
   var contactQuestionItems = [];
-  var bookingHealthy = isBookingRouteHealthy(t);
-  var websiteHealthy = isWebsiteRouteHealthy(t);
+  var bookingUrl = safeExternalUrl(t.booking_url);
+  var websiteUrl = safeExternalUrl(t.website);
+  var bookingHealthy = Boolean(bookingUrl) && isBookingRouteHealthy(t);
+  var websiteHealthy = Boolean(websiteUrl) && isWebsiteRouteHealthy(t);
   function buildPreferredContactButton() {
-    if (t.preferred_contact_method === "booking" && t.booking_url && bookingHealthy) {
+    if (t.preferred_contact_method === "booking" && bookingUrl && bookingHealthy) {
       return (
         '<a href="' +
-        escapeHtml(t.booking_url) +
+        escapeHtml(bookingUrl) +
         '" target="_blank" rel="noopener noreferrer" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">' +
         escapeHtml(primaryContactLabel || "Book consultation") +
         "</a>"
       );
     }
-    if (t.preferred_contact_method === "website" && t.website && websiteHealthy) {
+    if (t.preferred_contact_method === "website" && websiteUrl && websiteHealthy) {
       return (
         '<a href="' +
-        escapeHtml(t.website) +
+        escapeHtml(websiteUrl) +
         '" target="_blank" rel="noopener noreferrer" class="btn-contact" data-profile-contact-route="website" data-profile-contact-priority="primary">' +
         escapeHtml(primaryContactLabel || "Visit " + therapistFirstName + "'s website →") +
         "</a>"
@@ -1701,10 +1719,10 @@ function renderProfile(t, therapistDirectory) {
         '" class="btn-contact" data-profile-contact-route="email" data-profile-contact-priority="primary">Send an email →</a>'
       );
     }
-    if (t.booking_url && bookingHealthy) {
+    if (bookingUrl && bookingHealthy) {
       return (
         '<a href="' +
-        escapeHtml(t.booking_url) +
+        escapeHtml(bookingUrl) +
         '" target="_blank" rel="noopener noreferrer" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">Book a consultation →</a>'
       );
     }
@@ -1731,16 +1749,16 @@ function renderProfile(t, therapistDirectory) {
       escapeHtml(t.email) +
       '" class="btn-contact btn-contact-secondary" data-profile-contact-route="email" data-profile-contact-priority="secondary">Email</a>';
   }
-  if (t.website && websiteHealthy && t.preferred_contact_method !== "website") {
+  if (websiteUrl && websiteHealthy && t.preferred_contact_method !== "website") {
     contactBtns +=
       '<a href="' +
-      escapeHtml(t.website) +
+      escapeHtml(websiteUrl) +
       '" target="_blank" rel="noopener noreferrer" class="btn-website" data-profile-contact-route="website" data-profile-contact-priority="secondary">Visit website</a>';
   }
-  if (t.booking_url && bookingHealthy && t.preferred_contact_method !== "booking") {
+  if (bookingUrl && bookingHealthy && t.preferred_contact_method !== "booking") {
     contactBtns +=
       '<a href="' +
-      escapeHtml(t.booking_url) +
+      escapeHtml(bookingUrl) +
       '" target="_blank" rel="noopener noreferrer" class="btn-website" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
   }
 
@@ -1856,16 +1874,16 @@ function renderProfile(t, therapistDirectory) {
     secondaryButtons +=
       '<a href="mailto:' + escapeHtml(t.email) + '" class="btn-website">Email</a>';
   }
-  if (t.website && websiteHealthy && t.preferred_contact_method !== "website") {
+  if (websiteUrl && websiteHealthy && t.preferred_contact_method !== "website") {
     secondaryButtons +=
       '<a href="' +
-      escapeHtml(t.website) +
+      escapeHtml(websiteUrl) +
       '" target="_blank" rel="noopener noreferrer" class="btn-website">Visit website</a>';
   }
-  if (t.booking_url && bookingHealthy && t.preferred_contact_method !== "booking") {
+  if (bookingUrl && bookingHealthy && t.preferred_contact_method !== "booking") {
     secondaryButtons +=
       '<a href="' +
-      escapeHtml(t.booking_url) +
+      escapeHtml(bookingUrl) +
       '" target="_blank" rel="noopener noreferrer" class="btn-website">Booking link</a>';
   }
   secondaryButtons +=
@@ -1951,24 +1969,15 @@ function renderProfile(t, therapistDirectory) {
       : { href: "/directory", label: "← Back to directory" };
 
   // ─── Hero card helpers (Step 5 redesign) ──────────────────────────────
-  // 6-color avatar palette per redesign spec. Hash on slug so a clinician's
-  // chip color stays stable across visits. Local to this page so we don't
-  // disturb the 4-color palette used in match cards.
-  var HERO_AVATAR_RAMPS = [
-    { bg: "#D6EFF6", ink: "#1C4D5C" }, // teal
-    { bg: "#E8E4F8", ink: "#3C3489" }, // purple
-    { bg: "#FAE8C0", ink: "#633806" }, // amber
-    { bg: "#D8EAF8", ink: "#0C447C" }, // blue
-    { bg: "#D4EDD9", ink: "#27500A" }, // sage
-    { bg: "#FAE0D6", ink: "#712B13" }, // coral
-  ];
-  function heroAvatarPalette(slug) {
+  // Hash on slug so a clinician's avatar tone stays stable across visits.
+  var HERO_AVATAR_TONE_COUNT = 6;
+  function heroAvatarTone(slug) {
     var key = String(slug || t.name || "");
     var hash = 0;
     for (var i = 0; i < key.length; i += 1) {
       hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
     }
-    return HERO_AVATAR_RAMPS[hash % HERO_AVATAR_RAMPS.length];
+    return hash % HERO_AVATAR_TONE_COUNT;
   }
   function heroInitials(name) {
     var titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
@@ -1983,15 +1992,13 @@ function renderProfile(t, therapistDirectory) {
     if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
-  var heroPalette = heroAvatarPalette(t.slug);
-  var heroAvatarHtml = t.photo_url
+  var heroPhotoUrl = safeExternalUrl(t.photo_url);
+  var heroAvatarHtml = heroPhotoUrl
     ? '<img src="' +
-      escapeHtml(t.photo_url) +
+      escapeHtml(heroPhotoUrl) +
       '" alt="" class="profile-hero-avatar" loading="lazy" decoding="async" />'
-    : '<span class="profile-hero-avatar" style="background:' +
-      heroPalette.bg +
-      ";color:" +
-      heroPalette.ink +
+    : '<span class="profile-hero-avatar profile-hero-avatar--tone-' +
+      heroAvatarTone(t.slug) +
       '">' +
       escapeHtml(heroInitials(t.name)) +
       "</span>";
@@ -2366,7 +2373,7 @@ function renderProfile(t, therapistDirectory) {
         : isFirst && !faqAcceptingOpen
           ? "ti ti-chevron-down"
           : "ti ti-chevron-down";
-      var iconStyle = isOpen ? ' style="color:#3b9b5a"' : "";
+      var iconSuccessClass = isOpen ? " profile-faq-icon--success" : "";
       return (
         '<div class="profile-faq-item' +
         (isOpen ? " is-open" : "") +
@@ -2381,9 +2388,8 @@ function renderProfile(t, therapistDirectory) {
         "</span>" +
         '<i class="' +
         iconClass +
-        '" aria-hidden="true"' +
-        iconStyle +
-        "></i>" +
+        iconSuccessClass +
+        '" aria-hidden="true"></i>' +
         "</button>" +
         '<div class="profile-faq-a"' +
         (isOpen ? "" : " hidden") +
@@ -2425,8 +2431,8 @@ function renderProfile(t, therapistDirectory) {
   // toggles bth_saved_therapists in localStorage and pings the nav badge.
   var sideHasPhone = Boolean(t.phone);
   var sideHasEmail = isRealEmail(t.email);
-  var sideHasWebsite = Boolean(t.website);
-  var sideHasBooking = Boolean(t.booking_url) && t.booking_url !== t.website;
+  var sideHasWebsite = Boolean(websiteUrl);
+  var sideHasBooking = Boolean(bookingUrl) && bookingUrl !== websiteUrl;
   var preferredContactRaw = String(t.preferred_contact_method || "").trim();
   var preferredContactLabelMap = {
     phone: "Phone first.",
@@ -2481,7 +2487,7 @@ function renderProfile(t, therapistDirectory) {
       '<div class="profile-side-item">' +
       '<i class="ti ti-world" aria-hidden="true"></i>' +
       '<a href="' +
-      escapeHtml(t.website) +
+      escapeHtml(websiteUrl) +
       '" target="_blank" rel="noopener noreferrer">Practice website →</a>' +
       "</div>";
   }
@@ -2490,7 +2496,7 @@ function renderProfile(t, therapistDirectory) {
       '<div class="profile-side-item">' +
       '<i class="ti ti-calendar" aria-hidden="true"></i>' +
       '<a href="' +
-      escapeHtml(t.booking_url) +
+      escapeHtml(bookingUrl) +
       '" target="_blank" rel="noopener noreferrer">Book a consultation →</a>' +
       "</div>";
   }
