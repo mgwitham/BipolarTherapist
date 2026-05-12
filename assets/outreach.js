@@ -16,7 +16,9 @@ const state = {
 
 function relTime(dateStr) {
   if (!dateStr) return "";
-  const diff = Date.now() - new Date(dateStr).getTime();
+  const time = new Date(dateStr).getTime();
+  if (!Number.isFinite(time)) return "";
+  const diff = Date.now() - time;
   const mins = Math.floor(diff / 60000);
   if (mins < 1) return "just now";
   if (mins < 60) return `${mins}m ago`;
@@ -25,6 +27,32 @@ function relTime(dateStr) {
   const days = Math.floor(hrs / 24);
   if (days < 30) return `${days}d ago`;
   return new Date(dateStr).toLocaleDateString();
+}
+
+function safeExternalUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
+function safeProfileUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.startsWith("/") && !raw.startsWith("//")) return raw;
+  return safeExternalUrl(raw);
+}
+
+function getContactFormUrl(t) {
+  return safeExternalUrl((t && (t.website || t.sourceUrl)) || "");
+}
+
+function therapistPath(id) {
+  return `/therapist/${encodeURIComponent(String(id || ""))}`;
 }
 
 const STATUS_LABELS = {
@@ -83,7 +111,8 @@ function toast(msg, type = "success") {
 async function apiPost(path, body) {
   const r = await fetch(`${API}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const data = await r.json().catch(() => ({}));
@@ -93,7 +122,11 @@ async function apiPost(path, body) {
 async function apiGet(path, params = {}) {
   const filtered = Object.entries(params).filter(([, v]) => v != null && v !== "");
   const q = new URLSearchParams(filtered).toString();
-  const r = await fetch(`${API}${path}${q ? "?" + q : ""}`);
+  const r = await fetch(`${API}${path}${q ? "?" + q : ""}`, {
+    cache: "no-store",
+    credentials: "same-origin",
+    headers: { Accept: "application/json" },
+  });
   const data = await r.json().catch(() => null);
   return { ok: r.ok, status: r.status, data };
 }
@@ -101,7 +134,8 @@ async function apiGet(path, params = {}) {
 async function apiPatch(path, body) {
   const r = await fetch(`${API}${path}`, {
     method: "PATCH",
-    headers: { "Content-Type": "application/json" },
+    credentials: "same-origin",
+    headers: { Accept: "application/json", "Content-Type": "application/json" },
     body: JSON.stringify(body),
   });
   const data = await r.json().catch(() => ({}));
@@ -303,7 +337,7 @@ function refreshTable() {
       const sent = t.outreach?.emailsSent || 0;
       const last = t.outreach?.lastContactedAt;
       const dueBg = isFollowUpDue(t) ? "background:#fffbeb;" : "";
-      const channel = t.email ? "email" : t.website || t.sourceUrl ? "form" : "";
+      const channel = t.email ? "email" : getContactFormUrl(t) ? "form" : "";
       const sendLabel = !channel
         ? ""
         : s === "not_contacted"
@@ -391,6 +425,8 @@ function renderPanelContent(t) {
   const emailLog = (t.outreach?.emailLog || []).slice().reverse();
   const isInactive = TERMINAL_STATUSES.has(status);
   const defaultTemplate = status === "not_contacted" ? "email_1" : "follow_up";
+  const contactFormUrl = getContactFormUrl(t);
+  const profileUrl = safeProfileUrl(t.profileUrl);
   // Quick-action reply buttons make sense after we've contacted them
   // but before they've reached a terminal status. Keeps the dropdown-
   // and-Save dance off the most common reply outcomes.
@@ -400,9 +436,9 @@ function renderPanelContent(t) {
     <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
       <div>
         <div style="font-size:16px;font-weight:700;">${esc(t.name || "-")}</div>
-        ${t.profileUrl ? `<a href="${esc(t.profileUrl)}" target="_blank" rel="noopener" style="font-size:12px;color:#2a5f6e;margin-top:4px;display:inline-block;">View live profile →</a>` : ""}
+        ${profileUrl ? `<a href="${esc(profileUrl)}" target="_blank" rel="noopener" style="font-size:12px;color:#2a5f6e;margin-top:4px;display:inline-block;">View live profile →</a>` : ""}
       </div>
-      <button id="panel-close" style="background:none;border:none;font-size:22px;color:#9ca3af;line-height:1;padding:0;flex-shrink:0;">×</button>
+      <button id="panel-close" type="button" aria-label="Close panel" style="background:none;border:none;font-size:22px;color:#9ca3af;line-height:1;padding:0;flex-shrink:0;">×</button>
     </div>
 
     <div class="panel-section">
@@ -449,7 +485,11 @@ function renderPanelContent(t) {
             ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;font-size:13px;color:#92400e;">
                 No email or website on file. Can't reach this therapist.
               </div>`
-            : gmailComposerHtml(t, defaultTemplate, t.email ? "email" : "form")
+            : !t.email && !contactFormUrl
+              ? `<div style="background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:12px;font-size:13px;color:#92400e;">
+                  Website is not a safe http(s) URL. Verify the profile before opening a contact form.
+                </div>`
+              : gmailComposerHtml(t, defaultTemplate, t.email ? "email" : "form")
       }
     </div>
 
@@ -495,8 +535,7 @@ function firstName(fullName) {
 // pre-fills these into editable inputs; the user edits before sending.
 function getTemplateDefaults(template, t) {
   const first = firstName(t.name);
-  const city = t.city || "California";
-  const profileUrl = t.profileUrl || "[your profile URL]";
+  const profileUrl = safeProfileUrl(t.profileUrl) || "[your profile URL]";
   if (template === "follow_up") {
     return {
       subject: `One more thing about your bipolar patients`,
@@ -541,7 +580,7 @@ BipolarTherapyHub`,
 function gmailComposerHtml(t, defaultTemplate, mode) {
   const fromAddress = "Michael <michael@bipolartherapyhub.com>";
   const isFormMode = mode === "form";
-  const target = t.website || t.sourceUrl || "";
+  const target = getContactFormUrl(t);
   const defaults = getTemplateDefaults(defaultTemplate, t);
 
   const headerRow = (label, value) => `
@@ -658,7 +697,7 @@ function setupPanelListeners(t) {
   });
 
   async function applyStatus(newStatus) {
-    const { ok } = await apiPatch(`/therapist/${t._id}`, { status: newStatus });
+    const { ok } = await apiPatch(therapistPath(t._id), { status: newStatus });
     if (ok) {
       mutateTherapist(t._id, (th) => {
         if (!th.outreach) th.outreach = {};
@@ -712,10 +751,18 @@ function setupPanelListeners(t) {
   document.getElementById("open-form-btn")?.addEventListener("click", async () => {
     const btn = document.getElementById("open-form-btn");
     const msgEl = document.getElementById("send-msg");
-    const target = btn.dataset.target;
+    const target = safeExternalUrl(btn.dataset.target);
     const composer = readComposer();
     if (!composer) return;
     if (msgEl) msgEl.textContent = "";
+
+    if (!target) {
+      if (msgEl) {
+        msgEl.textContent = "Contact page URL is not safe to open.";
+        msgEl.style.color = "#ef4444";
+      }
+      return;
+    }
 
     if (!composer.subject || !composer.body) {
       if (msgEl) {
@@ -735,7 +782,8 @@ function setupPanelListeners(t) {
       }
     }
 
-    window.open(target, "_blank", "noopener");
+    const opened = window.open(target, "_blank", "noopener");
+    if (opened) opened.opener = null;
 
     btn.disabled = true;
     btn.textContent = "Logging…";
@@ -880,7 +928,7 @@ function setupPanelListeners(t) {
     const notes = document.getElementById("panel-notes")?.value ?? "";
     btn.disabled = true;
     btn.textContent = "Saving…";
-    const { ok } = await apiPatch(`/therapist/${t._id}`, { notes });
+    const { ok } = await apiPatch(therapistPath(t._id), { notes });
     btn.disabled = false;
     btn.textContent = "Save notes";
     if (ok) {
