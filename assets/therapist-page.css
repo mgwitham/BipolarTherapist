@@ -2407,6 +2407,12 @@ footer {
 footer p {
   font-size: 0.78rem;
 }
+.profile-footer-brand {
+  margin-bottom: 0.4rem;
+}
+.profile-footer-brand strong {
+  color: #fff;
+}
 footer a {
   color: rgba(255, 255, 255, 0.5);
   text-decoration: none;
@@ -3344,6 +3350,30 @@ img.bth-avatar {
   object-fit: cover;
   letter-spacing: 0.01em;
 }
+.profile-hero-avatar--tone-0 {
+  background: #d6eff6;
+  color: #1c4d5c;
+}
+.profile-hero-avatar--tone-1 {
+  background: #e8e4f8;
+  color: #3c3489;
+}
+.profile-hero-avatar--tone-2 {
+  background: #fae8c0;
+  color: #633806;
+}
+.profile-hero-avatar--tone-3 {
+  background: #d8eaf8;
+  color: #0c447c;
+}
+.profile-hero-avatar--tone-4 {
+  background: #d4edd9;
+  color: #27500a;
+}
+.profile-hero-avatar--tone-5 {
+  background: #fae0d6;
+  color: #712b13;
+}
 .profile-hero-meta {
   min-width: 0;
   flex: 1;
@@ -3852,6 +3882,9 @@ img.bth-avatar {
   font-size: 16px;
   color: #4a9db5;
   flex-shrink: 0;
+}
+.profile-faq-q i.profile-faq-icon--success {
+  color: #3b9b5a;
 }
 .profile-faq-a {
   font-size: 13.5px;

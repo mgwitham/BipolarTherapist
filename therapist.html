@@ -1,17 +1,9 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q22R5G7VB5"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
-      gtag("config", "G-Q22R5G7VB5");
-    </script>
+    <script type="module" src="/assets/site-analytics.js"></script>
     <meta charset="UTF-8" />
+    <link rel="preconnect" href="https://www.googletagmanager.com" />
     <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -149,8 +141,8 @@
     </aside>
 
     <footer>
-      <p style="margin-bottom: 0.4rem">
-        <strong style="color: white">BipolarTherapyHub</strong>
+      <p class="profile-footer-brand">
+        <strong>BipolarTherapyHub</strong>
       </p>
       <p class="footer-legal">
         <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
@@ -223,12 +215,6 @@
     <script type="module" src="/assets/therapist-page.js"></script>
     <script type="module" src="/assets/shortlist-nav.js"></script>
     <script type="module" src="/assets/nav.js"></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function () {
-          navigator.serviceWorker.register("/sw.js");
-        });
-      }
-    </script>
+    <script type="module" src="/assets/register-sw.js"></script>
   </body>
 </html>
