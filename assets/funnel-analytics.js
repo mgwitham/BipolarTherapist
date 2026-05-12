@@ -1,18 +1,20 @@
-import { inject, track as vercelTrack } from "@vercel/analytics";
-
 var vercelAnalyticsInjected = false;
-function ensureVercelAnalyticsInjected() {
+var vercelAnalyticsPromise = null;
+function loadVercelAnalytics() {
   if (vercelAnalyticsInjected || typeof window === "undefined") {
-    return;
+    return vercelAnalyticsPromise;
   }
   vercelAnalyticsInjected = true;
-  try {
-    inject();
-  } catch (_error) {
-    // analytics is best-effort
-  }
+  vercelAnalyticsPromise = import("@vercel/analytics")
+    .then(function (analytics) {
+      analytics.inject();
+      return analytics;
+    })
+    .catch(function () {
+      return null;
+    });
+  return vercelAnalyticsPromise;
 }
-ensureVercelAnalyticsInjected();
 
 function flattenEventPayloadForVercel(payload) {
   if (!payload || typeof payload !== "object") {
@@ -46,14 +48,20 @@ function forwardEventToVercel(type, payload) {
   if (typeof window === "undefined") {
     return;
   }
-  try {
-    vercelTrack(type, flattenEventPayloadForVercel(payload));
-  } catch (_error) {
-    // best-effort
-  }
+  loadVercelAnalytics()
+    .then(function (analytics) {
+      if (!analytics || typeof analytics.track !== "function") {
+        return;
+      }
+      analytics.track(type, flattenEventPayloadForVercel(payload));
+    })
+    .catch(function () {
+      // best-effort
+    });
 }
 
 var FUNNEL_EVENTS_KEY = "bth_funnel_events_v1";
+var FUNNEL_EVENTS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 var EXPERIMENT_ASSIGNMENTS_KEY = "bth_experiment_assignments_v1";
 var EXPERIMENT_EXPOSURES_KEY = "bth_experiment_exposures_v1";
 var EXPERIMENT_PROMOTIONS_KEY = "bth_experiment_promotions_v1";
@@ -64,13 +72,27 @@ var experimentExposuresCache = null;
 var experimentPromotionsCache = null;
 var therapistContactRouteMemoryCache = null;
 
+function pruneFunnelEvents(events) {
+  var now = Date.now();
+  return (Array.isArray(events) ? events : []).filter(function (event) {
+    if (!event || !event.created_at) {
+      return false;
+    }
+    var ageMs = now - new Date(event.created_at).getTime();
+    return Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= FUNNEL_EVENTS_TTL_MS;
+  });
+}
+
 export function readFunnelEvents() {
   if (Array.isArray(funnelEventsCache)) {
+    funnelEventsCache = pruneFunnelEvents(funnelEventsCache);
     return funnelEventsCache.slice();
   }
 
   try {
-    funnelEventsCache = JSON.parse(window.localStorage.getItem(FUNNEL_EVENTS_KEY) || "[]");
+    funnelEventsCache = pruneFunnelEvents(
+      JSON.parse(window.localStorage.getItem(FUNNEL_EVENTS_KEY) || "[]"),
+    );
   } catch (_error) {
     funnelEventsCache = [];
   }

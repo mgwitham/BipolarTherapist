@@ -85,7 +85,7 @@ function runNav({ local = {}, session = {} } = {}) {
 
 test("nav state: a stored homepage ZIP does not imply matches exist", () => {
   const { desktopLink, mobileLink, mobileTitle, mobileCopy } = runNav({
-    local: {
+    session: {
       bth_last_search: JSON.stringify({ interest: "therapist", location_query: "90019" }),
     },
   });
