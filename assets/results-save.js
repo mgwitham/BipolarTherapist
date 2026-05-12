@@ -1,4 +1,3 @@
-/* global CSS */
 // Save / bookmark state for results.html cards.
 //
 // Backed by saved-list.js — the single source of truth shared with
@@ -6,7 +5,14 @@
 // Visual responsibilities here are just keeping the card's pressed
 // state + bookmark icon in sync with the canonical list.
 
-import { isSaved, toggleSaved, readList, subscribe } from "./saved-list.js";
+import { toggleSaved, readList, subscribe } from "./saved-list.js";
+
+function escapeCssIdent(value) {
+  if (window.CSS && typeof window.CSS.escape === "function") {
+    return window.CSS.escape(value);
+  }
+  return String(value || "").replace(/["\\]/g, "\\$&");
+}
 
 function getCardId(el) {
   const card = el.closest("[data-card]");
@@ -14,7 +20,7 @@ function getCardId(el) {
 }
 
 function applyCardState(id, savedState) {
-  document.querySelectorAll(`[data-card][data-card-id="${CSS.escape(id)}"]`).forEach((card) => {
+  document.querySelectorAll(`[data-card][data-card-id="${escapeCssIdent(id)}"]`).forEach((card) => {
     card.classList.toggle("is-saved", savedState);
     card.querySelectorAll("[data-card-save]").forEach((btn) => {
       btn.setAttribute("aria-pressed", savedState ? "true" : "false");
@@ -24,7 +30,9 @@ function applyCardState(id, savedState) {
         icon.classList.toggle("ti-bookmark", !savedState);
       }
       // CTA-row Save text swaps to Saved.
-      const text = btn.querySelector(".card-save-text, .card-cta-secondary-sm > span");
+      const text = btn.querySelector(
+        ".card-save-label, .card-save-text, .card-cta-secondary-sm > span",
+      );
       if (text) text.textContent = savedState ? "Saved" : "Save";
     });
   });

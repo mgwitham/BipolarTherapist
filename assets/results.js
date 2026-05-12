@@ -23,7 +23,8 @@ function getInitials(name) {
   const parts = String(name || "")
     .replace(/[^A-Za-z\s]/g, "")
     .trim()
-    .split(/\s+/);
+    .split(/\s+/)
+    .filter(Boolean);
   if (!parts.length) return "?";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
@@ -124,6 +125,11 @@ function profileHref(therapist) {
   return `/therapists/${encodeURIComponent(therapist.slug || "")}`;
 }
 
+function hasRenderableTherapist(entry) {
+  const therapist = entry && entry.therapist;
+  return Boolean(therapist && String(therapist.slug || "").trim());
+}
+
 /* ── card builders ───────────────────────────────────────── */
 
 function renderFeaturedCard(entry, profile) {
@@ -204,9 +210,11 @@ function showState(state) {
   const list = document.querySelector("[data-results-list]");
   const skeleton = document.querySelector("[data-results-skeleton]");
   const empty = document.querySelector("[data-results-empty]");
+  const error = document.querySelector("[data-results-error]");
   const footer = document.querySelector("[data-results-footer]");
   if (skeleton) skeleton.hidden = state !== "loading";
   if (empty) empty.hidden = state !== "empty";
+  if (error) error.hidden = state !== "error";
   if (footer) footer.hidden = state !== "loaded";
   if (list) {
     // Hide cards container while loading or empty.
@@ -244,10 +252,22 @@ async function bootstrap() {
     therapists = await fetchPublicTherapists({ strict: false });
   } catch (err) {
     console.error("results: therapist fetch failed", err);
-    therapists = [];
+    renderHeader(profile, 0);
+    try {
+      window.sessionStorage.removeItem("matchResultsUrl");
+    } catch (_e) {
+      /* ignore */
+    }
+    showState("error");
+    document.dispatchEvent(
+      new CustomEvent("results:rendered", { detail: { count: 0, error: true } }),
+    );
+    return;
   }
 
-  const entries = rankTherapistsForUser(therapists, profile, null).slice(0, PRIMARY_LIMIT);
+  const entries = rankTherapistsForUser(therapists, profile, null)
+    .filter(hasRenderableTherapist)
+    .slice(0, PRIMARY_LIMIT);
   renderHeader(profile, entries.length);
 
   if (!entries.length) {
