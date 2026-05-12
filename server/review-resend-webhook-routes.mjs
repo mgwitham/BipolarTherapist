@@ -121,6 +121,61 @@ export async function handleResendWebhookRoutes(context) {
 
   const type = event?.type || "";
   const recipients = Array.isArray(event?.data?.to) ? event.data.to : [];
+
+  // email.opened — look up the originating send by its Resend message id and
+  // stamp openedAt on that emailLog entry. First open wins so the metric
+  // reflects unique-opener rate rather than total opens.
+  if (type === "email.opened") {
+    const resendId = event?.data?.email_id || "";
+    if (!resendId) {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ ok: true, noop: true, reason: "no email_id" }));
+      return true;
+    }
+    let match;
+    try {
+      match = await client.fetch(
+        `*[_type == "therapist" && $resendId in outreach.emailLog[].resendId][0]{
+          _id, outreach
+        }`,
+        { resendId },
+      );
+    } catch (err) {
+      log.error("resend opened lookup error", { err: err?.message || String(err) });
+      response.writeHead(500, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ error: "Sanity fetch failed" }));
+      return true;
+    }
+    if (!match) {
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ ok: true, matched: 0 }));
+      return true;
+    }
+    const existingLog = match?.outreach?.emailLog || [];
+    const idx = existingLog.findIndex((e) => e?.resendId === resendId);
+    if (idx === -1 || existingLog[idx]?.openedAt) {
+      // Either already opened (idempotent) or somehow no entry — ack.
+      response.writeHead(200, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ ok: true, alreadyOpened: idx !== -1 }));
+      return true;
+    }
+    const openedAt = new Date().toISOString();
+    try {
+      await client
+        .patch(match._id)
+        .set({ [`outreach.emailLog[${idx}].openedAt`]: openedAt })
+        .commit({ visibility: "async" });
+    } catch (err) {
+      log.error("resend opened patch failed", { id: match._id, err: err?.message || String(err) });
+      response.writeHead(500, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ error: "Sanity patch failed" }));
+      return true;
+    }
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ ok: true, opened: 1 }));
+    return true;
+  }
+
   if (recipients.length === 0) {
     response.writeHead(200, { "Content-Type": "application/json" });
     response.end(JSON.stringify({ ok: true, noop: true }));
@@ -133,7 +188,7 @@ export async function handleResendWebhookRoutes(context) {
   };
   const newStatus = STATUS_BY_TYPE[type];
   if (!newStatus) {
-    // Other events (delivered, opened, clicked) ack silently.
+    // Other events (delivered, clicked) ack silently.
     response.writeHead(200, { "Content-Type": "application/json" });
     response.end(JSON.stringify({ ok: true, noop: true }));
     return true;

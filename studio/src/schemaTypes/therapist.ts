@@ -981,6 +981,20 @@ export const therapistType = defineType({
                 defineField({ name: "subject", title: "Subject", type: "string" }),
                 defineField({ name: "template", title: "Template", type: "string" }),
                 defineField({ name: "body", title: "Body", type: "text", rows: 6 }),
+                defineField({
+                  name: "resendId",
+                  title: "Resend message id",
+                  type: "string",
+                  description:
+                    "Message id returned by the Resend API. Used to match open/delivery webhook events back to this send.",
+                }),
+                defineField({
+                  name: "openedAt",
+                  title: "Opened at",
+                  type: "datetime",
+                  description:
+                    "First time Resend reported an open for this send. Subsequent opens are ignored.",
+                }),
               ],
               preview: {
                 select: { title: "template", subtitle: "sentAt" },
