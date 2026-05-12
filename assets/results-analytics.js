@@ -12,9 +12,12 @@ function cardPayload(card) {
   };
 }
 
-trackFunnelEvent("match_results_page_viewed", {
-  card_count: document.querySelectorAll("[data-card]").length,
-  has_top_match: Boolean(document.querySelector(".featured-card")),
+document.addEventListener("results:rendered", (event) => {
+  trackFunnelEvent("match_results_page_viewed", {
+    card_count: Number(event.detail && event.detail.count) || 0,
+    has_top_match: Boolean(document.querySelector(".featured-card")),
+    render_error: Boolean(event.detail && event.detail.error),
+  });
 });
 
 document.addEventListener("click", (event) => {
