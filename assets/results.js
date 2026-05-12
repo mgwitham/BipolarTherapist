@@ -251,9 +251,20 @@ async function bootstrap() {
   renderHeader(profile, entries.length);
 
   if (!entries.length) {
+    try {
+      window.sessionStorage.removeItem("matchResultsUrl");
+    } catch (_e) {
+      /* ignore */
+    }
     showState("empty");
     document.dispatchEvent(new CustomEvent("results:rendered", { detail: { count: 0 } }));
     return;
+  }
+
+  try {
+    window.sessionStorage.setItem("matchResultsUrl", window.location.href);
+  } catch (_e) {
+    /* ignore */
   }
 
   const list = document.querySelector("[data-results-list]");

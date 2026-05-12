@@ -53,7 +53,11 @@
       }
       try {
         var url = new URL(value, window.location.origin);
-        var isMatchPath = url.pathname === "/match" || url.pathname === "/match.html";
+        var isMatchPath =
+          url.pathname === "/match" ||
+          url.pathname === "/match.html" ||
+          url.pathname === "/results" ||
+          url.pathname === "/results.html";
         if (url.origin !== window.location.origin || !isMatchPath) {
           return "";
         }
