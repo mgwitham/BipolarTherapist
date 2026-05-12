@@ -65,12 +65,31 @@ test("sign-in view: instruments funnel events for submit, failure, invalid email
 
 test("sign-in view: validates email format client-side before submit", () => {
   assert.match(portalJs, /EMAIL_REGEX\s*=/);
+  assert.match(portalJs, /function normalizeSignInEmail\(value\)/);
   assert.match(portalJs, /That doesn't look like a valid email/);
 });
 
 test("sign-in view: preserves anti-enumeration success copy", () => {
-  assert.match(portalJs, /linked to a claimed profile/);
+  assert.match(portalJs, /If that address is linked to a claimed profile/);
   assert.match(portalJs, /check your inbox/i);
+  assert.doesNotMatch(portalJs, /If " \+[\s\S]*email[\s\S]*\+ " is linked/);
+});
+
+test("sign-in view: blocks duplicate in-flight sign-in submissions", () => {
+  assert.match(portalJs, /var signInRequestInFlight = false/);
+  assert.match(portalJs, /if \(signInRequestInFlight\)/);
+  assert.match(portalJs, /signInRequestInFlight = true/);
+  assert.match(portalJs, /signInRequestInFlight = false/);
+});
+
+test("sign-in API request normalizes email and avoids cached submit responses", () => {
+  const start = reviewApiJs.indexOf("export async function requestTherapistSignIn");
+  assert.notEqual(start, -1);
+  const snippet = reviewApiJs.slice(start, start + 320);
+  assert.match(snippet, /trim\(\)/);
+  assert.match(snippet, /toLowerCase\(\)/);
+  assert.match(snippet, /cache:\s*"no-store"/);
+  assert.match(snippet, /body:\s*JSON\.stringify\(\{\s*email:\s*normalizedEmail\s*\}\)/);
 });
 
 test("portal claim session lookup posts magic-link tokens in the request body", () => {

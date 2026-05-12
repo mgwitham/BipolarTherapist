@@ -922,7 +922,11 @@ export async function handleClaimRoutes(context) {
         "If that email matches a claimed profile, we just sent a sign-in link. Valid for 24 hours.",
     };
 
-    if (!requesterEmail || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(requesterEmail)) {
+    if (
+      !requesterEmail ||
+      requesterEmail.length > 254 ||
+      !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(requesterEmail)
+    ) {
       sendJson(response, 400, { error: "Enter a valid email." }, origin, config);
       return true;
     }
@@ -957,18 +961,27 @@ export async function handleClaimRoutes(context) {
       slug: { current: resolvedSlug },
     };
 
-    await sendPortalClaimLink(
-      config,
-      therapistForEmail,
-      requesterEmail,
-      `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
-      { mode: "signin" },
-    );
+    try {
+      await sendPortalClaimLink(
+        config,
+        therapistForEmail,
+        requesterEmail,
+        `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
+        { mode: "signin" },
+      );
 
-    await client
-      .patch(therapist._id)
-      .set({ claimLinkRequests: rate.nextHistory })
-      .commit({ visibility: "sync" });
+      await client
+        .patch(therapist._id)
+        .set({ claimLinkRequests: rate.nextHistory })
+        .commit({ visibility: "sync" });
+    } catch (error) {
+      // Preserve the generic response contract so delivery outages or
+      // downstream write failures cannot become a claimed-email oracle.
+      log.error("Portal sign-in link delivery failed", {
+        requestId,
+        err: error?.message || String(error),
+      });
+    }
 
     sendJson(response, 200, GENERIC_SUCCESS, origin, config);
     return true;

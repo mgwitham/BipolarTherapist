@@ -419,9 +419,13 @@ export async function requestTherapistClaimLink(payload) {
 // generic success response to prevent email enumeration; the client
 // shows the same "check your inbox" message regardless.
 export async function requestTherapistSignIn(email) {
+  const normalizedEmail = String(email || "")
+    .trim()
+    .toLowerCase();
   return request("/portal/sign-in", {
+    cache: "no-store",
     method: "POST",
-    body: JSON.stringify({ email }),
+    body: JSON.stringify({ email: normalizedEmail }),
   });
 }
 

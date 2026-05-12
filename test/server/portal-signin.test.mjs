@@ -22,9 +22,11 @@ function buildContext(options) {
   const parseBody = async () => deepClone(bodyPayload);
 
   const emailsSent = [];
-  const sendPortalClaimLink = async (_config, therapist, email) => {
-    emailsSent.push({ slug: therapist && therapist.slug && therapist.slug.current, email });
-  };
+  const sendPortalClaimLink =
+    options.sendPortalClaimLink ||
+    (async (_config, therapist, email) => {
+      emailsSent.push({ slug: therapist && therapist.slug && therapist.slug.current, email });
+    });
 
   return {
     response,
@@ -133,6 +135,18 @@ test("sign-in: rejects malformed email with 400", async () => {
   assert.equal(response.statusCode, 400);
 });
 
+test("sign-in: rejects oversized email with 400", async () => {
+  const { client } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/sign-in",
+    client,
+    body: { email: `${"a".repeat(245)}@example.com` },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 400);
+});
+
 test("sign-in: rejects missing email with 400", async () => {
   const { client } = createMemoryClient();
   const { response, context } = buildContext({
@@ -143,6 +157,23 @@ test("sign-in: rejects missing email with 400", async () => {
   });
   await handleAuthAndPortalRoutes(context);
   assert.equal(response.statusCode, 400);
+});
+
+test("sign-in: delivery failure returns generic success without leaking claimed email", async () => {
+  const { client } = createMemoryClient({ "therapist-claimed": seedClaimed() });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/sign-in",
+    client,
+    body: { email: "jamie@work.com" },
+    sendPortalClaimLink: async () => {
+      throw new Error("email provider unavailable");
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.ok, true);
+  assert.match(response.payload.message, /If that email matches a claimed profile/);
 });
 
 test("sign-in: rate limit silently drops without leaking enumeration signal", async () => {
