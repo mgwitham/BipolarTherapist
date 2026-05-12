@@ -469,22 +469,20 @@
             </div>
           </section>
 
-          <!-- Step 6: Bipolar subtype chip multi-select. Wires to
-               filters.specialty (the array shape introduced in step 4).
-               The legacy <select id="bipolar_experience"> moves below
-               into the new chip-single-select section. The specialty
-               filter never had a UI before this step. -->
           <section class="dir-vb-section">
             <div class="dir-vb-section-head">
-              <h3 id="specialtyPanelTitle">Bipolar subtype</h3>
+              <h3>Therapist gender</h3>
             </div>
             <div class="dir-vb-section-body">
-              <div
-                class="dir-drawer-chip-group"
-                data-drawer-chip-picker="specialty"
-                role="group"
-                aria-label="Bipolar subtype"
-              ></div>
+              <div class="filter-group">
+                <label for="gender">Gender</label>
+                <select id="gender">
+                  <option value="">Any gender</option>
+                  <option value="female">Female</option>
+                  <option value="male">Male</option>
+                  <option value="non_binary">Non-binary</option>
+                </select>
+              </div>
             </div>
           </section>
 
@@ -597,18 +595,15 @@
 
           <section class="dir-vb-section">
             <div class="dir-vb-section-head">
-              <h3>Therapist gender</h3>
+              <h3 id="specialtyPanelTitle">Bipolar subtype</h3>
             </div>
             <div class="dir-vb-section-body">
-              <div class="filter-group">
-                <label for="gender">Gender</label>
-                <select id="gender">
-                  <option value="">Any gender</option>
-                  <option value="female">Female</option>
-                  <option value="male">Male</option>
-                  <option value="non_binary">Non-binary</option>
-                </select>
-              </div>
+              <div
+                class="dir-drawer-chip-group"
+                data-drawer-chip-picker="specialty"
+                role="group"
+                aria-label="Bipolar subtype"
+              ></div>
             </div>
           </section>
         </div>
