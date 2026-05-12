@@ -20,6 +20,17 @@ import { patchTherapistProfile, uploadPortalPhoto } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { escapeHtml } from "./escape-html.js";
 
+function safeExternalUrl(value) {
+  var raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    var url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch (_error) {
+    return "";
+  }
+}
+
 // ─── Score model (mirrors TD-A header) ────────────────────────────────
 
 // 100-point system. Every field in FIELD_REGISTRY carries a `pts` value;
@@ -869,7 +880,8 @@ function renderContactRouteForm(t) {
 }
 
 function renderHeadshotForm(t) {
-  var has = Boolean(t.photo_url);
+  var photoUrl = safeExternalUrl(t.photo_url);
+  var has = Boolean(photoUrl);
   return (
     '<div class="td-form td-form-headshot">' +
     '<div class="td-headshot-row">' +
@@ -877,7 +889,7 @@ function renderHeadshotForm(t) {
     (has ? " has-photo" : "") +
     '">' +
     (has
-      ? '<img src="' + escapeHtml(t.photo_url) + '" alt="" />'
+      ? '<img src="' + escapeHtml(photoUrl) + '" alt="" />'
       : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true">' +
         '<path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>' +
         '<path d="M4 21a8 8 0 0 1 16 0"/></svg>') +

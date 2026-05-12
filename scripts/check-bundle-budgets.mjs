@@ -41,6 +41,11 @@ const BUDGETS = [
 
   // Therapist-facing — looser. Subscribers tolerate a heavier portal.
   { pattern: /^assets\/portal-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 38, label: "portal.js" },
+  {
+    pattern: /^assets\/portal-checkout-return-[A-Za-z0-9_]{8,12}\.js$/,
+    maxKb: 3,
+    label: "portal-checkout-return.js",
+  },
   { pattern: /^assets\/signup-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 35, label: "signup.js" },
   { pattern: /^assets\/claim-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 35, label: "claim.js" },
 

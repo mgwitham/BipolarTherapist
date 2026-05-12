@@ -27,7 +27,6 @@ import {
   fetchTherapistSubscription,
   getTherapistSessionToken,
   patchTherapistProfile,
-  requestTherapistClaimLink,
   requestTherapistSignIn,
   setTherapistSessionToken,
   signOutTherapistSession,
@@ -38,20 +37,6 @@ var slug = new URLSearchParams(window.location.search).get("slug") || "";
 var token = new URLSearchParams(window.location.search).get("token") || "";
 var devLoginEmail = new URLSearchParams(window.location.search).get("dev_login") || "";
 var claimSessionState = null;
-
-function normalizeSlugInput(value) {
-  var raw = String(value || "").trim();
-  if (!raw) {
-    return "";
-  }
-
-  try {
-    var url = new URL(raw);
-    return url.searchParams.get("slug") || raw;
-  } catch (_error) {
-    return raw;
-  }
-}
 
 function scrubMagicLinkTokenFromUrl(nextSlug) {
   try {
@@ -88,74 +73,6 @@ function formatDate(value) {
     month: "short",
     day: "numeric",
   });
-}
-
-function getClaimStatusLabel(value) {
-  if (value === "claimed") {
-    return "Claimed";
-  }
-  if (value === "claim_requested") {
-    return "Claim requested";
-  }
-  return "Unclaimed";
-}
-
-function getPhotoStatusLabel(therapist) {
-  if (therapist.photo_source_type === "therapist_uploaded") {
-    return "Therapist-uploaded headshot on file";
-  }
-  if (therapist.photo_source_type === "practice_uploaded") {
-    return "Practice-uploaded headshot on file";
-  }
-  if (therapist.photo_source_type === "public_source") {
-    return "Using public-source fallback photo";
-  }
-  return "No preferred headshot on file yet";
-}
-
-function getContactRouteLabel(therapist) {
-  if (therapist.preferred_contact_label) {
-    return therapist.preferred_contact_label;
-  }
-  if (therapist.preferred_contact_method === "booking_url") {
-    return "Booking link";
-  }
-  if (therapist.preferred_contact_method === "email") {
-    return "Email";
-  }
-  if (therapist.preferred_contact_method === "phone") {
-    return "Phone";
-  }
-  if (therapist.preferred_contact_method === "website") {
-    return "Website";
-  }
-  return "Profile contact path";
-}
-
-function getQuickAttentionItems(therapist) {
-  var items = [];
-  if (therapist.claim_status !== "claimed") {
-    items.push("Confirm profile ownership so future updates are easier to manage.");
-  }
-  if (!therapist.photo_source_type || therapist.photo_source_type === "public_source") {
-    items.push(
-      "Upload a preferred headshot so the live profile relies less on public-source fallback.",
-    );
-  }
-  if (!therapist.bipolar_years_experience) {
-    items.push("Add bipolar-specific years experience to strengthen fit and trust signals.");
-  }
-  if (therapist.accepting_new_patients === false) {
-    items.push(
-      "Review your listing status so patients are not encouraged to reach out if you are closed.",
-    );
-  }
-  if (!items.length) {
-    items.push(
-      "Your profile already covers the main trust and operational basics for this lightweight portal.",
-    );
-  }
-  return items;
 }
 
 function buildPortalRequestOptions(verifiedClaim, therapist) {
@@ -282,97 +199,6 @@ function buildPortalProgressData(application) {
   };
 }
 
-function buildPortalNextAction(therapist, application) {
-  if (!application) {
-    // Two shapes of "no application doc" therapist:
-    //   1. Already claimed — typically a CMS-discovery-pipeline ingest
-    //      who never went through the public signup form. They don't
-    //      need to "claim first"; they need tools to update.
-    //   2. Not yet claimed — public visitor or stub state; the original
-    //      copy is still right here.
-    if (therapist && therapist.claim_status === "claimed") {
-      return {
-        title: "You're all set",
-        body: "Use 'Confirm or update profile' to submit any edits to your bio, headshot, accepting-status, or contact routes. We review and publish within a business day.",
-        ctaLabel: "",
-        href: "",
-      };
-    }
-    return {
-      title: "Claim your profile first",
-      body: "Once your claim is verified, this portal can show your exact progress and next step.",
-      ctaLabel: "",
-      href: "",
-    };
-  }
-
-  var focusField = getPortalResumeField(application);
-  var focusLabel = getPortalResumeFieldLabel(focusField);
-  var resumeHref = getPortalSignupHref(therapist, application, focusField);
-  var liveProfileHref = "therapist.html?slug=" + encodeURIComponent(therapist.slug);
-  var portalState = application.portal_state || "";
-
-  if (portalState === "claimed_ready_for_profile") {
-    return {
-      title: "Complete your full profile",
-      body:
-        "Your claim is approved. Start with " +
-        focusLabel +
-        " so we can review your listing for trust, fit, and publish readiness.",
-      ctaLabel: "Complete full profile",
-      href: resumeHref,
-    };
-  }
-
-  if (portalState === "profile_submitted_after_claim") {
-    return {
-      title: "Full profile received",
-      body: "Your fuller profile arrived after claim approval and is queued for review.",
-      ctaLabel: "View live profile",
-      href: liveProfileHref,
-    };
-  }
-
-  if (portalState === "profile_in_review_after_claim") {
-    return {
-      title: "Full profile in review",
-      body: "We are reviewing trust, fit, and listing readiness before this profile moves toward publish.",
-      ctaLabel: "View live profile",
-      href: liveProfileHref,
-    };
-  }
-
-  if (portalState === "claim_needs_attention") {
-    return {
-      title: "Your claim needs one more pass",
-      body:
-        "We still need a few ownership or profile basics tightened before we can finish verifying the claim. Start with " +
-        focusLabel +
-        ".",
-      ctaLabel: "Update claim details",
-      href: resumeHref,
-    };
-  }
-
-  if (portalState === "claim_pending_review" || portalState === "claim_in_review") {
-    return {
-      title: "Claim review in progress",
-      body: "We are verifying ownership and your core profile details. Once that clears, your next step will be the fuller profile.",
-      ctaLabel: "View live profile",
-      href: liveProfileHref,
-    };
-  }
-
-  return {
-    title: "Your profile is moving",
-    body:
-      application.portal_next_step ||
-      "We will keep this portal aligned to your current review step.",
-    ctaLabel: "View live profile",
-    href: liveProfileHref,
-  };
-}
-
 function getPortalResumeField(application) {
   if (!application) {
     return "";
@@ -409,19 +235,6 @@ function getPortalResumeField(application) {
     return "telehealth_states";
   }
   return "bio";
-}
-
-function getPortalResumeFieldLabel(fieldName) {
-  if (fieldName === "bio") return "your professional bio";
-  if (fieldName === "care_approach") return "how you help bipolar clients";
-  if (fieldName === "specialties") return "your specialties";
-  if (fieldName === "treatment_modalities") return "your treatment modalities";
-  if (fieldName === "contact_guidance") return "your contact guidance";
-  if (fieldName === "first_step_expectation") return "what happens after outreach";
-  if (fieldName === "preferred_contact_label") return "your primary contact button";
-  if (fieldName === "estimated_wait_time") return "your wait-time details";
-  if (fieldName === "telehealth_states") return "your telehealth states";
-  return "your profile details";
 }
 
 function getPortalSignupHref(therapist, application, focusField) {
@@ -2139,8 +1952,15 @@ function escapeAttr(value) {
   return escapeHtml(value);
 }
 
-function joinArray(value) {
-  return Array.isArray(value) ? value.join(", ") : "";
+function safeExternalUrl(value) {
+  var raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    var url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch (_error) {
+    return "";
+  }
 }
 
 // Candidates for the "next best add" nudge. Each tests a missing
@@ -2297,22 +2117,6 @@ function getProjectedTherapist(baseTherapist, form) {
   });
 }
 
-function computeNextBestAdd(projectedTherapist) {
-  var baseScore = getTherapistMatchReadiness(projectedTherapist).score;
-  var best = null;
-  for (var i = 0; i < NEXT_BEST_FIELDS.length; i += 1) {
-    var candidate = NEXT_BEST_FIELDS[i];
-    if (!candidate.isEmpty(projectedTherapist)) continue;
-    var stubbed = getTherapistMatchReadiness(candidate.stub(projectedTherapist)).score;
-    var delta = stubbed - baseScore;
-    if (delta <= 0) continue;
-    if (!best || delta > best.delta) {
-      best = { label: candidate.label, delta: delta, from: baseScore, to: stubbed };
-    }
-  }
-  return best;
-}
-
 // Per-fieldset completion: fraction of trackable (non-boolean) inputs
 // in the fieldset that have a non-empty value. Booleans are excluded
 // because they're always "answered" (toggle defaults).
@@ -2467,434 +2271,6 @@ function updateReadinessUi(baseTherapist, form) {
       legend.appendChild(span);
     }
   });
-}
-
-function buildReadinessSectionHtml() {
-  return (
-    '<div class="portal-readiness" id="portalReadinessSection">' +
-    '<div class="portal-readiness-head">' +
-    '<span class="portal-readiness-title">Profile readiness</span>' +
-    '<span class="portal-readiness-label" id="portalReadinessLabel">—</span>' +
-    '<span class="portal-readiness-score" id="portalReadinessScore">—</span>' +
-    "</div>" +
-    '<div class="portal-readiness-bar" aria-hidden="true">' +
-    '<div class="portal-readiness-bar-fill" id="portalReadinessBarFill" style="width:3%"></div>' +
-    "</div>" +
-    '<p class="portal-readiness-nudge" id="portalReadinessNudge" hidden></p>' +
-    "</div>"
-  );
-}
-
-function buildEditProfileHtml(therapist) {
-  var t = therapist || {};
-  var viewHref = t.slug ? "therapist.html?slug=" + encodeURIComponent(t.slug) : "";
-
-  // Fields the therapist has already reviewed (either confirmed or
-  // edited). Any field with a value that ISN'T in this set is
-  // "editorially sourced" — likely scraped from public sources — and
-  // gets a grey dot next to its label until the therapist saves it.
-  var reportedList = Array.isArray(t.therapist_reported_fields) ? t.therapist_reported_fields : [];
-  var reportedSet = {};
-  reportedList.forEach(function (k) {
-    reportedSet[String(k).trim()] = true;
-    // Tolerate mixed camelCase/snake_case history by registering both
-    // spellings. Older review events stored camelCase names.
-    reportedSet[
-      String(k)
-        .replace(/([A-Z])/g, "_$1")
-        .toLowerCase()
-    ] = true;
-  });
-
-  function hasMeaningfulValue(value) {
-    if (value == null || value === "") return false;
-    if (Array.isArray(value)) return value.length > 0;
-    if (typeof value === "string") return value.trim().length > 0;
-    if (typeof value === "number") return true;
-    return Boolean(value);
-  }
-
-  function reviewDot(name, value) {
-    if (reportedSet[name]) return "";
-    if (!hasMeaningfulValue(value)) return "";
-    return '<span class="portal-review-dot" title="Pulled from public sources — please review and save to confirm" aria-label="Unreviewed field"></span>';
-  }
-
-  // The big banner shows when the therapist has never confirmed any
-  // field AND the profile already has at least one pre-filled value
-  // (i.e. this is a scraped profile they just claimed). If everything
-  // is empty, there's nothing to review — no banner.
-  var hasAnyPrefilledData =
-    hasMeaningfulValue(t.bio) ||
-    hasMeaningfulValue(t.credentials) ||
-    hasMeaningfulValue(t.care_approach) ||
-    hasMeaningfulValue(t.phone) ||
-    hasMeaningfulValue(t.website) ||
-    hasMeaningfulValue(t.specialties) ||
-    hasMeaningfulValue(t.insurance_accepted) ||
-    hasMeaningfulValue(t.telehealth_states) ||
-    hasMeaningfulValue(t.session_fee_min);
-  var showReviewBanner = reportedList.length === 0 && hasAnyPrefilledData;
-  // Empty-state coaching — only for fresh signups with no pre-filled
-  // data and zero prior saves. Pointing a new therapist directly at
-  // bio + specialties is the single highest-leverage first-3-minutes
-  // ask. Don't show if the profile is scraped/pre-filled (the review
-  // banner handles that case) or if they've saved before.
-  var isFirstTimeEmpty =
-    !hasAnyPrefilledData && !((t && t.portal_save_count) > 0) && reportedList.length === 0;
-  var coachingBannerHtml = isFirstTimeEmpty
-    ? '<div class="portal-coaching-banner">' +
-      "<strong>New to the directory?</strong> " +
-      "Three minutes on <strong>Bio</strong> + <strong>Bipolar specialties</strong> puts you in front of patients by the end of the day. " +
-      'Start with <a href="#" class="portal-coaching-jump" data-target="bio">your bio below ↓</a>.' +
-      "</div>"
-    : "";
-  var reviewBannerHtml = showReviewBanner
-    ? '<div class="portal-review-banner" id="portalReviewBanner">' +
-      "<strong>We pre-filled your profile from public sources.</strong> " +
-      "Please review each section — outdated info hurts your discoverability. " +
-      "Any field with a " +
-      '<span class="portal-review-dot" aria-hidden="true"></span> hasn\'t been confirmed by you yet. ' +
-      "Saving a section marks it as reviewed." +
-      "</div>"
-    : "";
-
-  function hintBlock(text) {
-    return text ? '<small class="portal-hint">' + escapeHtml(text) + "</small>" : "";
-  }
-
-  function textInput(name, label, value, opts) {
-    opts = opts || {};
-    var type = opts.type || "text";
-    var attrs = opts.attrs || "";
-    return (
-      '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
-      escapeHtml(label) +
-      reviewDot(name, value) +
-      "</strong>" +
-      hintBlock(opts.hint) +
-      "</span>" +
-      '<input type="' +
-      type +
-      '" name="' +
-      name +
-      '" value="' +
-      escapeAttr(value == null ? "" : value) +
-      '" ' +
-      attrs +
-      " /></label>"
-    );
-  }
-
-  function textarea(name, label, value, rows, opts) {
-    opts = opts || {};
-    var minLen = opts.minLen ? ' data-min-len="' + opts.minLen + '"' : "";
-    var goodLen = opts.goodLen ? ' data-good-len="' + opts.goodLen + '"' : "";
-    var hasCounter = opts.minLen || opts.goodLen;
-    return (
-      '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
-      escapeHtml(label) +
-      reviewDot(name, value) +
-      "</strong>" +
-      hintBlock(opts.hint) +
-      "</span>" +
-      '<textarea name="' +
-      name +
-      '" rows="' +
-      (rows || 4) +
-      '"' +
-      minLen +
-      goodLen +
-      (hasCounter ? ' data-has-counter="true"' : "") +
-      ">" +
-      escapeHtml(value || "") +
-      "</textarea>" +
-      (hasCounter
-        ? '<div class="portal-char-counter" data-counter-for="' + name + '"></div>'
-        : "") +
-      "</label>"
-    );
-  }
-
-  function checkbox(name, label, checked, hint) {
-    return (
-      '<label class="portal-edit-check"><input type="checkbox" name="' +
-      name +
-      '" ' +
-      (checked ? "checked" : "") +
-      " /><span><strong>" +
-      escapeHtml(label) +
-      "</strong>" +
-      hintBlock(hint) +
-      "</span></label>"
-    );
-  }
-
-  function select(name, label, value, choices, hint) {
-    var opts = choices
-      .map(function (c) {
-        return (
-          '<option value="' +
-          escapeAttr(c.value) +
-          '" ' +
-          (String(value || "") === c.value ? "selected" : "") +
-          ">" +
-          escapeHtml(c.label) +
-          "</option>"
-        );
-      })
-      .join("");
-    return (
-      '<label class="portal-edit-field"><span class="portal-edit-label"><strong>' +
-      escapeHtml(label) +
-      reviewDot(name, value) +
-      "</strong>" +
-      hintBlock(hint) +
-      "</span>" +
-      '<select name="' +
-      name +
-      '">' +
-      opts +
-      "</select></label>"
-    );
-  }
-
-  function chipPicker(name, label, values, hint) {
-    var current = Array.isArray(values) ? values : [];
-    var chipsHtml = current
-      .map(function (v) {
-        return (
-          '<span class="portal-chip">' +
-          escapeHtml(v) +
-          '<button type="button" class="portal-chip-remove" aria-label="Remove ' +
-          escapeAttr(v) +
-          '" data-val="' +
-          escapeAttr(v) +
-          '">×</button></span>'
-        );
-      })
-      .join("");
-    return (
-      '<div class="portal-edit-field portal-chip-picker" data-field="' +
-      name +
-      '">' +
-      '<span class="portal-edit-label"><strong>' +
-      escapeHtml(label) +
-      reviewDot(name, current) +
-      "</strong>" +
-      hintBlock(hint) +
-      "</span>" +
-      '<div class="portal-chip-list">' +
-      chipsHtml +
-      "</div>" +
-      '<div class="portal-chip-input-wrap">' +
-      '<input type="text" class="portal-chip-input" placeholder="Type to search or add…" autocomplete="off" />' +
-      '<ul class="portal-chip-suggestions" hidden></ul>' +
-      "</div>" +
-      '<input type="hidden" name="' +
-      name +
-      '" value="' +
-      escapeAttr(current.join(",")) +
-      '" />' +
-      "</div>"
-    );
-  }
-
-  return (
-    '<section class="portal-card portal-edit" id="portalEditCard" style="margin-bottom:1rem">' +
-    '<div class="portal-edit-head">' +
-    "<h2>Edit your profile</h2>" +
-    (viewHref
-      ? '<a class="btn-secondary portal-edit-view" href="' +
-        escapeAttr(viewHref) +
-        '" target="_blank" rel="noopener">View public listing ↗</a>'
-      : "") +
-    "</div>" +
-    '<p class="portal-subtle" style="margin:0 0 0.75rem;font-size:0.85rem">Name and license are locked. To change those, use the request form below.</p>' +
-    reviewBannerHtml +
-    coachingBannerHtml +
-    buildReadinessSectionHtml() +
-    '<form id="portalEditForm" class="portal-edit-form">' +
-    // About you — most conversion-critical, comes first.
-    '<fieldset class="portal-edit-group"><legend>About you</legend>' +
-    textarea("bio", "Bio", t.bio, 6, {
-      hint: "Patients read this first. 150–300 words works best. Speak to them, not about yourself in third person.",
-      minLen: 50,
-      goodLen: 600,
-    }) +
-    textInput("credentials", "Credentials", t.credentials, {
-      hint: 'Short form like "LMFT, PhD". Shown next to your name across the directory.',
-    }) +
-    '<div class="portal-field-group">' +
-    '<label class="portal-label" for="gender">Gender</label>' +
-    '<select id="gender" name="gender" class="portal-input">' +
-    '<option value="">Prefer not to say</option>' +
-    '<option value="male"' +
-    (t.gender === "male" ? " selected" : "") +
-    ">Male</option>" +
-    '<option value="female"' +
-    (t.gender === "female" ? " selected" : "") +
-    ">Female</option>" +
-    '<option value="non_binary"' +
-    (t.gender === "non_binary" ? " selected" : "") +
-    ">Non-binary</option>" +
-    "</select>" +
-    '<p class="portal-hint">Shown on your public profile. Patients may use this to find a provider they feel comfortable with.</p>' +
-    "</div>" +
-    textInput("practice_name", "Practice name", t.practice_name, {
-      hint: "Optional. Leave blank if you practice under your own name.",
-    }) +
-    textarea("care_approach", "How you help bipolar clients", t.care_approach, 4, {
-      hint: "What's distinctive about your bipolar work? Populations, modalities, mood-stabilization vs. relapse prevention, med-coordination. A specific answer beats a generic one.",
-      minLen: 120,
-      goodLen: 400,
-    }) +
-    textInput("years_experience", "Years of experience", t.years_experience, {
-      type: "number",
-      attrs: 'min="0" max="80"',
-      hint: "Total years in practice.",
-    }) +
-    textInput(
-      "bipolar_years_experience",
-      "Years treating bipolar specifically",
-      t.bipolar_years_experience,
-      {
-        type: "number",
-        attrs: 'min="0" max="80"',
-        hint: "Patients searching for specialists weight this heavily. 8+ years unlocks a readiness boost.",
-      },
-    ) +
-    checkbox(
-      "medication_management",
-      "I provide medication management",
-      t.medication_management === true,
-      "Check only if you can prescribe or co-manage meds. This is a patient filter.",
-    ) +
-    "</fieldset>" +
-    // Who you see + how — fit & filters. The chip pickers live here.
-    '<fieldset class="portal-edit-group"><legend>Who you see and how</legend>' +
-    chipPicker(
-      "specialties",
-      "Bipolar specialties",
-      t.specialties,
-      "Click to add. Patients filter by these. More specific > generic.",
-    ) +
-    chipPicker(
-      "insurance_accepted",
-      "Insurance accepted",
-      t.insurance_accepted,
-      "Patients filter by this. Without it, you're invisible in insurance-filtered searches. Type your own plan if not listed.",
-    ) +
-    chipPicker(
-      "telehealth_states",
-      "Telehealth states",
-      t.telehealth_states,
-      "Only list states where you're actually licensed. Required to appear in cross-state searches.",
-    ) +
-    chipPicker(
-      "treatment_modalities",
-      "Treatment modalities",
-      t.treatment_modalities,
-      "IPSRT and Family-Focused Therapy are bipolar-specific and score well with informed patients.",
-    ) +
-    chipPicker(
-      "client_populations",
-      "Populations you serve",
-      t.client_populations,
-      "Adolescents, couples, LGBTQ+, BIPOC — patients filter by these.",
-    ) +
-    chipPicker(
-      "languages",
-      "Languages",
-      t.languages,
-      "Any language you can conduct a full session in.",
-    ) +
-    "</fieldset>" +
-    // Contact + availability
-    '<fieldset class="portal-edit-group"><legend>Contact and availability</legend>' +
-    checkbox(
-      "accepting_new_patients",
-      "Currently accepting new patients",
-      t.accepting_new_patients !== false,
-      "Patients filter on this. Toggle off when you're full — your listing stays up but drops from 'accepting' searches.",
-    ) +
-    checkbox("accepts_telehealth", "Offer telehealth sessions", t.accepts_telehealth !== false) +
-    checkbox("accepts_in_person", "Offer in-person sessions", t.accepts_in_person !== false) +
-    textInput("estimated_wait_time", "Estimated wait time", t.estimated_wait_time, {
-      hint: '"2 weeks", "Immediately available", "4–6 weeks". Patients triage urgent vs. exploratory by this.',
-    }) +
-    textInput("email", "Public email", t.email, {
-      type: "email",
-      attrs: 'autocomplete="email" maxlength="254"',
-      hint: "This is the email patients will see on your public profile. It can be the same as your login email or different. Leave blank if you don't want patients to email you directly.",
-    }) +
-    '<p class="portal-subtle portal-login-email-note" style="margin:-0.25rem 0 0.75rem;font-size:0.82rem">' +
-    "You log in with <strong>" +
-    escapeHtml(t.claimed_by_email || "") +
-    "</strong>. This email is private and never shown to patients. To change it, email support." +
-    "</p>" +
-    textInput("phone", "Public phone", t.phone, {
-      hint: "Shown on your public profile. Leave blank to keep it private.",
-    }) +
-    textInput("website", "Website", t.website, {
-      attrs: 'placeholder="yourpractice.com" inputmode="url"',
-      hint: "Builds trust and supports independent verification. You can type yourpractice.com and we'll add https:// for you.",
-    }) +
-    textInput("booking_url", "Booking URL", t.booking_url, {
-      attrs: 'placeholder="calendly.com/you" inputmode="url"',
-      hint: "Optional. Direct link to your scheduling tool (Calendly, SimplePractice, etc.).",
-    }) +
-    select(
-      "preferred_contact_method",
-      "Preferred contact method",
-      t.preferred_contact_method,
-      [
-        { value: "", label: "— Not set —" },
-        { value: "email", label: "Email" },
-        { value: "phone", label: "Phone" },
-        { value: "website", label: "Website" },
-        { value: "booking", label: "Booking link" },
-      ],
-      "What the primary CTA button on your profile routes to.",
-    ) +
-    textarea("contact_guidance", "What to include when reaching out", t.contact_guidance, 3, {
-      hint: "Tell patients what to send up front — state they're in, therapy vs. med needs, insurance. Reduces back-and-forth.",
-      minLen: 60,
-      goodLen: 250,
-    }) +
-    textarea(
-      "first_step_expectation",
-      "What happens after someone reaches out",
-      t.first_step_expectation,
-      3,
-      {
-        hint: "Do you call within 24h? Offer a 15-min consult? Describe the first step so patients can picture it.",
-        minLen: 60,
-        goodLen: 250,
-      },
-    ) +
-    "</fieldset>" +
-    // Fees
-    '<fieldset class="portal-edit-group"><legend>Fees</legend>' +
-    textInput("session_fee_min", "Session fee minimum ($)", t.session_fee_min, {
-      type: "number",
-      attrs: 'min="0" max="10000"',
-      hint: "A range filters out price-mismatched inquiries before they waste your time.",
-    }) +
-    textInput("session_fee_max", "Session fee maximum ($)", t.session_fee_max, {
-      type: "number",
-      attrs: 'min="0" max="10000"',
-    }) +
-    checkbox(
-      "sliding_scale",
-      "I offer a sliding scale",
-      t.sliding_scale === true,
-      "Even a partial sliding scale is a discoverability boost — patients filter for this.",
-    ) +
-    "</fieldset>" +
-    '<div class="portal-actions" style="margin-top:1rem"><button class="btn-primary" type="submit">Save changes</button><div class="portal-feedback" id="portalEditFeedback"></div></div>' +
-    "</form></section>"
-  );
 }
 
 function collectEditProfileUpdates(form) {
@@ -3592,7 +2968,14 @@ function bindPortalPhotoUpload(therapist) {
     try {
       var result = await uploadPortalPhoto(dataUrl, file.name || "headshot");
       if (result && result.photo_url) {
-        preview.innerHTML = '<img src="' + result.photo_url.replace(/"/g, "&quot;") + '" alt="" />';
+        var photoUrl = safeExternalUrl(result.photo_url);
+        if (!photoUrl) {
+          throw new Error("Upload completed but returned an invalid photo URL.");
+        }
+        var image = document.createElement("img");
+        image.src = photoUrl;
+        image.alt = "";
+        preview.replaceChildren(image);
         btnLabel.textContent = "Replace photo";
         setFeedback("Headshot uploaded. Your live profile updates within a minute.", "success");
         // Surface the change in any cached therapist state so the rest of
@@ -3648,18 +3031,12 @@ function renderPortal(therapist, options) {
 
   var sessionMode = options && options.sessionMode ? options.sessionMode : "public";
   var verifiedClaim = sessionMode === "claimed";
-  var readiness = getTherapistMatchReadiness(therapist);
-  var claimStatus = getClaimStatusLabel(therapist.claim_status);
-  var pauseRequested = Boolean(therapist.listing_pause_requested_at);
-  var removalRequested = Boolean(therapist.listing_removal_requested_at);
   var requestOptions = buildPortalRequestOptions(verifiedClaim, therapist);
-  var quickAttentionItems = getQuickAttentionItems(therapist);
   var claimedEmail = therapist.claimed_by_email || therapist.email || "";
   var relatedApplication = verifiedClaim
     ? getRelatedApplication(therapist, { claimedEmail: claimedEmail })
     : null;
   var progress = verifiedClaim ? buildPortalProgressData(relatedApplication) : null;
-  var nextAction = buildPortalNextAction(therapist, relatedApplication);
   var profileCoaching = verifiedClaim ? buildPortalProfileCoaching(relatedApplication) : null;
   var portalTimeline = verifiedClaim ? buildPortalTimeline(relatedApplication, therapist) : [];
   var expectations = verifiedClaim ? buildPortalExpectations(relatedApplication) : null;
@@ -3691,35 +3068,6 @@ function renderPortal(therapist, options) {
       "</section>"
     : "";
 
-  // Hero eyebrow adapts to the user's actual state so we don't keep
-  // saying "claim and manage" to someone who already claimed.
-  var heroEyebrow = verifiedClaim
-    ? "Your profile dashboard"
-    : sessionMode === "claim_token"
-      ? "Welcome to your dashboard"
-      : "Claim and manage your profile";
-
-  // "One step from live" banner. Fires for signup-instant-checkout
-  // therapists whose listing was created with listingActive=false +
-  // status=pending_profile so their stub bio didn't leak into the
-  // directory. Saving a bio (50+ chars) via the editor auto-publishes
-  // them. Framed as a forward step rather than a warning — the
-  // therapist has already completed signup and shouldn't feel
-  // penalized by an amber "not public" state.
-  var isPendingProfile =
-    verifiedClaim && (therapist.listing_active === false || therapist.status === "pending_profile");
-  var notYetPublicBanner = isPendingProfile
-    ? '<section class="portal-card" style="border:2px solid #10b981;background:#ecfdf5;margin-bottom:1rem">' +
-      '<p class="portal-eyebrow" style="color:#065f46;margin:0 0 0.35rem">One step from live</p>' +
-      '<h2 style="margin:0 0 0.35rem">Add a bio to publish your listing</h2>' +
-      '<p class="portal-subtle" style="margin:0 0 0.75rem">' +
-      "Write a short paragraph (50+ characters) about how you work with bipolar clients in the editor below. " +
-      "Your listing goes live the moment you save. No admin review, no waiting." +
-      "</p>" +
-      '<a href="#portalEditProfile" class="btn-primary" style="display:inline-block;padding:0.65rem 1rem;border-radius:10px;background:#10b981;color:#fff;text-decoration:none;font-weight:700;font-size:0.95rem">Go to editor ↓</a>' +
-      "</section>"
-    : "";
-
   // Sign-out affordance only renders for authenticated sessions. Public
   // viewers don't have a session to sign out of. Stateless tokens mean
   // we can only clear the client-side entry; the server logout endpoint
@@ -3741,117 +3089,9 @@ function renderPortal(therapist, options) {
   var tdAccepting = therapist.accepting_new_patients === true;
   var tdAcceptingHidden = therapist.accepting_new_patients === false;
 
-  // Phase-aware listing status. Replaces the older "Paused (hidden from
-  // directory)" framing per the redesign spec. The full Phase 1 / Phase 2
-  // gating logic lands in PR-C; here we already check the same minimums
-  // (specialties + practice mode) so the message is consistent.
-  var portalSpecialties = Array.isArray(therapist.specialties)
-    ? therapist.specialties.filter(Boolean)
-    : [];
-  var portalHasPracticeMode = Boolean(therapist.accepts_in_person || therapist.accepts_telehealth);
-  var portalMissingForLive = [];
-  if (!portalSpecialties.length) portalMissingForLive.push("specialties");
-  if (!portalHasPracticeMode) portalMissingForLive.push("practice mode");
-  var portalIsLive =
-    therapist.listing_active !== false &&
-    portalMissingForLive.length === 0 &&
-    therapist.status !== "pending_profile";
-
-  var liveLabel = portalIsLive
-    ? "Your card is live"
-    : portalMissingForLive.length
-      ? "Add " + portalMissingForLive.join(" and ") + " to go live"
-      : therapist.status === "pending_profile" || therapist.listing_active === false
-        ? "Add a bio to go live"
-        : "Not yet published";
-
-  // Auto-open editor only when the clinician clearly needs it:
-  // fresh claim_token session, pre-publish state, explicit deep-link to
-  // #portalEditProfile, or no saves yet. Otherwise keep overview first.
-  var editorAutoOpen =
-    isPendingProfile ||
-    sessionMode === "claim_token" ||
-    (typeof window !== "undefined" &&
-      window.location &&
-      window.location.hash === "#portalEditProfile") ||
-    (verifiedClaim && !(therapist && therapist.portal_save_count > 0));
-
-  var nextStepCta =
-    nextAction.href && nextAction.ctaLabel
-      ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="' +
-        escapeHtml(nextAction.href) +
-        '">' +
-        escapeHtml(nextAction.ctaLabel) +
-        "</a></div>"
-      : verifiedClaim
-        ? '<div class="portal-actions" style="margin-top:0.85rem"><a class="btn-primary" href="#portalEditProfile" data-portal-editor-jump="1">Edit profile</a></div>'
-        : "";
-
-  // Zone 1 — Listing snapshot only. The "What to do next / You're all
-  // set" next-step card was removed in the portal redesign; its job is
-  // now done by Phase 1 ("Get your card live") and Phase 2 ("Improve
-  // your listing") which sit just below this zone.
-  var priorityZone =
-    '<div style="margin-bottom:1rem">' +
-    '<article class="portal-card portal-listing-snapshot">' +
-    '<p class="portal-eyebrow">Listing status</p>' +
-    '<h2 style="margin:0 0 0.35rem">' +
-    escapeHtml(liveLabel) +
-    "</h2>" +
-    (portalIsLive && therapist.slug
-      ? '<p class="portal-subtle" style="margin:0 0 0.5rem"><a href="therapist.html?slug=' +
-        escapeHtml(therapist.slug) +
-        '" target="_blank" rel="noopener" class="portal-public-listing-link">View public listing →</a></p>'
-      : "") +
-    '<ul class="portal-snapshot-list">' +
-    "<li><span>Claim</span><strong>" +
-    escapeHtml(claimStatus) +
-    "</strong></li>" +
-    "<li><span>Accepting patients</span><strong>" +
-    escapeHtml(therapist.accepting_new_patients === false ? "Not accepting" : "Accepting or open") +
-    "</strong></li>" +
-    "<li><span>Headshot</span><strong>" +
-    escapeHtml(getPhotoStatusLabel(therapist)) +
-    "</strong></li>" +
-    "<li><span>Main contact route</span><strong>" +
-    escapeHtml(getContactRouteLabel(therapist)) +
-    "</strong></li>" +
-    (pauseRequested ? "<li><span>Pause</span><strong>Requested</strong></li>" : "") +
-    (removalRequested ? "<li><span>Removal</span><strong>Requested</strong></li>" : "") +
-    "</ul>" +
-    (quickAttentionItems && quickAttentionItems.length
-      ? '<details class="portal-attention"><summary>' +
-        quickAttentionItems.length +
-        " item" +
-        (quickAttentionItems.length === 1 ? "" : "s") +
-        ' to review</summary><ul class="portal-list" style="margin-top:0.5rem">' +
-        quickAttentionItems
-          .map(function (item) {
-            return "<li>• " + escapeHtml(item) + "</li>";
-          })
-          .join("") +
-        "</ul></details>"
-      : "") +
-    '<div class="portal-actions portal-snapshot-actions" style="margin-top:0.9rem">' +
-    '<a class="btn-secondary" href="therapist.html?slug=' +
-    encodeURIComponent(therapist.slug) +
-    '" target="_blank" rel="noopener">View public listing ↗</a>' +
-    (verifiedClaim
-      ? '<a class="btn-secondary" href="#portalEditProfile" data-portal-editor-jump="1">Edit profile</a>'
-      : "") +
-    "</div>" +
-    "</article>" +
-    "</div>";
-
-  // Zone 1.5 — Headshot upload. A dedicated, prominent control so a
-  // photo is one click away from the dashboard. Only appears once the
-  // claim is verified (uploads require an authenticated session).
-  // Headshot is now handled inline by Phase 1 (Field 1) and Phase 2
-  // (improvement item), per the portal redesign. The standalone
-  // "Add your headshot" card was a duplicate, so we removed the
-  // visual chrome but kept the DOM hooks bindPortalPhotoUpload()
-  // already wires onto. Phase 1/2 click the hidden file input
-  // directly to trigger the same upload flow.
+  // Headshot upload is handled inline by the completeness panel. These
+  // hidden hooks keep the shared upload handler available without
+  // rendering a duplicate standalone card.
   var hasPhoto = Boolean(therapist.photo_url);
   var photoZone = verifiedClaim
     ? '<form class="portal-photo-shell" id="portalPhotoShell" hidden>' +
@@ -3863,15 +3103,6 @@ function renderPortal(therapist, options) {
       '<div id="portalPhotoFeedback" role="status" aria-live="polite" hidden></div>' +
       "</form>"
     : "";
-
-  // Zone 2 — Legacy "More fields" disclosure was removed in TF-C.
-  // Every editable field now lives inline in the completeness panel
-  // above. The buildEditProfileHtml(), bindPortalEditor(),
-  // snapshotFormState(), getProjectedTherapist() helpers and their
-  // related click/save handlers are intentionally left in place per
-  // the spec's "schedule as follow-up cleanup" — the dead-code prune
-  // is its own PR so this one stays surgical.
-  var editorZone = "";
 
   // Zone 3 — Bottom row per spec Section 6: "This week" analytics card
   // (left) + "Your plan" subscription card (right), equal-width.
@@ -4149,7 +3380,6 @@ function renderPortal(therapist, options) {
       : "") +
     '<div id="portalTdCompletenessMount"></div>' +
     photoZone +
-    editorZone +
     planZone +
     reviewZone +
     helpZone;
