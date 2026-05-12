@@ -45,7 +45,11 @@
       }
     }
 
-    var lastSearch = JSON.parse(window.localStorage.getItem("bth_last_search") || "null");
+    var lastSearch = JSON.parse(
+      window.sessionStorage.getItem("bth_last_search") ||
+        window.localStorage.getItem("bth_last_search") ||
+        "null",
+    );
     var hasSearch = Boolean(lastSearch && lastSearch.location_query);
     var zip = hasSearch ? String(lastSearch.location_query) : "";
     var resultsHref = getSafeMatchResultsHref(storedResultsUrl);

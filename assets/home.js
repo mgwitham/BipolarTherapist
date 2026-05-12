@@ -10,6 +10,8 @@ import {
 import { getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
 
 var activeHomeExperimentVariant = "control";
+var HOME_LAST_SEARCH_KEY = "bth_last_search";
+var HOME_SEARCH_SESSION_KEY = "bth_search_session";
 
 function applyHomePageCopy(homePage) {
   if (!homePage) {
@@ -885,6 +887,37 @@ function buildHomeSearchTarget(form) {
   return action + (params.toString() ? "?" + params.toString() : "");
 }
 
+function readHomeLastSearch() {
+  try {
+    var raw =
+      window.sessionStorage.getItem(HOME_LAST_SEARCH_KEY) ||
+      window.localStorage.getItem(HOME_LAST_SEARCH_KEY) ||
+      "null";
+    return JSON.parse(raw);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function writeHomeLastSearch(search) {
+  try {
+    window.sessionStorage.setItem(HOME_LAST_SEARCH_KEY, JSON.stringify(search || {}));
+    window.localStorage.removeItem(HOME_LAST_SEARCH_KEY);
+  } catch (_error) {
+    // Last-search persistence is just a convenience.
+  }
+}
+
+function clearHomeSearchSession() {
+  try {
+    window.sessionStorage.removeItem(HOME_SEARCH_SESSION_KEY);
+    window.sessionStorage.removeItem(HOME_LAST_SEARCH_KEY);
+    window.localStorage.removeItem(HOME_LAST_SEARCH_KEY);
+  } catch (_error) {
+    // Ignore storage failures.
+  }
+}
+
 function handleHomeSearch(event) {
   if (event && typeof event.preventDefault === "function") {
     event.preventDefault();
@@ -919,16 +952,13 @@ function handleHomeSearch(event) {
   });
   syncHomeSearchHiddenFields(validation.interest, elements);
   try {
-    window.localStorage.setItem(
-      "bth_last_search",
-      JSON.stringify({
-        interest: validation.interest || "",
-        location_query: validation.locationQuery || "",
-      }),
-    );
+    writeHomeLastSearch({
+      interest: validation.interest || "",
+      location_query: validation.locationQuery || "",
+    });
     // Mark this tab as having an active search session so the homepage can
     // distinguish a within-session back-navigation from a fresh visit.
-    window.sessionStorage.setItem("bth_search_session", "1");
+    window.sessionStorage.setItem(HOME_SEARCH_SESSION_KEY, "1");
   } catch (_e) {
     /* ignore */
   }
@@ -949,9 +979,9 @@ function initHomeSearchForm() {
   // sessionStorage is cleared when the tab is closed, so a fresh visit
   // (reopen site, bookmark, external link) always starts with a blank form.
   try {
-    var sessionActive = window.sessionStorage.getItem("bth_search_session");
+    var sessionActive = window.sessionStorage.getItem(HOME_SEARCH_SESSION_KEY);
     if (sessionActive) {
-      var lastSearch = JSON.parse(window.localStorage.getItem("bth_last_search") || "null");
+      var lastSearch = readHomeLastSearch();
       if (lastSearch) {
         if (lastSearch.location_query && elements.locationInput) {
           elements.locationInput.value = lastSearch.location_query;
@@ -971,7 +1001,7 @@ function initHomeSearchForm() {
   try {
     var isFreshVisit = !document.referrer || !document.referrer.includes(window.location.hostname);
     if (isFreshVisit) {
-      window.sessionStorage.removeItem("bth_search_session");
+      clearHomeSearchSession();
       window.sessionStorage.removeItem("matchResultsUrl");
     }
   } catch (_e) {}
