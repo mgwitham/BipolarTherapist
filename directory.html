@@ -287,16 +287,26 @@
             </div>
 
             <div class="dir-filter-sort">
-              <input
-                type="text"
-                id="sortZip"
-                class="dir-filter-zip"
-                inputmode="numeric"
-                maxlength="5"
-                placeholder="ZIP"
-                autocomplete="postal-code"
-                aria-label="Sort near ZIP"
-              />
+              <div class="dir-filter-zip-wrap">
+                <input
+                  type="text"
+                  id="sortZip"
+                  class="dir-filter-zip"
+                  inputmode="numeric"
+                  maxlength="5"
+                  placeholder="ZIP"
+                  autocomplete="postal-code"
+                  aria-label="Sort near ZIP"
+                  aria-describedby="sortZipNotice"
+                />
+                <span
+                  id="sortZipNotice"
+                  class="dir-filter-zip-notice"
+                  role="status"
+                  aria-live="polite"
+                  hidden
+                ></span>
+              </div>
               <label class="dir-filter-sort-field">
                 <span class="dir-filter-sort-label">Sort</span>
                 <select id="sortBy" class="dir-filter-sort-select">
