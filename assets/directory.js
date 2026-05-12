@@ -1524,7 +1524,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         "content",
         "Browse " +
           resultCount +
-          " bipolar-informed therapists and psychiatrists in California. Filter by location, insurance, and format.",
+          " bipolar informed therapists and psychiatrists in California. Filter by location, insurance, and format.",
       );
     }
   }

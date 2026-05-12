@@ -17,7 +17,7 @@ const CHECKS = [
     name: "Match shell",
     file: "match.html",
     includes: [
-      "Finding your top bipolar-informed matches",
+      "Finding your top bipolar informed matches",
       "What kind of support do you want?",
       "Filter your results",
     ],
@@ -26,7 +26,7 @@ const CHECKS = [
     name: "Directory shell",
     file: "directory.html",
     includes: [
-      "Browse bipolar-informed therapists in California",
+      "Browse bipolar informed therapists in California",
       "More filters",
       "Provider details",
     ],

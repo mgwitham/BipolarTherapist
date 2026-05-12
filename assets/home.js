@@ -362,7 +362,7 @@ function applyAdaptiveHomepageMode() {
   var handoffCopy3 = document.getElementById("handoffCopy3");
 
   if (mode === "speed") {
-    if (eyebrow) eyebrow.textContent = "Faster start for bipolar-informed care";
+    if (eyebrow) eyebrow.textContent = "Faster start for bipolar informed care";
     if (toolTitle) toolTitle.textContent = "Start with the fastest path to a strong list";
     if (proofLabel1) proofLabel1.textContent = "What it optimizes";
     if (proofValue1)

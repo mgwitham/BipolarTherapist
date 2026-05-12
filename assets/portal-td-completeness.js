@@ -1296,7 +1296,7 @@ function triggerConfetti(_container) {
     }
     if (outcomeEl) {
       outcomeEl.textContent =
-        "Patients searching for bipolar-informed care will find a fully detailed listing.";
+        "Patients searching for bipolar informed care will find a fully detailed listing.";
     }
   }, 500);
 }
@@ -1309,8 +1309,8 @@ function triggerGoingLiveMoment(container, therapist, score) {
 
   var city = String(therapist.city || "").trim();
   var confirmMsg = city
-    ? "You're live — patients searching for bipolar-informed care in " + city + " can find you now."
-    : "You're live — patients searching for bipolar-informed care can find you now.";
+    ? "You're live — patients searching for bipolar informed care in " + city + " can find you now."
+    : "You're live — patients searching for bipolar informed care can find you now.";
 
   slot.innerHTML =
     '<div class="td-going-live-bar td-going-live-bar-celebrating" id="tdcGoingLiveBar" role="status">' +

@@ -1694,7 +1694,7 @@ function buildEntryOutreachDraft(entry, profile) {
     profile && (profile.needs_medication_management === "Yes" || careIntent === "Psychiatry");
   var intent = careIntent
     ? "I am looking for " + careIntent.toLowerCase() + "."
-    : "I am looking for bipolar-informed care.";
+    : "I am looking for bipolar informed care.";
   var introLine =
     "Hi " +
     therapist.name +
@@ -4596,7 +4596,7 @@ function buildResultsHeaderHtml(profile, totalCount) {
     '<div class="mx-results-kicker">Your matches</div>' +
     '<h1 class="mx-results-title">' +
     totalCount +
-    " bipolar-informed " +
+    " bipolar informed " +
     (totalCount === 1 ? "match" : "matches") +
     " for you</h1>" +
     (mirrorSentence ? '<p class="mx-results-sub">' + escapeHtml(mirrorSentence) + "</p>" : "") +
@@ -5767,7 +5767,7 @@ var MATCH_LOADING_SKELETON_HTML =
   '<div class="mx-loading" role="status" aria-live="polite">' +
   '<div class="mx-loading-header">' +
   '<div class="mx-loading-kicker">Your matches</div>' +
-  '<div class="mx-loading-title">Finding your top bipolar-informed matches</div>' +
+  '<div class="mx-loading-title">Finding your top bipolar informed matches</div>' +
   '<div class="mx-loading-sub">This usually takes a second.</div>' +
   "</div>" +
   '<div class="mx-loading-hero"></div>' +

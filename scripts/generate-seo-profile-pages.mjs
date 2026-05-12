@@ -183,7 +183,7 @@ function buildDescription(therapist) {
   const location = [therapist.city, therapist.state].filter(Boolean).join(", ") || "California";
   const specialty = therapist.bipolarYearsExperience
     ? `${therapist.bipolarYearsExperience} years treating bipolar disorder`
-    : "bipolar-informed therapy";
+    : "bipolar informed therapy";
   return truncate(
     `${name}${credentials} offers ${specialty} in ${location}. ${therapist.bio || ""}`,
     155,
@@ -391,7 +391,7 @@ function buildSimilarTherapistsBlock(similar, sourceCity) {
     .join("");
   const cityLabel = sourceCity ? `in ${escapeHtml(sourceCity)}` : "nearby";
   return `<section class="profile-section seo-similar">
-          <h2>Other bipolar-informed therapists ${cityLabel}</h2>
+          <h2>Other bipolar informed therapists ${cityLabel}</h2>
           <ul class="seo-similar-list">${items}</ul>
         </section>`;
 }

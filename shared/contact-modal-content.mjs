@@ -106,7 +106,7 @@ export function buildContactDraftMessage(therapist) {
   return (
     greeting +
     " I found you through BipolarTherapyHub. " +
-    "I'm looking for a bipolar-informed therapist and saw your profile. " +
+    "I'm looking for a bipolar informed therapist and saw your profile. " +
     "Are you currently accepting new patients?"
   );
 }
