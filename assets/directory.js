@@ -34,7 +34,7 @@ import {
 } from "./directory-render.js";
 import { buildCardViewModel, buildDirectoryDetailsViewModel } from "./directory-view-model.js";
 import { initValuePillPopover } from "./therapist-pills.js";
-import { lookupZipPlace, preloadZipcodes } from "./zip-lookup.js";
+import { lookupZipPlace, getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
 import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-state.js";
 
 (async function () {
@@ -2002,14 +2002,31 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   var sortZipTimer = 0;
 
+  function setSortZipNotice(message) {
+    var input = getElement("sortZip");
+    var notice = getElement("sortZipNotice");
+    if (input) {
+      input.classList.toggle("is-invalid", Boolean(message));
+      input.setAttribute("aria-invalid", message ? "true" : "false");
+    }
+    if (notice) {
+      notice.textContent = message || "";
+      notice.hidden = !message;
+    }
+  }
+
   function applySortZipFromInput() {
     var raw = String((getElement("sortZip") && getElement("sortZip").value) || "").trim();
-    var normalized = /^\d{5}$/.test(raw) ? raw : "";
+    var hasFiveDigits = /^\d{5}$/.test(raw);
+    var marketStatus = hasFiveDigits ? getZipMarketStatus(raw) : null;
+    var isInCalifornia = marketStatus && marketStatus.status === "live";
+    var normalized = isInCalifornia ? raw : "";
     sortZip = normalized;
     saveSortZip(normalized);
     var nearZipOption = getElement("sortNearZipOption");
     var sortByEl = getElement("sortBy");
     if (normalized) {
+      setSortZipNotice("");
       if (nearZipOption) {
         nearZipOption.hidden = false;
       }
@@ -2019,6 +2036,20 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       }
       trackFunnelEvent("directory_zip_entered", { zip: normalized });
     } else {
+      if (hasFiveDigits && marketStatus && marketStatus.status === "out_of_state") {
+        var stateName = (marketStatus.place && marketStatus.place.stateName) || "your state";
+        setSortZipNotice("We’re California-only right now — not yet live in " + stateName + ".");
+        trackFunnelEvent("directory_zip_rejected", {
+          zip: raw,
+          reason: "out_of_state",
+          state: marketStatus.place && marketStatus.place.state,
+        });
+      } else if (hasFiveDigits) {
+        setSortZipNotice("That ZIP doesn’t look right. Try a California ZIP.");
+        trackFunnelEvent("directory_zip_rejected", { zip: raw, reason: "unknown" });
+      } else {
+        setSortZipNotice("");
+      }
       if (nearZipOption) {
         nearZipOption.hidden = true;
       }
