@@ -141,7 +141,6 @@
                   class="dir-vb-chip"
                   data-chip-for="accepting"
                   aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
                 >
                   <span id="acceptingLabelText">Accepting new</span>
                 </button>
@@ -150,7 +149,6 @@
                   class="dir-vb-chip"
                   data-chip-for="telehealth"
                   aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
                 >
                   <span id="telehealthLabelText">Telehealth</span>
                 </button>
@@ -159,7 +157,6 @@
                   class="dir-vb-chip"
                   data-chip-for="in_person"
                   aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
                 >
                   <span id="inPersonLabelText">In person</span>
                 </button>
@@ -168,7 +165,6 @@
                   class="dir-vb-chip"
                   data-chip-for="therapist"
                   aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
                 >
                   <span>Therapist</span>
                 </button>
@@ -177,7 +173,6 @@
                   class="dir-vb-chip"
                   data-chip-for="psychiatrist"
                   aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
                 >
                   <span>Psychiatrist</span>
                 </button>
@@ -186,7 +181,6 @@
                   class="dir-vb-chip"
                   data-chip-for="medication_management"
                   aria-pressed="false"
-                  onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
                 >
                   <span>Medication support</span>
                 </button>
@@ -507,7 +501,6 @@
       aria-controls="sidebar"
       aria-expanded="false"
       hidden
-      style="display: none"
     ></button>
 
     <footer>
@@ -521,50 +514,7 @@
       </p>
     </footer>
 
-    <script>
-      // Chip toggle — exposed globally so inline onclick handlers work.
-      window.__dirVbToggleChip = function (chip) {
-        if (!chip) return;
-        var id = chip.getAttribute("data-chip-for");
-        var input = id ? document.getElementById(id) : null;
-        if (!input) return;
-        input.checked = !input.checked;
-        chip.setAttribute("aria-pressed", input.checked ? "true" : "false");
-        chip.classList.toggle("is-active", input.checked);
-        try {
-          input.dispatchEvent(new Event("change", { bubbles: true }));
-        } catch (_err) {
-          var applyBtn = document.getElementById("applyFiltersButton");
-          if (applyBtn && applyBtn.click) applyBtn.click();
-        }
-      };
-
-      // Sync chip visual state whenever backing checkbox changes (reset, deep-link restore).
-      (function () {
-        var container = document.getElementById("dirVbChips");
-        if (!container) return;
-        function syncFromInput(chip, input) {
-          chip.setAttribute("aria-pressed", input.checked ? "true" : "false");
-          chip.classList.toggle("is-active", input.checked);
-        }
-        function eachChip(fn) {
-          container.querySelectorAll(".dir-vb-chip").forEach(function (chip) {
-            var id = chip.getAttribute("data-chip-for");
-            var input = id ? document.getElementById(id) : null;
-            if (input) fn(chip, input);
-          });
-        }
-        eachChip(syncFromInput);
-        eachChip(function (chip, input) {
-          input.addEventListener("change", function () {
-            syncFromInput(chip, input);
-          });
-        });
-        setTimeout(function () {
-          eachChip(syncFromInput);
-        }, 300);
-      })();
-    </script>
+    <script type="module" src="assets/directory-chips.js"></script>
 
     <script>
       // Filter modal open/close.
