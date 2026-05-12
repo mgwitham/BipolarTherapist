@@ -161,10 +161,9 @@
       <div class="dir-vb-canvas">
         <!-- Filter bar — chip row on the left, sort on the right.
              Step 3 of directory redesign: 5 boolean toggle chips wire to
-             the existing __dirVbToggleChip handler. Insurance and Gender
-             chips open the existing modal for now (dedicated dropdowns
-             ship with the drawer rework in step 6). The hidden backing
-             inputs below keep directory.js working unchanged. -->
+             Insurance and Gender chips open the existing modal for now
+             (dedicated dropdowns ship with the drawer rework in step 6).
+             The hidden backing inputs below keep directory.js working unchanged. -->
         <div class="dir-filter-bar-wrap">
           <div class="dir-filter-bar" role="region" aria-label="Filters and sort">
             <div class="dir-filter-chip-row" role="group" aria-label="Quick filters">
@@ -173,7 +172,6 @@
                 class="dir-filter-chip"
                 data-chip-for="accepting"
                 aria-pressed="false"
-                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
               >
                 <span id="acceptingLabelText">Accepting new patients</span>
               </button>
@@ -182,7 +180,6 @@
                 class="dir-filter-chip"
                 data-chip-for="telehealth"
                 aria-pressed="false"
-                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
               >
                 <span id="telehealthLabelText">Telehealth</span>
               </button>
@@ -191,7 +188,6 @@
                 class="dir-filter-chip"
                 data-chip-for="in_person"
                 aria-pressed="false"
-                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
               >
                 <span id="inPersonLabelText">In-person</span>
               </button>
@@ -200,7 +196,6 @@
                 class="dir-filter-chip"
                 data-chip-for="therapist"
                 aria-pressed="false"
-                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
               >
                 <span>Therapist</span>
               </button>
@@ -209,7 +204,6 @@
                 class="dir-filter-chip"
                 data-chip-for="psychiatrist"
                 aria-pressed="false"
-                onclick="window.__dirVbToggleChip && window.__dirVbToggleChip(this)"
               >
                 <span>Psychiatrist</span>
               </button>
@@ -221,7 +215,6 @@
                 class="dir-filter-chip dir-filter-chip--dropdown"
                 id="dirInsuranceChip"
                 aria-haspopup="dialog"
-                onclick="window.__dirVbOpenModal && window.__dirVbOpenModal()"
               >
                 <span>Insurance</span>
                 <svg
@@ -246,7 +239,6 @@
                 class="dir-filter-chip dir-filter-chip--dropdown"
                 id="dirGenderChip"
                 aria-haspopup="dialog"
-                onclick="window.__dirVbOpenModal && window.__dirVbOpenModal()"
               >
                 <span>Gender</span>
                 <svg
@@ -664,7 +656,6 @@
       aria-controls="sidebar"
       aria-expanded="false"
       hidden
-      style="display: none"
     ></button>
 
     <footer>
@@ -678,128 +669,10 @@
       </p>
     </footer>
 
-    <script>
-      // Chip toggle — exposed globally so inline onclick handlers work.
-      window.__dirVbToggleChip = function (chip) {
-        if (!chip) return;
-        var id = chip.getAttribute("data-chip-for");
-        var input = id ? document.getElementById(id) : null;
-        if (!input) return;
-        input.checked = !input.checked;
-        chip.setAttribute("aria-pressed", input.checked ? "true" : "false");
-        chip.classList.toggle("is-active", input.checked);
-        try {
-          input.dispatchEvent(new Event("change", { bubbles: true }));
-        } catch (_err) {
-          var applyBtn = document.getElementById("applyFiltersButton");
-          if (applyBtn && applyBtn.click) applyBtn.click();
-        }
-      };
-
-      // Sync chip visual state whenever backing checkbox changes (reset, deep-link restore).
-      (function () {
-        var container = document.getElementById("dirVbChips");
-        if (!container) return;
-        function syncFromInput(chip, input) {
-          chip.setAttribute("aria-pressed", input.checked ? "true" : "false");
-          chip.classList.toggle("is-active", input.checked);
-        }
-        function eachChip(fn) {
-          container.querySelectorAll(".dir-vb-chip").forEach(function (chip) {
-            var id = chip.getAttribute("data-chip-for");
-            var input = id ? document.getElementById(id) : null;
-            if (input) fn(chip, input);
-          });
-        }
-        eachChip(syncFromInput);
-        eachChip(function (chip, input) {
-          input.addEventListener("change", function () {
-            syncFromInput(chip, input);
-          });
-        });
-        setTimeout(function () {
-          eachChip(syncFromInput);
-        }, 300);
-      })();
-    </script>
-
-    <script>
-      // Filter modal open/close.
-      (function () {
-        var openBtn = document.getElementById("dirVbModalOpen");
-        var modal = document.getElementById("dirVbModal");
-        var scrim = document.getElementById("dirVbModalScrim");
-        if (!openBtn || !modal || !scrim) return;
-        var lastFocusedBeforeModal = null;
-        function open() {
-          lastFocusedBeforeModal = document.activeElement;
-          modal.hidden = false;
-          scrim.hidden = false;
-          requestAnimationFrame(function () {
-            modal.setAttribute("data-open", "true");
-            scrim.setAttribute("data-open", "true");
-            var firstFocusable = modal.querySelector(
-              'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])',
-            );
-            if (firstFocusable) firstFocusable.focus();
-          });
-          document.body.style.overflow = "hidden";
-        }
-        function close() {
-          modal.removeAttribute("data-open");
-          scrim.removeAttribute("data-open");
-          setTimeout(function () {
-            modal.hidden = true;
-            scrim.hidden = true;
-          }, 220);
-          document.body.style.overflow = "";
-          if (lastFocusedBeforeModal && typeof lastFocusedBeforeModal.focus === "function") {
-            lastFocusedBeforeModal.focus();
-          }
-        }
-        openBtn.addEventListener("click", open);
-        // Expose open() so the new Insurance / Gender chips on the filter
-        // bar can reuse the modal until they get dedicated dropdowns in step 6.
-        window.__dirVbOpenModal = open;
-        document.querySelectorAll("[data-dir-vb-modal-close]").forEach(function (el) {
-          el.addEventListener("click", close);
-        });
-        document.addEventListener("keydown", function (e) {
-          if (e.key === "Escape" && modal.getAttribute("data-open") === "true") close();
-        });
-        var applyBtn = document.getElementById("applyFiltersButton");
-        if (applyBtn) applyBtn.addEventListener("click", close);
-      })();
-    </script>
-
-    <script>
-      // Sort-ZIP session restore + live dispatch.
-      (function () {
-        var sortZipInput = document.getElementById("sortZip");
-        if (!sortZipInput) return;
-        try {
-          var stored = sessionStorage.getItem("bth_sort_zip_v1");
-          if (stored && /^\d{1,5}$/.test(stored)) {
-            sortZipInput.value = stored;
-          }
-        } catch (_e) {}
-        sortZipInput.addEventListener("input", function () {
-          try {
-            sessionStorage.setItem("bth_sort_zip_v1", sortZipInput.value.trim());
-          } catch (_e) {}
-        });
-      })();
-    </script>
-
+    <script type="module" src="assets/directory-filter-ui.js"></script>
     <script type="module" src="assets/directory.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
     <script type="module" src="assets/nav.js"></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function () {
-          navigator.serviceWorker.register("/sw.js");
-        });
-      }
-    </script>
+    <script type="module" src="assets/register-sw.js"></script>
   </body>
 </html>

@@ -27,10 +27,8 @@ import {
 } from "./saved-list.js";
 import {
   renderCardMarkup,
-  renderDirectoryDetailsMarkup,
   renderBottomSheetMarkup,
   renderEmptyStateMarkup,
-  renderLoadMoreMarkup,
 } from "./directory-render.js";
 import { buildCardViewModel, buildDirectoryDetailsViewModel } from "./directory-view-model.js";
 import { initValuePillPopover } from "./therapist-pills.js";
@@ -74,14 +72,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
     return;
   }
-  // Step 8: numbered pagination — currentPage replaces the legacy
-  // visibleCount load-more counter. Page size is 12 (constant in
-  // directory-controller.js). The legacy visibleCount is kept here as
-  // an alias for code paths (renderCurrentPageOnly, mobile sticky bar)
-  // that still reference it; it now mirrors currentPage * 12 to stay
-  // a safe upper bound for slice operations.
+  // Step 8: numbered pagination. Page size is 12 (constant in
+  // directory-controller.js).
   var currentPage = 1;
-  var visibleCount = 12;
   var activeDetailsSlug = "";
   var lastDetailsTrigger = null;
   var stableOrderMap = null;
@@ -647,7 +640,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     // Compound chip for the fee range — clears both bounds at once.
     if (filterKey === "session_fee") {
       filters = Object.assign({}, filters, { session_fee_min: "", session_fee_max: "" });
-      visibleCount = 12;
       currentPage = 1;
       syncFilterControlsFromState(filters, getElement);
       syncInsuranceDisplay();
@@ -670,7 +662,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       nextValue = "";
     }
     filters = Object.assign({}, filters, { [filterKey]: nextValue });
-    visibleCount = 12;
     currentPage = 1;
     syncFilterControlsFromState(filters, getElement);
     syncInsuranceDisplay();
@@ -1282,16 +1273,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     );
   }
 
-  function renderBrowseEmptyState() {
-    var grid = getElement("resultsGrid");
-    if (!grid) {
-      return;
-    }
-
-    grid.innerHTML =
-      '<section class="directory-browse-empty"><div class="directory-browse-empty-kicker">More options</div><h3>You already have the strongest options at the top.</h3><p>Start with one of those therapists first. You can still change filters or come back for more results later.</p></section>';
-  }
-
   function renderDetailsModal(slug) {
     var body = getElement("directoryDetailsBody");
     var dialog = getElement("directoryDetailsModal");
@@ -1660,7 +1641,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       getElement: getElement,
     });
     filters = nextState.filters;
-    visibleCount = 12;
     currentPage = 1;
     syncRankingLocationFromUserZip();
     trackFunnelEvent("directory_filters_applied", {
@@ -1684,7 +1664,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       getElement: getElement,
     });
     filters = nextState.filters;
-    visibleCount = 12;
     currentPage = 1;
     syncRankingLocationFromUserZip();
     render();
@@ -1820,7 +1799,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
           isChipPressed(filterKey, chip.getAttribute("data-chip-value")) ? "true" : "false",
         );
       });
-      visibleCount = 12;
       currentPage = 1;
       render();
       scheduleLiveFilters();
@@ -1849,7 +1827,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   function resetFilters() {
     var nextState = resetDirectoryFiltersAction(defaultFilters);
     filters = nextState.filters;
-    visibleCount = 12;
     currentPage = 1;
     syncFilterControlsFromState(filters, getElement);
     syncInsuranceDisplay();
@@ -2058,7 +2035,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         sortByEl.value = "stable_random";
       }
     }
-    visibleCount = 12;
     currentPage = 1;
     filteredResultsCacheKey = "";
     render();
@@ -2373,7 +2349,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         sortBy: sortByEl.value,
       });
       filters = nextState.filters;
-      visibleCount = 12;
       currentPage = 1;
       syncRankingLocationFromUserZip();
       trackFunnelEvent("directory_sort_changed", { sort_by: filters.sortBy });

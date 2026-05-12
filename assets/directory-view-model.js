@@ -75,14 +75,6 @@ function buildCareFormatSummary(therapist) {
   return formats.join(" • ") || "Care format to confirm";
 }
 
-function buildInsuranceSummary(therapist) {
-  if (!Array.isArray(therapist.insurance_accepted) || !therapist.insurance_accepted.length) {
-    return "";
-  }
-
-  return therapist.insurance_accepted.slice(0, 2).join(", ");
-}
-
 function buildMetaLine(therapist) {
   var parts = [];
   var specialty = (therapist.specialties || [])[0] || "";
