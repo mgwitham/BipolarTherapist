@@ -6,7 +6,7 @@
  *   - directory-render.js (drawer outreach disclosure)
  *   - match-outreach.js (match card outreach disclosure)
  *
- * The script builders generate calm, bipolar-informed copy from a therapist
+ * The script builders generate calm, bipolar informed copy from a therapist
  * record. The render function returns the inner HTML for an outreach panel
  * (email draft + phone script branches) — callers are responsible for the
  * outer container (e.g. a <details> disclosure).

@@ -1479,7 +1479,7 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
     var therapistDirectory = await therapistDirectoryPromise;
     if (!therapist) {
       wrap.innerHTML =
-        '<div class="not-found"><h2>This profile is not available right now</h2><p>The link may be out of date, or the therapist may no longer be listed. You can return to the directory to compare other bipolar-informed options.</p><a href="/directory" class="back-link">← Back to Directory</a></div>';
+        '<div class="not-found"><h2>This profile is not available right now</h2><p>The link may be out of date, or the therapist may no longer be listed. You can return to the directory to compare other bipolar informed options.</p><a href="/directory" class="back-link">← Back to Directory</a></div>';
       reveal();
       return;
     }
@@ -2321,7 +2321,7 @@ function renderProfile(t, therapistDirectory) {
       escapeHtml(
         "“Hi, my name is [your name] and my number is [your number]. I found " +
           voicemailFirstName +
-          "’s profile on BipolarTherapyHub and would love to connect about bipolar-informed care. Please call me back when you have a moment, thank you.”",
+          "’s profile on BipolarTherapyHub and would love to connect about bipolar informed care. Please call me back when you have a moment, thank you.”",
       ) +
       "</p>" +
       '<button type="button" class="profile-reach-call-cta" data-profile-call-cta data-tel="' +
