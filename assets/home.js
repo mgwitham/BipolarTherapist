@@ -8,7 +8,6 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
-import { escapeHtml } from "./escape-html.js";
 
 var activeHomeExperimentVariant = "control";
 
@@ -131,7 +130,7 @@ function syncHeroSearchState() {
   }
 
   if (searchHelper) {
-    searchHelper.innerHTML = getHeroHelperCopy(interest, hasLocation);
+    renderHeroHelperCopy(searchHelper, interest, hasLocation);
   }
 
   var careHint = document.getElementById("searchCareTypeHint");
@@ -156,24 +155,51 @@ function getHeroButtonLabel(_interest) {
   return "Find care";
 }
 
-function getHeroHelperCopy(interest, hasLocation) {
+function replaceWithLabelCopy(node, label, copy) {
+  if (!node) {
+    return;
+  }
+
+  var labelNode = document.createElement("strong");
+  labelNode.textContent = label;
+  node.replaceChildren(labelNode, document.createTextNode(" " + copy));
+}
+
+function renderHeroHelperCopy(node, interest, hasLocation) {
   if (!interest && !hasLocation) {
-    return "<strong>Recommended:</strong> choose your support type and California ZIP code to start with the calmer guided match.";
+    replaceWithLabelCopy(
+      node,
+      "Recommended:",
+      "choose your support type and California ZIP code to start with the calmer guided match.",
+    );
+    return;
   }
 
   if (interest && !hasLocation) {
-    return (
-      "<strong>Next:</strong> add your California ZIP code to see a more trustworthy " +
-      escapeHtml(interest === "psychiatrist" ? "psychiatry" : "therapy") +
-      " list."
+    replaceWithLabelCopy(
+      node,
+      "Next:",
+      "add your California ZIP code to see a more trustworthy " +
+        (interest === "psychiatrist" ? "psychiatry" : "therapy") +
+        " list.",
     );
+    return;
   }
 
   if (!interest && hasLocation) {
-    return "<strong>Next:</strong> choose the kind of support you want so we can narrow toward the strongest first list.";
+    replaceWithLabelCopy(
+      node,
+      "Next:",
+      "choose the kind of support you want so we can narrow toward the strongest first list.",
+    );
+    return;
   }
 
-  return "<strong>Next:</strong> answer a few quick questions and review a smaller, more decision-ready list built for bipolar care.";
+  replaceWithLabelCopy(
+    node,
+    "Next:",
+    "answer a few quick questions and review a smaller, more decision-ready list built for bipolar care.",
+  );
 }
 
 function setHomePreviewText(id, value) {
@@ -314,11 +340,13 @@ function showHeroValidationPopup(messages) {
     return;
   }
 
-  list.innerHTML = (messages || [])
-    .map(function (message) {
-      return "<div>" + escapeHtml(message) + "</div>";
-    })
-    .join("");
+  list.replaceChildren(
+    ...(messages || []).map(function (message) {
+      var item = document.createElement("div");
+      item.textContent = message;
+      return item;
+    }),
+  );
   popup.classList.add("is-visible");
 }
 
@@ -331,7 +359,7 @@ function hideHeroValidationPopup() {
   }
 
   popup.classList.remove("is-visible");
-  list.innerHTML = "";
+  list.replaceChildren();
 }
 
 function applyAdaptiveHomepageMode() {
@@ -520,58 +548,72 @@ function initHeroZipFocusRow() {
   });
 }
 
+function appendTextElement(parent, tagName, className, value) {
+  var node = document.createElement(tagName);
+  if (className) {
+    node.className = className;
+  }
+  node.textContent = value || "";
+  parent.appendChild(node);
+  return node;
+}
+
+function createSectionShell() {
+  var section = document.createElement("section");
+  section.className = "home-cms-section--white";
+  return section;
+}
+
 function renderIconCardsSection(section) {
   var cards = Array.isArray(section.cards) ? section.cards : [];
-  return (
-    '<section style="background: var(--white)"><div class="section-header"><div class="eyebrow">' +
-    escapeHtml(section.eyebrow || "") +
-    "</div><h2>" +
-    escapeHtml(section.title || "") +
-    '</h2><p class="section-sub">' +
-    escapeHtml(section.description || "") +
-    '</p></div><div class="why-grid">' +
-    cards
-      .map(function (card) {
-        return (
-          '<div class="why-card">' +
-          (card.icon ? '<div class="why-icon">' + escapeHtml(card.icon) + "</div>" : "") +
-          '<div class="why-title">' +
-          escapeHtml(card.title || "") +
-          '</div><div class="why-desc">' +
-          escapeHtml(card.description || "") +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    "</div></section>"
-  );
+  var sectionNode = createSectionShell();
+  var header = document.createElement("div");
+  header.className = "section-header";
+  appendTextElement(header, "div", "eyebrow", section.eyebrow || "");
+  appendTextElement(header, "h2", "", section.title || "");
+  appendTextElement(header, "p", "section-sub", section.description || "");
+  sectionNode.appendChild(header);
+
+  var grid = document.createElement("div");
+  grid.className = "why-grid";
+  cards.forEach(function (card) {
+    var cardNode = document.createElement("div");
+    cardNode.className = "why-card";
+    if (card.icon) {
+      appendTextElement(cardNode, "div", "why-icon", card.icon);
+    }
+    appendTextElement(cardNode, "div", "why-title", card.title || "");
+    appendTextElement(cardNode, "div", "why-desc", card.description || "");
+    grid.appendChild(cardNode);
+  });
+  sectionNode.appendChild(grid);
+  return sectionNode;
 }
 
 function renderTestimonialsSection(section) {
   var items = Array.isArray(section.items) ? section.items : [];
-  return (
-    '<section style="background: var(--white); padding-top: 0"><div class="section-header" style="padding-top: 4rem"><div class="eyebrow">' +
-    escapeHtml(section.eyebrow || "") +
-    "</div><h2>" +
-    escapeHtml(section.title || "") +
-    '</h2></div><div class="testimonials">' +
-    items
-      .map(function (item) {
-        return (
-          '<div class="testimonial"><div class="stars">' +
-          escapeHtml(item.stars || "★★★★★") +
-          '</div><div class="t-text">' +
-          escapeHtml(item.quote || "") +
-          '</div><div class="t-author">' +
-          escapeHtml(item.author || "") +
-          '</div><div class="t-role">' +
-          escapeHtml(item.role || "") +
-          "</div></div>"
-        );
-      })
-      .join("") +
-    "</div></section>"
-  );
+  var sectionNode = createSectionShell();
+  sectionNode.classList.add("home-cms-section--flush-top");
+  var header = document.createElement("div");
+  header.className = "section-header";
+  header.classList.add("home-cms-section-header--padded");
+  appendTextElement(header, "div", "eyebrow", section.eyebrow || "");
+  appendTextElement(header, "h2", "", section.title || "");
+  sectionNode.appendChild(header);
+
+  var list = document.createElement("div");
+  list.className = "testimonials";
+  items.forEach(function (item) {
+    var testimonial = document.createElement("div");
+    testimonial.className = "testimonial";
+    appendTextElement(testimonial, "div", "stars", item.stars || "★★★★★");
+    appendTextElement(testimonial, "div", "t-text", item.quote || "");
+    appendTextElement(testimonial, "div", "t-author", item.author || "");
+    appendTextElement(testimonial, "div", "t-role", item.role || "");
+    list.appendChild(testimonial);
+  });
+  sectionNode.appendChild(list);
+  return sectionNode;
 }
 
 function defaultSectionsFromLegacy(homePage) {
@@ -711,10 +753,10 @@ function renderPageSections(homePage) {
       ? homePage.sections
       : defaultSectionsFromLegacy(homePage);
 
-  root.innerHTML = sections
+  var renderedSections = sections
     .map(function (section) {
       if (!section || !section._type) {
-        return "";
+        return null;
       }
 
       if (section._type === "iconCardsSection") {
@@ -722,7 +764,7 @@ function renderPageSections(homePage) {
       }
 
       if (section._type === "stepsSection") {
-        return "";
+        return null;
       }
 
       if (section._type === "testimonialsSection") {
@@ -732,12 +774,14 @@ function renderPageSections(homePage) {
       // ctaSection is the bottom therapist-recruitment strip; suppressed on the
       // patient-facing home until we have a demand story worth pitching.
       if (section._type === "ctaSection") {
-        return "";
+        return null;
       }
 
-      return "";
+      return null;
     })
-    .join("");
+    .filter(Boolean);
+
+  root.replaceChildren(...renderedSections);
 }
 
 function getHomeSearchElements() {
