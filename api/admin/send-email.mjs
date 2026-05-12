@@ -291,8 +291,9 @@ export default async function handler(req, res) {
     return;
   }
 
+  let resendResult;
   try {
-    await resendSend({
+    resendResult = await resendSend({
       apiKey: resendKey,
       from: fromAddress,
       to: therapist.email,
@@ -308,6 +309,7 @@ export default async function handler(req, res) {
 
   // Email sent — now update Sanity. Fetch current state first to safely append.
   const now = new Date().toISOString();
+  const resendId = resendResult?.id || "";
   try {
     const current = await client.getDocument(therapistId);
     const existingLog = current?.outreach?.emailLog || [];
@@ -321,7 +323,14 @@ export default async function handler(req, res) {
         "outreach.emailsSent": existingCount + 1,
         "outreach.emailLog": [
           ...existingLog,
-          { _key: `email_${Date.now()}`, sentAt: now, subject, template, body: textBody },
+          {
+            _key: `email_${Date.now()}`,
+            sentAt: now,
+            subject,
+            template,
+            body: textBody,
+            resendId,
+          },
         ],
       })
       .commit();

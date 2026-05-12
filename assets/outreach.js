@@ -179,6 +179,43 @@ function computeStats(list) {
   return { total, contacted, replied, claimed, replyRate };
 }
 
+// Group every therapist's most recent email_1 send by subject line and
+// compute open/reply rate per subject. Lets the operator see which
+// subject is actually working instead of staring at one overall reply
+// rate that mixes every variant together.
+//
+// Attribution rules:
+//   - Only `email_1` template sends count (not follow_up, not _via_form,
+//     not webhook bounce/complaint entries).
+//   - Each therapist is bucketed by the LATEST email_1 they received.
+//   - openedAt on the bucketed entry counts as an open.
+//   - The therapist's overall outreach.status (replied/claimed/paid)
+//     counts as a reply for that subject's bucket.
+function computeSubjectPerformance(list) {
+  const buckets = new Map();
+  for (const t of list) {
+    const log = Array.isArray(t.outreach?.emailLog) ? t.outreach.emailLog : [];
+    const email1Sends = log.filter((e) => e?.template === "email_1");
+    if (email1Sends.length === 0) continue;
+    const latest = email1Sends[email1Sends.length - 1];
+    const key = (latest.subject || "").trim() || "(no subject)";
+    if (!buckets.has(key)) {
+      buckets.set(key, { subject: key, sent: 0, opened: 0, replied: 0 });
+    }
+    const b = buckets.get(key);
+    b.sent += 1;
+    if (latest.openedAt) b.opened += 1;
+    if (["replied", "claimed", "paid"].includes(t.outreach?.status)) b.replied += 1;
+  }
+  return Array.from(buckets.values())
+    .map((b) => ({
+      ...b,
+      openRate: b.sent > 0 ? Math.round((b.opened / b.sent) * 100) : 0,
+      replyRate: b.sent > 0 ? Math.round((b.replied / b.sent) * 100) : 0,
+    }))
+    .sort((a, b) => b.sent - a.sent);
+}
+
 // ---- AUTH GATE ----
 // CRM reuses the existing review-API admin session (cookie: bt_admin_session).
 // If the session is missing/expired, send the user to /admin.html to sign in,
@@ -212,6 +249,8 @@ function renderDashboard() {
           ${statCard("Reply rate", stats.replyRate + "%", "#f59e0b")}
         </div>
       </div>
+
+      ${subjectPerformanceHtml(computeSubjectPerformance(state.therapists))}
 
       <div style="padding:14px 24px 0;flex-shrink:0;">
         <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:baseline;gap:8px;">
@@ -266,6 +305,42 @@ function statCard(label, value, color) {
     <div style="font-size:22px;font-weight:700;color:${color};">${value}</div>
     <div style="font-size:12px;color:#6b7280;margin-top:2px;">${label}</div>
   </div>`;
+}
+
+function subjectPerformanceHtml(rows) {
+  if (!rows || rows.length === 0) return "";
+  return `
+    <div style="padding:14px 24px 0;flex-shrink:0;">
+      <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">
+        Subject performance (initial sends)
+      </div>
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;">
+        <table style="width:100%;border-collapse:collapse;font-size:13px;">
+          <thead>
+            <tr style="background:#f9fafb;color:#6b7280;text-align:left;">
+              <th style="padding:8px 14px;font-weight:600;">Subject</th>
+              <th style="padding:8px 14px;font-weight:600;text-align:right;width:80px;">Sent</th>
+              <th style="padding:8px 14px;font-weight:600;text-align:right;width:110px;">Opened</th>
+              <th style="padding:8px 14px;font-weight:600;text-align:right;width:110px;">Replied</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows
+              .map(
+                (r) => `
+              <tr style="border-top:1px solid #f3f4f6;">
+                <td style="padding:8px 14px;color:#111827;max-width:480px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.subject)}">${esc(r.subject)}</td>
+                <td style="padding:8px 14px;text-align:right;color:#374151;">${r.sent}</td>
+                <td style="padding:8px 14px;text-align:right;color:#0ea5e9;">${r.opened} <span style="color:#9ca3af;font-size:11px;">(${r.openRate}%)</span></td>
+                <td style="padding:8px 14px;text-align:right;color:#7c3aed;">${r.replied} <span style="color:#9ca3af;font-size:11px;">(${r.replyRate}%)</span></td>
+              </tr>`,
+              )
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
 }
 
 function patientSignalCardsHtml(signal) {
