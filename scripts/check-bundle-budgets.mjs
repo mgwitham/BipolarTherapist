@@ -14,6 +14,11 @@ import path from "node:path";
 import { gzipSync } from "node:zlib";
 
 const DIST_DIR = path.resolve(process.cwd(), "dist");
+const VITE_ENTRY_HASH = "[A-Za-z0-9_-]{7,12}";
+
+function entryPattern(name, ext) {
+  return new RegExp("^assets/" + name + "-" + VITE_ENTRY_HASH + "\\." + ext + "$");
+}
 
 // Budgets are in KILOBYTES of gzipped output. Each rule matches by
 // regex against the file's path relative to dist/. First matching
@@ -21,47 +26,47 @@ const DIST_DIR = path.resolve(process.cwd(), "dist");
 const BUDGETS = [
   // Patient-facing JS — strict caps. These are what a bipolar patient
   // in a depressive episode actually downloads on a low-end phone.
-  // The {8,12} char tail matches Vite's content hash on entry chunks
-  // and excludes code-split chunks (which have additional dashes).
+  // The hash tail matches Vite's content hash on entry chunks. Vite can
+  // emit URL-safe base64 hashes, so allow "-" and "_" as hash characters.
   {
-    pattern: /^assets\/match-[A-Za-z0-9_]{8,12}\.js$/,
+    pattern: entryPattern("match", "js"),
     maxKb: 45,
     label: "match.js (patient match flow)",
   },
   {
-    pattern: /^assets\/therapist-[A-Za-z0-9_]{8,12}\.js$/,
+    pattern: entryPattern("therapist", "js"),
     maxKb: 28,
     label: "therapist.js (profile page)",
   },
-  { pattern: /^assets\/home-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 25, label: "home.js" },
-  { pattern: /^assets\/directory-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 35, label: "directory.js" },
+  { pattern: entryPattern("home", "js"), maxKb: 25, label: "home.js" },
+  { pattern: entryPattern("directory", "js"), maxKb: 35, label: "directory.js" },
   { pattern: /^index\.html$/, maxKb: 18, label: "index.html (homepage)" },
   { pattern: /^match\.html$/, maxKb: 8, label: "match.html" },
   { pattern: /^therapist\.html$/, maxKb: 4, label: "therapist.html" },
 
   // Therapist-facing — looser. Subscribers tolerate a heavier portal.
-  { pattern: /^assets\/portal-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 38, label: "portal.js" },
+  { pattern: entryPattern("portal", "js"), maxKb: 38, label: "portal.js" },
   {
-    pattern: /^assets\/portal-checkout-return-[A-Za-z0-9_]{8,12}\.js$/,
+    pattern: entryPattern("portal-checkout-return", "js"),
     maxKb: 3,
     label: "portal-checkout-return.js",
   },
-  { pattern: /^assets\/signup-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 35, label: "signup.js" },
-  { pattern: /^assets\/claim-[A-Za-z0-9_]{8,12}\.js$/, maxKb: 35, label: "claim.js" },
+  { pattern: entryPattern("signup", "js"), maxKb: 35, label: "signup.js" },
+  { pattern: entryPattern("claim", "js"), maxKb: 35, label: "claim.js" },
 
   // Admin — internal only. Only the main admin entry chunk; per-feature
   // code-split chunks (admin-foo-bar-HASH.js) aren't tracked because
   // they're already small and naturally lazy-loaded.
   {
-    pattern: /^assets\/admin-[A-Za-z0-9_]{8,12}\.js$/,
+    pattern: entryPattern("admin", "js"),
     maxKb: 100,
     label: "admin.js (main bundle)",
   },
   { pattern: /^admin\.html$/, maxKb: 35, label: "admin.html" },
 
   // Shared CSS — patient-facing.
-  { pattern: /^assets\/match-[A-Za-z0-9_]{8,12}\.css$/, maxKb: 22, label: "match.css" },
-  { pattern: /^assets\/styles-[A-Za-z0-9_]{8,12}\.css$/, maxKb: 15, label: "styles.css" },
+  { pattern: entryPattern("match", "css"), maxKb: 22, label: "match.css" },
+  { pattern: entryPattern("styles", "css"), maxKb: 15, label: "styles.css" },
 ];
 
 async function walk(dir, base = "") {
