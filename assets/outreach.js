@@ -515,20 +515,16 @@ BipolarTherapyHub`,
     };
   }
   return {
-    subject: `Your bipolar patients can't find you`,
+    subject: `BipolarTherapyHub | Michael here. One Ask`,
     body: `Hi ${first},
 
-Most bipolar patients have already seen three therapists who didn't really get it. They know the difference. They want someone who understands the cycling, the mixed states, the medication piece.
+I'm Michael. I built BipolarTherapyHub because I spent twenty years as the bipolar patient who couldn't find the right therapist.
 
-Most of them never find that person. So they settle, or they stop looking.
-
-I was that patient for twenty years. That's why I built BipolarTherapyHub, so the right patients can finally find the right therapist.
-
-Your profile is already there:
+One ask: claim your profile.
 
 ${profileUrl}
 
-Claim it in two minutes. The patients searching for exactly what you offer will find you instead of giving up.
+It takes two minutes. Patients searching for someone who actually gets the cycling, the mixed states, the medication piece will find you instead of giving up.
 
 If you'd rather not be listed, just reply and I'll take it down.
 
