@@ -279,7 +279,17 @@ export async function handleApplicationRoutes(context) {
     // auto_approved since the license passed verification and the
     // therapist is going straight to publish. publishedTherapistId
     // is set once the therapist doc is created below.
-    const applicationDocument = await buildApplicationDocument(client, intakeBody);
+    let applicationDocument;
+    try {
+      applicationDocument = await buildApplicationDocument(client, intakeBody);
+    } catch (error) {
+      const message = error?.message || String(error);
+      if (/^(Invalid headshot upload format|Headshot )/.test(message)) {
+        sendJson(response, 400, { error: message }, origin, config);
+        return true;
+      }
+      throw error;
+    }
     applicationDocument.status = "auto_approved";
     applicationDocument.reviewedAt = new Date().toISOString();
     applicationDocument.licensureVerification = verification.licensureVerification;

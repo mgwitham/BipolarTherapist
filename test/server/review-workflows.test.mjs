@@ -491,7 +491,7 @@ test("intake: sync-verifies the license and publishes a therapist doc (listingAc
         state: "CA",
         treats_bipolar: true,
       },
-      headers: { host: "localhost:8787" },
+      headers: { host: "localhost:8787", "x-forwarded-for": "10.20.0.3" },
       method: "POST",
       url: "/applications/intake",
     });
@@ -553,7 +553,7 @@ test("intake: license-not-verified returns 422 and does NOT create any docs", as
         state: "CA",
         treats_bipolar: true,
       },
-      headers: { host: "localhost:8787" },
+      headers: { host: "localhost:8787", "x-forwarded-for": "10.20.0.8" },
       method: "POST",
       url: "/applications/intake",
     });
@@ -569,6 +569,85 @@ test("intake: license-not-verified returns 422 and does NOT create any docs", as
   }
 });
 
+test("intake: invalid headshot upload returns 400 and does NOT create any docs", async function () {
+  const { client, state } = createMemoryClient();
+  const handler = createReviewApiHandler(
+    { ...createTestApiConfig(), dcaAppId: "app", dcaAppKey: "key" },
+    client,
+  );
+  const restore = withDcaFetchStub((url) => {
+    const match = String(url).match(/licType=(\d+)/);
+    const typeCode = match ? match[1] : "";
+    if (typeCode === "2001") {
+      return {
+        ok: true,
+        async json() {
+          return {
+            licenseDetails: [
+              {
+                getFullLicenseDetail: [
+                  {
+                    getLicenseDetails: [
+                      {
+                        primaryStatusCode: "20",
+                        expDate: "20990101",
+                        issueDate: "20100101",
+                        licenseNumber: "67890",
+                        boardCode: "04",
+                      },
+                    ],
+                    getNameDetails: [
+                      {
+                        individualNameDetails: [
+                          { firstName: "Taylor", middleName: "", lastName: "Photo" },
+                        ],
+                      },
+                    ],
+                    getAddressDetail: [
+                      {
+                        address: [{ city: "Los Angeles", state: "CA" }],
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          };
+        },
+      };
+    }
+    return {
+      ok: true,
+      async json() {
+        return { licenseDetails: [] };
+      },
+    };
+  });
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: {
+        name: "Dr. Taylor Photo",
+        email: "taylor@example.com",
+        license_number: "67890",
+        city: "Los Angeles",
+        state: "CA",
+        treats_bipolar: true,
+        photo_upload_base64: "data:text/html;base64,PGgxPm5vdCBhbiBpbWFnZTwvaDE+",
+        photo_filename: "headshot.html",
+      },
+      headers: { host: "localhost:8787", "x-forwarded-for": "10.20.0.5" },
+      method: "POST",
+      url: "/applications/intake",
+    });
+
+    assert.equal(response.statusCode, 400);
+    assert.match(response.payload.error, /Headshot/i);
+    assert.equal(state.documents.size, 0);
+  } finally {
+    restore();
+  }
+});
+
 test("intake: missing fields returns 400", async function () {
   const { client } = createMemoryClient();
   const handler = createReviewApiHandler(createTestApiConfig(), client);
@@ -579,7 +658,7 @@ test("intake: missing fields returns 400", async function () {
       // missing email + license_number
       treats_bipolar: true,
     },
-    headers: { host: "localhost:8787" },
+    headers: { host: "localhost:8787", "x-forwarded-for": "10.20.0.4" },
     method: "POST",
     url: "/applications/intake",
   });
@@ -600,7 +679,7 @@ test("intake: missing treats_bipolar checkbox returns 400", async function () {
       city: "Los Angeles",
       treats_bipolar: false,
     },
-    headers: { host: "localhost:8787" },
+    headers: { host: "localhost:8787", "x-forwarded-for": "10.20.0.6" },
     method: "POST",
     url: "/applications/intake",
   });
@@ -635,7 +714,7 @@ test("intake: duplicate license (existing therapist) returns 409 with claim guid
       state: "CA",
       treats_bipolar: true,
     },
-    headers: { host: "localhost:8787" },
+    headers: { host: "localhost:8787", "x-forwarded-for": "10.20.0.7" },
     method: "POST",
     url: "/applications/intake",
   });
