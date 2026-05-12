@@ -2037,8 +2037,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       trackFunnelEvent("directory_zip_entered", { zip: normalized });
     } else {
       if (hasFiveDigits && marketStatus && marketStatus.status === "out_of_state") {
-        var stateName =
-          (marketStatus.place && marketStatus.place.stateName) || "your state";
+        var stateName = (marketStatus.place && marketStatus.place.stateName) || "your state";
         setSortZipNotice("We’re California-only right now — not yet live in " + stateName + ".");
         trackFunnelEvent("directory_zip_rejected", {
           zip: raw,
