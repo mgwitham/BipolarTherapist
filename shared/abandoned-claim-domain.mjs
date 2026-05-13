@@ -56,10 +56,9 @@ export function findAbandonedClaims({
 
 export function buildAbandonedClaimAlert(record, options = {}) {
   const name = record.name || record.email || "Therapist";
-  const portalBaseUrl = String(options.portalBaseUrl || "https://www.bipolartherapyhub.com").replace(
-    /\/+$/,
-    "",
-  );
+  const portalBaseUrl = String(
+    options.portalBaseUrl || "https://www.bipolartherapyhub.com",
+  ).replace(/\/+$/, "");
   const outreachUrl = record.slug
     ? `${portalBaseUrl}/outreach?slug=${encodeURIComponent(record.slug)}`
     : "";
