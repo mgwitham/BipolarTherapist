@@ -273,10 +273,9 @@ export async function handleStripeRoutes(context) {
     const isTrialingNow = stripeSubscription?.status === "trialing";
 
     async function lookupTherapist() {
-      return client.fetch(
-        `*[_type == "therapist" && slug.current == $slug][0]{ name, email }`,
-        { slug: therapistSlug },
-      );
+      return client.fetch(`*[_type == "therapist" && slug.current == $slug][0]{ name, email }`, {
+        slug: therapistSlug,
+      });
     }
 
     // 1. New trial started.
@@ -335,9 +334,7 @@ export async function handleStripeRoutes(context) {
     const wasMarkedCancelBefore = existing?.cancelAtPeriodEnd === true;
     const isMarkedCancelNow = stripeSubscription?.cancel_at_period_end === true;
     const canceledByUserNow =
-      event.type === "customer.subscription.updated" &&
-      isMarkedCancelNow &&
-      !wasMarkedCancelBefore;
+      event.type === "customer.subscription.updated" && isMarkedCancelNow && !wasMarkedCancelBefore;
     const adminOrSystemDeletedNow =
       event.type === "customer.subscription.deleted" && !wasMarkedCancelBefore;
 
