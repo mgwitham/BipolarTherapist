@@ -425,7 +425,6 @@ function refreshTable() {
               : "Open form follow-up"
             : "";
 
-      const profileUrl = safeProfileUrl(t.profileUrl);
       return `<tr data-id="${esc(t._id)}" style="cursor:pointer;${dueBg}">
       <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "-")}</td>
       <td style="padding:11px 14px;color:#6b7280;">${esc(t.email || "-")}</td>
@@ -434,7 +433,6 @@ function refreshTable() {
       <td style="padding:11px 14px;color:#6b7280;">${relTime(last) || "-"}</td>
       <td style="padding:11px 14px;white-space:nowrap;">
         ${sendLabel ? `<button class="send-btn btn-secondary" data-id="${esc(t._id)}" style="margin-right:6px;color:#2a5f6e;border-color:#2a5f6e;">${sendLabel}</button>` : ""}
-        ${profileUrl ? `<a class="profile-link" href="${esc(profileUrl)}" target="_blank" rel="noopener" data-no-row-click style="margin-right:6px;display:inline-block;padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;color:#2a5f6e;font-size:12px;text-decoration:none;">Profile ↗</a>` : ""}
         <button class="view-btn btn-secondary" data-id="${esc(t._id)}">View</button>
       </td>
     </tr>`;
@@ -1048,6 +1046,22 @@ async function init() {
   if (ok && data) {
     state.therapists = data;
     renderDashboard();
+    // Deep-link from founder alert emails: /outreach?slug=jane-doe opens
+    // the detail panel for that therapist so the operator can send a
+    // follow-up email without hunting for them in the table.
+    try {
+      const slug = new URLSearchParams(window.location.search).get("slug");
+      if (slug) {
+        const t = state.therapists.find(
+          (x) =>
+            (typeof x.slug === "object" ? x.slug?.current : x.slug) === slug ||
+            (x.profileUrl || "").includes(`/therapists/${slug}`),
+        );
+        if (t) openPanel(t);
+      }
+    } catch (_error) {
+      // Deep-link is a nice-to-have; never block the dashboard.
+    }
   } else {
     redirectToAdminLogin();
   }

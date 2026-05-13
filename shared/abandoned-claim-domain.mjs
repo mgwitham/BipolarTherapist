@@ -54,17 +54,27 @@ export function findAbandonedClaims({
   return abandoned;
 }
 
-export function buildAbandonedClaimAlert(record) {
+export function buildAbandonedClaimAlert(record, options = {}) {
   const name = record.name || record.email || "Therapist";
+  const portalBaseUrl = String(
+    options.portalBaseUrl || "https://www.bipolartherapyhub.com",
+  ).replace(/\/+$/, "");
+  const outreachUrl = record.slug
+    ? `${portalBaseUrl}/outreach?slug=${encodeURIComponent(record.slug)}`
+    : "";
+  const lines = [
+    `Name: ${record.name || "—"}`,
+    `Email: ${record.email || "—"}`,
+    `Slug: ${record.slug || "—"}`,
+    `Requested at: ${record.requestedAt}`,
+    "",
+    "Consider a personal follow-up — they showed intent.",
+  ];
+  if (outreachUrl) {
+    lines.push("", `Open in Outreach: ${outreachUrl}`);
+  }
   return {
     subject: `[ABANDONED] ${name} requested a claim link but didn't claim`,
-    lines: [
-      `Name: ${record.name || "—"}`,
-      `Email: ${record.email || "—"}`,
-      `Slug: ${record.slug || "—"}`,
-      `Requested at: ${record.requestedAt}`,
-      "",
-      "Consider a personal follow-up — they showed intent.",
-    ],
+    lines,
   };
 }
