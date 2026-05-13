@@ -37,12 +37,19 @@ function firstName(fullName) {
 // Fallback copy used when the composer ships a blank subject/body
 // (shouldn't happen — the client validates — but defense in depth).
 // Keep this in sync with getTemplateDefaults() in assets/outreach.js.
+// Append ?ref=outreach so the profile page can attribute the view to
+// an outreach-email click for the daily clicked-but-didn't-claim digest.
+function withOutreachRef(url) {
+  if (!url) return "";
+  return url.includes("?") ? `${url}&ref=outreach` : `${url}?ref=outreach`;
+}
+
 const TEMPLATES = {
   email_1: {
     subject: (t) => `Patients in ${t.city || "California"} are searching for bipolar specialists`,
     text: (t) => {
       const first = firstName(t.name);
-      const url = t.profileUrl || "";
+      const url = withOutreachRef(t.profileUrl || "");
       return [
         `Hi ${first},`,
         "",
@@ -68,7 +75,7 @@ const TEMPLATES = {
       `Re: Patients in ${t.city || "California"} are searching for bipolar specialists`,
     text: (t) => {
       const first = firstName(t.name);
-      const url = t.profileUrl || "";
+      const url = withOutreachRef(t.profileUrl || "");
       return [
         `Hi ${first},`,
         "",
