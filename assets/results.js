@@ -132,6 +132,14 @@ function hasRenderableTherapist(entry) {
 
 /* ── card builders ───────────────────────────────────────── */
 
+function renderAvatar(t, sizeClass) {
+  const cls = sizeClass ? `card-avatar ${sizeClass}` : "card-avatar";
+  if (t.photo_url) {
+    return `<div class="${cls}"><img class="card-avatar-img" src="${escapeHtml(t.photo_url)}" alt="${escapeHtml(t.name || "")}" loading="lazy" decoding="async" /></div>`;
+  }
+  return `<div class="${cls}" aria-hidden="true">${escapeHtml(getInitials(t.name))}</div>`;
+}
+
 function renderFeaturedCard(entry, profile) {
   const t = entry.therapist || {};
   const reason = buildReasonLine(t);
@@ -142,7 +150,7 @@ function renderFeaturedCard(entry, profile) {
     `</div>` +
     `<article class="featured-card" data-card data-card-rank="${FEATURED_RANK}" data-card-id="${escapeHtml(t.slug || "")}">` +
     `<div class="featured-card-header">` +
-    `<div class="card-avatar" aria-hidden="true">${escapeHtml(getInitials(t.name))}</div>` +
+    renderAvatar(t) +
     `<div class="card-ident">` +
     `<h2 class="card-name">${escapeHtml(t.name || "")}${t.credentials ? `, <span class="card-creds">${escapeHtml(t.credentials)}</span>` : ""}</h2>` +
     (t.headline ? `<p class="card-title">${escapeHtml(t.headline)}</p>` : "") +
@@ -167,7 +175,7 @@ function renderGridCard(entry, rank, profile) {
   return (
     `<article class="grid-card" data-card data-card-rank="${rank}" data-card-id="${escapeHtml(t.slug || "")}">` +
     `<div class="grid-card-header">` +
-    `<div class="card-avatar card-avatar-sm" aria-hidden="true">${escapeHtml(getInitials(t.name))}</div>` +
+    renderAvatar(t, "card-avatar-sm") +
     `<div class="card-ident">` +
     `<h3 class="card-name card-name-sm">${escapeHtml(t.name || "")}${t.credentials ? `, <span class="card-creds">${escapeHtml(t.credentials)}</span>` : ""}</h3>` +
     `</div>` +
