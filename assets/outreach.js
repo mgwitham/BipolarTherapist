@@ -694,9 +694,17 @@ function firstName(fullName) {
 
 // Default starting subject + body for each template. The composer
 // pre-fills these into editable inputs; the user edits before sending.
+// Append ?ref=outreach so the profile page can attribute the view to
+// an outreach-email click for the daily 'clicked but didn't claim'
+// digest. Safe for both real URLs and the bracketed placeholder.
+function withOutreachRef(url) {
+  if (!url || url.startsWith("[")) return url;
+  return url.includes("?") ? `${url}&ref=outreach` : `${url}?ref=outreach`;
+}
+
 function getTemplateDefaults(template, t) {
   const first = firstName(t.name);
-  const profileUrl = safeProfileUrl(t.profileUrl) || "[your profile URL]";
+  const profileUrl = withOutreachRef(safeProfileUrl(t.profileUrl) || "[your profile URL]");
   const initialSubject = `BipolarTherapyHub | Michael here. One Ask`;
   const sharedBody = `Hi ${first},
 
