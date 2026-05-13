@@ -48,6 +48,46 @@ var freshnessRankCache = new WeakMap();
 var decisionReadyScoreCache = new WeakMap();
 var merchandisingQualityCache = new WeakMap();
 
+function normalizePublicHttpUrl(value) {
+  var raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+  var withProtocol = /^https?:\/\//i.test(raw) ? raw : "https://" + raw;
+  try {
+    var url = new URL(withProtocol);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return "";
+    }
+    if (!url.hostname || url.hostname.indexOf(".") === -1 || /\s/.test(url.hostname)) {
+      return "";
+    }
+    return url.href;
+  } catch (_error) {
+    return "";
+  }
+}
+
+function normalizePhoneHref(value) {
+  var phone = String(value || "").trim();
+  if (!phone) {
+    return "";
+  }
+  var normalized = phone.replace(/[^\d+]/g, "");
+  var digitCount = normalized.replace(/\D/g, "").length;
+  return digitCount >= 7 ? "tel:" + normalized : "";
+}
+
+function normalizeEmailHref(value) {
+  var email = String(value || "")
+    .trim()
+    .toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return "";
+  }
+  return "mailto:" + email;
+}
+
 function getRankingZip(filterState) {
   var rankingZip = String(
     (filterState && (filterState.explicit_zip || filterState.ranking_zip || filterState.zip)) || "",
@@ -154,10 +194,17 @@ export function isPsychiatristProvider(therapist) {
 }
 
 export function getPreferredContactRoute(therapist) {
-  var emailAvailable = therapist.email && therapist.email !== "contact@example.com";
+  var bookingUrl = normalizePublicHttpUrl(therapist.booking_url);
+  var websiteUrl = normalizePublicHttpUrl(therapist.website);
+  var phoneHref = normalizePhoneHref(therapist.phone);
+  var emailHref =
+    therapist.email && therapist.email !== "contact@example.com"
+      ? normalizeEmailHref(therapist.email)
+      : "";
+  var emailAvailable = Boolean(emailHref);
   var customLabel = String(therapist.preferred_contact_label || "").trim();
-  var bookingHealthy = isBookingRouteHealthy(therapist);
-  var websiteHealthy = isWebsiteRouteHealthy(therapist);
+  var bookingHealthy = Boolean(bookingUrl && isBookingRouteHealthy(therapist));
+  var websiteHealthy = Boolean(websiteUrl && isWebsiteRouteHealthy(therapist));
   var suppressedRoutes = [];
   if (therapist.booking_url && !bookingHealthy) {
     suppressedRoutes.push("booking link looks unavailable");
@@ -169,28 +216,28 @@ export function getPreferredContactRoute(therapist) {
     ? "Using another contact route because the " + suppressedRoutes.join(" and the ") + "."
     : "";
 
-  if (therapist.preferred_contact_method === "booking" && therapist.booking_url && bookingHealthy) {
+  if (therapist.preferred_contact_method === "booking" && bookingUrl && bookingHealthy) {
     return {
       label: customLabel || "Book consultation",
-      href: therapist.booking_url,
+      href: bookingUrl,
       external: true,
       detail: "Prefers booking link",
     };
   }
 
-  if (therapist.preferred_contact_method === "website" && therapist.website && websiteHealthy) {
+  if (therapist.preferred_contact_method === "website" && websiteUrl && websiteHealthy) {
     return {
       label: customLabel || "Visit website",
-      href: therapist.website,
+      href: websiteUrl,
       external: true,
       detail: "Prefers website intake",
     };
   }
 
-  if (therapist.preferred_contact_method === "phone" && therapist.phone) {
+  if (therapist.preferred_contact_method === "phone" && phoneHref) {
     return {
       label: customLabel || "Call practice",
-      href: "tel:" + therapist.phone,
+      href: phoneHref,
       external: false,
       detail: fallbackDetail || "Prefers phone consults",
     };
@@ -199,34 +246,34 @@ export function getPreferredContactRoute(therapist) {
   if (therapist.preferred_contact_method === "email" && emailAvailable) {
     return {
       label: customLabel || "Email therapist",
-      href: "mailto:" + therapist.email,
+      href: emailHref,
       external: false,
       detail: fallbackDetail || "Prefers direct email",
     };
   }
 
-  if (therapist.booking_url && bookingHealthy) {
+  if (bookingUrl && bookingHealthy) {
     return {
       label: customLabel || "Book consultation",
-      href: therapist.booking_url,
+      href: bookingUrl,
       external: true,
       detail: "Booking link available",
     };
   }
 
-  if (therapist.website && websiteHealthy) {
+  if (websiteUrl && websiteHealthy) {
     return {
       label: customLabel || "Visit website",
-      href: therapist.website,
+      href: websiteUrl,
       external: true,
       detail: "Website intake available",
     };
   }
 
-  if (therapist.phone) {
+  if (phoneHref) {
     return {
       label: customLabel || "Call practice",
-      href: "tel:" + therapist.phone,
+      href: phoneHref,
       external: false,
       detail: fallbackDetail || "Phone contact available",
     };
@@ -235,7 +282,7 @@ export function getPreferredContactRoute(therapist) {
   if (emailAvailable) {
     return {
       label: customLabel || "Email therapist",
-      href: "mailto:" + therapist.email,
+      href: emailHref,
       external: false,
       detail: fallbackDetail || "Direct email available",
     };
