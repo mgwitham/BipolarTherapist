@@ -263,20 +263,30 @@ export async function handleStripeRoutes(context) {
 
     await client.transaction().createOrReplace(merged).commit({ visibility: "async" });
 
-    // Founder alert: a new trial just started. Fires only on the
-    // `customer.subscription.created` event with a trialing status so
-    // existing subscriptions changing state don't re-trigger it.
+    // Founder alerts: trial-start, trial-converted-to-paid, and
+    // subscription-canceled. All look at the same `existing` (prior
+    // Sanity state) + `stripeSubscription` (new state) + `merged`
+    // (just-saved). Each alert is wrapped so a fetch failure doesn't
+    // fail the webhook response.
+    const wasTrialingBefore = existing?.status === "trialing";
+    const isActiveNow = stripeSubscription?.status === "active";
+    const isTrialingNow = stripeSubscription?.status === "trialing";
+
+    async function lookupTherapist() {
+      return client.fetch(
+        `*[_type == "therapist" && slug.current == $slug][0]{ name, email }`,
+        { slug: therapistSlug },
+      );
+    }
+
+    // 1. New trial started.
     if (
       event.type === "customer.subscription.created" &&
-      stripeSubscription &&
-      stripeSubscription.status === "trialing" &&
+      isTrialingNow &&
       typeof sendFounderAlert === "function"
     ) {
       try {
-        const therapist = await client.fetch(
-          `*[_type == "therapist" && slug.current == $slug][0]{ name, email }`,
-          { slug: therapistSlug },
-        );
+        const therapist = await lookupTherapist();
         await sendFounderAlert(config, {
           subject: `[TRIAL] ${therapist?.name || therapistSlug} started a free trial`,
           lines: [
@@ -285,6 +295,67 @@ export async function handleStripeRoutes(context) {
             `Slug: ${therapistSlug}`,
             `Trial ends: ${merged.trialEndsAt || "—"}`,
             `Plan: ${merged.tier || "—"} (${merged.interval || "—"})`,
+          ],
+        });
+      } catch (_error) {
+        // Side-effects on the webhook must not fail the webhook.
+      }
+    }
+
+    // 2. Trial converted to paid: status flipped trialing → active.
+    // Only fires on the transition, not on subsequent active updates.
+    if (
+      event.type === "customer.subscription.updated" &&
+      wasTrialingBefore &&
+      isActiveNow &&
+      typeof sendFounderAlert === "function"
+    ) {
+      try {
+        const therapist = await lookupTherapist();
+        await sendFounderAlert(config, {
+          subject: `[PAID] ${therapist?.name || therapistSlug} converted from trial to paid`,
+          lines: [
+            `Name: ${therapist?.name || "—"}`,
+            `Email: ${therapist?.email || "—"}`,
+            `Slug: ${therapistSlug}`,
+            `Plan: ${merged.tier || "—"} (${merged.interval || "—"})`,
+          ],
+        });
+      } catch (_error) {
+        // Side-effects on the webhook must not fail the webhook.
+      }
+    }
+
+    // 3. Subscription canceled. Two firing points, deduped:
+    //    a. cancel_at_period_end flipped false → true (user clicks
+    //       cancel; sub stays active until period end). Most actionable.
+    //    b. The terminal `customer.subscription.deleted`, BUT only if
+    //       (a) didn't already fire — i.e. existing.cancelAtPeriodEnd
+    //       wasn't already true.
+    const wasMarkedCancelBefore = existing?.cancelAtPeriodEnd === true;
+    const isMarkedCancelNow = stripeSubscription?.cancel_at_period_end === true;
+    const canceledByUserNow =
+      event.type === "customer.subscription.updated" &&
+      isMarkedCancelNow &&
+      !wasMarkedCancelBefore;
+    const adminOrSystemDeletedNow =
+      event.type === "customer.subscription.deleted" && !wasMarkedCancelBefore;
+
+    if ((canceledByUserNow || adminOrSystemDeletedNow) && typeof sendFounderAlert === "function") {
+      try {
+        const therapist = await lookupTherapist();
+        const priorPhase = wasTrialingBefore ? "trial" : existing?.status || "paid";
+        await sendFounderAlert(config, {
+          subject: `[CANCELED] ${therapist?.name || therapistSlug} canceled their subscription`,
+          lines: [
+            `Name: ${therapist?.name || "—"}`,
+            `Email: ${therapist?.email || "—"}`,
+            `Slug: ${therapistSlug}`,
+            `Was on: ${priorPhase}`,
+            `Plan: ${merged.tier || existing?.tier || "—"}`,
+            canceledByUserNow
+              ? "Stays active until period end."
+              : "Subscription terminated immediately.",
           ],
         });
       } catch (_error) {
