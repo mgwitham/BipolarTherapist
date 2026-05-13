@@ -617,26 +617,8 @@ function firstName(fullName) {
 function getTemplateDefaults(template, t) {
   const first = firstName(t.name);
   const profileUrl = safeProfileUrl(t.profileUrl) || "[your profile URL]";
-  if (template === "follow_up") {
-    return {
-      subject: `One more thing about your bipolar patients`,
-      body: `Hi ${first},
-
-Someone with bipolar disorder is searching for a specialist right now. They've probably been through a few therapists who didn't understand the full picture. For some of them, you're the right person. They just can't find you yet.
-
-Your profile is still unclaimed:
-
-${profileUrl}
-
-Two minutes is all it takes. If it's not for you, just reply and I'll remove it. No more emails after this.
-
-Michael Witham
-bipolartherapyhub.com`,
-    };
-  }
-  return {
-    subject: `BipolarTherapyHub | Michael here. One Ask`,
-    body: `Hi ${first},
+  const initialSubject = `BipolarTherapyHub | Michael here. One Ask`;
+  const sharedBody = `Hi ${first},
 
 I'm Michael. I built BipolarTherapyHub because I spent twenty years as the bipolar patient who couldn't find the right therapist.
 
@@ -649,7 +631,19 @@ It takes two minutes. Patients searching for someone who actually gets the cycli
 If you'd rather not be listed, just reply and I'll take it down.
 
 Michael Witham
-bipolartherapyhub.com`,
+bipolartherapyhub.com`;
+  if (template === "follow_up") {
+    // Same body as the initial — the messaging is doing the work. Subject
+    // gets a Re: prefix so Gmail threads it under the original instead of
+    // showing up as a fresh inbox entry.
+    return {
+      subject: `Re: ${initialSubject}`,
+      body: sharedBody,
+    };
+  }
+  return {
+    subject: initialSubject,
+    body: sharedBody,
   };
 }
 

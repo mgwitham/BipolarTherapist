@@ -37,54 +37,39 @@ function firstName(fullName) {
 // Fallback copy used when the composer ships a blank subject/body
 // (shouldn't happen — the client validates — but defense in depth).
 // Keep this in sync with getTemplateDefaults() in assets/outreach.js.
+const INITIAL_SUBJECT = "BipolarTherapyHub | Michael here. One Ask";
+function buildSharedBody(t) {
+  const first = firstName(t.name);
+  const url = t.profileUrl || "";
+  return [
+    `Hi ${first},`,
+    "",
+    "I'm Michael. I built BipolarTherapyHub because I spent twenty years as the bipolar patient who couldn't find the right therapist.",
+    "",
+    "One ask: claim your profile.",
+    "",
+    url,
+    "",
+    "It takes two minutes. Patients searching for someone who actually gets the cycling, the mixed states, the medication piece will find you instead of giving up.",
+    "",
+    "If you'd rather not be listed, just reply and I'll take it down.",
+    "",
+    "Michael Witham",
+    "bipolartherapyhub.com",
+  ].join("\n");
+}
 const TEMPLATES = {
   email_1: {
-    subject: (t) => `Patients in ${t.city || "California"} are searching for bipolar specialists`,
-    text: (t) => {
-      const first = firstName(t.name);
-      const url = t.profileUrl || "";
-      return [
-        `Hi ${first},`,
-        "",
-        "Every week, patients across California search for therapists who truly understand bipolar disorder, not just mood issues in general. That search is harder than it should be.",
-        "",
-        "I built BipolarTherapyHub to fix that, and I added a profile for you:",
-        "",
-        url,
-        "",
-        "It's live and free. To update your bio, photo, fees, or specialties, you can claim it in two clicks. No payment required.",
-        "",
-        "If you'd rather not be listed, just reply and I'll remove it today.",
-        "",
-        "Best,",
-        "Michael",
-      ].join("\n");
-    },
-    html: (t) => plainTextToHtml(TEMPLATES.email_1.text(t)),
+    subject: () => INITIAL_SUBJECT,
+    text: (t) => buildSharedBody(t),
+    html: (t) => plainTextToHtml(buildSharedBody(t)),
     nextStatus: "email_1_sent",
   },
   follow_up: {
-    subject: (t) =>
-      `Re: Patients in ${t.city || "California"} are searching for bipolar specialists`,
-    text: (t) => {
-      const first = firstName(t.name);
-      const url = t.profileUrl || "";
-      return [
-        `Hi ${first},`,
-        "",
-        "Quick bump in case the first email got buried. Your bipolar specialist listing is here:",
-        "",
-        url,
-        "",
-        `Free to claim if you want to edit anything, or reply "remove" and I'll take it down.`,
-        "",
-        "No more emails after this either way.",
-        "",
-        "Best,",
-        "Michael",
-      ].join("\n");
-    },
-    html: (t) => plainTextToHtml(TEMPLATES.follow_up.text(t)),
+    // Same body as the initial; Re: prefix so Gmail threads it.
+    subject: () => `Re: ${INITIAL_SUBJECT}`,
+    text: (t) => buildSharedBody(t),
+    html: (t) => plainTextToHtml(buildSharedBody(t)),
     nextStatus: "followed_up",
   },
 };
