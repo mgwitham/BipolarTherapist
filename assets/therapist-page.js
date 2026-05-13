@@ -620,6 +620,7 @@ function buildFAQItems(t) {
 // ─── Mobile sticky CTA bar ────────────────────────────────────────────────────
 function buildMobileStickyBar(t) {
   var phone = t.phone || null;
+  var email = t.email && t.email !== "contact@example.com" ? t.email : "";
   var website = safeExternalUrl(t.website) || safeExternalUrl(t.booking_url);
   var phoneDigits = phone ? phone.replace(/[^0-9+]/g, "") : null;
   var fee_min = t.session_fee_min;
@@ -627,8 +628,64 @@ function buildMobileStickyBar(t) {
   var feeLabel = fee_min
     ? "$" + fee_min + (fee_max && fee_max !== fee_min ? "–$" + fee_max : "") + "/session"
     : null;
+  var pref = String(t.preferred_contact_method || "")
+    .trim()
+    .toLowerCase();
 
-  if (!phone && !website) return "";
+  if (!phone && !email && !website) return "";
+
+  // Primary CTA respects preferred_contact_method (email / phone /
+  // booking / website). Falls back to phone-then-email when no
+  // preference is set or the preferred channel is missing.
+  var firstNameForLabel = (function () {
+    var titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
+    var words = String(t.name || "")
+      .split(/\s+/)
+      .filter(Boolean)
+      .filter(function (w) {
+        return !titlePrefix.test(w);
+      });
+    return words[0] || "";
+  })();
+  var bookingUrl = safeExternalUrl(t.booking_url);
+  var primaryHtml = "";
+  function emailPrimary() {
+    return (
+      '<a href="mailto:' +
+      escapeHtml(email) +
+      '" class="mobile-sticky-cta" data-profile-contact-route="email" data-profile-contact-priority="primary">Email' +
+      (firstNameForLabel ? " " + escapeHtml(firstNameForLabel) : "") +
+      "</a>"
+    );
+  }
+  function phonePrimary() {
+    return (
+      '<a href="tel:' +
+      escapeHtml(phoneDigits) +
+      '" class="mobile-sticky-cta" data-profile-contact-route="phone" data-profile-contact-priority="primary">Call ' +
+      escapeHtml(phone) +
+      "</a>"
+    );
+  }
+  if (pref === "email" && email) {
+    primaryHtml = emailPrimary();
+  } else if (pref === "phone" && phone && phoneDigits) {
+    primaryHtml = phonePrimary();
+  } else if ((pref === "booking" || pref === "booking_url") && bookingUrl) {
+    primaryHtml =
+      '<a href="' +
+      escapeHtml(bookingUrl) +
+      '" target="_blank" rel="noopener noreferrer" class="mobile-sticky-cta" data-profile-contact-route="booking" data-profile-contact-priority="primary">Book</a>';
+  } else if (pref === "website" && website) {
+    primaryHtml =
+      '<a href="' +
+      escapeHtml(website) +
+      '" target="_blank" rel="noopener noreferrer" class="mobile-sticky-cta" data-profile-contact-route="website" data-profile-contact-priority="primary">Visit website</a>';
+  } else if (phone && phoneDigits) {
+    primaryHtml = phonePrimary();
+  } else if (email) {
+    primaryHtml = emailPrimary();
+  }
 
   return (
     '<div class="profile-mobile-sticky" id="profileMobileStickyBar" aria-hidden="true">' +
@@ -643,13 +700,7 @@ function buildMobileStickyBar(t) {
         "</div>"
       : "") +
     '<div class="mobile-sticky-actions">' +
-    (phone && phoneDigits
-      ? '<a href="tel:' +
-        escapeHtml(phoneDigits) +
-        '" class="mobile-sticky-cta" data-profile-contact-route="phone" data-profile-contact-priority="primary">Call ' +
-        escapeHtml(phone) +
-        "</a>"
-      : "") +
+    primaryHtml +
     (website
       ? '<a href="' +
         escapeHtml(website) +
@@ -2342,10 +2393,11 @@ function renderProfile(t, therapistDirectory) {
       "</div>";
   }
 
-  var reachOutHtml =
-    '<div class="card profile-section-card profile-reach-card">' +
-    '<div class="profile-section-eyebrow">Reach out</div>' +
-    '<h2 class="profile-section-h2">We\'ve drafted a message for you</h2>' +
+  // Lead with the channel the therapist prefers. If they've set
+  // "phone first", the call script appears above the email draft; if
+  // they've set "email first" (or no preference), the draft email
+  // stays on top.
+  var reachOutDraftHtml =
     '<div class="profile-reach-draft">' +
     '<div class="profile-reach-draft-label">Written message</div>' +
     '<div class="profile-reach-draft-hint">A calm starting point. Swap in your name or add one personal detail if you\'d like.</div>' +
@@ -2357,8 +2409,21 @@ function renderProfile(t, therapistDirectory) {
     '<i class="ti ti-copy" aria-hidden="true"></i> Copy message' +
     "</button>" +
     "</div>" +
-    "</div>" +
-    reachOutCallScript +
+    "</div>";
+  var reachOutPrefersPhone = String(t.preferred_contact_method || "").toLowerCase() === "phone";
+  var reachOutBody = reachOutPrefersPhone
+    ? reachOutCallScript + reachOutDraftHtml
+    : reachOutDraftHtml + reachOutCallScript;
+  var reachOutHeading = reachOutPrefersPhone
+    ? "Call first, here's what to say"
+    : "We've drafted a message for you";
+  var reachOutHtml =
+    '<div class="card profile-section-card profile-reach-card">' +
+    '<div class="profile-section-eyebrow">Reach out</div>' +
+    '<h2 class="profile-section-h2">' +
+    escapeHtml(reachOutHeading) +
+    "</h2>" +
+    reachOutBody +
     "</div>";
 
   // Step 10: FAQ card. Renders in the main column (was previously inside
@@ -2453,24 +2518,76 @@ function renderProfile(t, therapistDirectory) {
       preferredContactRaw.charAt(0).toUpperCase() + preferredContactRaw.slice(1);
   }
 
-  var sidePrimaryHtml = "";
-  if (sideHasPhone) {
-    sidePrimaryHtml =
-      '<a href="tel:' +
-      escapeHtml(normalizeTelUri(t.phone)) +
-      '" class="profile-side-primary" data-profile-side-primary>' +
-      '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
-      escapeHtml(t.phone) +
-      "</a>";
-  } else if (sideHasEmail) {
-    sidePrimaryHtml =
-      '<a href="mailto:' +
-      escapeHtml(t.email) +
-      '" class="profile-side-primary" data-profile-side-primary>' +
-      '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
-      escapeHtml(therapistFirstName) +
-      "</a>";
+  // Sidebar primary button — respects preferred_contact_method when the
+  // therapist set one (mirrors buildPreferredContactButton in the main
+  // column). Falls back to the legacy phone-then-email ladder only when
+  // no preference is set or the preferred channel's field is missing.
+  function buildSidePrimaryHtml() {
+    var pref = preferredContactRaw.toLowerCase();
+    if (pref === "email" && sideHasEmail) {
+      return (
+        '<a href="mailto:' +
+        escapeHtml(t.email) +
+        '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="email">' +
+        '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
+        escapeHtml(therapistFirstName) +
+        "</a>"
+      );
+    }
+    if (pref === "phone" && sideHasPhone) {
+      return (
+        '<a href="tel:' +
+        escapeHtml(normalizeTelUri(t.phone)) +
+        '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="phone">' +
+        '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
+        escapeHtml(t.phone) +
+        "</a>"
+      );
+    }
+    if ((pref === "booking" || pref === "booking_url") && sideHasBooking && bookingHealthy) {
+      return (
+        '<a href="' +
+        escapeHtml(bookingUrl) +
+        '" target="_blank" rel="noopener noreferrer" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="booking">' +
+        '<i class="ti ti-calendar" aria-hidden="true"></i> Book a consultation' +
+        "</a>"
+      );
+    }
+    if (pref === "website" && sideHasWebsite && websiteHealthy) {
+      return (
+        '<a href="' +
+        escapeHtml(websiteUrl) +
+        '" target="_blank" rel="noopener noreferrer" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="website">' +
+        '<i class="ti ti-world" aria-hidden="true"></i> Visit ' +
+        escapeHtml(therapistFirstName) +
+        "'s website</a>"
+      );
+    }
+    // No preference set, or preferred channel's field is missing — fall
+    // back to phone-then-email so the button still does something useful.
+    if (sideHasPhone) {
+      return (
+        '<a href="tel:' +
+        escapeHtml(normalizeTelUri(t.phone)) +
+        '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="phone">' +
+        '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
+        escapeHtml(t.phone) +
+        "</a>"
+      );
+    }
+    if (sideHasEmail) {
+      return (
+        '<a href="mailto:' +
+        escapeHtml(t.email) +
+        '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="email">' +
+        '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
+        escapeHtml(therapistFirstName) +
+        "</a>"
+      );
+    }
+    return "";
   }
+  var sidePrimaryHtml = buildSidePrimaryHtml();
 
   var sideContactItems = "";
   if (sideHasEmail) {
