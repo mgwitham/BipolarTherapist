@@ -5,6 +5,10 @@ import { escapeHtml } from "./escape-html.js";
 
 const REMOVAL_ENDPOINT = "/api/review/portal/listing-removal/request";
 
+function isLikelyEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
 // Render a toast if the user lands here after clicking a removal confirmation link.
 // The backend redirect targets /remove?removed=ok|expired|invalid.
 function renderToast() {
@@ -48,6 +52,8 @@ function setStatus(node, message, tone) {
 }
 
 async function submitRemovalRequest(form, status) {
+  if (form.dataset.submitting === "true") return;
+
   const payload = {
     full_name: form.elements.full_name.value.trim(),
     license_number: form.elements.license_number.value.trim(),
@@ -59,8 +65,14 @@ async function submitRemovalRequest(form, status) {
     return;
   }
 
+  if (!isLikelyEmail(payload.email)) {
+    setStatus(status, "Enter the email address on file for this listing.", "error");
+    return;
+  }
+
   const submit = form.querySelector('button[type="submit"]');
   const priorLabel = submit ? submit.textContent : "";
+  form.dataset.submitting = "true";
   if (submit) {
     submit.disabled = true;
     submit.textContent = "Sending link...";
@@ -96,6 +108,7 @@ async function submitRemovalRequest(form, status) {
       "error",
     );
   } finally {
+    delete form.dataset.submitting;
     if (submit) {
       submit.disabled = false;
       submit.textContent = priorLabel;
@@ -116,38 +129,43 @@ function debounce(fn, wait) {
 
 function renderRemovalSearchResults(container, results, onPick) {
   if (!container) return;
+  container.textContent = "";
   if (!results.length) {
     container.hidden = false;
-    container.innerHTML =
-      '<div class="removal-search-empty">No matches. Try your last name or CA license number.</div>';
+    const empty = document.createElement("div");
+    empty.className = "removal-search-empty";
+    empty.textContent = "No matches. Try your last name or CA license number.";
+    container.appendChild(empty);
     return;
   }
   container.hidden = false;
-  container.innerHTML = results
-    .slice(0, 5)
-    .map((result, index) => {
-      const location = [result.city, result.state].filter(Boolean).join(", ");
-      const credBit = result.credentials ? " · " + escapeHtml(result.credentials) : "";
-      const licenseBit = result.license_number
-        ? " · License " + escapeHtml(result.license_number)
-        : "";
-      const emailBit = result.email_hint
-        ? " · Email: " + escapeHtml(result.email_hint)
-        : " · No email on file";
-      return (
-        `<button type="button" class="removal-search-result" data-result-index="${index}">` +
-        `<span class="result-name">${escapeHtml(result.name || "")}${credBit}</span>` +
-        `<span class="result-meta">${escapeHtml(location)}${licenseBit}${emailBit}</span>` +
-        `</button>`
-      );
-    })
-    .join("");
-  container.querySelectorAll(".removal-search-result").forEach((button) => {
+  results.slice(0, 5).forEach((result, index) => {
+    const location = [result.city, result.state].filter(Boolean).join(", ");
+    const metaParts = [
+      location,
+      result.license_number ? "License " + result.license_number : "",
+      result.email_hint ? "Email: " + result.email_hint : "No email on file",
+    ].filter(Boolean);
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "removal-search-result";
+    button.dataset.resultIndex = String(index);
+
+    const name = document.createElement("span");
+    name.className = "result-name";
+    name.textContent = [result.name || "", result.credentials || ""].filter(Boolean).join(" · ");
+
+    const meta = document.createElement("span");
+    meta.className = "result-meta";
+    meta.textContent = metaParts.join(" · ");
+
+    button.append(name, meta);
     button.addEventListener("click", () => {
       const idx = Number(button.getAttribute("data-result-index"));
       const picked = results[idx];
       if (picked) onPick(picked);
     });
+    container.appendChild(button);
   });
 }
 
@@ -158,27 +176,38 @@ function bindRemovalSearch() {
   const emailHint = document.getElementById("removalEmailHint");
   if (!input || !resultsEl || !form) return;
 
+  let searchRequestId = 0;
   const runSearch = debounce(async (query) => {
+    const requestId = ++searchRequestId;
     const trimmed = (query || "").trim();
     if (trimmed.length < 2) {
       resultsEl.hidden = true;
-      resultsEl.innerHTML = "";
+      resultsEl.textContent = "";
       return;
     }
     try {
       const payload = await searchTherapistQuickClaim(trimmed);
+      if (requestId !== searchRequestId || input.value.trim() !== trimmed) return;
       renderRemovalSearchResults(resultsEl, (payload && payload.results) || [], (picked) => {
         form.elements.full_name.value = picked.name || "";
         form.elements.license_number.value = picked.license_number || "";
         input.value = picked.name || "";
         resultsEl.hidden = true;
-        resultsEl.innerHTML = "";
+        resultsEl.textContent = "";
         trackFunnelEvent("removal_listing_selected", {
           therapist_slug: picked.slug,
         });
         if (emailHint) {
           if (picked.email_hint) {
-            emailHint.innerHTML = `On file: <strong>${escapeHtml(picked.email_hint)}</strong>. Type the full address. The confirmation link always goes to the on-file inbox, not the one you type here.`;
+            emailHint.textContent = "On file: ";
+            const strong = document.createElement("strong");
+            strong.textContent = picked.email_hint;
+            emailHint.append(
+              strong,
+              document.createTextNode(
+                ". Type the full address. The confirmation link always goes to the on-file inbox, not the one you type here.",
+              ),
+            );
           } else {
             emailHint.textContent =
               "No email on file for this listing. Contact us at support@bipolartherapyhub.com to remove it.";
@@ -187,8 +216,9 @@ function bindRemovalSearch() {
         if (form.elements.email) form.elements.email.focus();
       });
     } catch (_error) {
+      if (requestId !== searchRequestId) return;
       resultsEl.hidden = true;
-      resultsEl.innerHTML = "";
+      resultsEl.textContent = "";
     }
   }, 200);
 

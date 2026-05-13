@@ -83,12 +83,14 @@ async function request(path, options) {
   let response;
   try {
     response = await fetch(`${reviewApiBaseUrl}${path}`, {
+      ...(options || {}),
       headers: {
+        Accept: "application/json",
         "Content-Type": "application/json",
         ...(options && options.headers ? options.headers : {}),
       },
+      cache: (options && options.cache) || "no-store",
       credentials: "include",
-      ...options,
     });
   } catch (error) {
     const networkError = new Error(error && error.message ? error.message : "Request failed.");
@@ -97,7 +99,12 @@ async function request(path, options) {
   }
 
   const text = await response.text();
-  const payload = text ? JSON.parse(text) : null;
+  let payload = null;
+  try {
+    payload = text ? JSON.parse(text) : null;
+  } catch (_error) {
+    payload = null;
+  }
 
   if (!response.ok) {
     const requestError = new Error(payload && payload.error ? payload.error : "Request failed.");
@@ -113,11 +120,12 @@ async function requestText(path, options) {
   let response;
   try {
     response = await fetch(`${reviewApiBaseUrl}${path}`, {
+      ...(options || {}),
       headers: {
         ...(options && options.headers ? options.headers : {}),
       },
+      cache: (options && options.cache) || "no-store",
       credentials: "include",
-      ...options,
     });
   } catch (error) {
     const networkError = new Error(error && error.message ? error.message : "Request failed.");

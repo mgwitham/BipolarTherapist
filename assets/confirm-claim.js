@@ -1,6 +1,5 @@
 import "./sentry-init.js";
 import { fetchRecoveryConfirmContext, submitRecoveryConfirmResponse } from "./review-api.js";
-import { escapeHtml } from "./escape-html.js";
 
 const CONTEXT_ID = "confirmContext";
 const ACTIONS_ID = "confirmActions";
@@ -26,19 +25,19 @@ function hideActions() {
 function renderContext(context) {
   const dl = document.getElementById(CONTEXT_ID);
   if (!dl) return;
-  const rows = [];
-  if (context.therapist_name) {
-    rows.push("<dt>Listing name</dt><dd>" + escapeHtml(context.therapist_name) + "</dd>");
-  }
-  if (context.license_number) {
-    rows.push("<dt>License</dt><dd>" + escapeHtml(context.license_number) + "</dd>");
-  }
-  if (context.requested_email) {
-    rows.push(
-      "<dt>Email to grant access to</dt><dd>" + escapeHtml(context.requested_email) + "</dd>",
-    );
-  }
-  dl.innerHTML = rows.join("");
+  dl.textContent = "";
+  const rows = [
+    ["Listing name", context.therapist_name],
+    ["License", context.license_number],
+    ["Email to grant access to", context.requested_email],
+  ].filter((row) => row[1]);
+  rows.forEach(([label, value]) => {
+    const term = document.createElement("dt");
+    term.textContent = label;
+    const description = document.createElement("dd");
+    description.textContent = value;
+    dl.append(term, description);
+  });
   dl.hidden = rows.length === 0;
 }
 
@@ -51,6 +50,8 @@ function readTokenFromUrl() {
 }
 
 async function submitResponse(token, therapistResponse) {
+  if (submitResponse.inFlight) return;
+  submitResponse.inFlight = true;
   const yesBtn = document.getElementById(YES_ID);
   const noBtn = document.getElementById(NO_ID);
   if (yesBtn) yesBtn.disabled = true;
@@ -77,6 +78,7 @@ async function submitResponse(token, therapistResponse) {
     setStatus("warn", message);
     if (yesBtn) yesBtn.disabled = false;
     if (noBtn) noBtn.disabled = false;
+    submitResponse.inFlight = false;
   }
 }
 
