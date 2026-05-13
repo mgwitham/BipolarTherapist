@@ -2044,10 +2044,12 @@ function renderProfile(t, therapistDirectory) {
     var subtypesText = bipolarPopulations.slice(0, 4).join(", ");
     heroYearsHtml =
       '<div class="profile-hero-years">' +
-      '<div class="profile-hero-years-icon"><i class="ti ti-certificate" aria-hidden="true"></i></div>' +
       '<div class="profile-hero-years-main">' +
       '<div class="profile-hero-years-num">' +
-      escapeHtml(bipolarYears + (bipolarYears === 1 ? " year" : " years")) +
+      escapeHtml(String(bipolarYears)) +
+      '<span class="profile-hero-years-unit">' +
+      (bipolarYears === 1 ? "year" : "years") +
+      "</span>" +
       "</div>" +
       '<div class="profile-hero-years-sub">treating bipolar specifically</div>' +
       "</div>" +

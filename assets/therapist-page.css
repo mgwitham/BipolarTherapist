@@ -3459,46 +3459,48 @@ img.bth-avatar {
   opacity: 0.7;
 }
 
-/* Years feature block */
+/* Years feature block — editorial, typography-led. A thin left accent
+   rule replaces the previous icon block so the eye lands on the number
+   rather than a UI badge. */
 .profile-hero-years {
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: #ebf7fb;
-  border: 1px solid #6dbdd4;
-  border-radius: 12px;
-  padding: 14px 18px;
+  gap: 20px;
+  background: linear-gradient(to right, #ebf7fb 0%, #f5fbfc 70%);
+  border: 1px solid #d6eff6;
+  border-left: 3px solid #6dbdd4;
+  border-radius: 4px 10px 10px 4px;
+  padding: 16px 22px;
   margin-bottom: 18px;
 }
-.profile-hero-years-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
-  background: #d6eff6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-.profile-hero-years-icon i {
-  font-size: 20px;
-  color: #347f96;
-}
 .profile-hero-years-num {
-  font-size: 22px;
-  font-weight: 600;
+  font-family: "DM Serif Display", Georgia, serif;
+  font-size: 30px;
+  font-weight: 400;
   color: #1c4d5c;
   line-height: 1;
+  letter-spacing: -0.01em;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+.profile-hero-years-unit {
+  font-family: "DM Sans", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #347f96;
+  letter-spacing: 0.005em;
 }
 .profile-hero-years-sub {
   font-size: 11.5px;
-  color: #347f96;
-  margin-top: 2px;
+  color: #5a7d87;
+  margin-top: 5px;
+  font-weight: 400;
 }
 .profile-hero-years-sep {
   width: 1px;
   height: 36px;
-  background: #b8dde8;
+  background: #c9e4ec;
   flex-shrink: 0;
 }
 .profile-hero-years-detail {
