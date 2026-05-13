@@ -60,6 +60,7 @@ export async function handleStripeRoutes(context) {
     getAuthorizedTherapist,
     parseBody,
     parseRawBody,
+    sendFounderAlert,
     sendJson,
     sendTrialEndingReminder,
     sendUnverifiedTrialCanceledNotice,
@@ -261,6 +262,35 @@ export async function handleStripeRoutes(context) {
     const merged = mergeSubscriptionDocuments(existing, next);
 
     await client.transaction().createOrReplace(merged).commit({ visibility: "async" });
+
+    // Founder alert: a new trial just started. Fires only on the
+    // `customer.subscription.created` event with a trialing status so
+    // existing subscriptions changing state don't re-trigger it.
+    if (
+      event.type === "customer.subscription.created" &&
+      stripeSubscription &&
+      stripeSubscription.status === "trialing" &&
+      typeof sendFounderAlert === "function"
+    ) {
+      try {
+        const therapist = await client.fetch(
+          `*[_type == "therapist" && slug.current == $slug][0]{ name, email }`,
+          { slug: therapistSlug },
+        );
+        await sendFounderAlert(config, {
+          subject: `[TRIAL] ${therapist?.name || therapistSlug} started a free trial`,
+          lines: [
+            `Name: ${therapist?.name || "—"}`,
+            `Email: ${therapist?.email || "—"}`,
+            `Slug: ${therapistSlug}`,
+            `Trial ends: ${merged.trialEndsAt || "—"}`,
+            `Plan: ${merged.tier || "—"} (${merged.interval || "—"})`,
+          ],
+        });
+      } catch (_error) {
+        // Side-effects on the webhook must not fail the webhook.
+      }
+    }
 
     // trial_will_end fires ~3 days before the trial ends. Two branches:
     //   - Therapist has claimed (clicked activation link): send AB 390
