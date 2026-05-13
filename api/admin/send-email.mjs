@@ -100,11 +100,23 @@ function getSanityClient() {
 }
 
 // Convert the user's plain-text edited body into safe HTML for the
-// `html` field of the email. Escapes HTML special chars, then turns
+// `html` field of the email. Escapes HTML special chars, auto-links any
+// http(s) URL or bare bipolartherapyhub.com reference so the signature
+// line and profile link both render as clickable anchors, then turns
 // blank lines into paragraph breaks and single newlines into <br>.
 function plainTextToHtml(text) {
   const escaped = String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  const paragraphs = escaped.split(/\n{2,}/).map(function (block) {
+  // Order matters: match full URLs first so the bare-domain fallback
+  // doesn't truncate them mid-path.
+  const URL_PATTERN = /(https?:\/\/[^\s<]+|www\.[^\s<]+|bipolartherapyhub\.com)/gi;
+  const linked = escaped.replace(URL_PATTERN, (match) => {
+    let href = match;
+    if (!/^https?:\/\//i.test(href)) {
+      href = `https://${href.startsWith("www.") ? href : `www.${href}`}`;
+    }
+    return `<a href="${href}" style="color:#2a5f6e;">${match}</a>`;
+  });
+  const paragraphs = linked.split(/\n{2,}/).map(function (block) {
     return "<p>" + block.replace(/\n/g, "<br>") + "</p>";
   });
   return paragraphs.join("");
