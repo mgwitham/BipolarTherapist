@@ -71,7 +71,7 @@
   "crons": [
     {
       "path": "/api/cron/abandoned-claim-alerts",
-      "schedule": "0 * * * *"
+      "schedule": "0 14 * * *"
     },
     {
       "path": "/api/cron/outreach-click-digest",

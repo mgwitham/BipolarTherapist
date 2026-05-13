@@ -11,7 +11,7 @@ const nowMs = new Date(NOW).getTime();
 const isoAgo = (msAgo) => new Date(nowMs - msAgo).toISOString();
 const HOUR = 60 * 60 * 1000;
 
-test("findAbandonedClaims flags a claim request in the 4-5h window", () => {
+test("findAbandonedClaims flags a claim request in the 4-28h window", () => {
   const therapists = [
     {
       _id: "t1",
@@ -39,15 +39,26 @@ test("findAbandonedClaims skips requests younger than 4h", () => {
   assert.equal(findAbandonedClaims({ therapists, nowIso: NOW }).length, 0);
 });
 
-test("findAbandonedClaims skips requests older than 5h", () => {
+test("findAbandonedClaims skips requests older than 28h", () => {
   const therapists = [
     {
       _id: "t1",
       claimStatus: "claim_requested",
-      claimLinkRequests: [isoAgo(5.1 * HOUR)],
+      claimLinkRequests: [isoAgo(28.1 * HOUR)],
     },
   ];
   assert.equal(findAbandonedClaims({ therapists, nowIso: NOW }).length, 0);
+});
+
+test("findAbandonedClaims flags a request at the mid-window (12h)", () => {
+  const therapists = [
+    {
+      _id: "t1",
+      claimStatus: "claim_requested",
+      claimLinkRequests: [isoAgo(12 * HOUR)],
+    },
+  ];
+  assert.equal(findAbandonedClaims({ therapists, nowIso: NOW }).length, 1);
 });
 
 test("findAbandonedClaims uses the LATEST request, not the earliest", () => {
@@ -55,9 +66,10 @@ test("findAbandonedClaims uses the LATEST request, not the earliest", () => {
     {
       _id: "t1",
       claimStatus: "claim_requested",
-      // Earliest is 8h ago (outside window) but the user retried 4.5h ago
-      // (inside window). We should treat them as a current abandoner.
-      claimLinkRequests: [isoAgo(8 * HOUR), isoAgo(4.5 * HOUR)],
+      // Earliest is 40h ago (past the upper bound) but the user retried
+      // 12h ago (inside window). We should treat them as in-window via
+      // the latest timestamp.
+      claimLinkRequests: [isoAgo(40 * HOUR), isoAgo(12 * HOUR)],
     },
   ];
   assert.equal(findAbandonedClaims({ therapists, nowIso: NOW }).length, 1);

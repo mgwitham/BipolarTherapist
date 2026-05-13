@@ -3,14 +3,15 @@
 // Sanity, then this domain decides which ones to alert on.
 //
 // Window logic: each abandoned request is alerted exactly once. The
-// cron runs hourly and only flags requests whose most-recent
-// claimLinkRequests timestamp falls in a 1-hour sliding window that
-// starts at WINDOW_START_MS_AGO and ends at WINDOW_END_MS_AGO. With
-// the defaults (4h–5h ago) every abandoned request is in the window
-// for exactly one cron run.
+// cron runs daily and only flags requests whose most-recent
+// claimLinkRequests timestamp falls in a 24-hour sliding window
+// [4h, 28h) old. With daily cadence, every request crosses the
+// window in exactly one cron run, so no dedup state is needed.
+// Latency: alerts land 1–23h after the 4h abandonment threshold,
+// average ~12h. Tight enough for same/next-day follow-up.
 
 export const DEFAULT_WINDOW_START_MS = 4 * 60 * 60 * 1000;
-export const DEFAULT_WINDOW_END_MS = 5 * 60 * 60 * 1000;
+export const DEFAULT_WINDOW_END_MS = 28 * 60 * 60 * 1000;
 
 function latestTimestampMs(history) {
   if (!Array.isArray(history) || history.length === 0) return NaN;
@@ -39,8 +40,8 @@ export function findAbandonedClaims({
     const latest = latestTimestampMs(t.claimLinkRequests);
     if (!Number.isFinite(latest)) continue;
     // Latest request must be older than the start cutoff (≥4h ago) and
-    // newer than the end cutoff (<5h ago). That puts each request in
-    // exactly one hourly cron window.
+    // newer than the end cutoff (<28h ago). That puts each request in
+    // exactly one daily cron window.
     if (latest > startCutoff || latest <= endCutoff) continue;
     abandoned.push({
       _id: t._id,
