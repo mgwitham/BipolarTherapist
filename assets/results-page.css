@@ -222,6 +222,14 @@ a {
   font-size: 15px;
   font-weight: 600;
   letter-spacing: 0.02em;
+  overflow: hidden;
+}
+
+.card-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
 /* Neutral teal monogram for missing photos. The rotating-color palette
