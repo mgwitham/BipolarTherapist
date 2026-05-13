@@ -234,6 +234,7 @@ export async function handleClaimRoutes(context) {
     createFeaturedCheckoutSession,
     sendPortalClaimLink,
     sendPortalWelcomeEmail,
+    sendFounderAlert,
   } = deps;
 
   const { setSessionCookie, clearSessionCookie } = makeSessionHelpers(deps, request, response);
@@ -1220,6 +1221,26 @@ export async function handleClaimRoutes(context) {
           requestId,
           err: error?.message || String(error),
         });
+      }
+      // Founder alert: a therapist just claimed their profile. Plain-text,
+      // single-purpose so it reads cleanly on a phone notification.
+      if (typeof sendFounderAlert === "function") {
+        try {
+          await sendFounderAlert(config, {
+            subject: `[CLAIM] ${therapist.name || "Therapist"} claimed their profile`,
+            lines: [
+              `Name: ${therapist.name || "—"}`,
+              `Email: ${payload.email || therapist.email || "—"}`,
+              `Slug: ${therapist.slug?.current || therapist.slug || "—"}`,
+              `Claimed at: ${now}`,
+            ],
+          });
+        } catch (error) {
+          log.error("Failed to send founder alert (claim)", {
+            requestId,
+            err: error?.message || String(error),
+          });
+        }
       }
     }
 

@@ -114,6 +114,22 @@ export async function sendEmail(config, payload) {
   return result;
 }
 
+// Lightweight plain-text founder alert for the per-event notifications
+// (claim completed, trial started, etc). Different shape from
+// notifyAdminOfSubmission: no branded HTML, no preheader — just a
+// one-line subject and a short text body the founder can read on a
+// phone notification.
+export async function sendFounderAlert(config, { subject, lines }) {
+  if (!hasEmailConfig(config)) return;
+  const text = (Array.isArray(lines) ? lines : []).filter(Boolean).join("\n");
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [config.notificationTo],
+    subject,
+    text,
+  });
+}
+
 export async function notifyAdminOfSubmission(config, application) {
   if (!hasEmailConfig(config)) {
     return;
