@@ -3965,8 +3965,8 @@ img.bth-avatar {
   display: flex;
   align-items: center;
   gap: 11px;
-  padding: 9px 0;
-  border-bottom: 0.5px solid #f7f9fa;
+  padding: 11px 0;
+  border-bottom: 0.5px solid #eef3f4;
   font-size: 13.5px;
   min-width: 0;
 }
@@ -3984,32 +3984,51 @@ img.bth-avatar {
   text-decoration: none;
   min-width: 0;
   flex: 1;
+  /* Wrap long values (especially emails) cleanly. overflow-wrap:
+     anywhere prefers natural break points (@, .) and only breaks
+     mid-word when truly necessary, unlike word-break: break-all
+     which fractures sacramento into sacrame|nto. */
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 .profile-side-item a:hover {
   text-decoration: underline;
 }
 .profile-side-email {
-  word-break: break-all;
-  overflow-wrap: anywhere;
+  /* Slightly tighter type for long addresses so they breathe on
+     narrow sidebars without forcing the @ to its own line. */
+  font-size: 13px;
+  line-height: 1.5;
 }
-.profile-side-preferred {
-  background: #f7f4ef;
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin: 14px 0 4px;
+.profile-side-item--preferred {
+  background: #f7fbfc;
+  margin: 0 -10px;
+  padding: 11px 10px;
+  border-radius: 8px;
+  border-bottom-color: transparent;
 }
-.profile-side-preferred-label {
-  font-size: 10px;
+.profile-side-item--preferred + .profile-side-item {
+  border-top: 0.5px solid #eef3f4;
+}
+.profile-side-preferred-tag {
+  flex-shrink: 0;
+  font-size: 9.5px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b8c96;
-  margin-bottom: 4px;
+  color: #1c4d5c;
+  background: #d6eff6;
+  border-radius: 4px;
+  padding: 3px 7px;
+  line-height: 1;
+  white-space: nowrap;
 }
-.profile-side-preferred-text {
-  font-size: 12.5px;
-  color: #3a5b65;
-  line-height: 1.5;
+.profile-side-guidance {
+  margin: 14px 0 0;
+  font-size: 12px;
+  color: #6b8c96;
+  line-height: 1.55;
+  font-style: italic;
 }
 .profile-side-save {
   display: flex;
