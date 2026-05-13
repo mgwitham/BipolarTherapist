@@ -309,8 +309,13 @@ function buildDetailSections(therapist, filters) {
 export function buildCardViewModel(options) {
   var therapist = options.therapist;
   var filters = options.filters || {};
-  var shortlist = options.shortlist;
-  var isShortlisted = options.isShortlisted;
+  var shortlist = Array.isArray(options.shortlist) ? options.shortlist : [];
+  var isShortlisted =
+    typeof options.isShortlisted === "function"
+      ? options.isShortlisted
+      : function () {
+          return false;
+        };
   var shortlisted = isShortlisted(therapist.slug);
   var shortlistEntry = shortlist.find(function (item) {
     return item.slug === therapist.slug;

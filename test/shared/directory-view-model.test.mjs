@@ -6,6 +6,7 @@ import {
   buildDirectoryDetailsViewModel,
   buildDirectoryRecommendationModel,
 } from "../../assets/directory-view-model.js";
+import { getPreferredContactRoute } from "../../assets/directory-logic.js";
 
 test("buildCardViewModel prepares a renderer-friendly card model", function () {
   const therapist = {
@@ -151,4 +152,53 @@ test("recommendation and details models expose guidance-first copy", function ()
     "insurance pill present",
   );
   assert.match(detailsModel.reassurance, /do not need to get this perfect/i);
+});
+
+test("directory contact routes reject unsafe public URLs and normalize contact hrefs", function () {
+  const unsafeWebsite = getPreferredContactRoute({
+    preferred_contact_method: "website",
+    website: "javascript:alert(1)",
+    booking_url: "",
+    phone: " (555) 123-4567 ",
+    email: "bad email",
+  });
+  assert.equal(unsafeWebsite.href, "tel:5551234567");
+
+  const bareBooking = getPreferredContactRoute({
+    preferred_contact_method: "booking",
+    booking_url: "calendly.com/jamie",
+    website: "",
+    phone: "",
+    email: "",
+  });
+  assert.equal(bareBooking.href, "https://calendly.com/jamie");
+  assert.equal(bareBooking.external, true);
+
+  const emailRoute = getPreferredContactRoute({
+    preferred_contact_method: "email",
+    email: "Jamie@Practice.Example",
+  });
+  assert.equal(emailRoute.href, "mailto:jamie@practice.example");
+  assert.equal(emailRoute.external, false);
+});
+
+test("buildCardViewModel tolerates empty-state fallback calls without shortlist helpers", function () {
+  const model = buildCardViewModel({
+    therapist: {
+      slug: "fallback-card",
+      name: "Fallback Card",
+      state: "CA",
+      city: "Oakland",
+      specialties: ["Bipolar I"],
+      insurance_accepted: [],
+      accepts_telehealth: true,
+      accepting_new_patients: true,
+      email: "fallback@example.com",
+    },
+    filters: {},
+  });
+
+  assert.equal(model.shortlisted, false);
+  assert.equal(model.shortlistEntry, undefined);
+  assert.equal(model.contactRoute.href, "mailto:fallback@example.com");
 });

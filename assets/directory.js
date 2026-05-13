@@ -133,6 +133,17 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     return document.getElementById(id);
   }
 
+  function cssEscape(value) {
+    if (window.CSS && typeof window.CSS.escape === "function") {
+      return window.CSS.escape(String(value || ""));
+    }
+    return String(value || "").replace(/["\\]/g, "\\$&");
+  }
+
+  function dataSelector(attribute, value) {
+    return "[" + attribute + '="' + cssEscape(value) + '"]';
+  }
+
   function mulberry32(seed) {
     return function () {
       seed |= 0;
@@ -312,21 +323,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
   }
 
-  function writeCachedIpLocation(value) {
-    try {
-      window.localStorage.setItem(
-        DIRECTORY_IP_LOCATION_CACHE_KEY,
-        JSON.stringify({
-          cached_at: Date.now(),
-          zip: value.zip,
-          label: value.label,
-        }),
-      );
-    } catch (_error) {
-      return;
-    }
-  }
-
   async function fetchIpRankingLocation() {
     var cached = readCachedIpLocation();
     if (cached && normalizeZip(cached.zip)) {
@@ -336,53 +332,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       };
     }
 
-    if (typeof window === "undefined" || typeof window.fetch !== "function") {
-      return null;
-    }
-
-    try {
-      var controller =
-        typeof window.AbortController === "function" ? new window.AbortController() : null;
-      var timeoutId = controller
-        ? window.setTimeout(function () {
-            controller.abort();
-          }, 2500)
-        : 0;
-      var response = await window.fetch("https://ipapi.co/json/", {
-        signal: controller ? controller.signal : undefined,
-      });
-      if (timeoutId) {
-        window.clearTimeout(timeoutId);
-      }
-      if (!response.ok) {
-        return null;
-      }
-
-      var payload = await response.json();
-      var ipZip = normalizeZip(payload && payload.postal);
-      var regionCode = String((payload && payload.region_code) || "")
-        .trim()
-        .toUpperCase();
-      var countryCode = String((payload && payload.country_code) || "")
-        .trim()
-        .toUpperCase();
-      if (!ipZip || regionCode !== "CA" || countryCode !== "US") {
-        return null;
-      }
-
-      var label = getRankingLocationLabel(
-        ipZip,
-        [payload.city, regionCode].filter(Boolean).join(", "),
-      );
-      var result = {
-        zip: ipZip,
-        label: label,
-      };
-      writeCachedIpLocation(result);
-      return result;
-    } catch (_error) {
-      return null;
-    }
+    return null;
   }
 
   async function ensureIpRankingLocation() {
@@ -1394,7 +1344,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return;
     }
 
-    var activeCard = grid.querySelector('[data-card-slug="' + pendingMotionSlug + '"]');
+    var activeCard = grid.querySelector(dataSelector("data-card-slug", pendingMotionSlug));
     if (activeCard) {
       activeCard.classList.remove("motion-pulse");
       void activeCard.offsetWidth;
@@ -1625,7 +1575,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   function patchPanelBookmark(slug, isSaved) {
     var body = getElement("directoryDetailsBody");
     if (!body || !slug) return;
-    var btns = body.querySelectorAll('[data-shortlist-slug="' + slug + '"]');
+    var btns = body.querySelectorAll(dataSelector("data-shortlist-slug", slug));
     btns.forEach(function (btn) {
       btn.setAttribute("aria-pressed", isSaved ? "true" : "false");
       btn.setAttribute("aria-label", isSaved ? "Remove from saved list" : "Save to list");
