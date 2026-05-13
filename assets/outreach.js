@@ -425,6 +425,7 @@ function refreshTable() {
               : "Open form follow-up"
             : "";
 
+      const profileUrl = safeProfileUrl(t.profileUrl);
       return `<tr data-id="${esc(t._id)}" style="cursor:pointer;${dueBg}">
       <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "-")}</td>
       <td style="padding:11px 14px;color:#6b7280;">${esc(t.email || "-")}</td>
@@ -433,6 +434,7 @@ function refreshTable() {
       <td style="padding:11px 14px;color:#6b7280;">${relTime(last) || "-"}</td>
       <td style="padding:11px 14px;white-space:nowrap;">
         ${sendLabel ? `<button class="send-btn btn-secondary" data-id="${esc(t._id)}" style="margin-right:6px;color:#2a5f6e;border-color:#2a5f6e;">${sendLabel}</button>` : ""}
+        ${profileUrl ? `<a class="profile-link" href="${esc(profileUrl)}" target="_blank" rel="noopener" data-no-row-click style="margin-right:6px;display:inline-block;padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;color:#2a5f6e;font-size:12px;text-decoration:none;">Profile ↗</a>` : ""}
         <button class="view-btn btn-secondary" data-id="${esc(t._id)}">View</button>
       </td>
     </tr>`;
@@ -459,6 +461,10 @@ function refreshTable() {
 }
 
 function handleTableClick(e) {
+  // Profile link is a real <a target="_blank"> — let the browser handle it
+  // and don't open the detail panel on top.
+  if (e.target.closest("[data-no-row-click]")) return;
+
   const sendBtn = e.target.closest(".send-btn");
   const viewBtn = e.target.closest(".view-btn");
   const row = e.target.closest("tr[data-id]");
