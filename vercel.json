@@ -68,5 +68,14 @@
       "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
     }
   ],
-  "crons": []
+  "crons": [
+    {
+      "path": "/api/review/cron/abandoned-claim-alerts",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/review/cron/outreach-click-digest",
+      "schedule": "0 15 * * *"
+    }
+  ]
 }

@@ -114,6 +114,29 @@ function buildTherapistProfileUrl(slugValue) {
 var profileParams = new URLSearchParams(window.location.search);
 var slug = profileParams.get("slug") || getSlugFromPath(window.location.pathname);
 var profileSource = profileParams.get("source") || "";
+
+// Outreach-recipient attribution: when the profile is reached from an
+// outreach email (?ref=outreach), fire a funnel event so the daily
+// "clicked but didn't claim" digest can attribute the view. SessionStorage
+// dedup prevents reload-spamming the log within a single browser session.
+(function recordOutreachClickOnce() {
+  if (profileParams.get("ref") !== "outreach") return;
+  if (!slug) return;
+  try {
+    var key = "bth_outreach_click_logged:" + slug;
+    if (window.sessionStorage && window.sessionStorage.getItem(key)) return;
+    if (window.sessionStorage) window.sessionStorage.setItem(key, "1");
+  } catch (_error) {
+    // sessionStorage can throw in some private-mode contexts; fall
+    // through and accept potential reload double-firing rather than
+    // dropping the event entirely.
+  }
+  try {
+    trackFunnelEvent("outreach_profile_viewed", { therapist_slug: slug });
+  } catch (_error) {
+    // Analytics is best-effort.
+  }
+})();
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 var DIRECTORY_LIST_LIMIT = SAVED_LIST_MAX;
 var activeTherapistContactExperimentVariant = "control";
