@@ -2524,22 +2524,6 @@ function renderProfile(t, therapistDirectory) {
   var sideHasWebsite = Boolean(websiteUrl);
   var sideHasBooking = Boolean(bookingUrl) && bookingUrl !== websiteUrl;
   var preferredContactRaw = String(t.preferred_contact_method || "").trim();
-  var preferredContactLabelMap = {
-    phone: "Phone first.",
-    email: "Email first.",
-    text: "Text first.",
-    sms: "Text first.",
-    booking_url: "Use the booking link.",
-    booking: "Use the booking link.",
-  };
-  var preferredContactCopy = "";
-  if (contactGuidanceText) {
-    preferredContactCopy = contactGuidanceText;
-  } else if (preferredContactRaw) {
-    preferredContactCopy =
-      preferredContactLabelMap[preferredContactRaw.toLowerCase()] ||
-      preferredContactRaw.charAt(0).toUpperCase() + preferredContactRaw.slice(1);
-  }
 
   // Sidebar primary button — respects preferred_contact_method when the
   // therapist set one (mirrors buildPreferredContactButton in the main
@@ -2612,46 +2596,85 @@ function renderProfile(t, therapistDirectory) {
   }
   var sidePrimaryHtml = buildSidePrimaryHtml();
 
-  var sideContactItems = "";
-  if (sideHasEmail) {
-    sideContactItems +=
-      '<div class="profile-side-item">' +
-      '<i class="ti ti-mail" aria-hidden="true"></i>' +
-      '<a href="mailto:' +
-      escapeHtml(t.email) +
-      '" class="profile-side-email">' +
-      escapeHtml(t.email) +
+  // Unified contact-method list. Each row shows an icon + a value,
+  // with an inline (Preferred) tag on the row matching the therapist's
+  // stated preference. Replaces the legacy separate "Preferred contact"
+  // box at the bottom — same information, less chrome.
+  var prefKey = preferredContactRaw.toLowerCase();
+  var prefMap = {
+    booking_url: "booking",
+  };
+  var prefRoute = prefMap[prefKey] || prefKey; // normalize booking_url → booking
+  function sideContactRow(route, iconClass, href, label, opts) {
+    var external = opts && opts.external ? ' target="_blank" rel="noopener noreferrer"' : "";
+    var anchorCls = opts && opts.cls ? ' class="' + opts.cls + '"' : "";
+    var preferred = route === prefRoute;
+    var preferredBadge = preferred
+      ? '<span class="profile-side-preferred-tag">Preferred</span>'
+      : "";
+    return (
+      '<div class="profile-side-item' +
+      (preferred ? " profile-side-item--preferred" : "") +
+      '">' +
+      '<i class="ti ' +
+      iconClass +
+      '" aria-hidden="true"></i>' +
+      '<a href="' +
+      escapeHtml(href) +
+      '"' +
+      external +
+      anchorCls +
+      ">" +
+      escapeHtml(label) +
       "</a>" +
-      "</div>";
+      preferredBadge +
+      "</div>"
+    );
+  }
+  var sideContactItems = "";
+  // Order: email, phone, website, booking. Stable order so the eye
+  // can find a channel without scanning; the (Preferred) tag does
+  // the prioritization visually.
+  if (sideHasEmail) {
+    sideContactItems += sideContactRow("email", "ti-mail", "mailto:" + t.email, t.email, {
+      cls: "profile-side-email",
+    });
+  }
+  if (sideHasPhone) {
+    sideContactItems += sideContactRow(
+      "phone",
+      "ti-phone",
+      "tel:" + normalizeTelUri(t.phone),
+      t.phone,
+    );
   }
   if (sideHasWebsite) {
-    sideContactItems +=
-      '<div class="profile-side-item">' +
-      '<i class="ti ti-world" aria-hidden="true"></i>' +
-      '<a href="' +
-      escapeHtml(websiteUrl) +
-      '" target="_blank" rel="noopener noreferrer">Practice website →</a>' +
-      "</div>";
+    sideContactItems += sideContactRow("website", "ti-world", websiteUrl, "Practice website →", {
+      external: true,
+    });
   }
   if (sideHasBooking) {
-    sideContactItems +=
-      '<div class="profile-side-item">' +
-      '<i class="ti ti-calendar" aria-hidden="true"></i>' +
-      '<a href="' +
-      escapeHtml(bookingUrl) +
-      '" target="_blank" rel="noopener noreferrer">Book a consultation →</a>' +
-      "</div>";
+    sideContactItems += sideContactRow(
+      "booking",
+      "ti-calendar",
+      bookingUrl,
+      "Book a consultation →",
+      { external: true },
+    );
   }
 
-  var sidePreferredBlock = "";
-  if (preferredContactCopy) {
-    sidePreferredBlock =
-      '<div class="profile-side-preferred">' +
-      '<div class="profile-side-preferred-label">Preferred contact</div>' +
-      '<div class="profile-side-preferred-text">' +
-      escapeHtml(preferredContactCopy) +
-      "</div>" +
-      "</div>";
+  // Optional contact-guidance copy (the long-form "Email first." style
+  // line the therapist wrote). Shown as a quiet sentence below the
+  // contact list when present and different from the route tag.
+  var sideGuidanceBlock = "";
+  if (
+    contactGuidanceText &&
+    contactGuidanceText !== "Email first." &&
+    contactGuidanceText !== "Phone first." &&
+    contactGuidanceText !== "Text first."
+  ) {
+    sideGuidanceBlock =
+      '<p class="profile-side-guidance">' + escapeHtml(contactGuidanceText) + "</p>";
   }
 
   var sideSaveId = String(t.slug || t._id || t.name || "").trim();
@@ -2671,7 +2694,7 @@ function renderProfile(t, therapistDirectory) {
       ? '<p class="profile-side-note">After first contact, the next step is usually a brief 15-min consultation before scheduling.</p>'
       : "") +
     sideContactItems +
-    sidePreferredBlock +
+    sideGuidanceBlock +
     sideSaveButton +
     "</div>";
 
