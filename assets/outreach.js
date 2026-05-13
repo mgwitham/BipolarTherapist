@@ -625,7 +625,7 @@ ${profileUrl}
 Two minutes is all it takes. If it's not for you, just reply and I'll remove it. No more emails after this.
 
 Michael Witham
-BipolarTherapyHub`,
+bipolartherapyhub.com`,
     };
   }
   return {
@@ -643,7 +643,7 @@ It takes two minutes. Patients searching for someone who actually gets the cycli
 If you'd rather not be listed, just reply and I'll take it down.
 
 Michael Witham
-BipolarTherapyHub`,
+bipolartherapyhub.com`,
   };
 }
 
