@@ -33,9 +33,10 @@ export async function runAbandonedClaimAlerts({ client, config, nowIso }) {
   }
 
   const abandoned = findAbandonedClaims({ therapists, nowIso });
+  const portalBaseUrl = config.portalBaseUrl || "https://www.bipolartherapyhub.com";
   for (const record of abandoned) {
     try {
-      await sendFounderAlert(config, buildAbandonedClaimAlert(record));
+      await sendFounderAlert(config, buildAbandonedClaimAlert(record, { portalBaseUrl }));
       summary.alerts += 1;
     } catch (_err) {
       // Continue on send failures — partial delivery is better than none.

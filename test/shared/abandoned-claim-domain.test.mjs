@@ -117,3 +117,30 @@ test("buildAbandonedClaimAlert produces a subject and body lines", () => {
   assert.ok(alert.lines.some((l) => l.includes("jane@example.com")));
   assert.ok(alert.lines.some((l) => l.includes("personal follow-up")));
 });
+
+test("buildAbandonedClaimAlert includes an Outreach deep-link when slug present", () => {
+  const alert = buildAbandonedClaimAlert(
+    {
+      name: "Jane",
+      email: "jane@example.com",
+      slug: "jane-doe",
+      requestedAt: "2026-05-12T08:00:00.000Z",
+    },
+    { portalBaseUrl: "https://www.bipolartherapyhub.com" },
+  );
+  assert.ok(
+    alert.lines.some(
+      (l) => l === "Open in Outreach: https://www.bipolartherapyhub.com/outreach?slug=jane-doe",
+    ),
+  );
+});
+
+test("buildAbandonedClaimAlert omits the Outreach line when slug is missing", () => {
+  const alert = buildAbandonedClaimAlert({
+    name: "Jane",
+    email: "jane@example.com",
+    slug: "",
+    requestedAt: "2026-05-12T08:00:00.000Z",
+  });
+  assert.ok(!alert.lines.some((l) => l.startsWith("Open in Outreach")));
+});
