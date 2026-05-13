@@ -2453,24 +2453,76 @@ function renderProfile(t, therapistDirectory) {
       preferredContactRaw.charAt(0).toUpperCase() + preferredContactRaw.slice(1);
   }
 
-  var sidePrimaryHtml = "";
-  if (sideHasPhone) {
-    sidePrimaryHtml =
-      '<a href="tel:' +
-      escapeHtml(normalizeTelUri(t.phone)) +
-      '" class="profile-side-primary" data-profile-side-primary>' +
-      '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
-      escapeHtml(t.phone) +
-      "</a>";
-  } else if (sideHasEmail) {
-    sidePrimaryHtml =
-      '<a href="mailto:' +
-      escapeHtml(t.email) +
-      '" class="profile-side-primary" data-profile-side-primary>' +
-      '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
-      escapeHtml(therapistFirstName) +
-      "</a>";
+  // Sidebar primary button — respects preferred_contact_method when the
+  // therapist set one (mirrors buildPreferredContactButton in the main
+  // column). Falls back to the legacy phone-then-email ladder only when
+  // no preference is set or the preferred channel's field is missing.
+  function buildSidePrimaryHtml() {
+    var pref = preferredContactRaw.toLowerCase();
+    if (pref === "email" && sideHasEmail) {
+      return (
+        '<a href="mailto:' +
+        escapeHtml(t.email) +
+        '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="email">' +
+        '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
+        escapeHtml(therapistFirstName) +
+        "</a>"
+      );
+    }
+    if (pref === "phone" && sideHasPhone) {
+      return (
+        '<a href="tel:' +
+        escapeHtml(normalizeTelUri(t.phone)) +
+        '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="phone">' +
+        '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
+        escapeHtml(t.phone) +
+        "</a>"
+      );
+    }
+    if ((pref === "booking" || pref === "booking_url") && sideHasBooking && bookingHealthy) {
+      return (
+        '<a href="' +
+        escapeHtml(bookingUrl) +
+        '" target="_blank" rel="noopener noreferrer" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="booking">' +
+        '<i class="ti ti-calendar" aria-hidden="true"></i> Book a consultation' +
+        "</a>"
+      );
+    }
+    if (pref === "website" && sideHasWebsite && websiteHealthy) {
+      return (
+        '<a href="' +
+        escapeHtml(websiteUrl) +
+        '" target="_blank" rel="noopener noreferrer" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="website">' +
+        '<i class="ti ti-world" aria-hidden="true"></i> Visit ' +
+        escapeHtml(therapistFirstName) +
+        "'s website</a>"
+      );
+    }
+    // No preference set, or preferred channel's field is missing — fall
+    // back to phone-then-email so the button still does something useful.
+    if (sideHasPhone) {
+      return (
+        '<a href="tel:' +
+        escapeHtml(normalizeTelUri(t.phone)) +
+        '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="phone">' +
+        '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
+        escapeHtml(t.phone) +
+        "</a>"
+      );
+    }
+    if (sideHasEmail) {
+      return (
+        '<a href="mailto:' +
+        escapeHtml(t.email) +
+        '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="email">' +
+        '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
+        escapeHtml(therapistFirstName) +
+        "</a>"
+      );
+    }
+    return "";
   }
+  var sidePrimaryHtml = buildSidePrimaryHtml();
 
   var sideContactItems = "";
   if (sideHasEmail) {
