@@ -1,19 +1,31 @@
 import "./sentry-init.js";
 import { requestAccountRecovery } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
-import { escapeHtml } from "./escape-html.js";
 
-function showStatus(el, tone, html) {
+function isLikelyEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
+}
+
+function showStatus(el, tone, title, body) {
   if (!el) return;
   el.hidden = false;
   el.dataset.tone = tone;
-  el.innerHTML = html;
+  el.textContent = "";
+  if (title) {
+    const strong = document.createElement("strong");
+    strong.textContent = title;
+    el.appendChild(strong);
+  }
+  if (body) {
+    if (title) el.appendChild(document.createTextNode(" "));
+    el.appendChild(document.createTextNode(body));
+  }
 }
 
 function clearStatus(el) {
   if (!el) return;
   el.hidden = true;
-  el.innerHTML = "";
+  el.textContent = "";
   delete el.dataset.tone;
 }
 
@@ -54,6 +66,11 @@ function initRecoverPage() {
       return;
     }
 
+    if (!isLikelyEmail(payload.requested_email)) {
+      showStatus(status, "warn", "Enter a valid recovery email address.");
+      return;
+    }
+
     if (submit) {
       submit.disabled = true;
       submit.textContent = "Sending...";
@@ -64,7 +81,8 @@ function initRecoverPage() {
       showStatus(
         status,
         "success",
-        "<strong>Recovery request received.</strong> We'll review it and email next steps within one business day.",
+        "Recovery request received.",
+        "We'll review it and email next steps within one business day.",
       );
       trackFunnelEvent("recovery_form_submitted", { id: result && result.id });
       form.reset();
@@ -73,10 +91,9 @@ function initRecoverPage() {
       showStatus(
         status,
         "warn",
-        escapeHtml(
-          (error && error.message) ||
-            "We couldn't submit your request. Please try again or email us directly.",
-        ),
+        "",
+        (error && error.message) ||
+          "We couldn't submit your request. Please try again or email us directly.",
       );
       if (submit) {
         submit.disabled = false;

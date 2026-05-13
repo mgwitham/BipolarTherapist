@@ -377,17 +377,25 @@ function initQuickClaim() {
     }
   }
 
-  function setConfirmStatus(tone, message) {
+  function setConfirmStatus(tone, message, body) {
     if (!confirmStatus) return;
-    if (!message) {
+    if (!message && !body) {
       confirmStatus.hidden = true;
-      confirmStatus.innerHTML = "";
+      confirmStatus.textContent = "";
       delete confirmStatus.dataset.tone;
       return;
     }
     confirmStatus.hidden = false;
     confirmStatus.dataset.tone = tone;
-    confirmStatus.innerHTML = message;
+    confirmStatus.textContent = "";
+    if (message) {
+      const strong = document.createElement("strong");
+      strong.textContent = message;
+      confirmStatus.appendChild(strong);
+    }
+    if (body) {
+      confirmStatus.appendChild(document.createTextNode((message ? " " : "") + body));
+    }
   }
 
   function renderTrustSignals(result) {
@@ -398,17 +406,22 @@ function initQuickClaim() {
       const licType = (result.credentials || "").trim();
       items.push(
         licType
-          ? `CA ${escapeHtml(licType)} license verified by the Board`
+          ? `CA ${licType} license verified by the Board`
           : "CA license verified by the Board",
       );
     }
     if (!items.length) {
       signals.hidden = true;
-      signals.innerHTML = "";
+      signals.textContent = "";
       return;
     }
     signals.hidden = false;
-    signals.innerHTML = items.map((text) => `<li>${text}</li>`).join("");
+    signals.textContent = "";
+    items.forEach(function (text) {
+      const item = document.createElement("li");
+      item.textContent = text;
+      signals.appendChild(item);
+    });
   }
 
   function showConfirmPanel(result) {
@@ -630,8 +643,9 @@ function initQuickClaim() {
       const hint = (result && result.email_hint) || pickedResult.email_hint || "your inbox";
       setConfirmStatus(
         "success",
-        "<strong>Activation link sent.</strong> Check " +
-          escapeHtml(hint) +
+        "Activation link sent.",
+        "Check " +
+          hint +
           " for your one-time link. It expires in 30 minutes — open it on this device to finish claiming.",
       );
       trackFunnelEvent("claim_link_sent", {
@@ -663,6 +677,7 @@ function initQuickClaim() {
       } else {
         setConfirmStatus(
           "warn",
+          "",
           (error && error.message) || "We couldn't send the link. Try again in a moment.",
         );
       }
@@ -697,7 +712,7 @@ function initQuickClaim() {
           link.textContent = "Resend now";
         }, 4000);
       }
-    } catch (error) {
+    } catch (_error) {
       if (link) {
         link.removeAttribute("aria-disabled");
         link.textContent = "Resend now";
