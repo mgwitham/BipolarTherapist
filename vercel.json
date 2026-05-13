@@ -70,11 +70,11 @@
   ],
   "crons": [
     {
-      "path": "/api/cron/abandoned-claim-alerts",
+      "path": "/api/review/cron/abandoned-claim-alerts",
       "schedule": "0 14 * * *"
     },
     {
-      "path": "/api/cron/outreach-click-digest",
+      "path": "/api/review/cron/outreach-click-digest",
       "schedule": "0 15 * * *"
     }
   ]
