@@ -231,7 +231,7 @@ function renderDashboard() {
   const stats = computeStats(state.therapists);
 
   document.getElementById("app").innerHTML = `
-    <div style="height:100vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="min-height:100vh;display:flex;flex-direction:column;">
 
       <div style="background:#2a5f6e;color:#fff;height:52px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
         <span style="font-size:15px;font-weight:700;letter-spacing:-0.3px;">Outreach CRM</span>
@@ -284,7 +284,7 @@ function renderDashboard() {
         <span id="result-count" style="margin-left:auto;font-size:13px;color:#6b7280;"></span>
       </div>
 
-      <div style="flex:1;overflow:auto;padding:0 24px 24px;" id="table-container"></div>
+      <div style="flex:1;padding:0 24px 24px;" id="table-container"></div>
     </div>
 
     <div id="panel-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:199;opacity:0;pointer-events:none;transition:opacity 0.2s;"></div>
