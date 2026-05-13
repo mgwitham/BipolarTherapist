@@ -8,6 +8,9 @@ const API = "/api/admin";
 const state = {
   therapists: [],
   filters: { status: "", state: "CA", search: "", followUpDue: false },
+  // Sort: which column + direction. Last contact desc mirrors the API
+  // query's default and is the most useful first view.
+  sort: { column: "lastContactedAt", direction: "desc" },
   selectedId: null,
   patientSignal: null, // { matchRequests, profileViews, ctaClicks, generatedAt }
 };
@@ -146,7 +149,7 @@ async function apiPatch(path, body) {
 
 function applyFilters() {
   const { status, state: stateF, search, followUpDue } = state.filters;
-  return state.therapists.filter((t) => {
+  const filtered = state.therapists.filter((t) => {
     const s = t.outreach?.status || "not_contacted";
     if (status && s !== status) return false;
     if (stateF && t.state !== stateF) return false;
@@ -158,6 +161,46 @@ function applyFilters() {
     }
     return true;
   });
+  return applySort(filtered);
+}
+
+// Canonical status ordering — funnel progression rather than alpha.
+// "Not contacted" first, terminal/negative states last. Sort by index
+// in this list when the user picks the Status column.
+const STATUS_ORDER = [
+  "not_contacted",
+  "email_1_sent",
+  "followed_up",
+  "replied",
+  "claimed",
+  "paid",
+  "bounced",
+  "opted_out",
+];
+
+function statusRank(s) {
+  const i = STATUS_ORDER.indexOf(s || "not_contacted");
+  return i === -1 ? STATUS_ORDER.length : i;
+}
+
+function applySort(list) {
+  const { column, direction } = state.sort || {};
+  if (!column) return list;
+  const dir = direction === "asc" ? 1 : -1;
+  const sorted = [...list];
+  if (column === "status") {
+    sorted.sort((a, b) => {
+      const diff = statusRank(a.outreach?.status) - statusRank(b.outreach?.status);
+      return diff * dir;
+    });
+  } else if (column === "lastContactedAt") {
+    sorted.sort((a, b) => {
+      const at = new Date(a.outreach?.lastContactedAt || 0).getTime() || 0;
+      const bt = new Date(b.outreach?.lastContactedAt || 0).getTime() || 0;
+      return (at - bt) * dir;
+    });
+  }
+  return sorted;
 }
 
 // ---- STATS ----
@@ -441,16 +484,37 @@ function refreshTable() {
     })
     .join("");
 
+  // Sortable headers: Status + Last contact have a click-to-sort
+  // toggle. The arrow appears only on the active column.
+  const headers = [
+    { label: "Name" },
+    { label: "Email" },
+    { label: "Status", sortKey: "status" },
+    { label: "Sent", align: "center" },
+    { label: "Last contact", sortKey: "lastContactedAt" },
+    { label: "Actions" },
+  ];
+  const { column: activeSort, direction: activeDir } = state.sort || {};
+  const arrow = (key) => {
+    if (key !== activeSort) return "";
+    return activeDir === "asc" ? " ▲" : " ▼";
+  };
+  const headerHtml = headers
+    .map((h) => {
+      const align = h.align || "left";
+      const clickable = h.sortKey
+        ? `cursor:pointer;user-select:none;${h.sortKey === activeSort ? "color:#2a5f6e;" : ""}`
+        : "";
+      const attr = h.sortKey ? `data-sort-key="${h.sortKey}"` : "";
+      return `<th ${attr} style="padding:9px 14px;text-align:${align};font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;${clickable}">${h.label}${arrow(h.sortKey)}</th>`;
+    })
+    .join("");
+
   container.innerHTML = `
     <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-top:14px;">
       <thead>
-        <tr style="background:#f9fafb;border-bottom:1px solid #e5e7eb;">
-          ${["Name", "Email", "Status", "Sent", "Last contact", "Actions"]
-            .map(
-              (h) =>
-                `<th style="padding:9px 14px;text-align:${h === "Sent" ? "center" : "left"};font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;">${h}</th>`,
-            )
-            .join("")}
+        <tr id="therapist-thead-row" style="background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+          ${headerHtml}
         </tr>
       </thead>
       <tbody id="therapist-tbody" style="border-top:none;">${rows}</tbody>
@@ -458,6 +522,22 @@ function refreshTable() {
   `;
 
   document.getElementById("therapist-tbody").addEventListener("click", handleTableClick);
+  document.getElementById("therapist-thead-row").addEventListener("click", handleHeaderSortClick);
+}
+
+function handleHeaderSortClick(e) {
+  const th = e.target.closest("th[data-sort-key]");
+  if (!th) return;
+  const key = th.dataset.sortKey;
+  if (state.sort.column === key) {
+    state.sort.direction = state.sort.direction === "asc" ? "desc" : "asc";
+  } else {
+    state.sort.column = key;
+    // Sensible defaults: most-recent-first for dates, funnel-order
+    // for status.
+    state.sort.direction = key === "lastContactedAt" ? "desc" : "asc";
+  }
+  refreshTable();
 }
 
 function handleTableClick(e) {
