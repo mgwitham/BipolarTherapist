@@ -177,9 +177,9 @@ export async function handleAuthRoutes(context) {
     const usingUserPass = config.adminUsername && config.adminPassword;
 
     // Compare both fields with constant-time equality so login latency
-     // doesn't leak whether the username or password was the wrong one,
-     // and matches the timingSafeEqual pattern used in
-     // review-http-auth.mjs for session-signature checks.
+    // doesn't leak whether the username or password was the wrong one,
+    // and matches the timingSafeEqual pattern used in
+    // review-http-auth.mjs for session-signature checks.
     const valid =
       usingUserPass &&
       constantTimeEquals(username, config.adminUsername) &&
