@@ -886,8 +886,30 @@ function handleTableClick(e) {
 // field change here writes back through the same API and shows up the
 // same way in the admin Find Profile flow. We just pass callbacks so
 // the local outreach state stays in sync after a save or delete.
-function openOutreachEditDrawer(t) {
-  openTherapistEditDrawer(t, onDrawerSaved, {
+//
+// The outreach list endpoint returns a slim projection (no bio,
+// specialties, fees, etc.) to keep the wire payload small. The drawer
+// needs the full record, so we fetch /api/review/therapists/:id/admin
+// here and pass the normalized full doc to the drawer.
+async function openOutreachEditDrawer(t) {
+  let full = t;
+  try {
+    const r = await fetch(`/api/review/therapists/${encodeURIComponent(t._id)}/admin`, {
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    });
+    if (r.ok) {
+      const doc = await r.json();
+      // Server returns snake_case via normalizeAdminTherapist. The
+      // drawer reads either snake or camel, so merging keeps outreach's
+      // own fields (_id, slug, profileUrl) alongside the full shape.
+      full = { ...t, ...doc };
+    }
+  } catch {
+    // Network error — fall back to the slim record so the drawer at
+    // least opens with whatever we have.
+  }
+  openTherapistEditDrawer(full, onDrawerSaved, {
     enableDelete: true,
     onDeleted: onDrawerDeleted,
   });
