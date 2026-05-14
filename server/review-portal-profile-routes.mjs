@@ -133,7 +133,8 @@ function computePortalCompletenessSnapshot(t) {
     {
       key: "gender",
       pts: 3,
-      done: str(t.gender) === "male" || str(t.gender) === "female",
+      done:
+        str(t.gender) === "male" || str(t.gender) === "female" || str(t.gender) === "non_binary",
     },
   ];
   let score = 0;

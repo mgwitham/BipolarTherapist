@@ -23,6 +23,13 @@ export function parseBoolean(value, fallback) {
   return normalized === "true" || normalized === "1" || normalized === "yes";
 }
 
+export function normalizeGender(value) {
+  const raw = String(value || "")
+    .trim()
+    .toLowerCase();
+  return raw === "male" || raw === "female" || raw === "non_binary" ? raw : "";
+}
+
 export function parseNumber(value) {
   if (value === undefined || value === null || value === "") {
     return undefined;
@@ -203,6 +210,7 @@ export async function buildApplicationDocument(client, input, deps) {
     photoReviewedAt: photoSourceType ? now : "",
     photoUsagePermissionConfirmed: parseBoolean(input.photo_usage_permission_confirmed, false),
     practiceName: (input.practice_name || "").trim(),
+    gender: normalizeGender(input.gender),
     phone: (input.phone || "").trim(),
     website: (input.website || "").trim(),
     preferredContactMethod: (input.preferred_contact_method || "").trim(),
