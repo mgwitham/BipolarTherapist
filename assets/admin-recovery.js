@@ -144,25 +144,18 @@ function renderFlagsBlock(req) {
 function renderVerificationMethodsChecklist(req, coldTakeover) {
   if (!coldTakeover || req.status !== "pending") return "";
   const methods = [
+    {
+      value: "self_confirm",
+      label: "Therapist self-confirm via prior contact channel",
+    },
     { value: "phone_call_dca", label: "Phone call to practice number on DCA address-of-record" },
     {
       value: "phone_call_website",
       label: "Phone call to practice number on therapist's website",
     },
-    { value: "id_selfie", label: "Government-issued ID + selfie match" },
-    { value: "video_call", label: "Live video verification (face vs public photos)" },
-    { value: "postal_code", label: "Postal mail code to DCA address-of-record" },
-    {
-      value: "domain_challenge",
-      label: "Domain-control challenge (meta tag on practice site)",
-    },
     {
       value: "cross_channel_email",
       label: "Cross-channel email match (mailto on practice website)",
-    },
-    {
-      value: "self_confirm",
-      label: "Therapist self-confirm via prior contact channel",
     },
     { value: "other", label: "Other (describe in note)" },
   ];
@@ -583,20 +576,16 @@ function bindCardActions(container) {
       );
       const verificationMethods = Array.from(methodInputs).map((el) => el.value);
       const STRONG = new Set([
+        "self_confirm",
         "phone_call_dca",
         "phone_call_website",
-        "id_selfie",
-        "video_call",
-        "postal_code",
-        "domain_challenge",
-        "self_confirm",
       ]);
       const hasStrong = verificationMethods.some((m) => STRONG.has(m));
       if (coldTakeover && !hasStrong) {
         setFeedback(
           id,
           "warn",
-          "Pick at least one strong verification method (phone, ID/selfie, video, postal, domain challenge, or self-confirm) before approving a cold takeover.",
+          "Pick at least one strong verification method (self-confirm or phone call) before approving a cold takeover.",
         );
         return;
       }

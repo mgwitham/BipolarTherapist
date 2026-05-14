@@ -404,24 +404,16 @@ export async function handleRecoveryRoutes(context) {
       ? body.verification_methods
       : [];
     const ALLOWED_METHODS = new Set([
+      "self_confirm",
       "phone_call_dca",
       "phone_call_website",
-      "id_selfie",
-      "video_call",
-      "postal_code",
-      "domain_challenge",
       "cross_channel_email",
-      "self_confirm",
       "other",
     ]);
     const STRONG_METHODS = new Set([
+      "self_confirm",
       "phone_call_dca",
       "phone_call_website",
-      "id_selfie",
-      "video_call",
-      "postal_code",
-      "domain_challenge",
-      "self_confirm",
     ]);
     const verificationMethods = verificationMethodsRaw
       .map((v) => String(v || "").trim())
@@ -467,7 +459,7 @@ export async function handleRecoveryRoutes(context) {
           400,
           {
             error:
-              "Cold-takeover approval requires at least one strong verification method. Pick one from the checklist (phone call, ID/selfie, video, postal code, domain challenge, or therapist self-confirm).",
+              "Cold-takeover approval requires at least one strong verification method. Pick one from the checklist (therapist self-confirm or phone call).",
             reason: "verification_method_required",
           },
           origin,
