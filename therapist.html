@@ -129,16 +129,23 @@
       <span id="breadcrumbName">Loading...</span>
     </div>
 
-    <!-- In-page claim banner. Previously lived as "Claim this listing" in
-         the site nav, which mixed a therapist CTA with patient-facing
-         navigation. Moved here so the nav stays consistent across pages
-         and the claim offer sits in context next to the profile. -->
-    <div class="profile-wrap" id="profileWrap"></div>
-
-    <aside class="ts-claim-banner" id="inPageClaimBanner">
-      <span class="ts-claim-banner-text">Is this your listing?</span>
+    <!-- In-page claim banner. Sits above the profile so a therapist
+         arriving via an outreach email sees the claim CTA before the
+         profile content. Hidden client-side for already-claimed
+         profiles (assets/therapist-page.js). When the URL carries
+         ?ref=outreach the headline switches to a warmer "this is your
+         profile" copy. -->
+    <aside class="ts-claim-banner" id="inPageClaimBanner" hidden>
+      <div class="ts-claim-banner-body">
+        <div class="ts-claim-banner-headline" id="claimBannerHeadline">Is this you?</div>
+        <div class="ts-claim-banner-sub">
+          Claim your profile to update your bio, photo, and contact info. Patients searching for a bipolar specialist will reach out through your claimed page.
+        </div>
+      </div>
       <a href="/claim" id="heroClaimLink" class="ts-claim-banner-cta">Claim your profile →</a>
     </aside>
+
+    <div class="profile-wrap" id="profileWrap"></div>
 
     <footer>
       <p class="profile-footer-brand">

@@ -1704,6 +1704,32 @@ function renderProfile(t, therapistDirectory) {
     footerClaimLink.href = claimHref;
   }
 
+  // In-page claim banner. Hidden by default in markup; show only for
+  // unclaimed profiles. When the viewer arrived from an outreach email
+  // (?ref=outreach), swap the headline to lead with "This is your
+  // profile" so the call-to-action lands warmer.
+  var claimBanner = document.getElementById("inPageClaimBanner");
+  var claimStatus = String(t.claim_status || t.claimStatus || "unclaimed").toLowerCase();
+  if (claimBanner) {
+    if (claimStatus === "claimed") {
+      claimBanner.setAttribute("hidden", "");
+    } else {
+      claimBanner.removeAttribute("hidden");
+      var fromOutreach = false;
+      try {
+        fromOutreach =
+          new URLSearchParams(window.location.search).get("ref") === "outreach";
+      } catch (_err) {
+        fromOutreach = false;
+      }
+      if (fromOutreach) {
+        claimBanner.classList.add("is-outreach");
+        var headlineEl = document.getElementById("claimBannerHeadline");
+        if (headlineEl) headlineEl.textContent = "This is your profile.";
+      }
+    }
+  }
+
   function isRealEmail(email) {
     var value = String(email || "").trim();
     if (!value) return false;
