@@ -1704,28 +1704,27 @@ function renderProfile(t, therapistDirectory) {
     footerClaimLink.href = claimHref;
   }
 
-  // In-page claim banner. Hidden by default in markup; show only for
-  // unclaimed profiles. When the viewer arrived from an outreach email
-  // (?ref=outreach), swap the headline to lead with "This is your
-  // profile" so the call-to-action lands warmer.
+  // In-page claim banner. Hidden by default in markup; only shown when
+  // the viewer arrived from an outreach email (?ref=outreach), AND the
+  // profile isn't already claimed. Organic visitors don't see it — the
+  // banner is targeted to the specific therapist we sent an email to,
+  // not a general claim CTA on every profile.
   var claimBanner = document.getElementById("inPageClaimBanner");
   var claimStatus = String(t.claim_status || t.claimStatus || "unclaimed").toLowerCase();
+  var fromOutreach = false;
+  try {
+    fromOutreach = new URLSearchParams(window.location.search).get("ref") === "outreach";
+  } catch (_err) {
+    fromOutreach = false;
+  }
   if (claimBanner) {
-    if (claimStatus === "claimed") {
-      claimBanner.setAttribute("hidden", "");
-    } else {
+    if (fromOutreach && claimStatus !== "claimed") {
       claimBanner.removeAttribute("hidden");
-      var fromOutreach = false;
-      try {
-        fromOutreach = new URLSearchParams(window.location.search).get("ref") === "outreach";
-      } catch (_err) {
-        fromOutreach = false;
-      }
-      if (fromOutreach) {
-        claimBanner.classList.add("is-outreach");
-        var headlineEl = document.getElementById("claimBannerHeadline");
-        if (headlineEl) headlineEl.textContent = "This is your profile.";
-      }
+      claimBanner.classList.add("is-outreach");
+      var headlineEl = document.getElementById("claimBannerHeadline");
+      if (headlineEl) headlineEl.textContent = "This is your profile.";
+    } else {
+      claimBanner.setAttribute("hidden", "");
     }
   }
 
