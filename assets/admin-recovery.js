@@ -451,6 +451,13 @@ function setFeedback(requestId, tone, message) {
   node.hidden = false;
   node.setAttribute("data-tone", tone);
   node.textContent = message;
+  // Warnings/errors are the ones the admin needs to see immediately —
+  // scroll into view so a blocked submit never looks like a silent click.
+  if (tone === "warn" || tone === "error") {
+    if (typeof node.scrollIntoView === "function") {
+      node.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+  }
 }
 
 function bindCardActions(container) {
