@@ -1717,8 +1717,7 @@ function renderProfile(t, therapistDirectory) {
       claimBanner.removeAttribute("hidden");
       var fromOutreach = false;
       try {
-        fromOutreach =
-          new URLSearchParams(window.location.search).get("ref") === "outreach";
+        fromOutreach = new URLSearchParams(window.location.search).get("ref") === "outreach";
       } catch (_err) {
         fromOutreach = false;
       }
