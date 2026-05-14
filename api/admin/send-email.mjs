@@ -164,7 +164,20 @@ export default async function handler(req, res) {
     subject: subjectOverride,
     body: bodyOverride,
     sendToSelf,
+    campaign: rawCampaign,
   } = body || {};
+  // Free-text campaign tag set per batch. Capped at 80 chars and
+  // sanitized to slug-style so noisy entries don't pollute Subject
+  // Performance grouping. Empty string is allowed and falls back to
+  // "(no campaign)" in the leaderboard.
+  const campaign =
+    typeof rawCampaign === "string"
+      ? rawCampaign
+          .trim()
+          .slice(0, 80)
+          .replace(/[^a-z0-9_-]/gi, "-")
+          .toLowerCase()
+      : "";
   if (!therapistId || !template) {
     res.status(400).json({ error: "therapistId and template are required" });
     return;
@@ -309,6 +322,7 @@ export default async function handler(req, res) {
             template,
             body: textBody,
             resendId,
+            ...(campaign ? { campaign } : {}),
           },
         ],
       })
