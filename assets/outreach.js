@@ -529,9 +529,9 @@ function refreshLiveTable() {
       <td style="padding:11px 14px;">${pill(status)}</td>
       <td style="padding:11px 14px;color:#6b7280;">${claimedDisplay}</td>
       <td style="padding:11px 14px;white-space:nowrap;">
-        ${profileUrl ? `<a class="profile-link" href="${esc(profileUrl)}" target="_blank" rel="noopener" data-no-row-click style="margin-right:6px;display:inline-block;padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;color:#2a5f6e;font-size:12px;text-decoration:none;">Profile ↗</a>` : ""}
+        <button class="live-email-btn btn-secondary" data-id="${esc(t._id)}" style="margin-right:6px;color:#2a5f6e;border-color:#2a5f6e;">Email</button>
         <button class="live-edit-btn btn-secondary" data-id="${esc(t._id)}" style="margin-right:6px;">Edit</button>
-        <button class="view-btn btn-secondary" data-id="${esc(t._id)}">Email</button>
+        ${profileUrl ? `<a class="profile-link" href="${esc(profileUrl)}" target="_blank" rel="noopener" data-no-row-click style="display:inline-block;padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;color:#2a5f6e;font-size:12px;text-decoration:none;">View ↗</a>` : ""}
       </td>
     </tr>`;
     })
@@ -593,11 +593,11 @@ function handleLiveTableClick(e) {
   if (e.target.closest("[data-no-row-click]")) return;
 
   const editBtn = e.target.closest(".live-edit-btn");
-  const viewBtn = e.target.closest(".view-btn");
+  const emailBtn = e.target.closest(".live-email-btn");
   const row = e.target.closest("tr[data-id]");
-  const id = editBtn?.dataset.id || viewBtn?.dataset.id || row?.dataset.id;
+  const id = editBtn?.dataset.id || emailBtn?.dataset.id || row?.dataset.id;
   if (!id) return;
-  if (e.target.closest("button") && !editBtn && !viewBtn) return;
+  if (e.target.closest("button") && !editBtn && !emailBtn) return;
 
   const t = state.therapists.find((x) => x._id === id);
   if (!t) return;
@@ -783,6 +783,7 @@ function refreshTable() {
             : "";
 
       const profileUrl = safeProfileUrl(t.profileUrl);
+      const emailLabel = sendLabel || "Email";
       return `<tr data-id="${esc(t._id)}" style="cursor:pointer;${dueBg}">
       <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "-")}</td>
       <td style="padding:11px 14px;color:#6b7280;">${esc(t.email || "-")}</td>
@@ -790,9 +791,9 @@ function refreshTable() {
       <td style="padding:11px 14px;text-align:center;color:#6b7280;">${sent}</td>
       <td style="padding:11px 14px;color:#6b7280;">${relTime(last) || "-"}</td>
       <td style="padding:11px 14px;white-space:nowrap;">
-        ${sendLabel ? `<button class="send-btn btn-secondary" data-id="${esc(t._id)}" style="margin-right:6px;color:#2a5f6e;border-color:#2a5f6e;">${sendLabel}</button>` : ""}
-        ${profileUrl ? `<a class="profile-link" href="${esc(profileUrl)}" target="_blank" rel="noopener" data-no-row-click style="margin-right:6px;display:inline-block;padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;color:#2a5f6e;font-size:12px;text-decoration:none;">Profile ↗</a>` : ""}
-        <button class="view-btn btn-secondary" data-id="${esc(t._id)}">View</button>
+        <button class="email-btn btn-secondary" data-id="${esc(t._id)}" style="margin-right:6px;color:#2a5f6e;border-color:#2a5f6e;">${emailLabel}</button>
+        <button class="edit-btn btn-secondary" data-id="${esc(t._id)}" style="margin-right:6px;">Edit</button>
+        ${profileUrl ? `<a class="profile-link" href="${esc(profileUrl)}" target="_blank" rel="noopener" data-no-row-click style="display:inline-block;padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;color:#2a5f6e;font-size:12px;text-decoration:none;">View ↗</a>` : ""}
       </td>
     </tr>`;
     })
@@ -859,16 +860,22 @@ function handleTableClick(e) {
   // and don't open the detail panel on top.
   if (e.target.closest("[data-no-row-click]")) return;
 
-  const sendBtn = e.target.closest(".send-btn");
-  const viewBtn = e.target.closest(".view-btn");
+  const emailBtn = e.target.closest(".email-btn");
+  const editBtn = e.target.closest(".edit-btn");
   const row = e.target.closest("tr[data-id]");
 
-  const id = sendBtn?.dataset.id || viewBtn?.dataset.id || row?.dataset.id;
+  const id = emailBtn?.dataset.id || editBtn?.dataset.id || row?.dataset.id;
   if (!id) return;
-  if (e.target.closest("button") && !sendBtn && !viewBtn) return;
+  if (e.target.closest("button") && !emailBtn && !editBtn) return;
 
   const t = state.therapists.find((x) => x._id === id);
-  if (t) openPanel(t);
+  if (!t) return;
+
+  if (editBtn) {
+    openEditDrawer(t);
+    return;
+  }
+  openPanel(t);
 }
 
 // ---- PANEL ----
