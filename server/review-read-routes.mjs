@@ -187,8 +187,16 @@ export async function handleReadRoutes(context) {
       return true;
     }
 
+    // Optional ?status= and ?limit= narrow the result set in GROQ so the
+    // wire response stays small. Default limit is generous (500) for
+    // backward compatibility with callers that fetch and filter
+    // client-side; raise to max 1000 if needed.
+    const statusFilter = String((url && url.searchParams.get("status")) || "").trim();
+    const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 500, 1000);
+
     const docs = await client.fetch(
-      `*[_type == "therapistApplication"] | order(coalesce(submittedAt, _createdAt) desc){
+      `*[_type == "therapistApplication" && (!defined($status) || status == $status)]
+        | order(coalesce(submittedAt, _createdAt) desc)[0...$limit]{
         _id, _createdAt, _updatedAt, name, email, credentials, title, "photo": photo{asset->{url}}, photoSourceType, photoReviewedAt, photoUsagePermissionConfirmed, practiceName, gender, phone, website, preferredContactMethod, preferredContactLabel, contactGuidance, firstStepExpectation, bookingUrl, city, state, zip, country,
         licenseState, licenseNumber, bio, careApproach, specialties, treatmentModalities, clientPopulations,
         insuranceAccepted, languages, yearsExperience, bipolarYearsExperience, acceptsTelehealth, acceptsInPerson,
@@ -196,6 +204,7 @@ export async function handleReadRoutes(context) {
         sessionFeeMin, sessionFeeMax, slidingScale, status, notes, submittedSlug, submittedAt, updatedAt, reviewRequestMessage, revisionHistory, revisionCount,
         publishedTherapistId, reviewFollowUp
       }`,
+      { status: statusFilter || null, limit },
     );
 
     sendJson(response, 200, docs.map(normalizeApplication), origin, config);
@@ -208,10 +217,18 @@ export async function handleReadRoutes(context) {
       return true;
     }
 
+    // Same shape as /applications: optional status + limit pushed into
+    // GROQ. Candidate volume is the highest of any list on the admin
+    // page, so this matters most here.
+    const statusFilter = String((url && url.searchParams.get("status")) || "").trim();
+    const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 500, 1000);
+
     const docs = await client.fetch(
-      `*[_type == "therapistCandidate"] | order(coalesce(reviewPriority, 0) desc, coalesce(nextReviewDueAt, _updatedAt) asc, _updatedAt desc){
+      `*[_type == "therapistCandidate" && (!defined($status) || reviewStatus == $status)]
+        | order(coalesce(reviewPriority, 0) desc, coalesce(nextReviewDueAt, _updatedAt) asc, _updatedAt desc)[0...$limit]{
         ...
       }`,
+      { status: statusFilter || null, limit },
     );
 
     sendJson(response, 200, docs.map(normalizeCandidate), origin, config);

@@ -244,16 +244,26 @@ export function createMemoryClient(initialDocuments) {
           });
         }
 
-        if (query.includes(`*[_type == "therapistCandidate"]`)) {
-          return Array.from(state.documents.values()).filter(function (document) {
-            return document._type === "therapistCandidate";
+        if (query.includes(`_type == "therapistCandidate"`)) {
+          const statusFilter = params && params.status;
+          const lim = params && Number(params.limit);
+          const filtered = Array.from(state.documents.values()).filter(function (document) {
+            if (document._type !== "therapistCandidate") return false;
+            if (statusFilter && document.reviewStatus !== statusFilter) return false;
+            return true;
           });
+          return Number.isFinite(lim) && lim > 0 ? filtered.slice(0, lim) : filtered;
         }
 
-        if (query.includes(`*[_type == "therapistApplication"]`)) {
-          return Array.from(state.documents.values()).filter(function (document) {
-            return document._type === "therapistApplication";
+        if (query.includes(`_type == "therapistApplication"`)) {
+          const statusFilter = params && params.status;
+          const lim = params && Number(params.limit);
+          const filtered = Array.from(state.documents.values()).filter(function (document) {
+            if (document._type !== "therapistApplication") return false;
+            if (statusFilter && document.status !== statusFilter) return false;
+            return true;
           });
+          return Number.isFinite(lim) && lim > 0 ? filtered.slice(0, lim) : filtered;
         }
 
         if (
