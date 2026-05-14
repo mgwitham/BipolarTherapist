@@ -72,6 +72,71 @@ test("compareTherapistsWithFilters favors the stronger specialty match in best-m
   assert.ok(compareTherapistsWithFilters(filters, weakerMatch, strongerMatch) > 0);
 });
 
+test("compareTherapistsWithFilters default sort ranks completeness tiers (photo + bipolar years)", function () {
+  const filters = {
+    state: "",
+    specialty: "",
+    modality: "",
+    population: "",
+    verification: "",
+    bipolar_experience: "",
+    insurance: "",
+    telehealth: false,
+    in_person: false,
+    accepting: false,
+    medication_management: false,
+    responsive_contact: false,
+    recently_confirmed: false,
+    sortBy: "stable_random",
+    stableOrderMap: new Map(),
+  };
+
+  const both = {
+    name: "Both Fields",
+    slug: "both",
+    accepting_new_patients: true,
+    photo_url: "https://cdn.example.com/p.jpg",
+    bipolar_years_experience: 5,
+  };
+  const photoOnly = {
+    name: "Photo Only",
+    slug: "photo-only",
+    accepting_new_patients: true,
+    photo_url: "https://cdn.example.com/p.jpg",
+    bipolar_years_experience: 0,
+  };
+  const yearsOnly = {
+    name: "Years Only",
+    slug: "years-only",
+    accepting_new_patients: true,
+    photo_url: null,
+    bipolar_years_experience: 7,
+  };
+  const neither = {
+    name: "Neither",
+    slug: "neither",
+    accepting_new_patients: true,
+    photo_url: null,
+    bipolar_years_experience: 0,
+  };
+
+  // both > photoOnly > neither
+  assert.ok(compareTherapistsWithFilters(filters, both, photoOnly) < 0);
+  assert.ok(compareTherapistsWithFilters(filters, photoOnly, neither) < 0);
+  assert.ok(compareTherapistsWithFilters(filters, both, neither) < 0);
+  // photoOnly and yearsOnly are tied on tier — fall through to stable order
+  assert.equal(compareTherapistsWithFilters(filters, photoOnly, yearsOnly), 0);
+  // Not-accepting always sinks below any accepting tier
+  const fullProfileNotAccepting = {
+    name: "Closed",
+    slug: "closed",
+    accepting_new_patients: false,
+    photo_url: "https://cdn.example.com/p.jpg",
+    bipolar_years_experience: 10,
+  };
+  assert.ok(compareTherapistsWithFilters(filters, neither, fullProfileNotAccepting) < 0);
+});
+
 test("matchesDirectoryFilters applies the shared directory predicate consistently", function () {
   const filters = {
     state: "CA",
