@@ -1,9 +1,19 @@
+import crypto from "node:crypto";
 import { log } from "./logger.mjs";
 import {
   ADMIN_SESSION_COOKIE,
   THERAPIST_SESSION_COOKIE,
   makeSessionHelpers,
 } from "./review-http-auth.mjs";
+
+// Constant-time string compare. Falls through on length mismatch so the
+// two underlying timingSafeEqual calls always see equal-length buffers.
+function constantTimeEquals(a, b) {
+  const aBuf = Buffer.from(String(a || ""), "utf8");
+  const bBuf = Buffer.from(String(b || ""), "utf8");
+  if (aBuf.length !== bBuf.length) return false;
+  return crypto.timingSafeEqual(aBuf, bBuf);
+}
 
 // POST /portal/dev-login — BYPASSES the magic-link email flow for local
 // testing. Mints a therapist session JWT for one of a small, hardcoded
@@ -166,8 +176,14 @@ export async function handleAuthRoutes(context) {
     const password = String(body.password || "");
     const usingUserPass = config.adminUsername && config.adminPassword;
 
+    // Compare both fields with constant-time equality so login latency
+     // doesn't leak whether the username or password was the wrong one,
+     // and matches the timingSafeEqual pattern used in
+     // review-http-auth.mjs for session-signature checks.
     const valid =
-      usingUserPass && username === config.adminUsername && password === config.adminPassword;
+      usingUserPass &&
+      constantTimeEquals(username, config.adminUsername) &&
+      constantTimeEquals(password, config.adminPassword);
 
     if (!valid) {
       recordFailedLogin(request, config);
