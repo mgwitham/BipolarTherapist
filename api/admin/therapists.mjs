@@ -50,6 +50,12 @@ export default async function handler(req, res) {
     params.state = stateFilter;
   }
 
+  // Explicit projection so we don't ship every email body to the
+  // browser on every page load. emailLog[].body is admin-private
+  // sent-text and can be large (multi-paragraph cold emails) — the
+  // outreach UI's history panel only renders template, subject, and
+  // sentAt, and the stats counters only need openedAt. Skipping body
+  // shrinks the wire response noticeably as the log grows per send.
   const query = `*[${conditions.join(" && ")}] {
     _id,
     name,
@@ -59,7 +65,13 @@ export default async function handler(req, res) {
       defined(slug.current) => "https://www.bipolartherapyhub.com/therapists/" + slug.current,
       null
     ),
-    outreach,
+    "outreach": outreach{
+      status,
+      lastContactedAt,
+      emailsSent,
+      notes,
+      "emailLog": emailLog[]{ _key, sentAt, template, subject, openedAt }
+    },
     claimedAt,
     claimStatus,
     city,
