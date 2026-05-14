@@ -245,8 +245,29 @@ export async function handleResendWebhookRoutes(context) {
         }`.trim()
       : `[${now.slice(0, 10)}] Resend complaint (recipient marked as spam).`;
 
+  // Don't let a late-arriving bounce overwrite a richer terminal
+  // status. If we already heard back from this therapist (replied,
+  // claimed, paid, or they explicitly opted out), a bounce that
+  // arrives afterwards is almost certainly stale or a webhook
+  // replay — leave the good state alone.
+  //
+  // Complaints are not guarded: a paying customer marking us as
+  // spam is a real event worth recording, and the resulting
+  // opted_out status is more accurate than the prior state.
+  const BOUNCE_PROTECTED_STATUSES = new Set(["replied", "claimed", "paid", "opted_out"]);
+
   let patched = 0;
+  let skippedTerminal = 0;
   for (const t of therapists) {
+    const currentStatus = t?.outreach?.status || "";
+    if (type === "email.bounced" && BOUNCE_PROTECTED_STATUSES.has(currentStatus)) {
+      log.info("resend webhook: bounce ignored, current status is terminal", {
+        id: t._id,
+        currentStatus,
+      });
+      skippedTerminal++;
+      continue;
+    }
     try {
       const existingLog = t?.outreach?.emailLog || [];
       const existingNotes = t?.outreach?.notes || "";
@@ -274,6 +295,6 @@ export async function handleResendWebhookRoutes(context) {
   }
 
   response.writeHead(200, { "Content-Type": "application/json" });
-  response.end(JSON.stringify({ ok: true, matched: therapists.length, patched }));
+  response.end(JSON.stringify({ ok: true, matched: therapists.length, patched, skippedTerminal }));
   return true;
 }
