@@ -23,6 +23,9 @@ const state = {
   // are hidden from the outreach queue by default so the working list
   // stays focused on people who can still convert. Toggle reveals them.
   filters: { status: "", state: "CA", search: "", followUpDue: false, includeDone: false },
+  // Insights expander (Subject Performance + Patient Signal) collapsed
+  // by default so the page leads with the queue, not the analytics.
+  insightsOpen: false,
   liveFilters: { search: "" },
   // Sort: which column + direction. Last contact desc mirrors the API
   // query's default and is the most useful first view.
@@ -411,40 +414,23 @@ function tabButton(target, label) {
 
 function renderOutreachView() {
   const stats = computeStats(state.therapists);
+  const insightsOpen = state.insightsOpen;
   return `
-    <div style="padding:14px 24px 0;flex-shrink:0;">
+    <div style="padding:10px 24px 0;flex-shrink:0;">
       <div id="profileSearchWidget" class="ps-widget-root" style="padding:0;"></div>
     </div>
 
-    <div style="padding:14px 24px 0;flex-shrink:0;">
-      <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">
-        Outreach (your sends)
-      </div>
-      <div style="display:flex;gap:14px;">
+    <div style="padding:10px 24px 0;flex-shrink:0;">
+      <div style="display:flex;gap:10px;">
         ${statCard("Total", stats.total, "#2a5f6e")}
         ${statCard("Contacted", stats.contacted, "#3b82f6")}
         ${statCard("Replied", stats.replied, "#7c3aed")}
         ${statCard("Reply rate", stats.replyRate + "%", "#f59e0b")}
-      </div>
-      <div style="margin-top:8px;font-size:12px;color:#6b7280;">
-        ${stats.claimed} therapist${stats.claimed === 1 ? "" : "s"} have claimed —
-        <button id="go-live-tab" style="background:none;border:none;padding:0;color:#2a5f6e;font-weight:600;text-decoration:underline;cursor:pointer;font-size:12px;">view on Live tab →</button>
+        ${statCardLink("go-live-tab", "Claimed (Live tab)", stats.claimed, "#2a5f6e")}
       </div>
     </div>
 
-    ${subjectPerformanceHtml(computeSubjectPerformance(state.therapists))}
-
-    <div style="padding:14px 24px 0;flex-shrink:0;">
-      <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:baseline;gap:8px;">
-        <span>Patient signal (last 30 days)</span>
-        <span id="patient-signal-trend" style="font-size:10px;font-weight:500;color:#6b7280;text-transform:none;letter-spacing:0;"></span>
-      </div>
-      <div id="patient-signal-row" style="display:flex;gap:14px;">
-        ${patientSignalCardsHtml(state.patientSignal)}
-      </div>
-    </div>
-
-    <div style="display:flex;gap:10px;align-items:center;padding:14px 24px;flex-shrink:0;flex-wrap:wrap;border-bottom:1px solid #e5e7eb;">
+    <div style="display:flex;gap:10px;align-items:center;padding:12px 24px;flex-shrink:0;flex-wrap:wrap;border-bottom:1px solid #e5e7eb;">
       <select id="f-status" class="form-input" style="width:160px;">
         <option value="">Active only</option>
         ${Object.entries(STATUS_LABELS)
@@ -468,6 +454,26 @@ function renderOutreachView() {
         Include done
       </label>
       <span id="result-count" style="margin-left:auto;font-size:13px;color:#6b7280;"></span>
+    </div>
+
+    <div style="padding:10px 24px 0;flex-shrink:0;">
+      <button id="insights-toggle" type="button" style="background:none;border:none;padding:4px 0;cursor:pointer;font-size:11px;font-weight:600;color:#6b7280;letter-spacing:0.5px;text-transform:uppercase;display:flex;align-items:center;gap:6px;">
+        <span>${insightsOpen ? "▾" : "▸"}</span>
+        <span>Insights</span>
+        <span style="font-size:10px;font-weight:500;color:#9ca3af;text-transform:none;letter-spacing:0;">subject performance + patient signal</span>
+      </button>
+      <div id="insights-body" style="${insightsOpen ? "" : "display:none;"}margin-top:8px;">
+        ${subjectPerformanceHtml(computeSubjectPerformance(state.therapists))}
+        <div style="padding:10px 0 0;">
+          <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:baseline;gap:8px;">
+            <span>Patient signal (last 30 days)</span>
+            <span id="patient-signal-trend" style="font-size:10px;font-weight:500;color:#6b7280;text-transform:none;letter-spacing:0;"></span>
+          </div>
+          <div id="patient-signal-row" style="display:flex;gap:10px;">
+            ${patientSignalCardsHtml(state.patientSignal)}
+          </div>
+        </div>
+      </div>
     </div>
 
     <div style="flex:1;padding:0 24px 24px;" id="table-container"></div>
@@ -666,16 +672,25 @@ function initProfileSearchWidget() {
 }
 
 function statCard(label, value, color) {
-  return `<div style="flex:1;min-width:90px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 18px;">
-    <div style="font-size:22px;font-weight:700;color:${color};">${value}</div>
-    <div style="font-size:12px;color:#6b7280;margin-top:2px;">${label}</div>
+  return `<div style="flex:1;min-width:80px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;">
+    <div style="font-size:18px;font-weight:700;color:${color};line-height:1.1;">${value}</div>
+    <div style="font-size:11px;color:#6b7280;margin-top:2px;">${label}</div>
   </div>`;
+}
+
+// Same shape as statCard but rendered as a button — used for the
+// Claimed stat that doubles as a jump to the Live tab.
+function statCardLink(id, label, value, color) {
+  return `<button id="${id}" type="button" style="flex:1;min-width:80px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;cursor:pointer;text-align:left;font:inherit;">
+    <div style="font-size:18px;font-weight:700;color:${color};line-height:1.1;">${value} <span style="font-size:12px;color:#9ca3af;">→</span></div>
+    <div style="font-size:11px;color:#6b7280;margin-top:2px;">${label}</div>
+  </button>`;
 }
 
 function subjectPerformanceHtml(rows) {
   if (!rows || rows.length === 0) return "";
   return `
-    <div style="padding:14px 24px 0;flex-shrink:0;">
+    <div style="flex-shrink:0;">
       <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">
         Subject performance (initial sends)
       </div>
@@ -1202,6 +1217,10 @@ function setupDashboardListeners() {
   });
   document.getElementById("go-live-tab")?.addEventListener("click", () => {
     state.view = "live";
+    renderDashboard();
+  });
+  document.getElementById("insights-toggle")?.addEventListener("click", () => {
+    state.insightsOpen = !state.insightsOpen;
     renderDashboard();
   });
 
