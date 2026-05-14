@@ -1077,7 +1077,6 @@ function getTemplateDefaults(template, t) {
 // rerenders its body innerHTML for the current therapist; close()
 // just animates it back off-screen.
 
-
 // Gmail-style composer: From + To (or just From for form mode), an
 // editable Subject input, an editable Body textarea, and a single
 // action button. The same component is used for both real-email sends

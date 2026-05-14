@@ -38,8 +38,12 @@ body.drawer-open {
   animation: drawerSlideIn 200ms ease;
 }
 @keyframes drawerSlideIn {
-  from { transform: translateX(100%); }
-  to { transform: translateX(0); }
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
 }
 .edit-drawer-header {
   display: flex;
