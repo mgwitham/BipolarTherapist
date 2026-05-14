@@ -1919,11 +1919,10 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       sort_by: filters.sortBy,
     });
     render();
-    // Scroll the grid back into view so the user doesn't land
-    // mid-page-2 with the prev page still visible at the top.
-    var grid = getElement("resultsGrid");
-    if (grid && typeof grid.scrollIntoView === "function") {
-      grid.scrollIntoView({ behavior: "smooth", block: "start" });
+    // Send the user to the top of the page so the next page starts at
+    // the directory header, not partway down the previous results.
+    if (typeof window.scrollTo === "function") {
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
 
