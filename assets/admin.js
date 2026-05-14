@@ -5042,6 +5042,7 @@ function renderConfirmationQueue() {
       getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
       getConfirmationQueuePrimaryField: getConfirmationQueuePrimaryField,
       getConfirmationQueueEntry: getConfirmationQueueEntry,
+      getConfirmationLastActionNote: getConfirmationLastActionNote,
       buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
       buildConfirmationLink: buildConfirmationLink,
       getPreferredFieldOrder: getPreferredFieldOrder,
