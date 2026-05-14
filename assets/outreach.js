@@ -22,7 +22,15 @@ const state = {
   // includeDone: terminal statuses (claimed/paid/replied/bounced/opted_out)
   // are hidden from the outreach queue by default so the working list
   // stays focused on people who can still convert. Toggle reveals them.
-  filters: { status: "", state: "CA", search: "", followUpDue: false, includeDone: false },
+  filters: {
+    status: "",
+    state: "CA",
+    search: "",
+    followUpDue: false,
+    includeDone: false,
+    // engagement: "" (all) | "engaged" | "quiet" | "recent"
+    engagement: "",
+  },
   // Insights expander (Subject Performance + Patient Signal) collapsed
   // by default so the page leads with the queue, not the analytics.
   insightsOpen: false,
@@ -153,6 +161,63 @@ function isFollowUpDue(t) {
   return last && Date.now() - new Date(last).getTime() >= 7 * 24 * 60 * 60 * 1000;
 }
 
+// Classify an emailLog entry's open state for the engagement trail.
+// "opened"   — Resend webhook stamped openedAt
+// "unopened" — Resend-tracked send, no open yet
+// "untracked" — sent via contact form / PT; we have no open signal
+function openState(entry) {
+  if (!entry) return "untracked";
+  const tmpl = String(entry.template || "");
+  if (tmpl.endsWith("_via_form")) return "untracked";
+  return entry.openedAt ? "opened" : "unopened";
+}
+
+function hasAnyOpen(t) {
+  const log = Array.isArray(t.outreach?.emailLog) ? t.outreach.emailLog : [];
+  return log.some((e) => openState(e) === "opened");
+}
+
+function hasAnyTrackedSend(t) {
+  const log = Array.isArray(t.outreach?.emailLog) ? t.outreach.emailLog : [];
+  return log.some((e) => openState(e) !== "untracked");
+}
+
+function openedLatest(t) {
+  const log = Array.isArray(t.outreach?.emailLog) ? t.outreach.emailLog : [];
+  if (log.length === 0) return false;
+  return openState(log[log.length - 1]) === "opened";
+}
+
+// Renders the open-trail for a therapist as a row of colored dots.
+// One dot per send in chronological order; hovering each dot shows
+// subject + send time + open state via the title attribute.
+function engagementTrailHtml(t) {
+  const log = Array.isArray(t.outreach?.emailLog) ? t.outreach.emailLog : [];
+  if (log.length === 0) {
+    return `<span style="color:#9ca3af;font-size:11px;">—</span>`;
+  }
+  const dots = log
+    .map((e, i) => {
+      const state = openState(e);
+      const subj = String(e.subject || "(no subject)").replace(/"/g, "&quot;");
+      const when = e.sentAt ? new Date(e.sentAt).toLocaleString() : "";
+      const stateLabel =
+        state === "opened"
+          ? `opened ${e.openedAt ? new Date(e.openedAt).toLocaleString() : ""}`
+          : state === "unopened"
+            ? "not opened"
+            : "no tracking (form / PT)";
+      const title = `Email ${i + 1}: ${subj} · sent ${when} · ${stateLabel}`;
+      const fill =
+        state === "opened" ? "#059669" : state === "unopened" ? "transparent" : "#e5e7eb";
+      const border =
+        state === "opened" ? "#059669" : state === "unopened" ? "#9ca3af" : "#d1d5db";
+      return `<span title="${esc(title)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${fill};border:1.5px solid ${border};margin-right:3px;vertical-align:middle;"></span>`;
+    })
+    .join("");
+  return `<span>${dots}</span>`;
+}
+
 // ---- TOAST ----
 
 function toast(msg, type = "success") {
@@ -205,7 +270,7 @@ async function apiPatch(path, body) {
 // ---- FILTERS ----
 
 function applyFilters() {
-  const { status, state: stateF, search, followUpDue, includeDone } = state.filters;
+  const { status, state: stateF, search, followUpDue, includeDone, engagement } = state.filters;
   const filtered = state.therapists.filter((t) => {
     const s = t.outreach?.status || "not_contacted";
     // Hide terminal statuses by default so claimed/paid/replied/bounced
@@ -215,6 +280,9 @@ function applyFilters() {
     if (status && s !== status) return false;
     if (stateF && t.state !== stateF) return false;
     if (followUpDue && !isFollowUpDue(t)) return false;
+    if (engagement === "engaged" && !hasAnyOpen(t)) return false;
+    if (engagement === "quiet" && (!hasAnyTrackedSend(t) || hasAnyOpen(t))) return false;
+    if (engagement === "recent" && !openedLatest(t)) return false;
     if (search) {
       const q = search.toLowerCase();
       if (!(t.name || "").toLowerCase().includes(q) && !(t.email || "").toLowerCase().includes(q))
@@ -509,6 +577,12 @@ function renderOutreachView() {
         <input id="f-includedone" type="checkbox" ${state.filters.includeDone ? "checked" : ""} />
         Include done
       </label>
+      <select id="f-engagement" class="form-input" style="width:170px;" title="Filter by open behavior across all sends to each therapist">
+        <option value="" ${!state.filters.engagement ? "selected" : ""}>All engagement</option>
+        <option value="engaged" ${state.filters.engagement === "engaged" ? "selected" : ""}>Engaged (opened any)</option>
+        <option value="quiet" ${state.filters.engagement === "quiet" ? "selected" : ""}>Quiet (never opened)</option>
+        <option value="recent" ${state.filters.engagement === "recent" ? "selected" : ""}>Opened most recent</option>
+      </select>
       <span id="result-count" style="margin-left:auto;font-size:13px;color:#6b7280;"></span>
     </div>
 
@@ -1258,7 +1332,6 @@ function refreshTable() {
   const rows = filtered
     .map((t) => {
       const s = t.outreach?.status || "not_contacted";
-      const sent = t.outreach?.emailsSent || 0;
       const last = t.outreach?.lastContactedAt;
       const dueBg = isFollowUpDue(t) ? "background:#fffbeb;" : "";
       const channel = t.email ? "email" : getContactFormUrl(t) ? "form" : "";
@@ -1293,7 +1366,7 @@ function refreshTable() {
       <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "-")}</td>
       <td style="padding:11px 14px;color:#6b7280;">${emailCellInner}</td>
       <td style="padding:11px 14px;">${pill(s)}</td>
-      <td style="padding:11px 14px;text-align:center;color:#6b7280;">${sent}</td>
+      <td style="padding:11px 14px;text-align:center;">${engagementTrailHtml(t)}</td>
       <td style="padding:11px 14px;color:#6b7280;">${relTime(last) || "-"}</td>
       <td style="padding:11px 14px;white-space:nowrap;">
         <button class="email-btn btn-secondary" data-id="${esc(t._id)}" style="margin-right:6px;color:#2a5f6e;border-color:#2a5f6e;">${emailLabel}</button>
@@ -1320,7 +1393,7 @@ function refreshTable() {
     { label: "Name" },
     { label: "Email" },
     { label: "Status", sortKey: "status" },
-    { label: "Sent", align: "center" },
+    { label: "Engagement", align: "center" },
     { label: "Last contact", sortKey: "lastContactedAt" },
     { label: "Actions" },
   ];
@@ -1603,16 +1676,29 @@ function renderPanelContent(t) {
         emailLog.length === 0
           ? `<div style="font-size:13px;color:#6b7280;">No emails sent yet.</div>`
           : emailLog
-              .map(
-                (e) => `
+              .map((e) => {
+                const state = openState(e);
+                const isFormSend = String(e.template || "").endsWith("_via_form");
+                const openBadge =
+                  state === "opened"
+                    ? `<span title="${e.openedAt ? `Opened ${new Date(e.openedAt).toLocaleString()}` : "Opened"}" style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#dcfce7;color:#15803d;border:1px solid #86efac;">✓ Opened${e.openedAt ? ` · ${relTime(e.openedAt)}` : ""}</span>`
+                    : state === "unopened"
+                      ? `<span title="Resend has not reported an open yet" style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;">Not opened</span>`
+                      : `<span title="Form / PT sends don't go through Resend, so we can't track opens" style="display:inline-block;padding:1px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#fef3c7;color:#92400e;border:1px solid #fde68a;">No tracking</span>`;
+                return `
           <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:10px 12px;margin-bottom:8px;font-size:13px;">
-            <div style="font-weight:500;">${
-              e.template?.startsWith("email_1") ? "Initial outreach" : "Follow-up"
-            }${e.template?.endsWith("_via_form") ? " (contact form)" : ""}</div>
-            <div style="color:#6b7280;font-size:12px;margin-top:2px;">${esc(e.subject)}</div>
-            <div style="color:#9ca3af;font-size:12px;margin-top:2px;">${e.sentAt ? new Date(e.sentAt).toLocaleString() : "-"}</div>
-          </div>`,
-              )
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
+              <div style="flex:1;min-width:0;">
+                <div style="font-weight:500;">${
+                  e.template?.startsWith("email_1") ? "Initial outreach" : "Follow-up"
+                }${isFormSend ? " (contact form)" : ""}</div>
+                <div style="color:#6b7280;font-size:12px;margin-top:2px;">${esc(e.subject)}</div>
+                <div style="color:#9ca3af;font-size:12px;margin-top:2px;">${e.sentAt ? new Date(e.sentAt).toLocaleString() : "-"}${e.campaign ? ` · campaign: ${esc(e.campaign)}` : ""}</div>
+              </div>
+              <div style="flex-shrink:0;">${openBadge}</div>
+            </div>
+          </div>`;
+              })
               .join("")
       }
     </div>
@@ -1743,6 +1829,10 @@ function setupDashboardListeners() {
   });
   document.getElementById("f-includedone")?.addEventListener("change", (e) => {
     state.filters.includeDone = e.target.checked;
+    refilter();
+  });
+  document.getElementById("f-engagement")?.addEventListener("change", (e) => {
+    state.filters.engagement = e.target.value;
     refilter();
   });
   document.getElementById("go-live-tab")?.addEventListener("click", () => {
