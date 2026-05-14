@@ -605,6 +605,45 @@ export async function handleRecoveryRoutes(context) {
     return true;
   }
 
+  // POST /recovery-requests/:id/dismiss — admin clears a duplicate or
+  // junk request without emailing the therapist. Use when the same
+  // person submitted twice, or when the request is clearly noise.
+  // The admin note captures why so the audit trail isn't blank.
+  const recoveryDismissMatch = routePath.match(/^\/recovery-requests\/([^/]+)\/dismiss$/);
+  if (request.method === "POST" && recoveryDismissMatch) {
+    if (!deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+    const requestId = decodeURIComponent(recoveryDismissMatch[1]);
+    const body = await parseBody(request);
+    const adminNote = String(body.admin_note || "").trim();
+
+    const recovery = await client.getDocument(requestId);
+    if (!recovery || recovery._type !== "therapistRecoveryRequest") {
+      sendJson(response, 404, { error: "Recovery request not found." }, origin, config);
+      return true;
+    }
+    if (recovery.status !== "pending") {
+      sendJson(response, 409, { error: "This request has already been resolved." }, origin, config);
+      return true;
+    }
+
+    const reviewer = deps.getAuthorizedActor(request, config);
+    const updated = await client
+      .patch(recovery._id)
+      .set({
+        status: "dismissed",
+        reviewedAt: new Date().toISOString(),
+        reviewedBy: (reviewer && (reviewer.name || reviewer.id)) || "admin",
+        adminNote: adminNote || recovery.adminNote || "",
+      })
+      .commit({ visibility: "sync" });
+
+    sendJson(response, 200, { ok: true, request: updated }, origin, config);
+    return true;
+  }
+
   // POST /recovery-requests/:id/resend-signin — admin-only fallback
   // for when an approved recovery didn't get its sign-in email delivered
   // (Resend outage, typo, spam folder). Re-mints a magic link and re-
