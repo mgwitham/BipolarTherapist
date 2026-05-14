@@ -300,3 +300,42 @@ function buildFilterButton(options, value, label, count, activeFilter) {
     ")</button>"
   );
 }
+
+// Controller registration. PR 2 of the admin.js refactor. See
+// assets/admin-controller-registry.js for the contract.
+//
+// Subscribes to data.licensureRefreshQueue (its own data),
+// data.licensureActivityFeed (shared with Licensure Activity), and its
+// own filter slice. Activity's filter changes don't fire this
+// controller — the store only notifies on overlapping declared paths.
+const controller = {
+  id: "licensureQueue",
+  regionId: "licensureQueue",
+  countElId: "licensureQueueCount",
+  storeSlices: [
+    "data.licensureRefreshQueue",
+    "data.licensureActivityFeed",
+    "filters.licensureQueue",
+    "authRequired",
+  ],
+  render(ctx) {
+    const store = ctx.store;
+    renderLicensureQueuePanel({
+      root: ctx.dom.root,
+      countEl: ctx.dom.count,
+      authRequired: store.get("authRequired") === true,
+      rows: store.get("data.licensureRefreshQueue") || [],
+      activityFeed: store.get("data.licensureActivityFeed") || [],
+      activeFilter: store.get("filters.licensureQueue") || "",
+      onFilterChange(next) {
+        store.set("filters.licensureQueue", next || "");
+      },
+      decideLicensureOps: ctx.deps.decideLicensureOps,
+      loadData: ctx.deps.loadData,
+      escapeHtml: ctx.deps.escapeHtml,
+      copyText: ctx.deps.copyText,
+    });
+  },
+};
+
+export default controller;
