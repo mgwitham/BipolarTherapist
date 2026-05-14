@@ -254,12 +254,7 @@ export async function handleResendWebhookRoutes(context) {
   // Complaints are not guarded: a paying customer marking us as
   // spam is a real event worth recording, and the resulting
   // opted_out status is more accurate than the prior state.
-  const BOUNCE_PROTECTED_STATUSES = new Set([
-    "replied",
-    "claimed",
-    "paid",
-    "opted_out",
-  ]);
+  const BOUNCE_PROTECTED_STATUSES = new Set(["replied", "claimed", "paid", "opted_out"]);
 
   let patched = 0;
   let skippedTerminal = 0;
@@ -300,8 +295,6 @@ export async function handleResendWebhookRoutes(context) {
   }
 
   response.writeHead(200, { "Content-Type": "application/json" });
-  response.end(
-    JSON.stringify({ ok: true, matched: therapists.length, patched, skippedTerminal }),
-  );
+  response.end(JSON.stringify({ ok: true, matched: therapists.length, patched, skippedTerminal }));
   return true;
 }
