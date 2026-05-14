@@ -118,6 +118,7 @@ import {
   openCandidateEditDrawer,
   openTherapistEditDrawer,
 } from "./admin-candidate-edit.js";
+import { mountEditDrawer } from "./edit-drawer-shell.js";
 import { initAdminProfileSearch } from "./admin-profile-search.js";
 import { bindResolveDuplicate, openResolveDuplicate } from "./admin-duplicate-resolve.js";
 import { normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
@@ -6221,6 +6222,7 @@ document.addEventListener("click", function (event) {
   }
 });
 
+mountEditDrawer();
 bindCandidateEditDrawer();
 bindResolveDuplicate();
 
