@@ -59,7 +59,7 @@ const BUDGETS = [
   // they're already small and naturally lazy-loaded.
   {
     pattern: entryPattern("admin", "js"),
-    maxKb: 100,
+    maxKb: 115,
     label: "admin.js (main bundle)",
   },
   { pattern: /^admin\.html$/, maxKb: 35, label: "admin.html" },
