@@ -11,7 +11,6 @@ import {
   fetchRecoveryRequests,
   rejectRecoveryRequest,
   resendRecoverySignin,
-  sendRecoveryConfirmation,
 } from "./review-api.js";
 
 const DASHBOARD_ID = "adminRecoveryDashboard";
@@ -31,6 +30,21 @@ function formatDate(value) {
         minute: "2-digit",
       })
     : "";
+}
+
+function formatAge(value) {
+  if (!value) return "";
+  const t = new Date(value).getTime();
+  if (!Number.isFinite(t)) return "";
+  const diff = Math.max(0, Date.now() - t);
+  const mins = Math.round(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return mins + "m ago";
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return hrs + "h ago";
+  const days = Math.round(hrs / 24);
+  if (days < 7) return days + "d ago";
+  return formatDate(value);
 }
 
 function dcaLookupUrl(license) {
@@ -77,7 +91,7 @@ function renderAnchorsBlock(req) {
   if (!a) return "";
   const dcaProfile =
     req.licenseNumber && a.boardName
-      ? '<a href="' +
+      ? ' <a href="' +
         escapeHtml(dcaLookupUrl(req.licenseNumber)) +
         '" target="_blank" rel="noopener">DCA ↗</a>'
       : "";
@@ -85,42 +99,51 @@ function renderAnchorsBlock(req) {
   const expSoon = (() => {
     if (!a.licenseExpDate) return "";
     const days = Math.round((new Date(a.licenseExpDate) - Date.now()) / 86400000);
-    if (days < 0) return ' <span class="admin-recovery-flag">expired</span>';
-    if (days <= 60) return ' <span class="admin-recovery-flag">expires in ' + days + "d</span>";
+    if (days < 0) return ' <span class="rec-pill rec-pill-warn">expired</span>';
+    if (days <= 60) return ' <span class="rec-pill rec-pill-warn">expires in ' + days + "d</span>";
     return "";
   })();
+  const items = [
+    {
+      label: "License",
+      html:
+        escapeHtml(a.licenseStatus || "?") +
+        (a.licenseExpDate ? " · exp " + escapeHtml(a.licenseExpDate) : "") +
+        expSoon +
+        (a.disciplineFlag
+          ? ' <span class="rec-pill rec-pill-warn">discipline on file</span>'
+          : "") +
+        dcaProfile,
+    },
+    { label: "DCA address", html: dcaAddress ? escapeHtml(dcaAddress) : "—" },
+    {
+      label: "Phone",
+      html: a.phone
+        ? '<a href="tel:' + escapeHtml(a.phone) + '">' + escapeHtml(a.phone) + "</a>"
+        : "—",
+    },
+    {
+      label: "Website",
+      html: a.website
+        ? '<a href="' +
+          escapeHtml(a.website) +
+          '" target="_blank" rel="noopener">' +
+          escapeHtml(a.website.replace(/^https?:\/\//, "").replace(/\/$/, "")) +
+          " ↗</a>"
+        : "—",
+    },
+    { label: "Email on profile", html: escapeHtml(a.email || "—") },
+  ];
+  if (a.providerNpi) {
+    items.push({ label: "NPI", html: "<code>" + escapeHtml(a.providerNpi) + "</code>" });
+  }
   return (
-    '<dl class="admin-recovery-anchors">' +
-    '<dt class="admin-recovery-anchors-head" colspan="2"><strong>Verification anchors</strong> ' +
-    "(use these to confirm identity out-of-band)</dt>" +
-    "<dt>License status</dt><dd>" +
-    escapeHtml(a.licenseStatus || "?") +
-    expSoon +
-    (a.disciplineFlag ? ' <span class="admin-recovery-flag">discipline on file</span>' : "") +
-    (a.licenseExpDate ? " · exp " + escapeHtml(a.licenseExpDate) : "") +
-    " " +
-    dcaProfile +
-    "</dd>" +
-    "<dt>DCA address-of-record</dt><dd>" +
-    (dcaAddress ? escapeHtml(dcaAddress) : "—") +
-    "</dd>" +
-    "<dt>Phone on profile</dt><dd>" +
-    (a.phone ? '<a href="tel:' + escapeHtml(a.phone) + '">' + escapeHtml(a.phone) + "</a>" : "—") +
-    "</dd>" +
-    "<dt>Practice website</dt><dd>" +
-    (a.website
-      ? '<a href="' +
-        escapeHtml(a.website) +
-        '" target="_blank" rel="noopener">' +
-        escapeHtml(a.website) +
-        " ↗</a>"
-      : "—") +
-    "</dd>" +
-    "<dt>Email on profile</dt><dd>" +
-    escapeHtml(a.email || "—") +
-    "</dd>" +
-    (a.providerNpi ? "<dt>NPI</dt><dd><code>" + escapeHtml(a.providerNpi) + "</code></dd>" : "") +
-    "</dl>"
+    '<section class="rec-block">' +
+    '<h4 class="rec-block-title">Verification anchors <span class="rec-block-hint">check these out-of-band</span></h4>' +
+    '<dl class="rec-anchors">' +
+    items.map((i) => "<dt>" + escapeHtml(i.label) + "</dt><dd>" + i.html + "</dd>").join("") +
+    "</dl>" +
+    "</section>"
   );
 }
 
@@ -145,25 +168,16 @@ function renderFlagsBlock(req) {
 function renderVerificationMethodsChecklist(req, coldTakeover) {
   if (!coldTakeover || req.status !== "pending") return "";
   const methods = [
-    {
-      value: "self_confirm",
-      label: "Therapist self-confirm via prior contact channel",
-    },
-    { value: "phone_call_dca", label: "Phone call to practice number on DCA address-of-record" },
-    {
-      value: "phone_call_website",
-      label: "Phone call to practice number on therapist's website",
-    },
-    {
-      value: "cross_channel_email",
-      label: "Cross-channel email match (mailto on practice website)",
-    },
+    { value: "self_confirm", label: "Therapist self-confirmed via prior contact" },
+    { value: "phone_call_dca", label: "Phone call to DCA-listed number" },
+    { value: "phone_call_website", label: "Phone call to website-listed number" },
+    { value: "cross_channel_email", label: "Cross-channel email match" },
     { value: "other", label: "Other (describe in note)" },
   ];
   const items = methods
     .map(
       (m) =>
-        '<label class="admin-recovery-method-item"><input type="checkbox" name="verification_method" value="' +
+        '<label class="rec-method"><input type="checkbox" name="verification_method" value="' +
         escapeHtml(m.value) +
         '" data-request-id="' +
         escapeHtml(req._id) +
@@ -173,76 +187,12 @@ function renderVerificationMethodsChecklist(req, coldTakeover) {
     )
     .join("");
   return (
-    '<fieldset class="admin-recovery-methods" data-request-id="' +
+    '<fieldset class="rec-methods" data-request-id="' +
     escapeHtml(req._id) +
-    '"><legend><strong>Verification methods used</strong> (at least one strong method required)</legend>' +
+    '"><legend>How did you verify?</legend>' +
     items +
     "</fieldset>"
   );
-}
-
-function renderConfirmationSection(req, coldTakeover) {
-  if (!coldTakeover) return "";
-  const sent = req.confirmationSentAt;
-  const response = req.confirmationResponse || "";
-  if (!sent) {
-    return (
-      '<div class="admin-recovery-confirm-block">' +
-      '<h4 class="admin-recovery-confirm-title">Confirm via therapist\'s own channel (recommended)</h4>' +
-      '<p class="admin-recovery-confirm-help">' +
-      "Find an email for this therapist on a <strong>public source the requester doesn't control</strong> " +
-      "(DCA record, practice website footer, Psychology Today profile). " +
-      "We'll email that address asking the therapist to confirm or deny. " +
-      "If they confirm, the claim auto-approves. If they deny, it auto-rejects." +
-      "</p>" +
-      '<label class="admin-recovery-confirm-label">Channel email' +
-      '<input type="email" class="admin-recovery-confirm-email" data-confirm-email-for="' +
-      escapeHtml(req._id) +
-      '" placeholder="e.g. info@drsmiththerapy.com" />' +
-      "</label>" +
-      '<label class="admin-recovery-confirm-label">Where did you find this email?' +
-      '<input type="text" class="admin-recovery-confirm-context" data-confirm-context-for="' +
-      escapeHtml(req._id) +
-      '" placeholder="e.g. Psychology Today profile, DCA record, practice website footer" />' +
-      "</label>" +
-      '<button type="button" class="btn-primary admin-recovery-confirm-send" data-request-id="' +
-      escapeHtml(req._id) +
-      '">Send confirmation request</button>' +
-      "</div>"
-    );
-  }
-  if (response === "pending" || !response) {
-    return (
-      '<div class="admin-recovery-confirm-block admin-recovery-confirm-waiting">' +
-      "<strong>⏳ Confirmation sent to " +
-      escapeHtml(req.confirmationChannel || "") +
-      "</strong><br/>" +
-      '<span class="subtle">Sourced from: ' +
-      escapeHtml(req.confirmationChannelContext || "(unspecified)") +
-      " · Sent " +
-      escapeHtml(formatDate(sent)) +
-      "</span><br/>" +
-      "<small>Waiting for the therapist to click Yes or No. Link expires in 7 days. " +
-      "If they don't respond, you can still use the manual fallback below.</small>" +
-      '<details class="admin-recovery-resend"><summary>Send to a different channel instead</summary>' +
-      '<label class="admin-recovery-confirm-label">Channel email' +
-      '<input type="email" class="admin-recovery-confirm-email" data-confirm-email-for="' +
-      escapeHtml(req._id) +
-      '" placeholder="e.g. info@drsmiththerapy.com" />' +
-      "</label>" +
-      '<label class="admin-recovery-confirm-label">Where did you find this email?' +
-      '<input type="text" class="admin-recovery-confirm-context" data-confirm-context-for="' +
-      escapeHtml(req._id) +
-      '" placeholder="e.g. Psychology Today profile" />' +
-      "</label>" +
-      '<button type="button" class="btn-secondary admin-recovery-confirm-send" data-request-id="' +
-      escapeHtml(req._id) +
-      '">Resend to this channel</button>' +
-      "</details>" +
-      "</div>"
-    );
-  }
-  return "";
 }
 
 function renderRequestCard(req) {
@@ -259,13 +209,175 @@ function renderRequestCard(req) {
     req.profileName &&
     req.fullName &&
     req.profileName.trim().toLowerCase() !== req.fullName.trim().toLowerCase();
-  const domainCheck = (() => {
-    if (!req.requestedEmail || !req.profileEmailHint) return "";
-    const reqDomain = String(req.requestedEmail).split("@")[1] || "";
-    // profileEmailHint is masked (j***@d***.com), so strict domain comparison
-    // isn't possible. Just surface the requested domain for the reviewer.
-    return reqDomain;
-  })();
+  const FREE_EMAIL = /@(gmail|yahoo|hotmail|outlook|icloud|aol|proton(mail)?|mail|ymail|gmx)\./i;
+  const isFreeEmail = req.requestedEmail && FREE_EMAIL.test(req.requestedEmail);
+
+  // Header strip — the 4 things you scan in <10s before making a call:
+  // who, what license, what email they want, how old + risk.
+  const headerStrip =
+    '<header class="rec-strip">' +
+    '<div class="rec-strip-main">' +
+    '<h3 class="rec-strip-title">' +
+    escapeHtml(req.fullName || "(no name)") +
+    (req.licenseNumber
+      ? ' <a class="rec-strip-license" href="' +
+        escapeHtml(dcaLookupUrl(req.licenseNumber)) +
+        '" target="_blank" rel="noopener">' +
+        escapeHtml(req.licenseNumber) +
+        " ↗</a>"
+      : "") +
+    "</h3>" +
+    '<p class="rec-strip-email">Requesting access as <strong>' +
+    escapeHtml(req.requestedEmail || "—") +
+    "</strong>" +
+    (isFreeEmail ? ' <span class="rec-pill rec-pill-warn">free email</span>' : "") +
+    "</p>" +
+    "</div>" +
+    '<div class="rec-strip-meta">' +
+    (coldTakeover ? '<span class="rec-pill rec-pill-danger">Cold takeover</span>' : "") +
+    '<span class="rec-pill rec-pill-' +
+    escapeHtml(req.status) +
+    '" title="' +
+    escapeHtml(formatDate(req.createdAt)) +
+    '">' +
+    escapeHtml(req.status === "pending" ? "Pending" : req.status) +
+    " · " +
+    escapeHtml(formatAge(req.createdAt)) +
+    "</span>" +
+    "</div>" +
+    "</header>";
+
+  // Two-column body grid: request facts left, profile-we'd-unlock right.
+  const requestCol =
+    '<section class="rec-col">' +
+    '<h4 class="rec-block-title">Request</h4>' +
+    '<dl class="rec-defs">' +
+    "<dt>Reason</dt><dd>" +
+    escapeHtml(req.reason || "—") +
+    "</dd>" +
+    "<dt>Prior email</dt><dd>" +
+    escapeHtml(req.priorEmail || "—") +
+    "</dd>" +
+    (req.requesterIp
+      ? "<dt>Requester IP</dt><dd><code>" + escapeHtml(req.requesterIp) + "</code></dd>"
+      : "") +
+    "</dl>" +
+    "</section>";
+
+  const profileCol =
+    '<section class="rec-col">' +
+    '<h4 class="rec-block-title">Profile we\'d unlock</h4>' +
+    '<dl class="rec-defs">' +
+    "<dt>Name on record</dt><dd>" +
+    escapeHtml(req.profileName || "(no matching profile)") +
+    (nameMismatch ? ' <span class="rec-pill rec-pill-warn">differs from request</span>' : "") +
+    "</dd>" +
+    "<dt>Email on record</dt><dd>" +
+    escapeHtml(req.profileEmailHint || "—") +
+    "</dd>" +
+    (req.profileClaimedEmail
+      ? "<dt>Previously claimed by</dt><dd>" + escapeHtml(req.profileClaimedEmail) + "</dd>"
+      : "") +
+    (req.therapistSlug
+      ? '<dt>View profile</dt><dd><a href="/therapist.html?slug=' +
+        escapeHtml(req.therapistSlug) +
+        '" target="_blank" rel="noopener">/therapist?slug=' +
+        escapeHtml(req.therapistSlug) +
+        " ↗</a></dd>"
+      : "") +
+    "</dl>" +
+    "</section>";
+
+  const bodyGrid = '<div class="rec-grid">' + requestCol + profileCol + "</div>";
+
+  // For pending cold-takeover: always-visible verify block (no disclosure).
+  // For pending non-cold-takeover (stale-email reason): no verify block needed.
+  const pendingActions =
+    req.status !== "pending"
+      ? ""
+      : '<section class="rec-action">' +
+        (coldTakeover
+          ? '<div class="rec-verify-block">' +
+            '<h4 class="rec-block-title">Verify identity <span class="rec-block-hint">required for cold takeover</span></h4>' +
+            renderVerificationMethodsChecklist(req, coldTakeover) +
+            '<label class="rec-verify-label" for="verify-' +
+            escapeHtml(req._id) +
+            '">What did you do? <small>(20+ characters)</small></label>' +
+            '<textarea class="admin-recovery-verify" id="verify-' +
+            escapeHtml(req._id) +
+            '" data-verify-for="' +
+            escapeHtml(req._id) +
+            '" rows="2" placeholder="e.g. Replied to her email; she confirmed she submitted the request from this gmail."></textarea>' +
+            "</div>"
+          : "") +
+        '<label class="rec-outcome-label" for="outcome-' +
+        escapeHtml(req._id) +
+        '">Message to therapist <small>(optional, included in the email)</small></label>' +
+        '<textarea class="admin-recovery-outcome" id="outcome-' +
+        escapeHtml(req._id) +
+        '" data-for="' +
+        escapeHtml(req._id) +
+        '" rows="2"></textarea>' +
+        '<div class="rec-buttons">' +
+        '<button type="button" class="btn-primary admin-recovery-approve" data-request-id="' +
+        escapeHtml(req._id) +
+        '"' +
+        (coldTakeover ? " disabled" : "") +
+        ">Approve + send sign-in link</button>" +
+        '<button type="button" class="btn-secondary admin-recovery-reject" data-request-id="' +
+        escapeHtml(req._id) +
+        '">Reject + notify</button>' +
+        '<button type="button" class="rec-btn-quiet admin-recovery-dismiss" data-request-id="' +
+        escapeHtml(req._id) +
+        '" title="Clear this request without sending any email. Use for duplicates or junk.">Dismiss (no email)</button>' +
+        "</div>" +
+        '<div class="admin-recovery-feedback" data-feedback-for="' +
+        escapeHtml(req._id) +
+        '" hidden></div>' +
+        "</section>";
+
+  // For resolved requests, surface the audit trail compactly.
+  const resolutionMeta =
+    req.status === "pending"
+      ? ""
+      : '<section class="rec-resolution">' +
+        '<dl class="rec-defs">' +
+        (req.reviewedAt
+          ? "<dt>Reviewed</dt><dd>" +
+            escapeHtml(formatDate(req.reviewedAt)) +
+            (req.reviewedBy ? " by " + escapeHtml(req.reviewedBy) : "") +
+            "</dd>"
+          : "") +
+        (req.outcomeMessage
+          ? "<dt>Message sent</dt><dd><em>" +
+            escapeHtml(req.outcomeMessage).replace(/\n/g, "<br/>") +
+            "</em></dd>"
+          : "") +
+        (req.identityVerification
+          ? "<dt>Verification note</dt><dd><em>" +
+            escapeHtml(req.identityVerification).replace(/\n/g, "<br/>") +
+            "</em></dd>"
+          : "") +
+        (Array.isArray(req.verificationMethods) && req.verificationMethods.length
+          ? "<dt>Methods used</dt><dd>" +
+            req.verificationMethods.map((m) => escapeHtml(m)).join(", ") +
+            "</dd>"
+          : "") +
+        (req.adminNote
+          ? "<dt>Admin note</dt><dd><em>" +
+            escapeHtml(req.adminNote).replace(/\n/g, "<br/>") +
+            "</em></dd>"
+          : "") +
+        "</dl>" +
+        (req.status === "approved"
+          ? '<button type="button" class="btn-secondary admin-recovery-resend-signin-btn" data-request-id="' +
+            escapeHtml(req._id) +
+            '" title="Re-mint and resend the magic sign-in link. Use if the approval email bounced or got lost.">Resend sign-in link</button>' +
+            '<div class="admin-recovery-feedback" data-feedback-for="' +
+            escapeHtml(req._id) +
+            '" hidden></div>'
+          : "") +
+        "</section>";
 
   return (
     '<article class="admin-recovery-card ' +
@@ -276,180 +388,45 @@ function renderRequestCard(req) {
     '" data-reason="' +
     escapeHtml(req.reason || "") +
     '">' +
-    (coldTakeover
-      ? '<div class="admin-recovery-risk-banner">' +
-        "<strong>⚠ COLD TAKEOVER.</strong> Unclaimed profile, no prior owner email. " +
-        "Public name + license is all that matched. <strong>Verify identity out-of-band " +
-        "before approving</strong> (phone from DCA, practice website contact form, etc.)." +
-        "</div>"
-      : "") +
-    '<header class="admin-recovery-head">' +
-    '<div><span class="admin-recovery-status-pill admin-recovery-status-' +
-    escapeHtml(req.status) +
-    '">' +
-    escapeHtml(req.status) +
-    "</span>" +
-    (nameMismatch ? '<span class="admin-recovery-flag">⚠ name differs from profile</span>' : "") +
-    "</div>" +
-    '<span class="admin-recovery-time">' +
-    escapeHtml(formatDate(req.createdAt)) +
-    "</span>" +
-    "</header>" +
-    '<h3 class="admin-recovery-name">' +
-    escapeHtml(req.fullName || "(no name)") +
-    (req.licenseNumber
-      ? ' · <a href="' +
-        escapeHtml(dcaLookupUrl(req.licenseNumber)) +
-        '" target="_blank" rel="noopener">License ' +
-        escapeHtml(req.licenseNumber) +
-        " ↗</a>"
-      : "") +
-    "</h3>" +
-    '<dl class="admin-recovery-fields">' +
-    "<dt>Requested email</dt><dd><strong>" +
-    escapeHtml(req.requestedEmail || "—") +
-    "</strong>" +
-    (domainCheck ? " <small>(domain: " + escapeHtml(domainCheck) + ")</small>" : "") +
-    "</dd>" +
-    "<dt>Prior email (remembered)</dt><dd>" +
-    escapeHtml(req.priorEmail || "—") +
-    "</dd>" +
-    "<dt>Profile name on record</dt><dd>" +
-    escapeHtml(req.profileName || "(no matching profile)") +
-    "</dd>" +
-    "<dt>Profile email on record</dt><dd>" +
-    escapeHtml(req.profileEmailHint || "—") +
-    "</dd>" +
-    (req.profileClaimedEmail
-      ? "<dt>Previously claimed by</dt><dd>" + escapeHtml(req.profileClaimedEmail) + "</dd>"
-      : "") +
-    (req.therapistSlug
-      ? '<dt>Therapist profile</dt><dd><a href="/therapist.html?slug=' +
-        escapeHtml(req.therapistSlug) +
-        '" target="_blank" rel="noopener">/therapist?slug=' +
-        escapeHtml(req.therapistSlug) +
-        " ↗</a></dd>"
-      : "") +
-    "<dt>Reason</dt><dd>" +
-    escapeHtml(req.reason || "—").replace(/\n/g, "<br/>") +
-    "</dd>" +
-    (req.requesterIp
-      ? "<dt>Requester IP</dt><dd><code>" + escapeHtml(req.requesterIp) + "</code></dd>"
-      : "") +
-    (req.reviewedAt
-      ? "<dt>Reviewed</dt><dd>" +
-        escapeHtml(formatDate(req.reviewedAt)) +
-        (req.reviewedBy ? " by " + escapeHtml(req.reviewedBy) : "") +
-        "</dd>"
-      : "") +
-    (req.outcomeMessage
-      ? "<dt>Message sent</dt><dd><em>" +
-        escapeHtml(req.outcomeMessage).replace(/\n/g, "<br/>") +
-        "</em></dd>"
-      : "") +
-    (req.adminNote
-      ? "<dt>Admin note</dt><dd><em>" +
-        escapeHtml(req.adminNote).replace(/\n/g, "<br/>") +
-        "</em></dd>"
-      : "") +
-    (req.identityVerification
-      ? "<dt>Identity verification</dt><dd><em>" +
-        escapeHtml(req.identityVerification).replace(/\n/g, "<br/>") +
-        "</em></dd>"
-      : "") +
-    (req.confirmationChannel
-      ? "<dt>Confirmation sent to</dt><dd>" +
-        escapeHtml(req.confirmationChannel) +
-        (req.confirmationChannelContext
-          ? " <small>(" + escapeHtml(req.confirmationChannelContext) + ")</small>"
-          : "") +
-        (req.confirmationResponse && req.confirmationResponse !== "pending"
-          ? " · <strong>Therapist responded: " + escapeHtml(req.confirmationResponse) + "</strong>"
-          : " · <em>Awaiting response</em>") +
-        "</dd>"
-      : "") +
-    "</dl>" +
+    headerStrip +
+    bodyGrid +
     renderAnchorsBlock(req) +
     renderFlagsBlock(req) +
-    (req.status === "approved"
-      ? '<div class="admin-recovery-resend-signin">' +
-        '<button type="button" class="btn-secondary admin-recovery-resend-signin-btn" data-request-id="' +
-        escapeHtml(req._id) +
-        '" title="Re-mint and resend the magic sign-in link to the requested email. Use if the original approval email bounced, went to spam, or the therapist didn\'t receive it.">Resend sign-in link</button>' +
-        '<div class="admin-recovery-feedback" data-feedback-for="' +
-        escapeHtml(req._id) +
-        '" hidden></div>' +
-        "</div>"
-      : "") +
-    (req.status === "pending"
-      ? '<div class="admin-recovery-actions">' +
-        renderConfirmationSection(req, coldTakeover) +
-        (coldTakeover
-          ? '<details class="admin-recovery-fallback"><summary>Fallback: skip therapist confirmation and approve manually</summary>' +
-            renderVerificationMethodsChecklist(req, coldTakeover) +
-            '<label class="admin-recovery-verify-label" for="verify-' +
-            escapeHtml(req._id) +
-            '"><strong>Identity verification note (required, 20+ chars)</strong><br/>' +
-            "<small>Describe the specifics of the verification method(s) you checked above " +
-            "(who you spoke to, the call-back number, ID number cross-referenced, etc.).</small>" +
-            "</label>" +
-            '<textarea class="admin-recovery-verify" id="verify-' +
-            escapeHtml(req._id) +
-            '" data-verify-for="' +
-            escapeHtml(req._id) +
-            '" rows="3" placeholder="e.g. Called (415) 555-0100 from DCA record at 14:32 PT, spoke with Dr. Rivera who confirmed she filed the request from her new email."></textarea>' +
-            "</details>"
-          : "") +
-        '<textarea class="admin-recovery-outcome" data-for="' +
-        escapeHtml(req._id) +
-        '" placeholder="Message for the therapist (optional, included in the email)" rows="2"></textarea>' +
-        '<div class="admin-recovery-buttons">' +
-        '<button type="button" class="btn-primary admin-recovery-approve" data-request-id="' +
-        escapeHtml(req._id) +
-        '"' +
-        (coldTakeover ? " disabled" : "") +
-        ">Approve + send sign-in link</button>" +
-        '<button type="button" class="btn-secondary admin-recovery-reject" data-request-id="' +
-        escapeHtml(req._id) +
-        '">Reject</button>' +
-        '<button type="button" class="btn-secondary admin-recovery-dismiss" data-request-id="' +
-        escapeHtml(req._id) +
-        '" title="Clear this request without sending any email. Use for duplicates or junk.">Dismiss (no email)</button>' +
-        "</div>" +
-        '<div class="admin-recovery-feedback" data-feedback-for="' +
-        escapeHtml(req._id) +
-        '" hidden></div>' +
-        "</div>"
-      : "") +
+    pendingActions +
+    resolutionMeta +
     "</article>"
   );
 }
 
 function renderDashboard(container, requests) {
   const pending = requests.filter((r) => r.status === "pending");
-  const resolved = requests.filter((r) => r.status !== "pending");
+  const approved = requests.filter((r) => r.status === "approved");
+  // Rejected + dismissed share a bucket — both are "didn't grant access"
+  // outcomes and the admin rarely needs to distinguish them at a glance.
+  const closed = requests.filter((r) => r.status === "rejected" || r.status === "dismissed");
 
-  const parts = [];
-  parts.push(
-    '<section class="admin-recovery-section">' +
-      "<h3>Pending review — " +
-      pending.length +
-      "</h3>" +
-      (pending.length
-        ? pending.map(renderRequestCard).join("")
-        : '<p class="subtle">No pending requests.</p>') +
-      "</section>",
-  );
-  if (resolved.length) {
-    parts.push(
+  const renderSection = (heading, items, emptyMsg, limit) => {
+    if (!items.length && !emptyMsg) return "";
+    const list = limit ? items.slice(0, limit) : items;
+    return (
       '<section class="admin-recovery-section">' +
-        "<h3>Resolved — last " +
-        resolved.length +
-        "</h3>" +
-        resolved.slice(0, 20).map(renderRequestCard).join("") +
-        "</section>",
+      "<h3>" +
+      escapeHtml(heading) +
+      " — " +
+      items.length +
+      "</h3>" +
+      (items.length
+        ? list.map(renderRequestCard).join("")
+        : '<p class="subtle">' + escapeHtml(emptyMsg) + "</p>") +
+      "</section>"
     );
-  }
+  };
+
+  const parts = [
+    renderSection("Pending review", pending, "No pending requests."),
+    renderSection("Approved", approved, "", 20),
+    renderSection("Rejected & dismissed", closed, "", 20),
+  ];
   container.innerHTML = parts.join("");
 
   updateTabCount(pending.length);
@@ -507,50 +484,6 @@ function bindCardActions(container) {
       } catch (error) {
         setFeedback(id, "warn", (error && error.message) || "Resend failed.");
       } finally {
-        button.disabled = false;
-      }
-    });
-  });
-
-  container.querySelectorAll(".admin-recovery-confirm-send").forEach(function (button) {
-    button.addEventListener("click", async function () {
-      const id = button.getAttribute("data-request-id");
-      const emailInput = container.querySelector(
-        '.admin-recovery-confirm-email[data-confirm-email-for="' + id + '"]',
-      );
-      const contextInput = container.querySelector(
-        '.admin-recovery-confirm-context[data-confirm-context-for="' + id + '"]',
-      );
-      const email = emailInput ? emailInput.value.trim() : "";
-      const context = contextInput ? contextInput.value.trim() : "";
-      if (!email || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) {
-        setFeedback(id, "warn", "Enter a valid confirmation channel email.");
-        return;
-      }
-      if (context.length < 3) {
-        setFeedback(
-          id,
-          "warn",
-          "Note where you sourced this email (e.g., DCA record, PT profile).",
-        );
-        return;
-      }
-      button.disabled = true;
-      setFeedback(id, "info", "Sending confirmation email to " + email + "...");
-      try {
-        await sendRecoveryConfirmation(id, {
-          channel_email: email,
-          channel_context: context,
-        });
-        setFeedback(
-          id,
-          "success",
-          "Confirmation email sent. Therapist will click Yes or No to resolve this.",
-        );
-        window.setTimeout(loadRecoveryDashboard, 800);
-      } catch (error) {
-        const msg = (error && error.message) || "Send failed.";
-        setFeedback(id, "warn", msg);
         button.disabled = false;
       }
     });
