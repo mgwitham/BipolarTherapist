@@ -758,7 +758,12 @@ test("intake: archived therapist with matching license is restored (no duplicate
         },
       };
     }
-    return { ok: true, async json() { return { licenseDetails: [] }; } };
+    return {
+      ok: true,
+      async json() {
+        return { licenseDetails: [] };
+      },
+    };
   });
 
   try {
