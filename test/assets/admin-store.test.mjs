@@ -164,7 +164,7 @@ function makeStorageStub(initial) {
 
 test("attachLocalStorage: hydrates existing values on attach", function () {
   const storage = makeStorageStub({
-    "bth_filter": JSON.stringify("ops"),
+    bth_filter: JSON.stringify("ops"),
   });
   const store = createAdminStore({});
   store.attachLocalStorage({ "filters.review": "bth_filter" }, { storage });
@@ -176,7 +176,7 @@ test("attachLocalStorage: respects legacy wrapped JSON via custom deserialize", 
   // localStorage; the deserializer must unwrap. This is the regression
   // guard for "keep the same localStorage keys" from the refactor plan.
   const storage = makeStorageStub({
-    "bth_review_activity_view_v1": JSON.stringify({ filter: "candidate" }),
+    bth_review_activity_view_v1: JSON.stringify({ filter: "candidate" }),
   });
   const store = createAdminStore({});
   store.attachLocalStorage(
@@ -208,7 +208,7 @@ test("attachLocalStorage: skips missing or empty keys", function () {
 });
 
 test("attachLocalStorage: skips corrupt JSON", function () {
-  const storage = makeStorageStub({ "bth_filter": "{not json" });
+  const storage = makeStorageStub({ bth_filter: "{not json" });
   const store = createAdminStore({ filters: { review: "default" } });
   store.attachLocalStorage({ "filters.review": "bth_filter" }, { storage });
   assert.equal(store.get("filters.review"), "default", "corrupt entry doesn't blow up the app");
