@@ -19,6 +19,7 @@ import deferredLicensureQueueController from "./admin-licensure-deferred-queue.j
 import reviewActivityController from "./admin-review-activity.js";
 import confirmationQueueController from "./admin-confirmation-queue.js";
 import confirmationSprintController from "./admin-confirmation-sprint.js";
+import applicationsController from "./admin-application-review.js";
 
 async function fetchMatchedTherapistForCandidate(candidate) {
   if (!candidate) return null;
@@ -227,6 +228,7 @@ const adminRegistry = createControllerRegistry({
     renderReviewActivitySavedViewMeta: renderReviewActivitySavedViewMeta,
     buildConfirmationQueueOptions: buildConfirmationQueueOptions,
     buildConfirmationSprintOptions: buildConfirmationSprintOptions,
+    buildApplicationsOptions: buildApplicationsOptions,
   },
 });
 adminRegistry.register(licensureActivityController);
@@ -235,6 +237,7 @@ adminRegistry.register(deferredLicensureQueueController);
 adminRegistry.register(reviewActivityController);
 adminRegistry.register(confirmationQueueController);
 adminRegistry.register(confirmationSprintController);
+adminRegistry.register(applicationsController);
 
 // Mirror the persisted filter into the legacy `let reviewActivityFilter`
 // so non-controller code that reads it (deep-link builder, savedViews
@@ -5148,77 +5151,88 @@ function renderConfirmationQueue() {
   adminRegistry.render("confirmationQueue");
 }
 
+// Option-bag factory for the Applications panel. Same pattern as the
+// confirmation tabs in PR 4: the ~70-prop bag closures over admin.js
+// helpers and getters; the controller is a passthrough.
+//
+// Hot path — the publish flow runs through here. Keep this factory
+// pure (no side effects); state writes happen inside the panel's
+// handlers via the injected callbacks (approveApplication etc.).
+function buildApplicationsOptions(store) {
+  return {
+    dataMode: store.get("dataMode") || "local",
+    remoteApplications: remoteApplications,
+    getApplications: getApplications,
+    applicationFilters: applicationFilters,
+    getApplicationReviewGoalMeta: reviewModels.getApplicationReviewGoalMeta,
+    getApplicationReviewSnapshot: reviewModels.getApplicationReviewSnapshot,
+    getGoalAdjustedApplicationPriorityScore: reviewModels.getGoalAdjustedApplicationPriorityScore,
+    authRequired: store.get("authRequired") === true,
+    escapeHtml: escapeHtml,
+    getApplicationEmptyStateCopy: reviewModels.getApplicationEmptyStateCopy,
+    getApplicationFilterChips: reviewModels.getApplicationFilterChips,
+    getClaimFollowUpUrgency: getClaimFollowUpUrgency,
+    getAfterClaimReviewStall: getAfterClaimReviewStall,
+    formatPercent: formatPercent,
+    getClaimFunnelBottleneck: getClaimFunnelBottleneck,
+    getClaimActionQueue: getClaimActionQueue,
+    getClaimLaunchCandidates: getClaimLaunchCandidates,
+    getStalledAfterClaimReviews: getStalledAfterClaimReviews,
+    isGoalMatchedReviewCard: reviewModels.isGoalMatchedReviewCard,
+    getApplicationBatchReason: reviewModels.getApplicationBatchReason,
+    getTherapistMatchReadiness: getTherapistMatchReadiness,
+    getDataFreshnessSummary: getDataFreshnessSummary,
+    getTherapistReviewCoaching: getTherapistReviewCoaching,
+    formatStatusLabel: formatStatusLabel,
+    getClaimFollowUpLabel: getClaimFollowUpLabel,
+    isConfirmationRefreshApplication: isConfirmationRefreshApplication,
+    buildImprovementRequest: buildImprovementRequest,
+    buildClaimReviewRequest: buildClaimReviewRequest,
+    buildClaimFollowUpMessage: buildClaimFollowUpMessage,
+    buildConfirmationLink: buildConfirmationLink,
+    getApplicationLinkedTherapist: reviewModels.getApplicationLinkedTherapist,
+    getApplicationLiveSyncSnapshot: reviewModels.getApplicationLiveSyncSnapshot,
+    renderApplicationDiffHtml: reviewModels.renderApplicationDiffHtml,
+    formatDate: formatDate,
+    formatFieldLabel: formatFieldLabel,
+    buildFieldReviewControls: buildFieldReviewControls,
+    buildRevisionHistoryHtml: buildRevisionHistoryHtml,
+    buildRecommendedReviewBatchRequests: buildRecommendedReviewBatchRequests,
+    buildRecommendedReviewBatchPacket: buildRecommendedReviewBatchPacket,
+    buildClaimLaunchPriorityPacket: buildClaimLaunchPriorityPacket,
+    buildStalledAfterClaimReviewPacket: buildStalledAfterClaimReviewPacket,
+    buildOverdueClaimFollowUpPacket: buildOverdueClaimFollowUpPacket,
+    getReviewEventsForApplication: getReviewEventsForApplication,
+    renderReviewEventSnippetHtml: renderReviewEventSnippetHtml,
+    renderReviewEventTimelineHtml: renderReviewEventTimelineHtml,
+    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+    copyText: copyText,
+    spotlightSection: spotlightSection,
+    renderApplications: renderApplications,
+    renderAll: renderAll,
+    setCoachActionStatus: setCoachActionStatus,
+    appendImprovementRequestToNotes: appendImprovementRequestToNotes,
+    updateTherapistApplication: updateTherapistApplication,
+    approveTherapistApplication: approveTherapistApplication,
+    rejectTherapistApplicationRemote: rejectTherapistApplicationRemote,
+    requestApplicationChanges: requestApplicationChanges,
+    approveApplication: approveApplication,
+    publishApplication: publishApplication,
+    rejectApplication: rejectApplication,
+    updateApplicationReviewMetadata: updateApplicationReviewMetadata,
+    setApplyLiveFieldsStatus: setApplyLiveFieldsStatus,
+    applyTherapistApplicationFields: applyTherapistApplicationFields,
+    buildApplicationApplySummary: reviewModels.buildApplicationApplySummary,
+    applicationLiveApplySummaries: applicationLiveApplySummaries,
+    loadData: loadData,
+  };
+}
+
 function renderApplications() {
-  withLazyAdminModule("./admin-application-review.js", function (module) {
-    module.renderApplicationsPanel({
-      dataMode: dataMode,
-      remoteApplications: remoteApplications,
-      getApplications: getApplications,
-      applicationFilters: applicationFilters,
-      getApplicationReviewGoalMeta: reviewModels.getApplicationReviewGoalMeta,
-      getApplicationReviewSnapshot: reviewModels.getApplicationReviewSnapshot,
-      getGoalAdjustedApplicationPriorityScore: reviewModels.getGoalAdjustedApplicationPriorityScore,
-      authRequired: authRequired,
-      escapeHtml: escapeHtml,
-      getApplicationEmptyStateCopy: reviewModels.getApplicationEmptyStateCopy,
-      getApplicationFilterChips: reviewModels.getApplicationFilterChips,
-      getClaimFollowUpUrgency: getClaimFollowUpUrgency,
-      getAfterClaimReviewStall: getAfterClaimReviewStall,
-      formatPercent: formatPercent,
-      getClaimFunnelBottleneck: getClaimFunnelBottleneck,
-      getClaimActionQueue: getClaimActionQueue,
-      getClaimLaunchCandidates: getClaimLaunchCandidates,
-      getStalledAfterClaimReviews: getStalledAfterClaimReviews,
-      isGoalMatchedReviewCard: reviewModels.isGoalMatchedReviewCard,
-      getApplicationBatchReason: reviewModels.getApplicationBatchReason,
-      getTherapistMatchReadiness: getTherapistMatchReadiness,
-      getDataFreshnessSummary: getDataFreshnessSummary,
-      getTherapistReviewCoaching: getTherapistReviewCoaching,
-      formatStatusLabel: formatStatusLabel,
-      getClaimFollowUpLabel: getClaimFollowUpLabel,
-      isConfirmationRefreshApplication: isConfirmationRefreshApplication,
-      buildImprovementRequest: buildImprovementRequest,
-      buildClaimReviewRequest: buildClaimReviewRequest,
-      buildClaimFollowUpMessage: buildClaimFollowUpMessage,
-      buildConfirmationLink: buildConfirmationLink,
-      getApplicationLinkedTherapist: reviewModels.getApplicationLinkedTherapist,
-      getApplicationLiveSyncSnapshot: reviewModels.getApplicationLiveSyncSnapshot,
-      renderApplicationDiffHtml: reviewModels.renderApplicationDiffHtml,
-      formatDate: formatDate,
-      formatFieldLabel: formatFieldLabel,
-      buildFieldReviewControls: buildFieldReviewControls,
-      buildRevisionHistoryHtml: buildRevisionHistoryHtml,
-      applicationFilters: applicationFilters,
-      buildRecommendedReviewBatchRequests: buildRecommendedReviewBatchRequests,
-      buildRecommendedReviewBatchPacket: buildRecommendedReviewBatchPacket,
-      buildClaimLaunchPriorityPacket: buildClaimLaunchPriorityPacket,
-      buildStalledAfterClaimReviewPacket: buildStalledAfterClaimReviewPacket,
-      buildOverdueClaimFollowUpPacket: buildOverdueClaimFollowUpPacket,
-      getReviewEventsForApplication: getReviewEventsForApplication,
-      renderReviewEventSnippetHtml: renderReviewEventSnippetHtml,
-      renderReviewEventTimelineHtml: renderReviewEventTimelineHtml,
-      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-      copyText: copyText,
-      spotlightSection: spotlightSection,
-      renderApplications: renderApplications,
-      renderAll: renderAll,
-      setCoachActionStatus: setCoachActionStatus,
-      appendImprovementRequestToNotes: appendImprovementRequestToNotes,
-      updateTherapistApplication: updateTherapistApplication,
-      approveTherapistApplication: approveTherapistApplication,
-      rejectTherapistApplicationRemote: rejectTherapistApplicationRemote,
-      requestApplicationChanges: requestApplicationChanges,
-      approveApplication: approveApplication,
-      publishApplication: publishApplication,
-      rejectApplication: rejectApplication,
-      updateApplicationReviewMetadata: updateApplicationReviewMetadata,
-      setApplyLiveFieldsStatus: setApplyLiveFieldsStatus,
-      applyTherapistApplicationFields: applyTherapistApplicationFields,
-      buildApplicationApplySummary: reviewModels.buildApplicationApplySummary,
-      applicationLiveApplySummaries: applicationLiveApplySummaries,
-      loadData: loadData,
-    });
-  });
+  // Migrated to the controller pattern (PR 5). The publish flow runs
+  // through this panel; semantics are preserved verbatim — same
+  // option-bag contents, just routed via the registry.
+  adminRegistry.render("applications");
 }
 
 function buildCandidateDecisionActions(item) {
