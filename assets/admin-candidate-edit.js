@@ -136,6 +136,23 @@ function markSavedState() {
   syncDirtyState();
 }
 
+// Read-only headshot indicator — admin can't upload (therapists do that
+// in the portal) but they need to know whether one is on file. Accepts
+// any of the shapes the loader might pass: snake_case `photo_url`,
+// camelCase `photoUrl`, or the raw Sanity asset object `photo.asset.url`.
+function setHeadshotStatus(source) {
+  const el = document.getElementById("editHeadshotStatus");
+  if (!el) return;
+  const uploaded = Boolean(
+    source &&
+    (source.photo_url ||
+      source.photoUrl ||
+      (source.photo && source.photo.asset && source.photo.asset.url)),
+  );
+  el.textContent = uploaded ? "Headshot uploaded" : "No headshot uploaded";
+  el.className = "edit-headshot-status " + (uploaded ? "is-uploaded" : "is-missing");
+}
+
 function setDangerZoneVisibility(show) {
   const zone = document.getElementById("editDangerZone");
   if (!zone) return;
@@ -464,6 +481,9 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   setVal("editBipolarYearsExperience", candidate.bipolar_years_experience);
   setVal("editYearsExperience", candidate.years_experience);
 
+  // Headshot status (read-only)
+  setHeadshotStatus(candidate);
+
   // Profile
   setRadio("editGender", candidate.gender);
 
@@ -565,6 +585,9 @@ export function openTherapistEditDrawer(therapist, onSaved, options) {
   // Experience
   setVal("editBipolarYearsExperience", read("bipolar_years_experience", "bipolarYearsExperience"));
   setVal("editYearsExperience", read("years_experience", "yearsExperience"));
+
+  // Headshot status (read-only)
+  setHeadshotStatus(therapist);
 
   // Lifecycle / visibility
   setVal("editLifecycle", read("lifecycle", "lifecycle") || "draft");

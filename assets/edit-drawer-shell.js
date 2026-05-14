@@ -179,6 +179,16 @@ const EDIT_DRAWER_HTML = `
           </div>
         </div>
 
+        <div class="edit-section-title">Headshot</div>
+        <div class="edit-field-grid">
+          <div class="edit-field is-full">
+            <div id="editHeadshotStatus" class="edit-headshot-status">No headshot uploaded</div>
+            <div class="edit-hint">
+              Read-only. Therapists upload their own headshot from the portal.
+            </div>
+          </div>
+        </div>
+
         <div class="edit-section-title">Experience</div>
         <div class="edit-field-grid">
           <div class="edit-field">
