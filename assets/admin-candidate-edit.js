@@ -291,9 +291,9 @@ function buildPreviewTherapist() {
 function renderLivePanel() {
   const panel = document.getElementById("editLivePanel");
   const badge = document.getElementById("editLivePanelBadge");
-  const gatesEl = document.getElementById("editLivePanelGates");
+  const reasonEl = document.getElementById("editLivePanelReason");
   const transitionEl = document.getElementById("editLivePanelTransition");
-  if (!panel || !badge || !gatesEl) return;
+  if (!panel || !badge) return;
 
   const previewDoc = buildPreviewTherapist();
   const preview = isProfileLive(previewDoc);
@@ -317,53 +317,32 @@ function renderLivePanel() {
     }
   }
 
-  // Render every gate. Pass-text mirrors blocker text so admins see exactly
-  // what each gate is checking.
-  const gateChecks = [
-    {
-      label: "Lifecycle is approved",
-      fail: preview.blockers.find((b) => b.startsWith("Lifecycle is")),
-    },
-    {
-      label: "Visibility set to listed",
-      fail: preview.blockers.find((b) => b.startsWith("Visibility intent")),
-    },
-    {
-      label: "Document is published (not a draft)",
-      fail: preview.blockers.find((b) => b.includes("Sanity draft")),
-    },
-    {
-      label: "Status is active",
-      fail: preview.blockers.find((b) => b.startsWith("Status is")),
-    },
-    {
-      label: "Trust gate: license number on file",
-      fail: preview.blockers.find((b) => b.includes("license number")),
-    },
-    {
-      label: "Trust gate: insurance accepted listed",
-      fail: preview.blockers.find((b) => b.includes("insurance accepted")),
-    },
-    {
-      label: "Trust gate: bipolar years experience set",
-      fail: preview.blockers.find((b) => b.includes("bipolar years")),
-    },
-    {
-      label: "No duplicate documents detected",
-      fail: preview.blockers.find((b) => b.startsWith("Duplicate detected")),
-    },
-  ];
-
-  gatesEl.innerHTML = gateChecks
-    .map(function (g) {
-      const passing = !g.fail;
-      const mark = passing
-        ? '<span class="gate-mark is-pass" aria-label="passes">&check;</span>'
-        : '<span class="gate-mark is-fail" aria-label="fails">&times;</span>';
-      const text = passing ? g.label : g.fail;
-      return "<li>" + mark + "<span>" + escapeHtml(text) + "</span></li>";
-    })
-    .join("");
+  // One-line reason — only when something is blocking Live. We want the
+  // first realistic blocker (lifecycle / visibility / status / draft /
+  // duplicate); license-number and other trust-gate checks are belt-and-
+  // suspenders that never fire in practice for live therapist docs but
+  // could noisy up the message if they did. Sort them last.
+  if (reasonEl) {
+    if (preview.isLive || preview.blockers.length === 0) {
+      reasonEl.setAttribute("hidden", "");
+      reasonEl.textContent = "";
+    } else {
+      const isWorkflowBlocker = (b) =>
+        b.startsWith("Lifecycle is") ||
+        b.startsWith("Visibility intent") ||
+        b.startsWith("Status is") ||
+        b.includes("Sanity draft") ||
+        b.startsWith("Duplicate detected");
+      const sorted = [
+        ...preview.blockers.filter(isWorkflowBlocker),
+        ...preview.blockers.filter((b) => !isWorkflowBlocker(b)),
+      ];
+      const first = sorted[0];
+      const more = sorted.length - 1;
+      reasonEl.textContent = more > 0 ? first + " (+" + more + " more)" : first;
+      reasonEl.removeAttribute("hidden");
+    }
+  }
 }
 
 function renderAuditLog(entries) {
