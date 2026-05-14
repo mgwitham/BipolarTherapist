@@ -331,6 +331,61 @@ function renderRequestCard(req) {
           : "") +
         "</section>";
 
+  // Resolved cards collapse to a one-line summary that expands on click.
+  // Pending cards stay fully expanded so the admin can act without an
+  // extra click.
+  if (req.status !== "pending") {
+    const statusLabel =
+      req.status === "approved"
+        ? "Approved"
+        : req.status === "rejected"
+          ? "Rejected"
+          : req.status === "dismissed"
+            ? "Dismissed"
+            : escapeHtml(req.status);
+    const summaryRow =
+      '<summary class="rec-row">' +
+      '<span class="rec-pill rec-pill-' +
+      escapeHtml(req.status) +
+      '" title="' +
+      escapeHtml(formatDate(req.reviewedAt || req.createdAt)) +
+      '">' +
+      escapeHtml(statusLabel) +
+      " · " +
+      escapeHtml(formatAge(req.reviewedAt || req.createdAt)) +
+      "</span>" +
+      (coldTakeover ? '<span class="rec-pill rec-pill-danger">Cold takeover</span>' : "") +
+      '<span class="rec-row-name">' +
+      escapeHtml(req.fullName || "(no name)") +
+      (req.licenseNumber ? " · " + escapeHtml(req.licenseNumber) : "") +
+      "</span>" +
+      '<span class="rec-row-email">' +
+      escapeHtml(req.requestedEmail || "—") +
+      "</span>" +
+      '<span class="rec-row-chevron" aria-hidden="true">▾</span>' +
+      "</summary>";
+    return (
+      '<article class="admin-recovery-card ' +
+      statusClass +
+      (coldTakeover ? " is-cold-takeover" : "") +
+      '" data-request-id="' +
+      escapeHtml(req._id) +
+      '" data-reason="' +
+      escapeHtml(req.reason || "") +
+      '">' +
+      '<details class="rec-collapsible">' +
+      summaryRow +
+      '<div class="rec-collapsible-body">' +
+      bodyGrid +
+      renderAnchorsBlock(req) +
+      renderFlagsBlock(req) +
+      resolutionMeta +
+      "</div>" +
+      "</details>" +
+      "</article>"
+    );
+  }
+
   return (
     '<article class="admin-recovery-card ' +
     statusClass +
@@ -345,7 +400,6 @@ function renderRequestCard(req) {
     renderAnchorsBlock(req) +
     renderFlagsBlock(req) +
     pendingActions +
-    resolutionMeta +
     "</article>"
   );
 }
