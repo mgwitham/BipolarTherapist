@@ -220,25 +220,62 @@ body {
 .ts-claim-banner {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 6px;
-  padding: 14px 32px;
-  background: transparent;
-  border: none;
-  font-size: 12.5px;
-  color: #6b8c96;
-  text-align: center;
+  justify-content: space-between;
+  gap: 24px;
+  max-width: 960px;
+  margin: 16px auto 0;
+  padding: 18px 24px;
+  background: #e8f3f6;
+  border: 1px solid #b6d8de;
+  border-radius: 12px;
+  color: #1d3a4a;
 }
-.ts-claim-banner-text {
-  color: #6b8c96;
+.ts-claim-banner[hidden] {
+  display: none;
+}
+.ts-claim-banner-body {
+  flex: 1;
+  min-width: 0;
+}
+.ts-claim-banner-headline {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1d3a4a;
+  margin-bottom: 2px;
+}
+.ts-claim-banner-sub {
+  font-size: 13px;
+  color: #4a6572;
+  line-height: 1.45;
 }
 .ts-claim-banner-cta {
-  color: #347f96;
-  font-weight: 500;
+  flex-shrink: 0;
+  background: #347f96;
+  color: #fff;
+  font-weight: 600;
+  font-size: 14px;
+  padding: 10px 18px;
+  border-radius: 8px;
   text-decoration: none;
+  white-space: nowrap;
 }
 .ts-claim-banner-cta:hover {
-  text-decoration: underline;
+  background: #2a5f6e;
+  text-decoration: none;
+}
+.ts-claim-banner.is-outreach {
+  background: #fef6e7;
+  border-color: #f3d58f;
+}
+@media (max-width: 640px) {
+  .ts-claim-banner {
+    flex-direction: column;
+    align-items: stretch;
+    text-align: left;
+  }
+  .ts-claim-banner-cta {
+    text-align: center;
+  }
 }
 .profile-wrap {
   max-width: 960px;
