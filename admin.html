@@ -720,8 +720,15 @@
         background: #fff;
         border: 1px solid #d4e4e9;
         border-radius: 12px;
-        padding: 1rem 1.1rem;
-        margin-bottom: 0.75rem;
+        padding: 1.1rem 1.25rem;
+        margin-bottom: 0.85rem;
+        box-shadow: 0 1px 2px rgba(29, 58, 74, 0.04);
+      }
+      .admin-recovery-card.is-pending {
+        border-left: 4px solid #c79a3c;
+      }
+      .admin-recovery-card.is-cold-takeover.is-pending {
+        border-left: 4px solid #a04a4a;
       }
       .admin-recovery-card.is-approved {
         border-left: 4px solid #2f8e5a;
@@ -731,178 +738,278 @@
       }
       .admin-recovery-card.is-dismissed {
         border-left: 4px solid #8a8a8a;
-        opacity: 0.75;
+        opacity: 0.7;
       }
-      .admin-recovery-card.is-pending {
-        border-left: 4px solid #c79a3c;
-        background: #fffbf3;
+      /* HEADER STRIP — the at-a-glance scan zone */
+      .rec-strip {
+        display: flex;
+        gap: 1rem;
+        justify-content: space-between;
+        align-items: flex-start;
+        padding-bottom: 0.85rem;
+        border-bottom: 1px solid #eef3f5;
       }
-      .admin-recovery-card.is-cold-takeover {
-        border-left: 4px solid #a04a4a;
+      .rec-strip-main {
+        min-width: 0;
+        flex: 1;
       }
-      .admin-recovery-risk-banner {
-        background: #fbeaea;
-        border: 1px solid #e8c4c4;
-        color: #7a2f2f;
-        padding: 0.65rem 0.85rem;
-        border-radius: 6px;
-        margin-bottom: 0.65rem;
+      .rec-strip-title {
+        font-family: "Lora", serif;
+        font-size: 1.15rem;
+        margin: 0;
+        color: var(--navy, #1d3a4a);
+        line-height: 1.2;
+      }
+      .rec-strip-license {
+        font-family: "Inter", sans-serif;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--teal, #1a7a8f);
+        text-decoration: none;
+        margin-left: 0.35rem;
+      }
+      .rec-strip-license:hover {
+        text-decoration: underline;
+      }
+      .rec-strip-email {
+        margin: 0.35rem 0 0;
+        font-size: 0.92rem;
+        color: var(--slate, #4a6572);
+      }
+      .rec-strip-email strong {
+        color: var(--navy, #1d3a4a);
+        font-weight: 600;
+      }
+      .rec-strip-meta {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        gap: 0.35rem;
+        flex-shrink: 0;
+      }
+      /* PILLS — used in strip + inline next to fields */
+      .rec-pill {
+        display: inline-block;
+        padding: 0.18rem 0.55rem;
+        border-radius: 999px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        white-space: nowrap;
+      }
+      .rec-pill-pending {
+        background: #fff5dd;
+        color: #6b4a14;
+      }
+      .rec-pill-approved {
+        background: #e3f3ea;
+        color: #1c5e3b;
+      }
+      .rec-pill-rejected {
+        background: #f6dada;
+        color: #6f2828;
+      }
+      .rec-pill-dismissed {
+        background: #ebebeb;
+        color: #555;
+      }
+      .rec-pill-danger {
+        background: #f5c8c8;
+        color: #6f2828;
+      }
+      .rec-pill-warn {
+        background: #fbeec8;
+        color: #6b4a14;
+        text-transform: none;
+        letter-spacing: 0;
+        font-weight: 600;
+      }
+      /* BODY GRID — request | profile */
+      .rec-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.4rem;
+        margin-top: 0.85rem;
+      }
+      @media (max-width: 720px) {
+        .rec-grid {
+          grid-template-columns: 1fr;
+          gap: 0.85rem;
+        }
+      }
+      .rec-col,
+      .rec-block {
+        min-width: 0;
+      }
+      .rec-block {
+        margin-top: 0.85rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid #eef3f5;
+      }
+      .rec-block-title {
+        margin: 0 0 0.55rem;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--muted, #6b8290);
+      }
+      .rec-block-hint {
+        font-weight: 400;
+        text-transform: none;
+        letter-spacing: 0;
+        color: #99adb8;
+        margin-left: 0.4rem;
+      }
+      .rec-defs {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 0.35rem 0.85rem;
+        margin: 0;
         font-size: 0.88rem;
-        line-height: 1.45;
       }
-      .admin-recovery-verify-label {
-        display: block;
-        margin: 0.35rem 0 0.25rem;
+      .rec-defs dt {
+        color: var(--muted, #6b8290);
+        font-weight: 500;
+      }
+      .rec-defs dd {
+        margin: 0;
+        color: var(--navy, #1d3a4a);
+        word-break: break-word;
+      }
+      .rec-defs code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 0.82rem;
+      }
+      .rec-defs a {
+        color: var(--teal, #1a7a8f);
+      }
+      /* VERIFICATION ANCHORS — labeled compact grid */
+      .rec-anchors {
+        display: grid;
+        grid-template-columns: max-content 1fr;
+        gap: 0.4rem 0.95rem;
+        margin: 0;
+        font-size: 0.88rem;
+      }
+      .rec-anchors dt {
+        color: var(--muted, #6b8290);
+        font-weight: 500;
+      }
+      .rec-anchors dd {
+        margin: 0;
+        color: var(--navy, #1d3a4a);
+        word-break: break-word;
+      }
+      .rec-anchors a {
+        color: var(--teal, #1a7a8f);
+      }
+      .rec-anchors code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.82rem;
+      }
+      /* FLAGS — auto-generated risk bullets */
+      .admin-recovery-auto-flags {
+        list-style: none;
+        margin: 0.85rem 0 0;
+        padding: 0;
+        display: grid;
+        gap: 0.4rem;
+      }
+      .admin-recovery-auto-flag {
+        padding: 0.45rem 0.7rem;
+        border-radius: 8px;
+        background: #fff8ec;
+        border: 1px solid #f0deb1;
+        color: #6b4a14;
+        font-size: 0.85rem;
+      }
+      .admin-recovery-auto-flag.is-danger {
+        background: #fbe9e9;
+        border-color: #ecc7c7;
         color: #7a2f2f;
       }
-      .admin-recovery-verify-label small {
+      /* VERIFY block + ACTION area */
+      .rec-action {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #eef3f5;
+      }
+      .rec-verify-block {
+        padding: 0.85rem 1rem;
+        margin-bottom: 0.9rem;
+        background: #fdf4f4;
+        border: 1px solid #f0d4d4;
+        border-radius: 10px;
+      }
+      .rec-verify-block .rec-block-title {
+        color: #7a2f2f;
+      }
+      .rec-methods {
+        border: none;
+        margin: 0 0 0.65rem;
+        padding: 0;
+        display: grid;
+        gap: 0.3rem;
+      }
+      .rec-methods legend {
+        padding: 0;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--navy, #1d3a4a);
+        margin-bottom: 0.35rem;
+      }
+      .rec-method {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        font-size: 0.88rem;
+        color: var(--navy, #1d3a4a);
+        cursor: pointer;
+        padding: 0.18rem 0;
+      }
+      .rec-method input {
+        margin-top: 0.18rem;
+      }
+      .rec-verify-label {
+        display: block;
+        margin: 0.65rem 0 0.3rem;
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: var(--navy, #1d3a4a);
+      }
+      .rec-verify-label small {
         color: var(--muted, #6b8290);
         font-weight: 400;
+        margin-left: 0.3rem;
       }
       .admin-recovery-verify {
         width: 100%;
-        padding: 0.5rem;
-        border: 1px solid #e8c4c4;
-        border-radius: 6px;
-        font-family: inherit;
+        padding: 0.55rem 0.7rem;
+        border: 1px solid #e0c5c5;
+        border-radius: 8px;
+        font: inherit;
         font-size: 0.88rem;
-        margin-bottom: 0.5rem;
         resize: vertical;
+        background: #fff;
       }
       .admin-recovery-verify:focus {
         outline: none;
         border-color: #a04a4a;
         box-shadow: 0 0 0 2px rgba(160, 74, 74, 0.15);
       }
-      .admin-recovery-confirm-block {
-        background: #eef5f7;
-        border: 1px solid #cfe0e6;
-        border-radius: 8px;
-        padding: 0.85rem 1rem;
-        margin: 0.5rem 0;
-      }
-      .admin-recovery-confirm-title {
-        margin: 0 0 0.35rem;
-        font-size: 0.95rem;
-        color: #1a5566;
-      }
-      .admin-recovery-confirm-help {
-        font-size: 0.84rem;
-        color: #4a6170;
-        margin: 0 0 0.7rem;
-        line-height: 1.45;
-      }
-      .admin-recovery-confirm-label {
+      .rec-outcome-label {
         display: block;
+        margin: 0 0 0.3rem;
         font-size: 0.82rem;
         font-weight: 600;
-        color: #1d3a4a;
-        margin-bottom: 0.6rem;
+        color: var(--navy, #1d3a4a);
       }
-      .admin-recovery-confirm-label input {
-        display: block;
-        width: 100%;
-        padding: 0.5rem;
-        border: 1px solid #cfe0e6;
-        border-radius: 6px;
-        font-family: inherit;
-        font-size: 0.92rem;
+      .rec-outcome-label small {
+        color: var(--muted, #6b8290);
         font-weight: 400;
-        margin-top: 0.2rem;
-      }
-      .admin-recovery-confirm-waiting {
-        background: #fff8ec;
-        border-color: #e8d3a3;
-      }
-      .admin-recovery-confirm-waiting small {
-        color: #6b5a2d;
-      }
-      .admin-recovery-resend,
-      .admin-recovery-fallback {
-        margin-top: 0.65rem;
-      }
-      .admin-recovery-resend-signin {
-        margin-top: 0.65rem;
-        padding-top: 0.65rem;
-        border-top: 1px dashed #d4e4e9;
-      }
-      .admin-recovery-resend summary,
-      .admin-recovery-fallback summary {
-        cursor: pointer;
-        font-size: 0.85rem;
-        color: var(--muted, #6b8290);
-        padding: 0.25rem 0;
-      }
-      .admin-recovery-head {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.5rem;
-        font-size: 0.82rem;
-        color: var(--muted, #6b8290);
-      }
-      .admin-recovery-status-pill {
-        display: inline-block;
-        padding: 0.12rem 0.55rem;
-        border-radius: 999px;
-        font-size: 0.72rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-      }
-      .admin-recovery-status-pending {
-        background: #fff8ec;
-        color: #5f4418;
-      }
-      .admin-recovery-status-approved {
-        background: #e7f5ed;
-        color: #1f6a44;
-      }
-      .admin-recovery-status-rejected {
-        background: #fbeaea;
-        color: #7a2f2f;
-      }
-      .admin-recovery-flag {
-        margin-left: 0.5rem;
-        color: #a04a4a;
-        font-weight: 700;
-      }
-      .admin-recovery-name {
-        font-family: "Lora", serif;
-        font-size: 1.1rem;
-        margin: 0.5rem 0 0.65rem;
-        color: var(--navy, #1d3a4a);
-      }
-      .admin-recovery-name a {
-        color: var(--teal, #1a7a8f);
-        text-decoration: none;
-        font-weight: 700;
-      }
-      .admin-recovery-fields {
-        display: grid;
-        grid-template-columns: max-content 1fr;
-        gap: 0.35rem 0.9rem;
-        margin: 0;
-        font-size: 0.88rem;
-      }
-      .admin-recovery-fields dt {
-        font-weight: 600;
-        color: var(--slate, #4a6572);
-      }
-      .admin-recovery-fields dd {
-        margin: 0;
-        color: var(--navy, #1d3a4a);
-        word-break: break-word;
-      }
-      .admin-recovery-fields code {
-        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-        font-size: 0.82rem;
-      }
-      .admin-recovery-actions {
-        margin-top: 0.85rem;
-        padding-top: 0.85rem;
-        border-top: 1px dashed #d4e4e9;
+        margin-left: 0.3rem;
       }
       .admin-recovery-outcome {
         width: 100%;
@@ -911,15 +1018,39 @@
         border-radius: 8px;
         font: inherit;
         font-size: 0.88rem;
-        margin-bottom: 0.65rem;
+        margin-bottom: 0.85rem;
+        resize: vertical;
+        background: #fff;
       }
-      .admin-recovery-buttons {
+      .admin-recovery-outcome:focus {
+        outline: none;
+        border-color: var(--teal, #1a7a8f);
+        box-shadow: 0 0 0 2px rgba(26, 122, 143, 0.15);
+      }
+      .rec-buttons {
         display: flex;
         gap: 0.55rem;
         flex-wrap: wrap;
+        align-items: center;
+      }
+      .rec-btn-quiet {
+        background: transparent;
+        border: 1px solid transparent;
+        color: var(--muted, #6b8290);
+        padding: 0.55rem 0.85rem;
+        border-radius: 8px;
+        font: inherit;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        margin-left: auto;
+      }
+      .rec-btn-quiet:hover {
+        background: #f5f7f8;
+        color: var(--navy, #1d3a4a);
       }
       .admin-recovery-feedback {
-        margin-top: 0.5rem;
+        margin-top: 0.65rem;
         font-size: 0.85rem;
       }
       .admin-recovery-feedback[data-tone="success"] {
@@ -930,6 +1061,19 @@
       }
       .admin-recovery-feedback[data-tone="info"] {
         color: var(--muted, #6b8290);
+      }
+      /* RESOLUTION META — compact audit trail on resolved cards */
+      .rec-resolution {
+        margin-top: 0.85rem;
+        padding-top: 0.85rem;
+        border-top: 1px solid #eef3f5;
+        font-size: 0.85rem;
+      }
+      .rec-resolution .rec-defs {
+        font-size: 0.85rem;
+      }
+      .rec-resolution .btn-secondary {
+        margin-top: 0.85rem;
       }
       .panel-intro {
         margin: 0 0 0.85rem;
