@@ -110,6 +110,20 @@ export async function handleOpsRoutes(context) {
       if (typeof body[f] === "boolean") patchFields[f] = body[f];
     });
 
+    // Non-negative numbers. Includes session fees (previously dropped on
+    // this endpoint) and the two experience fields the drawer now edits.
+    const numberFields = [
+      "sessionFeeMin",
+      "sessionFeeMax",
+      "bipolarYearsExperience",
+      "yearsExperience",
+    ];
+    numberFields.forEach(function (f) {
+      if (typeof body[f] === "number" && Number.isFinite(body[f]) && body[f] >= 0) {
+        patchFields[f] = body[f];
+      }
+    });
+
     // Lifecycle / visibility — admin's primary intent signals. Validated
     // against a closed enum; unknown values are silently dropped.
     const allowedLifecycle = new Set([

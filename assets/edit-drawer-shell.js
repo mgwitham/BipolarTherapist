@@ -161,6 +161,19 @@ const EDIT_DRAWER_HTML = `
           </div>
         </div>
 
+        <div class="edit-section-title">Experience</div>
+        <div class="edit-field-grid">
+          <div class="edit-field">
+            <label for="editBipolarYearsExperience">Years treating bipolar</label>
+            <input type="number" id="editBipolarYearsExperience" min="0" step="1" />
+            <div class="edit-hint">Drives directory ranking and patient-facing trust.</div>
+          </div>
+          <div class="edit-field">
+            <label for="editYearsExperience">Total years in practice</label>
+            <input type="number" id="editYearsExperience" min="0" step="1" />
+          </div>
+        </div>
+
         <div class="edit-section-title">Availability &amp; fees</div>
         <div class="edit-check-row">
           <label class="edit-check-item">

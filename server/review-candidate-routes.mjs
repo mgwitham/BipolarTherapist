@@ -183,6 +183,12 @@ export async function handleCandidateRoutes(context) {
     if (typeof body.waitlist_weeks === "number") {
       allowedUpdates.waitlistWeeks = body.waitlist_weeks;
     }
+    if (typeof body.bipolar_years_experience === "number" && body.bipolar_years_experience >= 0) {
+      allowedUpdates.bipolarYearsExperience = body.bipolar_years_experience;
+    }
+    if (typeof body.years_experience === "number" && body.years_experience >= 0) {
+      allowedUpdates.yearsExperience = body.years_experience;
+    }
 
     if (typeof body.notes === "string") {
       allowedUpdates.notes = body.notes.trim();

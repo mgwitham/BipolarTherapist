@@ -451,6 +451,10 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   setVal("editSessionFeeMin", candidate.session_fee_min);
   setVal("editSessionFeeMax", candidate.session_fee_max);
 
+  // Experience
+  setVal("editBipolarYearsExperience", candidate.bipolar_years_experience);
+  setVal("editYearsExperience", candidate.years_experience);
+
   // Profile
   setRadio("editGender", candidate.gender);
 
@@ -536,6 +540,10 @@ export function openTherapistEditDrawer(therapist, onSaved, options) {
   setVal("editSlidingScale", read("sliding_scale", "slidingScale"));
   setVal("editSessionFeeMin", read("session_fee_min", "sessionFeeMin"));
   setVal("editSessionFeeMax", read("session_fee_max", "sessionFeeMax"));
+
+  // Experience
+  setVal("editBipolarYearsExperience", read("bipolar_years_experience", "bipolarYearsExperience"));
+  setVal("editYearsExperience", read("years_experience", "yearsExperience"));
 
   // Lifecycle / visibility
   setVal("editLifecycle", read("lifecycle", "lifecycle") || "draft");
@@ -710,6 +718,14 @@ export function bindCandidateEditDrawer() {
             getVal("editSessionFeeMin") !== "" ? Number(getVal("editSessionFeeMin")) : undefined,
           sessionFeeMax:
             getVal("editSessionFeeMax") !== "" ? Number(getVal("editSessionFeeMax")) : undefined,
+          bipolarYearsExperience:
+            getVal("editBipolarYearsExperience") !== ""
+              ? Number(getVal("editBipolarYearsExperience"))
+              : undefined,
+          yearsExperience:
+            getVal("editYearsExperience") !== ""
+              ? Number(getVal("editYearsExperience"))
+              : undefined,
           notes: getVal("editNotes"),
           lifecycle,
           visibilityIntent,
@@ -750,6 +766,14 @@ export function bindCandidateEditDrawer() {
             getVal("editSessionFeeMin") !== "" ? Number(getVal("editSessionFeeMin")) : undefined,
           session_fee_max:
             getVal("editSessionFeeMax") !== "" ? Number(getVal("editSessionFeeMax")) : undefined,
+          bipolar_years_experience:
+            getVal("editBipolarYearsExperience") !== ""
+              ? Number(getVal("editBipolarYearsExperience"))
+              : undefined,
+          years_experience:
+            getVal("editYearsExperience") !== ""
+              ? Number(getVal("editYearsExperience"))
+              : undefined,
           notes: getVal("editNotes"),
         };
         Object.keys(updates).forEach(function (k) {
