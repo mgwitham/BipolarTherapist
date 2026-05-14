@@ -315,6 +315,7 @@ function computeSubjectPerformance(list) {
     if (["replied", "claimed", "paid"].includes(t.outreach?.status)) b.replied += 1;
   }
   return Array.from(buckets.values())
+    .filter((b) => !LEGACY_SUBJECT_RE.test(b.subject))
     .map((b) => ({
       ...b,
       openRate: b.sent > 0 ? Math.round((b.opened / b.sent) * 100) : 0,
@@ -322,6 +323,12 @@ function computeSubjectPerformance(list) {
     }))
     .sort((a, b) => b.sent - a.sent);
 }
+
+// Legacy city-based subject from an early discovery test run. Hidden
+// from the leaderboard so it stops crowding out subjects we're actually
+// iterating on. Pattern: "Patients in [City] are searching for bipolar
+// specialists" (one row per city).
+const LEGACY_SUBJECT_RE = /^Patients in .+ are searching for bipolar specialists$/i;
 
 // ---- AUTH GATE ----
 // CRM reuses the existing review-API admin session (cookie: bt_admin_session).
