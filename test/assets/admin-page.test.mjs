@@ -41,7 +41,7 @@ test("admin page: unrelated workflows are hidden from the default experience", f
   assert.match(html, /id="liveListingsRegion"[\s\S]*data-view-group="hidden"[\s\S]*hidden/);
   assert.match(html, /id="reviewRegion"[\s\S]*data-view-group="hidden"[\s\S]*hidden/);
   assert.match(html, /id="requestsRegion"[\s\S]*data-view-group="hidden"[\s\S]*hidden/);
-  assert.match(html, /id="recoveryRegion"[\s\S]*data-view-group="hidden"[\s\S]*hidden/);
+  assert.match(html, /id="recoveryRegion"[\s\S]*data-view-group="portal"/);
 });
 
 test("admin page: review filters are intentionally minimal", function () {
