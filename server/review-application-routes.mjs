@@ -18,7 +18,6 @@ export async function handleApplicationRoutes(context) {
     buildAppliedFieldReviewStatePatch,
     buildApplicationReviewEvent,
     buildPortalClaimToken,
-    buildRevisionFieldUpdates,
     buildTherapistApplicationFieldPatch,
     buildTherapistDocument,
     buildTherapistObservationDocuments,
@@ -36,7 +35,6 @@ export async function handleApplicationRoutes(context) {
     sendPortalClaimLink,
     slugify,
     updateApplicationFields,
-    validateRevisionInput,
   } = deps;
 
   // POST /applications/intake — short-form signup with synchronous
@@ -481,76 +479,13 @@ export async function handleApplicationRoutes(context) {
     return true;
   }
 
-  const revisionFetchMatch = routePath.match(/^\/applications\/([^/]+)\/revision$/);
-  if (request.method === "GET" && revisionFetchMatch) {
-    const applicationId = decodeURIComponent(revisionFetchMatch[1]);
-    const application = await client.getDocument(applicationId);
-    if (!application || application._type !== "therapistApplication") {
-      sendJson(response, 404, { error: "Application not found." }, origin, config);
-      return true;
-    }
-
-    if (application.status !== "requested_changes") {
-      sendJson(
-        response,
-        409,
-        { error: "This application is not currently open for revision." },
-        origin,
-        config,
-      );
-      return true;
-    }
-
-    sendJson(response, 200, normalizeApplication(application), origin, config);
-    return true;
-  }
-
-  const revisionSubmitMatch = routePath.match(/^\/applications\/([^/]+)\/revise$/);
-  if (request.method === "POST" && revisionSubmitMatch) {
-    const applicationId = decodeURIComponent(revisionSubmitMatch[1]);
-    const application = await client.getDocument(applicationId);
-    if (!application || application._type !== "therapistApplication") {
-      sendJson(response, 404, { error: "Application not found." }, origin, config);
-      return true;
-    }
-
-    if (application.status !== "requested_changes") {
-      sendJson(
-        response,
-        409,
-        { error: "This application is not currently open for revision." },
-        origin,
-        config,
-      );
-      return true;
-    }
-
-    const body = await parseBody(request);
-    validateRevisionInput(body);
-    const timestamp = new Date().toISOString();
-    const updated = await client
-      .patch(applicationId)
-      .set({
-        ...(await buildRevisionFieldUpdates(client, body, application)),
-        status: "pending",
-        reviewRequestMessage: "",
-        updatedAt: timestamp,
-        revisionCount: (Number(application.revisionCount || 0) || 0) + 1,
-      })
-      .setIfMissing({ revisionHistory: [] })
-      .append("revisionHistory", [
-        {
-          _key: `${Date.now()}`,
-          type: "resubmitted",
-          at: timestamp,
-          message: "Therapist submitted an updated revision.",
-        },
-      ])
-      .commit({ visibility: "sync" });
-
-    sendJson(response, 200, normalizeApplication(updated), origin, config);
-    return true;
-  }
+  // NOTE: The /applications/:id/revision (GET) and /applications/:id/revise
+  // (POST) endpoints previously lived here. They were unauthenticated and
+  // returned full applicant PII keyed only on a Sanity doc ID (no signed
+  // token), but were never wired up to any frontend caller. Removed to
+  // eliminate the latent PII-exposure surface. If we add a therapist-facing
+  // revision flow back, the new endpoints should mint a signed token at
+  // status-change time and require it on both reads and writes.
 
   const updateMatch = routePath.match(/^\/applications\/([^/]+)$/);
   if ((request.method === "PATCH" || request.method === "POST") && updateMatch) {
