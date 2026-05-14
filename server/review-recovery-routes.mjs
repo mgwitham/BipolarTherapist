@@ -399,21 +399,6 @@ export async function handleRecoveryRoutes(context) {
     const body = await parseBody(request);
     const customMessage = String(body.outcome_message || "").trim();
     const adminNote = String(body.admin_note || "").trim();
-    const identityVerification = String(body.identity_verification || "").trim();
-    const verificationMethodsRaw = Array.isArray(body.verification_methods)
-      ? body.verification_methods
-      : [];
-    const ALLOWED_METHODS = new Set([
-      "self_confirm",
-      "phone_call_dca",
-      "phone_call_website",
-      "cross_channel_email",
-      "other",
-    ]);
-    const STRONG_METHODS = new Set(["self_confirm", "phone_call_dca", "phone_call_website"]);
-    const verificationMethods = verificationMethodsRaw
-      .map((v) => String(v || "").trim())
-      .filter((v) => ALLOWED_METHODS.has(v));
 
     const recovery = await client.getDocument(requestId);
     if (!recovery || recovery._type !== "therapistRecoveryRequest") {
@@ -423,46 +408,6 @@ export async function handleRecoveryRoutes(context) {
     if (recovery.status !== "pending") {
       sendJson(response, 409, { error: "This request has already been resolved." }, origin, config);
       return true;
-    }
-
-    // Cold-takeover guard. When the original claim request came in with
-    // no prior email on file, there's no pre-existing owner to disturb
-    // and public name+license is not a meaningful gate — so require:
-    //   1. A 20+ char identity-verification note describing the check
-    //   2. At least one STRONG verification method recorded
-    // Free-form text alone is too easy to satisfy with "ok looks fine";
-    // forcing a structured method picks gives a clean audit trail and
-    // forces the admin to acknowledge what bar they actually cleared.
-    if (recovery.reason === "no_email_on_file") {
-      if (identityVerification.length < 20) {
-        sendJson(
-          response,
-          400,
-          {
-            error:
-              "Cold-takeover approval requires an identity-verification note (20+ chars). Describe the out-of-band check you performed.",
-            reason: "identity_verification_required",
-          },
-          origin,
-          config,
-        );
-        return true;
-      }
-      const hasStrongMethod = verificationMethods.some((m) => STRONG_METHODS.has(m));
-      if (!hasStrongMethod) {
-        sendJson(
-          response,
-          400,
-          {
-            error:
-              "Cold-takeover approval requires at least one strong verification method. Pick one from the checklist (therapist self-confirm or phone call).",
-            reason: "verification_method_required",
-          },
-          origin,
-          config,
-        );
-        return true;
-      }
     }
 
     if (!recovery.therapistDocId || !recovery.therapistSlug) {
@@ -550,9 +495,6 @@ export async function handleRecoveryRoutes(context) {
         reviewedBy: (reviewer && (reviewer.name || reviewer.id)) || "admin",
         outcomeMessage: customMessage,
         adminNote: adminNote || recovery.adminNote || "",
-        identityVerification: identityVerification || recovery.identityVerification || "",
-        verificationMethods:
-          verificationMethods.length > 0 ? verificationMethods : recovery.verificationMethods || [],
       })
       .commit({ visibility: "sync" });
 

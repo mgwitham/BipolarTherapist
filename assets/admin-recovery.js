@@ -165,36 +165,6 @@ function renderFlagsBlock(req) {
   );
 }
 
-function renderVerificationMethodsChecklist(req, coldTakeover) {
-  if (!coldTakeover || req.status !== "pending") return "";
-  const methods = [
-    { value: "self_confirm", label: "Therapist self-confirmed via prior contact" },
-    { value: "phone_call_dca", label: "Phone call to DCA-listed number" },
-    { value: "phone_call_website", label: "Phone call to website-listed number" },
-    { value: "cross_channel_email", label: "Cross-channel email match" },
-    { value: "other", label: "Other (describe in note)" },
-  ];
-  const items = methods
-    .map(
-      (m) =>
-        '<label class="rec-method"><input type="checkbox" name="verification_method" value="' +
-        escapeHtml(m.value) +
-        '" data-request-id="' +
-        escapeHtml(req._id) +
-        '"/> ' +
-        escapeHtml(m.label) +
-        "</label>",
-    )
-    .join("");
-  return (
-    '<fieldset class="rec-methods" data-request-id="' +
-    escapeHtml(req._id) +
-    '"><legend>How did you verify?</legend>' +
-    items +
-    "</fieldset>"
-  );
-}
-
 function renderRequestCard(req) {
   const statusClass =
     req.status === "approved"
@@ -290,26 +260,10 @@ function renderRequestCard(req) {
 
   const bodyGrid = '<div class="rec-grid">' + requestCol + profileCol + "</div>";
 
-  // For pending cold-takeover: always-visible verify block (no disclosure).
-  // For pending non-cold-takeover (stale-email reason): no verify block needed.
   const pendingActions =
     req.status !== "pending"
       ? ""
       : '<section class="rec-action">' +
-        (coldTakeover
-          ? '<div class="rec-verify-block">' +
-            '<h4 class="rec-block-title">Verify identity <span class="rec-block-hint">required for cold takeover</span></h4>' +
-            renderVerificationMethodsChecklist(req, coldTakeover) +
-            '<label class="rec-verify-label" for="verify-' +
-            escapeHtml(req._id) +
-            '">What did you do? <small>(20+ characters)</small></label>' +
-            '<textarea class="admin-recovery-verify" id="verify-' +
-            escapeHtml(req._id) +
-            '" data-verify-for="' +
-            escapeHtml(req._id) +
-            '" rows="2" placeholder="e.g. Replied to her email; she confirmed she submitted the request from this gmail."></textarea>' +
-            "</div>"
-          : "") +
         '<label class="rec-outcome-label" for="outcome-' +
         escapeHtml(req._id) +
         '">Message to therapist <small>(optional, included in the email)</small></label>' +
@@ -321,9 +275,7 @@ function renderRequestCard(req) {
         '<div class="rec-buttons">' +
         '<button type="button" class="btn-primary admin-recovery-approve" data-request-id="' +
         escapeHtml(req._id) +
-        '"' +
-        (coldTakeover ? " disabled" : "") +
-        ">Approve + send sign-in link</button>" +
+        '">Approve + send sign-in link</button>' +
         '<button type="button" class="btn-secondary admin-recovery-reject" data-request-id="' +
         escapeHtml(req._id) +
         '">Reject + notify</button>' +
@@ -461,18 +413,6 @@ function setFeedback(requestId, tone, message) {
 }
 
 function bindCardActions(container) {
-  // Cold-takeover cards gate the Approve button behind a 20+ char
-  // identity-verification textarea. Wire the input listener first so
-  // the button unlocks as the admin types.
-  container.querySelectorAll(".admin-recovery-verify").forEach(function (textarea) {
-    const id = textarea.getAttribute("data-verify-for");
-    const button = container.querySelector('.admin-recovery-approve[data-request-id="' + id + '"]');
-    if (!button) return;
-    textarea.addEventListener("input", function () {
-      button.disabled = textarea.value.trim().length < 20;
-    });
-  });
-
   container.querySelectorAll(".admin-recovery-resend-signin-btn").forEach(function (button) {
     button.addEventListener("click", async function () {
       const id = button.getAttribute("data-request-id");
@@ -499,57 +439,20 @@ function bindCardActions(container) {
   container.querySelectorAll(".admin-recovery-approve").forEach(function (button) {
     button.addEventListener("click", async function () {
       const id = button.getAttribute("data-request-id");
-      const card = button.closest(".admin-recovery-card");
-      const coldTakeover = card && card.classList.contains("is-cold-takeover");
       const outcomeBox = container.querySelector('.admin-recovery-outcome[data-for="' + id + '"]');
       const outcomeMessage = outcomeBox ? outcomeBox.value : "";
-      const verifyBox = container.querySelector(
-        '.admin-recovery-verify[data-verify-for="' + id + '"]',
-      );
-      const identityVerification = verifyBox ? verifyBox.value.trim() : "";
-      if (coldTakeover && identityVerification.length < 20) {
-        setFeedback(
-          id,
-          "warn",
-          "Identity verification note is required (20+ chars) before approving a cold takeover.",
-        );
-        return;
-      }
-      // Collect checked verification methods. Server enforces that at
-      // least one strong method is checked for cold-takeover approvals.
-      const methodInputs = container.querySelectorAll(
-        'input[name="verification_method"][data-request-id="' + id + '"]:checked',
-      );
-      const verificationMethods = Array.from(methodInputs).map((el) => el.value);
-      const STRONG = new Set(["self_confirm", "phone_call_dca", "phone_call_website"]);
-      const hasStrong = verificationMethods.some((m) => STRONG.has(m));
-      if (coldTakeover && !hasStrong) {
-        setFeedback(
-          id,
-          "warn",
-          "Pick at least one strong verification method (self-confirm or phone call) before approving a cold takeover.",
-        );
-        return;
-      }
-      const confirmMessage = coldTakeover
-        ? "Approve this COLD TAKEOVER? A sign-in link will go to the requested email, granting full profile control. Verification methods + note will be saved on the request as the audit trail."
-        : "Approve this recovery? This sends a sign-in link to the therapist.";
-      if (!window.confirm(confirmMessage)) {
+      if (!window.confirm("Approve this recovery? This sends a sign-in link to the therapist.")) {
         return;
       }
       button.disabled = true;
       setFeedback(id, "info", "Approving and sending sign-in link...");
       try {
-        await approveRecoveryRequest(id, {
-          outcome_message: outcomeMessage,
-          identity_verification: identityVerification,
-          verification_methods: verificationMethods,
-        });
+        await approveRecoveryRequest(id, { outcome_message: outcomeMessage });
         setFeedback(id, "success", "Approved. Email sent.");
         window.setTimeout(loadRecoveryDashboard, 800);
       } catch (error) {
         setFeedback(id, "warn", (error && error.message) || "Approval failed.");
-        button.disabled = coldTakeover && identityVerification.length < 20;
+        button.disabled = false;
       }
     });
   });
