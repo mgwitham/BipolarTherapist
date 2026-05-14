@@ -49,7 +49,23 @@ export default async function handler(req, res) {
     return;
   }
 
-  const { therapistId, template, subject: subjectOverride, body: bodyOverride } = body || {};
+  const {
+    therapistId,
+    template,
+    subject: subjectOverride,
+    body: bodyOverride,
+    campaign: rawCampaign,
+  } = body || {};
+  // Same sanitization as /send-email so campaign tags stay consistent
+  // across both send paths (Resend direct + contact form / PT).
+  const campaign =
+    typeof rawCampaign === "string"
+      ? rawCampaign
+          .trim()
+          .slice(0, 80)
+          .replace(/[^a-z0-9_-]/gi, "-")
+          .toLowerCase()
+      : "";
   if (!therapistId || !template) {
     res.status(400).json({ error: "therapistId and template are required" });
     return;
@@ -90,6 +106,7 @@ export default async function handler(req, res) {
             subject: recordedSubject,
             template: `${template}_via_form`,
             body: trimmedBody,
+            ...(campaign ? { campaign } : {}),
           },
         ],
       })

@@ -70,7 +70,7 @@ export default async function handler(req, res) {
       lastContactedAt,
       emailsSent,
       notes,
-      "emailLog": emailLog[]{ _key, sentAt, template, subject, openedAt }
+      "emailLog": emailLog[]{ _key, sentAt, template, subject, openedAt, campaign }
     },
     claimedAt,
     claimStatus,

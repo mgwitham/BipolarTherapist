@@ -29,6 +29,12 @@ const state = {
   // Bulk-select for batch email send. IDs only — the row objects live
   // in state.therapists. Cleared on tab switch or after a send.
   selected: new Set(),
+  // Outreach-link click events from the funnel log, indexed by slug
+  // for O(1) lookup when computing Subject Performance click rates.
+  outreachClicksBySlug: new Map(),
+  // Last-used campaign tag, remembered across sends within a session
+  // so the operator doesn't retype it for back-to-back batches.
+  lastCampaign: "",
   liveFilters: { search: "" },
   // Sort: which column + direction. Last contact desc mirrors the API
   // query's default and is the most useful first view.
@@ -324,26 +330,50 @@ function computeStats(list) {
 //     counts as a reply for that subject's bucket.
 function computeSubjectPerformance(list) {
   const buckets = new Map();
+  const clicksBySlug = state.outreachClicksBySlug || new Map();
   for (const t of list) {
     const log = Array.isArray(t.outreach?.emailLog) ? t.outreach.emailLog : [];
-    const email1Sends = log.filter((e) => e?.template === "email_1");
-    if (email1Sends.length === 0) continue;
-    const latest = email1Sends[email1Sends.length - 1];
-    const key = (latest.subject || "").trim() || "(no subject)";
+    // Count both Resend-direct (email_1) and contact-form (email_1_via_form)
+    // initial sends. The latest of either is the bucket the therapist
+    // belongs to. PT/contact-form clicks land in the same funnel
+    // because we pass the same profile URL convention to both.
+    const initialSends = log.filter(
+      (e) => e?.template === "email_1" || e?.template === "email_1_via_form",
+    );
+    if (initialSends.length === 0) continue;
+    const latest = initialSends[initialSends.length - 1];
+    const subject = (latest.subject || "").trim() || "(no subject)";
+    const campaign = (latest.campaign || "").trim() || "(no campaign)";
+    const key = subject + " " + campaign;
     if (!buckets.has(key)) {
-      buckets.set(key, { subject: key, sent: 0, opened: 0, replied: 0 });
+      buckets.set(key, {
+        subject,
+        campaign,
+        sent: 0,
+        opened: 0,
+        clicked: 0,
+        claimed: 0,
+      });
     }
     const b = buckets.get(key);
     b.sent += 1;
     if (latest.openedAt) b.opened += 1;
-    if (["replied", "claimed", "paid"].includes(t.outreach?.status)) b.replied += 1;
+    // Click counts when a funnel "outreach_profile_viewed" event
+    // landed on this therapist's slug AFTER the email was sent.
+    const slug = t.slug?.current || t.slug || "";
+    const clicks = clicksBySlug.get(slug);
+    if (clicks && latest.sentAt && clicks.some((vAt) => vAt >= latest.sentAt)) {
+      b.clicked += 1;
+    }
+    if (["claimed", "paid"].includes(t.outreach?.status)) b.claimed += 1;
   }
   return Array.from(buckets.values())
     .filter((b) => !LEGACY_SUBJECT_RE.test(b.subject))
     .map((b) => ({
       ...b,
       openRate: b.sent > 0 ? Math.round((b.opened / b.sent) * 100) : 0,
-      replyRate: b.sent > 0 ? Math.round((b.replied / b.sent) * 100) : 0,
+      clickRate: b.sent > 0 ? Math.round((b.clicked / b.sent) * 100) : 0,
+      claimRate: b.sent > 0 ? Math.round((b.claimed / b.sent) * 100) : 0,
     }))
     .sort((a, b) => b.sent - a.sent);
 }
@@ -772,6 +802,17 @@ function openPTOutreach() {
     .filter((t) => t && getPTProfileUrl(t));
   if (queue.length === 0) return;
 
+  // Campaign tag set once at the start of the step-through and
+  // applied to every send in this session. Operator can change it
+  // mid-session by reopening the modal; cached in state.lastCampaign.
+  const campaign = (
+    window.prompt(
+      "Campaign tag (optional, lowercase letters/digits/dash/underscore — leave blank to skip):",
+      state.lastCampaign || "",
+    ) || ""
+  ).trim();
+  state.lastCampaign = campaign;
+
   let idx = 0;
   const overlay = document.createElement("div");
   overlay.id = "pt-outreach-overlay";
@@ -854,6 +895,7 @@ function openPTOutreach() {
         template: "email_1",
         subject: rendered.subject,
         body: rendered.body,
+        ...(campaign ? { campaign } : {}),
       });
       if (!ok) {
         btn.disabled = false;
@@ -873,6 +915,7 @@ function openPTOutreach() {
             template: "email_1_via_form",
             subject: rendered.subject,
             body: rendered.body,
+            ...(campaign ? { campaign } : {}),
           },
         ];
       });
@@ -977,6 +1020,10 @@ function openBatchComposer() {
         <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">Subject</label>
         <input id="batch-subject" class="form-input" type="text" value="${esc(example.subject)}" style="margin-bottom:12px;" />
 
+        <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">Campaign tag <span style="font-weight:400;color:#9ca3af;">(optional)</span></label>
+        <input id="batch-campaign" class="form-input" type="text" placeholder="e.g. 2026-05-pt-test" value="${esc(state.lastCampaign || "")}" autocomplete="off" style="margin-bottom:12px;" />
+        <div style="font-size:11px;color:#9ca3af;margin-top:-6px;margin-bottom:12px;">Lowercase letters, digits, dash, underscore. Lets you A/B with the same subject by tagging each batch.</div>
+
         <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">Preview for ${esc(recipients[0].name || recipients[0].email)}</div>
         <pre id="batch-preview" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font-size:12px;color:#111827;white-space:pre-wrap;font-family:inherit;max-height:220px;overflow:auto;">${esc(example.body)}</pre>
 
@@ -1017,12 +1064,17 @@ function openBatchComposer() {
     if (e.target === overlay) overlay.remove();
   });
 
+  const campaignEl = overlay.querySelector("#batch-campaign");
+
   goBtn.addEventListener("click", async () => {
     goBtn.disabled = true;
     confirmEl.disabled = true;
     subjEl.disabled = true;
     tmplSel.disabled = true;
-    await sendBatch(recipients, tmplSel.value, subjEl.value.trim(), overlay);
+    if (campaignEl) campaignEl.disabled = true;
+    const campaign = (campaignEl?.value || "").trim();
+    state.lastCampaign = campaign;
+    await sendBatch(recipients, tmplSel.value, subjEl.value.trim(), campaign, overlay);
   });
 }
 
@@ -1030,7 +1082,7 @@ function openBatchComposer() {
 // limits. Each call goes through the existing /send-email endpoint, so
 // server-side validation, audit log, and emailLog write all happen on
 // the standard path. Progress is rendered into the modal's footer.
-async function sendBatch(recipients, template, subject, overlay) {
+async function sendBatch(recipients, template, subject, campaign, overlay) {
   const progressEl = overlay.querySelector("#batch-progress");
   const goBtn = overlay.querySelector("#batch-go");
   let ok = 0;
@@ -1044,6 +1096,7 @@ async function sendBatch(recipients, template, subject, overlay) {
       template,
       subject,
       body: rendered.body,
+      ...(campaign ? { campaign } : {}),
     });
     if (success) {
       ok++;
@@ -1055,7 +1108,13 @@ async function sendBatch(recipients, template, subject, overlay) {
         th.outreach.lastContactedAt = now;
         th.outreach.emailLog = [
           ...(th.outreach.emailLog || []),
-          { sentAt: now, template, subject, body: rendered.body },
+          {
+            sentAt: now,
+            template,
+            subject,
+            body: rendered.body,
+            ...(campaign ? { campaign } : {}),
+          },
         ];
       });
       state.selected.delete(t._id);
@@ -1105,9 +1164,11 @@ function subjectPerformanceHtml(rows) {
           <thead>
             <tr style="background:#f9fafb;color:#6b7280;text-align:left;">
               <th style="padding:8px 14px;font-weight:600;">Subject</th>
-              <th style="padding:8px 14px;font-weight:600;text-align:right;width:80px;">Sent</th>
-              <th style="padding:8px 14px;font-weight:600;text-align:right;width:110px;">Opened</th>
-              <th style="padding:8px 14px;font-weight:600;text-align:right;width:110px;">Replied</th>
+              <th style="padding:8px 14px;font-weight:600;">Campaign</th>
+              <th style="padding:8px 14px;font-weight:600;text-align:right;width:70px;">Sent</th>
+              <th style="padding:8px 14px;font-weight:600;text-align:right;width:100px;">Opened</th>
+              <th style="padding:8px 14px;font-weight:600;text-align:right;width:100px;">Clicked</th>
+              <th style="padding:8px 14px;font-weight:600;text-align:right;width:100px;">Claimed</th>
             </tr>
           </thead>
           <tbody>
@@ -1115,10 +1176,12 @@ function subjectPerformanceHtml(rows) {
               .map(
                 (r) => `
               <tr style="border-top:1px solid #f3f4f6;">
-                <td style="padding:8px 14px;color:#111827;max-width:480px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.subject)}">${esc(r.subject)}</td>
+                <td style="padding:8px 14px;color:#111827;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.subject)}">${esc(r.subject)}</td>
+                <td style="padding:8px 14px;color:#6b7280;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="${esc(r.campaign)}">${esc(r.campaign)}</td>
                 <td style="padding:8px 14px;text-align:right;color:#374151;">${r.sent}</td>
                 <td style="padding:8px 14px;text-align:right;color:#0ea5e9;">${r.opened} <span style="color:#9ca3af;font-size:11px;">(${r.openRate}%)</span></td>
-                <td style="padding:8px 14px;text-align:right;color:#7c3aed;">${r.replied} <span style="color:#9ca3af;font-size:11px;">(${r.replyRate}%)</span></td>
+                <td style="padding:8px 14px;text-align:right;color:#7c3aed;">${r.clicked} <span style="color:#9ca3af;font-size:11px;">(${r.clickRate}%)</span></td>
+                <td style="padding:8px 14px;text-align:right;color:#059669;">${r.claimed} <span style="color:#9ca3af;font-size:11px;">(${r.claimRate}%)</span></td>
               </tr>`,
               )
               .join("")}
@@ -2003,6 +2066,29 @@ async function init() {
   }
   if (ok && data) {
     state.therapists = data;
+    // Fetch outreach-link clicks (outreach_profile_viewed funnel
+    // events). Stored as a Map<slug, [viewedAt]> for fast per-slug
+    // lookup when computing per-subject click rates. Tolerant of
+    // failure — Subject Performance falls back to 0 clicks shown.
+    try {
+      // Route lives in the review API dispatcher (one Vercel function,
+      // many paths) to stay under the Hobby plan's function cap.
+      const r = await fetch("/api/review/admin/outreach-clicks", {
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      const data = r.ok ? await r.json().catch(() => null) : null;
+      const events = data?.events || [];
+      const bySlug = new Map();
+      for (const e of events) {
+        if (!bySlug.has(e.slug)) bySlug.set(e.slug, []);
+        bySlug.get(e.slug).push(e.viewedAt);
+      }
+      state.outreachClicksBySlug = bySlug;
+    } catch {
+      state.outreachClicksBySlug = new Map();
+    }
     // Mount + bind the shared profile-edit drawer once. Both Outreach
     // and Live tabs reuse it; renderDashboard() doesn't recreate it.
     mountEditDrawer();

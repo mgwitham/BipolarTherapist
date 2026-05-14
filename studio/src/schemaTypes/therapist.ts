@@ -995,6 +995,13 @@ export const therapistType = defineType({
                   description:
                     "First time Resend reported an open for this send. Subsequent opens are ignored.",
                 }),
+                defineField({
+                  name: "campaign",
+                  title: "Campaign tag",
+                  type: "string",
+                  description:
+                    "Optional free-text label set at send time (e.g. '2026-05-pt-test'). Lets Subject Performance bucket by subject + campaign so you can A/B without rotating subject lines.",
+                }),
               ],
               preview: {
                 select: { title: "template", subtitle: "sentAt" },
