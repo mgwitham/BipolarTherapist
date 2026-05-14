@@ -26,6 +26,9 @@ const state = {
   // Insights expander (Subject Performance + Patient Signal) collapsed
   // by default so the page leads with the queue, not the analytics.
   insightsOpen: false,
+  // Bulk-select for batch email send. IDs only — the row objects live
+  // in state.therapists. Cleared on tab switch or after a send.
+  selected: new Set(),
   liveFilters: { search: "" },
   // Sort: which column + direction. Last contact desc mirrors the API
   // query's default and is the most useful first view.
@@ -384,8 +387,13 @@ function renderDashboard() {
     btn.addEventListener("click", () => {
       const target = btn.getAttribute("data-tab-target");
       if (target && target !== state.view) {
+        // Clear bulk selection on tab switch so a stale selection from
+        // the Outreach tab doesn't ride along into the Live tab and
+        // resurface if the user toggles back.
+        state.selected.clear();
         state.view = target;
         renderDashboard();
+        renderBulkActionBar();
       }
     }),
   );
@@ -671,6 +679,187 @@ function initProfileSearchWidget() {
   });
 }
 
+// ---- BULK SEND ----
+
+// Sticky bar at the bottom of the page. Appears when ≥1 row is
+// selected; disappears at zero. Lives in its own root element so the
+// table doesn't have to rerender to show/hide it.
+function renderBulkActionBar() {
+  let bar = document.getElementById("bulk-action-bar");
+  if (!bar) {
+    bar = document.createElement("div");
+    bar.id = "bulk-action-bar";
+    bar.style.cssText = [
+      "position:fixed",
+      "left:50%",
+      "bottom:24px",
+      "transform:translateX(-50%)",
+      "background:#111827",
+      "color:#fff",
+      "padding:10px 14px",
+      "border-radius:10px",
+      "box-shadow:0 12px 32px rgba(0,0,0,0.25)",
+      "display:none",
+      "align-items:center",
+      "gap:14px",
+      "font-size:13px",
+      "z-index:250",
+    ].join(";");
+    document.body.appendChild(bar);
+  }
+  const count = state.selected.size;
+  if (count === 0) {
+    bar.style.display = "none";
+    bar.innerHTML = "";
+    return;
+  }
+  bar.style.display = "flex";
+  bar.innerHTML = `
+    <span style="font-weight:600;">${count} selected</span>
+    <button id="bulk-send" type="button" style="background:#2a5f6e;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;">Send batch</button>
+    <button id="bulk-clear" type="button" style="background:transparent;color:#9ca3af;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:13px;cursor:pointer;">Clear</button>
+  `;
+  document.getElementById("bulk-send")?.addEventListener("click", openBatchComposer);
+  document.getElementById("bulk-clear")?.addEventListener("click", () => {
+    state.selected.clear();
+    refreshTable();
+  });
+}
+
+// Modal for composing the batch send. Shows a template selector, an
+// editable subject, a single rendered preview for the first selected
+// therapist, and a type-to-confirm gate before the actual send.
+function openBatchComposer() {
+  const ids = Array.from(state.selected);
+  const recipients = ids
+    .map((id) => state.therapists.find((t) => t._id === id))
+    .filter((t) => t && (t.email || "").trim());
+  if (recipients.length === 0) return;
+
+  const defaultTemplate = "email_1";
+  const overlay = document.createElement("div");
+  overlay.id = "batch-overlay";
+  overlay.style.cssText =
+    "position:fixed;inset:0;background:rgba(17,24,39,0.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
+
+  const example = getOutreachTemplate(defaultTemplate, recipients[0]);
+
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.25);">
+      <div style="padding:18px 22px 12px;border-bottom:1px solid #e5e7eb;">
+        <div style="font-size:17px;font-weight:700;color:#111827;">Send batch · ${recipients.length} therapist${recipients.length === 1 ? "" : "s"}</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:2px;">First name and profile URL are personalized per recipient. Subject is the same for everyone.</div>
+      </div>
+      <div style="padding:14px 22px;overflow-y:auto;flex:1;">
+        <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">Template</label>
+        <select id="batch-template" class="form-input" style="margin-bottom:12px;">
+          <option value="email_1" selected>Initial outreach</option>
+          <option value="follow_up">Follow-up</option>
+        </select>
+
+        <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">Subject</label>
+        <input id="batch-subject" class="form-input" type="text" value="${esc(example.subject)}" style="margin-bottom:12px;" />
+
+        <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">Preview for ${esc(recipients[0].name || recipients[0].email)}</div>
+        <pre id="batch-preview" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font-size:12px;color:#111827;white-space:pre-wrap;font-family:inherit;max-height:220px;overflow:auto;">${esc(example.body)}</pre>
+
+        <div style="margin-top:14px;font-size:12px;color:#6b7280;">
+          Type <strong style="color:#111827;">SEND</strong> to confirm:
+        </div>
+        <input id="batch-confirm" class="form-input" type="text" autocomplete="off" spellcheck="false" style="margin-top:6px;" />
+      </div>
+      <div style="padding:12px 22px;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:0 0 14px 14px;">
+        <button id="batch-cancel" type="button" class="btn-secondary">Cancel</button>
+        <button id="batch-go" type="button" class="btn-primary" disabled style="margin-left:auto;">Send to ${recipients.length}</button>
+        <span id="batch-progress" style="font-size:12px;color:#6b7280;"></span>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const tmplSel = overlay.querySelector("#batch-template");
+  const subjEl = overlay.querySelector("#batch-subject");
+  const preview = overlay.querySelector("#batch-preview");
+  const confirmEl = overlay.querySelector("#batch-confirm");
+  const goBtn = overlay.querySelector("#batch-go");
+
+  function rerenderPreview() {
+    const t = recipients[0];
+    const rendered = getOutreachTemplate(tmplSel.value, t);
+    subjEl.value = rendered.subject;
+    preview.textContent = rendered.body;
+  }
+  tmplSel.addEventListener("change", rerenderPreview);
+
+  confirmEl.addEventListener("input", () => {
+    goBtn.disabled = confirmEl.value.trim().toUpperCase() !== "SEND";
+  });
+
+  overlay.querySelector("#batch-cancel").addEventListener("click", () => overlay.remove());
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+
+  goBtn.addEventListener("click", async () => {
+    goBtn.disabled = true;
+    confirmEl.disabled = true;
+    subjEl.disabled = true;
+    tmplSel.disabled = true;
+    await sendBatch(recipients, tmplSel.value, subjEl.value.trim(), overlay);
+  });
+}
+
+// Sequential send with a small delay so we don't trip Resend's rate
+// limits. Each call goes through the existing /send-email endpoint, so
+// server-side validation, audit log, and emailLog write all happen on
+// the standard path. Progress is rendered into the modal's footer.
+async function sendBatch(recipients, template, subject, overlay) {
+  const progressEl = overlay.querySelector("#batch-progress");
+  const goBtn = overlay.querySelector("#batch-go");
+  let ok = 0;
+  let failed = 0;
+  for (let i = 0; i < recipients.length; i++) {
+    const t = recipients[i];
+    progressEl.textContent = `Sending ${i + 1}/${recipients.length}…`;
+    const rendered = getOutreachTemplate(template, t);
+    const { ok: success } = await apiPost("/send-email", {
+      therapistId: t._id,
+      template,
+      subject,
+      body: rendered.body,
+    });
+    if (success) {
+      ok++;
+      const now = new Date().toISOString();
+      mutateTherapist(t._id, (th) => {
+        if (!th.outreach) th.outreach = {};
+        th.outreach.status = template === "email_1" ? "email_1_sent" : "followed_up";
+        th.outreach.emailsSent = (th.outreach.emailsSent || 0) + 1;
+        th.outreach.lastContactedAt = now;
+        th.outreach.emailLog = [
+          ...(th.outreach.emailLog || []),
+          { sentAt: now, template, subject, body: rendered.body },
+        ];
+      });
+      state.selected.delete(t._id);
+    } else {
+      failed++;
+    }
+    if (i < recipients.length - 1) {
+      await new Promise((r) => setTimeout(r, 200));
+    }
+  }
+  progressEl.textContent = `Done · ${ok} sent${failed ? `, ${failed} failed` : ""}.`;
+  goBtn.textContent = "Close";
+  goBtn.disabled = false;
+  goBtn.onclick = () => {
+    overlay.remove();
+    refreshTable();
+    renderBulkActionBar();
+  };
+  toast(`Sent ${ok}${failed ? `, ${failed} failed` : ""}`, failed ? "error" : "success");
+}
+
 function statCard(label, value, color) {
   return `<div style="flex:1;min-width:80px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;">
     <div style="font-size:18px;font-weight:700;color:${color};line-height:1.1;">${value}</div>
@@ -807,7 +996,13 @@ function refreshTable() {
 
       const profileUrl = safeProfileUrl(t.profileUrl);
       const emailLabel = sendLabel || "Email";
+      const hasEmail = Boolean((t.email || "").trim());
+      const isSelected = state.selected.has(t._id);
+      const checkboxCell = hasEmail
+        ? `<input type="checkbox" class="row-select" data-id="${esc(t._id)}" data-no-row-click ${isSelected ? "checked" : ""} />`
+        : `<input type="checkbox" disabled title="No email on file — use the contact form individually" data-no-row-click />`;
       return `<tr data-id="${esc(t._id)}" style="cursor:pointer;${dueBg}">
+      <td style="padding:11px 14px;width:32px;" data-no-row-click>${checkboxCell}</td>
       <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "-")}</td>
       <td style="padding:11px 14px;color:#6b7280;">${esc(t.email || "-")}</td>
       <td style="padding:11px 14px;">${pill(s)}</td>
@@ -822,9 +1017,18 @@ function refreshTable() {
     })
     .join("");
 
+  // Header checkbox state: checked when every email-bearing visible row
+  // is selected; indeterminate when some but not all are.
+  const emailable = filtered.filter((t) => (t.email || "").trim());
+  const selectedVisible = emailable.filter((t) => state.selected.has(t._id)).length;
+  const allChecked = emailable.length > 0 && selectedVisible === emailable.length;
+  const indeterminate = selectedVisible > 0 && selectedVisible < emailable.length;
+  const headerCheckbox = `<input type="checkbox" id="select-all" ${allChecked ? "checked" : ""} ${indeterminate ? 'data-indeterminate="1"' : ""} title="Select all email-bearing therapists in view" />`;
+
   // Sortable headers: Status + Last contact have a click-to-sort
   // toggle. The arrow appears only on the active column.
   const headers = [
+    { label: headerCheckbox, raw: true },
     { label: "Name" },
     { label: "Email" },
     { label: "Status", sortKey: "status" },
@@ -861,6 +1065,46 @@ function refreshTable() {
 
   document.getElementById("therapist-tbody").addEventListener("click", handleTableClick);
   document.getElementById("therapist-thead-row").addEventListener("click", handleHeaderSortClick);
+
+  // Wire selection checkboxes. Listening at the table level lets the
+  // header + row checkboxes share one handler and survive re-renders.
+  const tbody = document.getElementById("therapist-tbody");
+  if (tbody) tbody.addEventListener("change", handleRowSelectChange);
+  const selectAll = document.getElementById("select-all");
+  if (selectAll) {
+    if (selectAll.dataset.indeterminate === "1") selectAll.indeterminate = true;
+    selectAll.addEventListener("change", handleSelectAllChange);
+  }
+  renderBulkActionBar();
+}
+
+function handleRowSelectChange(e) {
+  const cb = e.target.closest(".row-select");
+  if (!cb) return;
+  const id = cb.dataset.id;
+  if (cb.checked) state.selected.add(id);
+  else state.selected.delete(id);
+  renderBulkActionBar();
+  // Update header checkbox state without a full table rerender.
+  const filtered = applyFilters();
+  const emailable = filtered.filter((t) => (t.email || "").trim());
+  const selectedVisible = emailable.filter((t) => state.selected.has(t._id)).length;
+  const selectAll = document.getElementById("select-all");
+  if (selectAll) {
+    selectAll.checked = emailable.length > 0 && selectedVisible === emailable.length;
+    selectAll.indeterminate = selectedVisible > 0 && selectedVisible < emailable.length;
+  }
+}
+
+function handleSelectAllChange(e) {
+  const filtered = applyFilters();
+  const emailable = filtered.filter((t) => (t.email || "").trim());
+  if (e.target.checked) {
+    emailable.forEach((t) => state.selected.add(t._id));
+  } else {
+    emailable.forEach((t) => state.selected.delete(t._id));
+  }
+  refreshTable();
 }
 
 function handleHeaderSortClick(e) {
