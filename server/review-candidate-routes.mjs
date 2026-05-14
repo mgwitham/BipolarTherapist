@@ -137,6 +137,10 @@ export async function handleCandidateRoutes(context) {
       ["booking_url", "bookingUrl"],
       ["care_approach", "careApproach"],
       ["estimated_wait_time", "estimatedWaitTime"],
+      ["preferred_contact_method", "preferredContactMethod"],
+      ["preferred_contact_label", "preferredContactLabel"],
+      ["contact_guidance", "contactGuidance"],
+      ["first_step_expectation", "firstStepExpectation"],
       ["availability_posture", "availabilityPosture"],
       ["prescribing_mode", "prescribingMode"],
       ["crisis_posture", "crisisPosture"],
@@ -182,6 +186,12 @@ export async function handleCandidateRoutes(context) {
     }
     if (typeof body.waitlist_weeks === "number") {
       allowedUpdates.waitlistWeeks = body.waitlist_weeks;
+    }
+    if (typeof body.bipolar_years_experience === "number" && body.bipolar_years_experience >= 0) {
+      allowedUpdates.bipolarYearsExperience = body.bipolar_years_experience;
+    }
+    if (typeof body.years_experience === "number" && body.years_experience >= 0) {
+      allowedUpdates.yearsExperience = body.years_experience;
     }
 
     if (typeof body.notes === "string") {

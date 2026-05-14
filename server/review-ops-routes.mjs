@@ -79,6 +79,10 @@ export async function handleOpsRoutes(context) {
       "bookingUrl",
       "careApproach",
       "estimatedWaitTime",
+      "preferredContactMethod",
+      "preferredContactLabel",
+      "contactGuidance",
+      "firstStepExpectation",
     ];
     stringFields.forEach(function (f) {
       if (typeof body[f] === "string") patchFields[f] = body[f];
@@ -108,6 +112,20 @@ export async function handleOpsRoutes(context) {
     ];
     boolFields.forEach(function (f) {
       if (typeof body[f] === "boolean") patchFields[f] = body[f];
+    });
+
+    // Non-negative numbers. Includes session fees (previously dropped on
+    // this endpoint) and the two experience fields the drawer now edits.
+    const numberFields = [
+      "sessionFeeMin",
+      "sessionFeeMax",
+      "bipolarYearsExperience",
+      "yearsExperience",
+    ];
+    numberFields.forEach(function (f) {
+      if (typeof body[f] === "number" && Number.isFinite(body[f]) && body[f] >= 0) {
+        patchFields[f] = body[f];
+      }
     });
 
     // Lifecycle / visibility — admin's primary intent signals. Validated

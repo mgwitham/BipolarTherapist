@@ -136,6 +136,23 @@ function markSavedState() {
   syncDirtyState();
 }
 
+// Read-only headshot indicator — admin can't upload (therapists do that
+// in the portal) but they need to know whether one is on file. Accepts
+// any of the shapes the loader might pass: snake_case `photo_url`,
+// camelCase `photoUrl`, or the raw Sanity asset object `photo.asset.url`.
+function setHeadshotStatus(source) {
+  const el = document.getElementById("editHeadshotStatus");
+  if (!el) return;
+  const uploaded = Boolean(
+    source &&
+    (source.photo_url ||
+      source.photoUrl ||
+      (source.photo && source.photo.asset && source.photo.asset.url)),
+  );
+  el.textContent = uploaded ? "Headshot uploaded" : "No headshot uploaded";
+  el.className = "edit-headshot-status " + (uploaded ? "is-uploaded" : "is-missing");
+}
+
 function setDangerZoneVisibility(show) {
   const zone = document.getElementById("editDangerZone");
   if (!zone) return;
@@ -450,6 +467,22 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   setVal("editSlidingScale", candidate.sliding_scale);
   setVal("editSessionFeeMin", candidate.session_fee_min);
   setVal("editSessionFeeMax", candidate.session_fee_max);
+  setVal("editMedicationManagement", candidate.medication_management === true);
+  setVal("editEstimatedWaitTime", candidate.estimated_wait_time);
+  setVal("editTelehealthStates", arrayToTags(candidate.telehealth_states));
+  setVal("editLanguages", arrayToTags(candidate.languages));
+
+  // Contact extras
+  setVal("editPreferredContactLabel", candidate.preferred_contact_label);
+  setVal("editContactGuidance", candidate.contact_guidance);
+  setVal("editFirstStepExpectation", candidate.first_step_expectation);
+
+  // Experience
+  setVal("editBipolarYearsExperience", candidate.bipolar_years_experience);
+  setVal("editYearsExperience", candidate.years_experience);
+
+  // Headshot status (read-only)
+  setHeadshotStatus(candidate);
 
   // Profile
   setRadio("editGender", candidate.gender);
@@ -536,6 +569,25 @@ export function openTherapistEditDrawer(therapist, onSaved, options) {
   setVal("editSlidingScale", read("sliding_scale", "slidingScale"));
   setVal("editSessionFeeMin", read("session_fee_min", "sessionFeeMin"));
   setVal("editSessionFeeMax", read("session_fee_max", "sessionFeeMax"));
+  setVal(
+    "editMedicationManagement",
+    read("medication_management", "medicationManagement") === true,
+  );
+  setVal("editEstimatedWaitTime", read("estimated_wait_time", "estimatedWaitTime"));
+  setVal("editTelehealthStates", arrayToTags(read("telehealth_states", "telehealthStates")));
+  setVal("editLanguages", arrayToTags(read("languages", "languages")));
+
+  // Contact extras
+  setVal("editPreferredContactLabel", read("preferred_contact_label", "preferredContactLabel"));
+  setVal("editContactGuidance", read("contact_guidance", "contactGuidance"));
+  setVal("editFirstStepExpectation", read("first_step_expectation", "firstStepExpectation"));
+
+  // Experience
+  setVal("editBipolarYearsExperience", read("bipolar_years_experience", "bipolarYearsExperience"));
+  setVal("editYearsExperience", read("years_experience", "yearsExperience"));
+
+  // Headshot status (read-only)
+  setHeadshotStatus(therapist);
 
   // Lifecycle / visibility
   setVal("editLifecycle", read("lifecycle", "lifecycle") || "draft");
@@ -696,20 +748,35 @@ export function bindCandidateEditDrawer() {
           website: getVal("editWebsite"),
           bookingUrl: getVal("editBookingUrl"),
           preferredContactMethod: getVal("editPreferredContactMethod"),
+          preferredContactLabel: getVal("editPreferredContactLabel"),
+          contactGuidance: getVal("editContactGuidance"),
+          firstStepExpectation: getVal("editFirstStepExpectation"),
           bio: getVal("editBio"),
           careApproach: getVal("editCareApproach"),
           specialties: tagsToArray(getVal("editSpecialties")),
           treatmentModalities: tagsToArray(getVal("editTreatmentModalities")),
           clientPopulations: tagsToArray(getVal("editClientPopulations")),
           insuranceAccepted: tagsToArray(getVal("editInsuranceAccepted")),
+          languages: tagsToArray(getVal("editLanguages")),
+          telehealthStates: tagsToArray(getVal("editTelehealthStates")),
+          estimatedWaitTime: getVal("editEstimatedWaitTime"),
           acceptsTelehealth: getVal("editAcceptsTelehealth"),
           acceptsInPerson: getVal("editAcceptsInPerson"),
           acceptingNewPatients: getVal("editAcceptingNewPatients"),
           slidingScale: getVal("editSlidingScale"),
+          medicationManagement: getVal("editMedicationManagement"),
           sessionFeeMin:
             getVal("editSessionFeeMin") !== "" ? Number(getVal("editSessionFeeMin")) : undefined,
           sessionFeeMax:
             getVal("editSessionFeeMax") !== "" ? Number(getVal("editSessionFeeMax")) : undefined,
+          bipolarYearsExperience:
+            getVal("editBipolarYearsExperience") !== ""
+              ? Number(getVal("editBipolarYearsExperience"))
+              : undefined,
+          yearsExperience:
+            getVal("editYearsExperience") !== ""
+              ? Number(getVal("editYearsExperience"))
+              : undefined,
           notes: getVal("editNotes"),
           lifecycle,
           visibilityIntent,
@@ -736,20 +803,35 @@ export function bindCandidateEditDrawer() {
           website: getVal("editWebsite"),
           booking_url: getVal("editBookingUrl"),
           preferred_contact_method: getVal("editPreferredContactMethod"),
+          preferred_contact_label: getVal("editPreferredContactLabel"),
+          contact_guidance: getVal("editContactGuidance"),
+          first_step_expectation: getVal("editFirstStepExpectation"),
           bio: getVal("editBio"),
           care_approach: getVal("editCareApproach"),
           specialties: tagsToArray(getVal("editSpecialties")),
           treatment_modalities: tagsToArray(getVal("editTreatmentModalities")),
           client_populations: tagsToArray(getVal("editClientPopulations")),
           insurance_accepted: tagsToArray(getVal("editInsuranceAccepted")),
+          languages: tagsToArray(getVal("editLanguages")),
+          telehealth_states: tagsToArray(getVal("editTelehealthStates")),
+          estimated_wait_time: getVal("editEstimatedWaitTime"),
           accepts_telehealth: getVal("editAcceptsTelehealth"),
           accepts_in_person: getVal("editAcceptsInPerson"),
           accepting_new_patients: getVal("editAcceptingNewPatients"),
           sliding_scale: getVal("editSlidingScale"),
+          medication_management: getVal("editMedicationManagement"),
           session_fee_min:
             getVal("editSessionFeeMin") !== "" ? Number(getVal("editSessionFeeMin")) : undefined,
           session_fee_max:
             getVal("editSessionFeeMax") !== "" ? Number(getVal("editSessionFeeMax")) : undefined,
+          bipolar_years_experience:
+            getVal("editBipolarYearsExperience") !== ""
+              ? Number(getVal("editBipolarYearsExperience"))
+              : undefined,
+          years_experience:
+            getVal("editYearsExperience") !== ""
+              ? Number(getVal("editYearsExperience"))
+              : undefined,
           notes: getVal("editNotes"),
         };
         Object.keys(updates).forEach(function (k) {
