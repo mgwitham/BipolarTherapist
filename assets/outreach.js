@@ -1,6 +1,7 @@
 import "./sentry-init.js";
 import { escapeHtml as esc } from "./escape-html.js";
 import { getOutreachTemplate } from "../shared/outreach-templates.mjs";
+import { initAdminProfileSearch } from "./admin-profile-search.js";
 
 const API = "/api/admin";
 
@@ -279,7 +280,14 @@ function renderDashboard() {
 
       <div style="background:#2a5f6e;color:#fff;height:52px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
         <span style="font-size:15px;font-weight:700;letter-spacing:-0.3px;">Outreach CRM</span>
-        <button id="logout-btn" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:13px;">Log out</button>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <a href="/admin" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:6px;padding:4px 12px;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Open the admin page">Admin →</a>
+          <button id="logout-btn" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:13px;">Log out</button>
+        </div>
+      </div>
+
+      <div style="padding:14px 24px 0;flex-shrink:0;">
+        <div id="profileSearchWidget" class="ps-widget-root" style="padding:0;"></div>
       </div>
 
       <div style="padding:14px 24px 0;flex-shrink:0;">
@@ -337,11 +345,32 @@ function renderDashboard() {
 
   refreshTable();
   setupDashboardListeners();
+  initProfileSearchWidget();
 
   // Patient signal loads asynchronously so it doesn't block the table.
   // Reuses cached value while fetching to avoid flash of empty state on
   // re-render (e.g. after a status save).
   loadAndRenderPatientSignal();
+}
+
+// Reuses the admin Find-profile widget so the outreach page can jump
+// straight to any therapist without scrolling the filtered table.
+// Outreach has no candidates or applications in scope, so the kind-
+// dependent feeders are stub-empty; only the therapist list is searched.
+function initProfileSearchWidget() {
+  initAdminProfileSearch({
+    getCandidates: () => [],
+    getApplications: () => [],
+    getTherapists: () => state.therapists,
+    onSelect: (result) => {
+      if (result.kind !== "therapist") return;
+      const t = state.therapists.find(
+        (x) => (x._id || x.id) === (result.record._id || result.record.id),
+      );
+      if (!t) return;
+      openPanel(t);
+    },
+  });
 }
 
 function statCard(label, value, color) {

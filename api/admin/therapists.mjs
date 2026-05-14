@@ -74,6 +74,8 @@ export default async function handler(req, res) {
     },
     claimedAt,
     claimStatus,
+    listingActive,
+    status,
     city,
     state,
     licenseNumber,
