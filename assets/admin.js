@@ -6273,7 +6273,12 @@ document.addEventListener("click", function (event) {
   var therapist = (publishedTherapists || []).find(function (t) {
     return String(t.id || t._id) === String(therapistId);
   });
-  if (therapist) openTherapistEditDrawer(therapist, loadData);
+  if (therapist) {
+    openTherapistEditDrawer(therapist, loadData, {
+      enableDelete: true,
+      onDeleted: loadData,
+    });
+  }
 });
 
 document.getElementById("candidateSearch").addEventListener("input", function (event) {
@@ -6361,7 +6366,10 @@ profileSearch = initAdminProfileSearch({
       }
     }
     if (result.kind === "therapist") {
-      openTherapistEditDrawer(result.record, onSaved);
+      openTherapistEditDrawer(result.record, onSaved, {
+        enableDelete: true,
+        onDeleted: loadData,
+      });
       window.scrollTo({ top: 0, behavior: "smooth" });
     } else if (result.kind === "candidate") {
       openCandidateEditDrawer(result.record, onSaved);
