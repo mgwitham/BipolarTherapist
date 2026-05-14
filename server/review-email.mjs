@@ -1064,9 +1064,9 @@ export async function sendRecoveryApprovedEmail(config, recoveryRequest, magicLi
   const name = recoveryRequest.fullName || "there";
   const heading = "You're back in";
 
-  const bodyHtml = `<p style="margin:0 0 20px 0;">We verified your identity and approved your recovery request. Click the button below to sign into your portal.</p>${
+  const bodyHtml = `<p style="margin:0 0 20px 0;">Verified — you're set. Click below to sign into your portal. From there you can update your bio, photo, accepting-patients status, and the rest of your profile.</p>${
     customMessage
-      ? `<p style="margin:0 0 20px 0;padding:12px 14px;background:#f4f8f9;border-radius:8px;color:#1d3a4a;font-size:14px;">${escapeEmailHtml(String(customMessage)).replace(/\n/g, "<br/>")}</p>`
+      ? `<p style="margin:0 0 8px 0;font-size:13px;font-weight:600;color:#1d3a4a;">A note from Michael:</p><p style="margin:0 0 20px 0;padding:12px 14px;background:#f4f8f9;border-radius:8px;color:#1d3a4a;font-size:14px;">${escapeEmailHtml(String(customMessage)).replace(/\n/g, "<br/>")}</p>`
       : ""
   }`;
 
@@ -1088,8 +1088,8 @@ export async function sendRecoveryApprovedEmail(config, recoveryRequest, magicLi
     heading,
     greetingName: name,
     bodyText:
-      "We verified your identity and approved your recovery request. Click the link below to sign in." +
-      (customMessage ? "\n\nReviewer note: " + String(customMessage) : ""),
+      "Verified — you're set. Click the link below to sign into your portal. From there you can update your bio, photo, accepting-patients status, and the rest of your profile." +
+      (customMessage ? "\n\nA note from Michael:\n" + String(customMessage) : ""),
     primaryCta: { label: "Sign in to my portal", url: magicLink },
     footerLines: [
       "This link expires in 24 hours.",
