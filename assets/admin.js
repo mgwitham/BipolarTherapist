@@ -1098,22 +1098,29 @@ function showLazyLoadFailureBanner(path) {
     '<div style="font-size:0.85rem;color:#4a6572;margin-bottom:0.6rem;">' +
     "This usually means a new version was deployed while you were here. " +
     "Reload to pick up the latest." +
-    (safePath ? '<div style="font-size:0.72rem;color:#8a9ba6;margin-top:0.35rem;">' +
-      safePath + "</div>" : "") +
+    (safePath
+      ? '<div style="font-size:0.72rem;color:#8a9ba6;margin-top:0.35rem;">' + safePath + "</div>"
+      : "") +
     "</div>" +
     '<div style="display:flex;gap:0.45rem;">' +
     '<button type="button" id="adminLazyReloadBtn" ' +
     'style="padding:0.45rem 0.85rem;border:none;border-radius:6px;' +
-    "background:#1a7a8f;color:#fff;font-weight:600;cursor:pointer;font:inherit;\">Reload</button>" +
+    'background:#1a7a8f;color:#fff;font-weight:600;cursor:pointer;font:inherit;">Reload</button>' +
     '<button type="button" id="adminLazyDismissBtn" ' +
     'style="padding:0.45rem 0.85rem;border:1px solid #d4e4e9;border-radius:6px;' +
-    "background:#fff;color:#4a6572;cursor:pointer;font:inherit;\">Dismiss</button>" +
+    'background:#fff;color:#4a6572;cursor:pointer;font:inherit;">Dismiss</button>' +
     "</div>";
   document.body.appendChild(banner);
   const reloadBtn = banner.querySelector("#adminLazyReloadBtn");
   const dismissBtn = banner.querySelector("#adminLazyDismissBtn");
-  if (reloadBtn) reloadBtn.addEventListener("click", function () { window.location.reload(); });
-  if (dismissBtn) dismissBtn.addEventListener("click", function () { banner.remove(); });
+  if (reloadBtn)
+    reloadBtn.addEventListener("click", function () {
+      window.location.reload();
+    });
+  if (dismissBtn)
+    dismissBtn.addEventListener("click", function () {
+      banner.remove();
+    });
 }
 
 function readReviewActivityView() {
