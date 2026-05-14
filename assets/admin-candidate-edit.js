@@ -450,6 +450,15 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   setVal("editSlidingScale", candidate.sliding_scale);
   setVal("editSessionFeeMin", candidate.session_fee_min);
   setVal("editSessionFeeMax", candidate.session_fee_max);
+  setVal("editMedicationManagement", candidate.medication_management === true);
+  setVal("editEstimatedWaitTime", candidate.estimated_wait_time);
+  setVal("editTelehealthStates", arrayToTags(candidate.telehealth_states));
+  setVal("editLanguages", arrayToTags(candidate.languages));
+
+  // Contact extras
+  setVal("editPreferredContactLabel", candidate.preferred_contact_label);
+  setVal("editContactGuidance", candidate.contact_guidance);
+  setVal("editFirstStepExpectation", candidate.first_step_expectation);
 
   // Experience
   setVal("editBipolarYearsExperience", candidate.bipolar_years_experience);
@@ -540,6 +549,18 @@ export function openTherapistEditDrawer(therapist, onSaved, options) {
   setVal("editSlidingScale", read("sliding_scale", "slidingScale"));
   setVal("editSessionFeeMin", read("session_fee_min", "sessionFeeMin"));
   setVal("editSessionFeeMax", read("session_fee_max", "sessionFeeMax"));
+  setVal(
+    "editMedicationManagement",
+    read("medication_management", "medicationManagement") === true,
+  );
+  setVal("editEstimatedWaitTime", read("estimated_wait_time", "estimatedWaitTime"));
+  setVal("editTelehealthStates", arrayToTags(read("telehealth_states", "telehealthStates")));
+  setVal("editLanguages", arrayToTags(read("languages", "languages")));
+
+  // Contact extras
+  setVal("editPreferredContactLabel", read("preferred_contact_label", "preferredContactLabel"));
+  setVal("editContactGuidance", read("contact_guidance", "contactGuidance"));
+  setVal("editFirstStepExpectation", read("first_step_expectation", "firstStepExpectation"));
 
   // Experience
   setVal("editBipolarYearsExperience", read("bipolar_years_experience", "bipolarYearsExperience"));
@@ -704,16 +725,23 @@ export function bindCandidateEditDrawer() {
           website: getVal("editWebsite"),
           bookingUrl: getVal("editBookingUrl"),
           preferredContactMethod: getVal("editPreferredContactMethod"),
+          preferredContactLabel: getVal("editPreferredContactLabel"),
+          contactGuidance: getVal("editContactGuidance"),
+          firstStepExpectation: getVal("editFirstStepExpectation"),
           bio: getVal("editBio"),
           careApproach: getVal("editCareApproach"),
           specialties: tagsToArray(getVal("editSpecialties")),
           treatmentModalities: tagsToArray(getVal("editTreatmentModalities")),
           clientPopulations: tagsToArray(getVal("editClientPopulations")),
           insuranceAccepted: tagsToArray(getVal("editInsuranceAccepted")),
+          languages: tagsToArray(getVal("editLanguages")),
+          telehealthStates: tagsToArray(getVal("editTelehealthStates")),
+          estimatedWaitTime: getVal("editEstimatedWaitTime"),
           acceptsTelehealth: getVal("editAcceptsTelehealth"),
           acceptsInPerson: getVal("editAcceptsInPerson"),
           acceptingNewPatients: getVal("editAcceptingNewPatients"),
           slidingScale: getVal("editSlidingScale"),
+          medicationManagement: getVal("editMedicationManagement"),
           sessionFeeMin:
             getVal("editSessionFeeMin") !== "" ? Number(getVal("editSessionFeeMin")) : undefined,
           sessionFeeMax:
@@ -752,16 +780,23 @@ export function bindCandidateEditDrawer() {
           website: getVal("editWebsite"),
           booking_url: getVal("editBookingUrl"),
           preferred_contact_method: getVal("editPreferredContactMethod"),
+          preferred_contact_label: getVal("editPreferredContactLabel"),
+          contact_guidance: getVal("editContactGuidance"),
+          first_step_expectation: getVal("editFirstStepExpectation"),
           bio: getVal("editBio"),
           care_approach: getVal("editCareApproach"),
           specialties: tagsToArray(getVal("editSpecialties")),
           treatment_modalities: tagsToArray(getVal("editTreatmentModalities")),
           client_populations: tagsToArray(getVal("editClientPopulations")),
           insurance_accepted: tagsToArray(getVal("editInsuranceAccepted")),
+          languages: tagsToArray(getVal("editLanguages")),
+          telehealth_states: tagsToArray(getVal("editTelehealthStates")),
+          estimated_wait_time: getVal("editEstimatedWaitTime"),
           accepts_telehealth: getVal("editAcceptsTelehealth"),
           accepts_in_person: getVal("editAcceptsInPerson"),
           accepting_new_patients: getVal("editAcceptingNewPatients"),
           sliding_scale: getVal("editSlidingScale"),
+          medication_management: getVal("editMedicationManagement"),
           session_fee_min:
             getVal("editSessionFeeMin") !== "" ? Number(getVal("editSessionFeeMin")) : undefined,
           session_fee_max:

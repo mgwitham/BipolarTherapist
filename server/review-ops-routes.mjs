@@ -79,6 +79,10 @@ export async function handleOpsRoutes(context) {
       "bookingUrl",
       "careApproach",
       "estimatedWaitTime",
+      "preferredContactMethod",
+      "preferredContactLabel",
+      "contactGuidance",
+      "firstStepExpectation",
     ];
     stringFields.forEach(function (f) {
       if (typeof body[f] === "string") patchFields[f] = body[f];

@@ -127,6 +127,19 @@ const EDIT_DRAWER_HTML = `
               <option value="booking">Booking link</option>
             </select>
           </div>
+          <div class="edit-field is-full">
+            <label for="editPreferredContactLabel">Primary contact CTA label</label>
+            <input type="text" id="editPreferredContactLabel" placeholder="e.g. Book a consultation" autocomplete="off" />
+            <div class="edit-hint">Optional. Overrides the default button label on the public profile.</div>
+          </div>
+          <div class="edit-field is-full">
+            <label for="editContactGuidance">Contact guidance</label>
+            <textarea id="editContactGuidance" rows="2" placeholder="What patients should include or expect when reaching out"></textarea>
+          </div>
+          <div class="edit-field is-full">
+            <label for="editFirstStepExpectation">What happens after outreach</label>
+            <textarea id="editFirstStepExpectation" rows="2" placeholder="Describe the first step after someone reaches out"></textarea>
+          </div>
         </div>
 
         <div class="edit-section-title">Care approach</div>
@@ -157,6 +170,11 @@ const EDIT_DRAWER_HTML = `
           <div class="edit-field">
             <label for="editInsuranceAccepted">Insurance accepted</label>
             <input type="text" id="editInsuranceAccepted" autocomplete="off" />
+            <div class="edit-hint">Comma-separated</div>
+          </div>
+          <div class="edit-field">
+            <label for="editLanguages">Languages</label>
+            <input type="text" id="editLanguages" autocomplete="off" placeholder="English, Spanish" />
             <div class="edit-hint">Comma-separated</div>
           </div>
         </div>
@@ -192,8 +210,21 @@ const EDIT_DRAWER_HTML = `
             <input type="checkbox" id="editSlidingScale" />
             Sliding scale
           </label>
+          <label class="edit-check-item">
+            <input type="checkbox" id="editMedicationManagement" />
+            Prescribes medication
+          </label>
         </div>
         <div class="edit-field-grid" style="margin-top: 0.65rem">
+          <div class="edit-field">
+            <label for="editEstimatedWaitTime">Estimated wait time</label>
+            <input type="text" id="editEstimatedWaitTime" autocomplete="off" placeholder="e.g. 1–2 weeks" />
+          </div>
+          <div class="edit-field">
+            <label for="editTelehealthStates">Telehealth states</label>
+            <input type="text" id="editTelehealthStates" autocomplete="off" placeholder="CA, NY" />
+            <div class="edit-hint">Comma-separated state codes</div>
+          </div>
           <div class="edit-field">
             <label for="editSessionFeeMin">Fee min ($)</label>
             <input type="number" id="editSessionFeeMin" min="0" step="5" />
