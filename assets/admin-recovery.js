@@ -110,7 +110,9 @@ function renderAnchorsBlock(req) {
         escapeHtml(a.licenseStatus || "?") +
         (a.licenseExpDate ? " · exp " + escapeHtml(a.licenseExpDate) : "") +
         expSoon +
-        (a.disciplineFlag ? ' <span class="rec-pill rec-pill-warn">discipline on file</span>' : "") +
+        (a.disciplineFlag
+          ? ' <span class="rec-pill rec-pill-warn">discipline on file</span>'
+          : "") +
         dcaProfile,
     },
     { label: "DCA address", html: dcaAddress ? escapeHtml(dcaAddress) : "—" },
@@ -139,9 +141,7 @@ function renderAnchorsBlock(req) {
     '<section class="rec-block">' +
     '<h4 class="rec-block-title">Verification anchors <span class="rec-block-hint">check these out-of-band</span></h4>' +
     '<dl class="rec-anchors">' +
-    items
-      .map((i) => "<dt>" + escapeHtml(i.label) + "</dt><dd>" + i.html + "</dd>")
-      .join("") +
+    items.map((i) => "<dt>" + escapeHtml(i.label) + "</dt><dd>" + i.html + "</dd>").join("") +
     "</dl>" +
     "</section>"
   );
@@ -400,29 +400,33 @@ function renderRequestCard(req) {
 
 function renderDashboard(container, requests) {
   const pending = requests.filter((r) => r.status === "pending");
-  const resolved = requests.filter((r) => r.status !== "pending");
+  const approved = requests.filter((r) => r.status === "approved");
+  // Rejected + dismissed share a bucket — both are "didn't grant access"
+  // outcomes and the admin rarely needs to distinguish them at a glance.
+  const closed = requests.filter((r) => r.status === "rejected" || r.status === "dismissed");
 
-  const parts = [];
-  parts.push(
-    '<section class="admin-recovery-section">' +
-      "<h3>Pending review — " +
-      pending.length +
-      "</h3>" +
-      (pending.length
-        ? pending.map(renderRequestCard).join("")
-        : '<p class="subtle">No pending requests.</p>') +
-      "</section>",
-  );
-  if (resolved.length) {
-    parts.push(
+  const renderSection = (heading, items, emptyMsg, limit) => {
+    if (!items.length && !emptyMsg) return "";
+    const list = limit ? items.slice(0, limit) : items;
+    return (
       '<section class="admin-recovery-section">' +
-        "<h3>Resolved — last " +
-        resolved.length +
-        "</h3>" +
-        resolved.slice(0, 20).map(renderRequestCard).join("") +
-        "</section>",
+      "<h3>" +
+      escapeHtml(heading) +
+      " — " +
+      items.length +
+      "</h3>" +
+      (items.length
+        ? list.map(renderRequestCard).join("")
+        : '<p class="subtle">' + escapeHtml(emptyMsg) + "</p>") +
+      "</section>"
     );
-  }
+  };
+
+  const parts = [
+    renderSection("Pending review", pending, "No pending requests."),
+    renderSection("Approved", approved, "", 20),
+    renderSection("Rejected & dismissed", closed, "", 20),
+  ];
   container.innerHTML = parts.join("");
 
   updateTabCount(pending.length);
