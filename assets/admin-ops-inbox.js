@@ -3725,3 +3725,23 @@ function buildLicensureRefreshCommand(item) {
   }
   return base;
 }
+
+// Controller registration. PR 6 of the admin.js refactor — the final
+// migration. This module is 3,727 lines and intentionally NOT being
+// split internally; the goal is to join the controller registry so
+// admin.js loses its lazy-load + option-bag wiring (~55 lines). Same
+// buildOptions(store) passthrough pattern as the confirmation tabs
+// (PR 4) and applications panel (PR 5). An internal split of
+// admin-ops-inbox is a separate follow-up project.
+const controller = {
+  id: "opsInbox",
+  regionId: "opsInbox",
+  storeSlices: ["authRequired"],
+  render(ctx) {
+    const build = ctx.deps.buildOpsInboxOptions;
+    if (typeof build !== "function") return;
+    renderOpsInboxPanel(build(ctx.store));
+  },
+};
+
+export default controller;

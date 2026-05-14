@@ -20,6 +20,7 @@ import reviewActivityController from "./admin-review-activity.js";
 import confirmationQueueController from "./admin-confirmation-queue.js";
 import confirmationSprintController from "./admin-confirmation-sprint.js";
 import applicationsController from "./admin-application-review.js";
+import opsInboxController from "./admin-ops-inbox.js";
 
 async function fetchMatchedTherapistForCandidate(candidate) {
   if (!candidate) return null;
@@ -229,6 +230,7 @@ const adminRegistry = createControllerRegistry({
     buildConfirmationQueueOptions: buildConfirmationQueueOptions,
     buildConfirmationSprintOptions: buildConfirmationSprintOptions,
     buildApplicationsOptions: buildApplicationsOptions,
+    buildOpsInboxOptions: buildOpsInboxOptions,
   },
 });
 adminRegistry.register(licensureActivityController);
@@ -238,6 +240,7 @@ adminRegistry.register(reviewActivityController);
 adminRegistry.register(confirmationQueueController);
 adminRegistry.register(confirmationSprintController);
 adminRegistry.register(applicationsController);
+adminRegistry.register(opsInboxController);
 
 // Mirror the persisted filter into the legacy `let reviewActivityFilter`
 // so non-controller code that reads it (deep-link builder, savedViews
@@ -5269,59 +5272,70 @@ function buildCandidateDecisionActions(item) {
   return actions.join("");
 }
 
+// Option-bag factory for the Ops Inbox panel. Same pattern as PR 4/5:
+// admin.js owns the bag (where the helpers exist), the controller is
+// a passthrough invoking ctx.deps.buildOpsInboxOptions.
+//
+// admin-ops-inbox.js is 3,727 lines and intentionally NOT being split
+// internally in this PR — that's a separate follow-up project.
+function buildOpsInboxOptions(store) {
+  return {
+    root: document.getElementById("opsInbox"),
+    authRequired: store.get("authRequired") === true,
+    candidates: dataMode === "sanity" ? remoteCandidates : [],
+    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
+    applications: dataMode === "sanity" ? remoteApplications : getApplications(),
+    licensureRefreshQueue: licensureRefreshQueue,
+    profileConversionFreshnessQueue: profileConversionFreshnessQueue,
+    getDataFreshnessSummary: getDataFreshnessSummary,
+    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
+    getCandidateOpsEvidence: reviewModels.getCandidateOpsEvidence,
+    getCandidateTrustSummary: reviewModels.getCandidateTrustSummary,
+    getCandidateTrustRecommendation: reviewModels.getCandidateTrustRecommendation,
+    getCandidatePublishPacket: reviewModels.getCandidatePublishPacket,
+    getCandidateReviewLaneLabel: reviewModels.getCandidateReviewLaneLabel,
+    getCandidateOpsReason: reviewModels.getCandidateOpsReason,
+    buildCandidateDecisionActions: buildCandidateDecisionActions,
+    getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
+    getTherapistTrustRecommendation: getTherapistTrustRecommendation,
+    renderFieldTrustChips: renderFieldTrustChips,
+    getVerificationLaneLabel: reviewModels.getVerificationLaneLabel,
+    buildTherapistFieldConfirmationPrompt: buildTherapistFieldConfirmationPrompt,
+    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+    buildConfirmationApplySummary: buildConfirmationApplySummary,
+    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
+    getPreferredFieldOrder: getPreferredFieldOrder,
+    getConfirmationQueueEntry: getConfirmationQueueEntry,
+    getConfirmationResponseEntry: confirmationWorkspace.getConfirmationResponseEntry,
+    getReviewEntityTask: reviewerWorkspace.getReviewEntityTask,
+    assignReviewWorkItem: reviewerWorkspace.assignWorkItem,
+    getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
+    formatFieldLabel: formatFieldLabel,
+    formatStatusLabel: formatStatusLabel,
+    formatDate: formatDate,
+    escapeHtml: escapeHtml,
+    copyText: copyText,
+    updateConfirmationResponseEntry: confirmationWorkspace.updateConfirmationResponseEntry,
+    clearConfirmationResponseEntry: confirmationWorkspace.clearConfirmationResponseEntry,
+    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+    renderStats: renderStats,
+    renderImportBlockerSprint: renderImportBlockerSprint,
+    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+    renderConfirmationSprint: renderConfirmationSprint,
+    renderConfirmationQueue: renderConfirmationQueue,
+    renderOpsInbox: renderOpsInbox,
+    decideTherapistCandidate: decideTherapistCandidate,
+    decideTherapistOps: decideTherapistOps,
+    loadData: loadData,
+  };
+}
+
 function renderOpsInbox() {
-  withLazyAdminModule("./admin-ops-inbox.js", function (module) {
-    module.renderOpsInboxPanel({
-      root: document.getElementById("opsInbox"),
-      authRequired: authRequired,
-      candidates: dataMode === "sanity" ? remoteCandidates : [],
-      therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
-      applications: dataMode === "sanity" ? remoteApplications : getApplications(),
-      licensureRefreshQueue: licensureRefreshQueue,
-      profileConversionFreshnessQueue: profileConversionFreshnessQueue,
-      getDataFreshnessSummary: getDataFreshnessSummary,
-      getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
-      getCandidateOpsEvidence: reviewModels.getCandidateOpsEvidence,
-      getCandidateTrustSummary: reviewModels.getCandidateTrustSummary,
-      getCandidateTrustRecommendation: reviewModels.getCandidateTrustRecommendation,
-      getCandidatePublishPacket: reviewModels.getCandidatePublishPacket,
-      getCandidateReviewLaneLabel: reviewModels.getCandidateReviewLaneLabel,
-      getCandidateOpsReason: reviewModels.getCandidateOpsReason,
-      buildCandidateDecisionActions: buildCandidateDecisionActions,
-      getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
-      getTherapistTrustRecommendation: getTherapistTrustRecommendation,
-      renderFieldTrustChips: renderFieldTrustChips,
-      getVerificationLaneLabel: reviewModels.getVerificationLaneLabel,
-      buildTherapistFieldConfirmationPrompt: buildTherapistFieldConfirmationPrompt,
-      buildConfirmationApplyBrief: buildConfirmationApplyBrief,
-      buildConfirmationApplyCsv: buildConfirmationApplyCsv,
-      buildConfirmationApplySummary: buildConfirmationApplySummary,
-      buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
-      getPreferredFieldOrder: getPreferredFieldOrder,
-      getConfirmationQueueEntry: getConfirmationQueueEntry,
-      getConfirmationResponseEntry: confirmationWorkspace.getConfirmationResponseEntry,
-      getReviewEntityTask: reviewerWorkspace.getReviewEntityTask,
-      assignReviewWorkItem: reviewerWorkspace.assignWorkItem,
-      getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
-      formatFieldLabel: formatFieldLabel,
-      formatStatusLabel: formatStatusLabel,
-      formatDate: formatDate,
-      escapeHtml: escapeHtml,
-      copyText: copyText,
-      updateConfirmationResponseEntry: confirmationWorkspace.updateConfirmationResponseEntry,
-      clearConfirmationResponseEntry: confirmationWorkspace.clearConfirmationResponseEntry,
-      updateConfirmationQueueEntry: updateConfirmationQueueEntry,
-      renderStats: renderStats,
-      renderImportBlockerSprint: renderImportBlockerSprint,
-      renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
-      renderConfirmationSprint: renderConfirmationSprint,
-      renderConfirmationQueue: renderConfirmationQueue,
-      renderOpsInbox: renderOpsInbox,
-      decideTherapistCandidate: decideTherapistCandidate,
-      decideTherapistOps: decideTherapistOps,
-      loadData: loadData,
-    });
-  });
+  // Migrated to the controller pattern (PR 6 — final tab in the
+  // planned refactor). The module's internal 3,727 lines stay intact;
+  // a future PR can split it without touching the registry contract.
+  adminRegistry.render("opsInbox");
 }
 
 function renderCandidateQueue() {
