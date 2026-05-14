@@ -63,9 +63,7 @@ export default async function handler(req, res) {
     const slug = String(payload.therapist_slug || "").trim();
     // Events use `occurredAt` as the canonical timestamp; fall back to
     // legacy fields just in case older entries exist.
-    const viewedAt = String(
-      event.occurredAt || event.created_at || event.createdAt || "",
-    ).trim();
+    const viewedAt = String(event.occurredAt || event.created_at || event.createdAt || "").trim();
     if (!slug || !viewedAt) continue;
     out.push({ slug, viewedAt });
   }
