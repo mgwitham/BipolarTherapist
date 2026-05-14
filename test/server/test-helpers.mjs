@@ -281,10 +281,28 @@ export function createMemoryClient(initialDocuments) {
           });
         }
 
-        if (query.includes(`*[_type == "therapistPublishEvent"]`)) {
-          return Array.from(state.documents.values()).filter(function (document) {
-            return document._type === "therapistPublishEvent";
+        if (query.includes(`_type == "therapistPublishEvent"`)) {
+          // Mirrors the GROQ shape in server/review-read-routes.mjs:
+          // optionally filter by `before` cursor, order desc by
+          // coalesce(createdAt, _createdAt), then cap at $window.
+          const before = params && params.before;
+          const windowCap = params && Number(params.window);
+          const filtered = Array.from(state.documents.values()).filter(function (document) {
+            if (document._type !== "therapistPublishEvent") return false;
+            if (before) {
+              const stamp = document.createdAt || document._createdAt || "";
+              if (!stamp || stamp >= before) return false;
+            }
+            return true;
           });
+          filtered.sort(function (a, b) {
+            const aStamp = a.createdAt || a._createdAt || "";
+            const bStamp = b.createdAt || b._createdAt || "";
+            return bStamp.localeCompare(aStamp);
+          });
+          return Number.isFinite(windowCap) && windowCap > 0
+            ? filtered.slice(0, windowCap)
+            : filtered;
         }
 
         if (query.includes(`*[_type == "matchRequest"]`)) {
