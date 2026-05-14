@@ -10,6 +10,10 @@ import {
 } from "./store.js";
 import { fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
+import { showLazyLoadFailureBanner } from "./admin-lazy-load-banner.js";
+import { createAdminStore } from "./admin-store.js";
+import { createControllerRegistry } from "./admin-controller-registry.js";
+import licensureActivityController from "./admin-licensure-activity.js";
 
 async function fetchMatchedTherapistForCandidate(candidate) {
   if (!candidate) return null;
@@ -154,6 +158,27 @@ if (typeof window !== "undefined" && window.addEventListener && document.documen
   });
 }
 
+// Observable store + controller registry. PR 1 of the admin.js refactor.
+// Only the Licensure Activity tab is migrated — every other tab still uses
+// the legacy renderXyz() + module-level let pattern. As tabs migrate, their
+// data and filter state moves into the store and their `let` declarations
+// below get deleted.
+//
+// `data.licensureActivityFeed` is the authoritative source for the migrated
+// Licensure Activity controller. We dual-write the legacy `let
+// licensureActivityFeed` (see applyRuntimeState) until its other readers
+// are migrated in subsequent PRs.
+const adminStore = createAdminStore({
+  authRequired: false,
+  data: { licensureActivityFeed: [] },
+  filters: { licensureActivity: "" },
+});
+const adminRegistry = createControllerRegistry({
+  store: adminStore,
+  deps: { escapeHtml: escapeHtml },
+});
+adminRegistry.register(licensureActivityController);
+
 let dataMode = "local";
 let remoteApplications = [];
 let remoteCandidates = [];
@@ -172,7 +197,6 @@ let profileConversionFreshnessQueue = [];
 let authRequired = false;
 let authErrorVisible = false;
 let licensureQueueFilter = "";
-let licensureActivityFilter = "";
 let reviewActivityFilter = "";
 let reviewActivitySavedViewId = "";
 let adminWorkflowUrlParamsApplied = false;
@@ -944,12 +968,17 @@ function applyAdminRuntimeState(nextState) {
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "licensureActivityFeed")) {
     licensureActivityFeed = nextState.licensureActivityFeed;
+    // Mirror into the controller store so the migrated Licensure Activity
+    // controller re-renders. Other tabs still read the local `let` until
+    // they migrate.
+    adminStore.set("data.licensureActivityFeed", nextState.licensureActivityFeed || []);
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "profileConversionFreshnessQueue")) {
     profileConversionFreshnessQueue = nextState.profileConversionFreshnessQueue;
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "authRequired")) {
     authRequired = nextState.authRequired;
+    adminStore.set("authRequired", nextState.authRequired === true);
   }
 }
 
@@ -1074,54 +1103,9 @@ function withLazyAdminModule(path, onReady, onError) {
     });
 }
 
-// Shows a fixed bottom-right banner when a lazy chunk fails to fetch.
-// The most common cause is a stale deploy hash after a release while
-// the page was open; the banner offers a one-click reload so the user
-// doesn't sit looking at a blank panel wondering why nothing happened.
-function showLazyLoadFailureBanner(path) {
-  if (document.getElementById("adminLazyLoadFailureBanner")) return;
-  const banner = document.createElement("div");
-  banner.id = "adminLazyLoadFailureBanner";
-  banner.setAttribute("role", "alert");
-  banner.style.cssText =
-    "position:fixed;bottom:16px;right:16px;z-index:9999;max-width:360px;" +
-    "padding:0.85rem 1rem;background:#fff;border:1px solid #e8c4c4;" +
-    "border-left:4px solid #a04a4a;border-radius:10px;" +
-    "box-shadow:0 10px 24px rgba(29,58,74,0.18);" +
-    "font:14px/1.45 'Inter',sans-serif;color:#1d3a4a;";
-  const safePath = String(path || "")
-    .replace(/[^a-z0-9./_-]/gi, "")
-    .slice(0, 80);
-  banner.innerHTML =
-    '<div style="font-weight:600;margin-bottom:0.25rem;color:#7a2f2f;">' +
-    "Couldn't load part of the admin page</div>" +
-    '<div style="font-size:0.85rem;color:#4a6572;margin-bottom:0.6rem;">' +
-    "This usually means a new version was deployed while you were here. " +
-    "Reload to pick up the latest." +
-    (safePath
-      ? '<div style="font-size:0.72rem;color:#8a9ba6;margin-top:0.35rem;">' + safePath + "</div>"
-      : "") +
-    "</div>" +
-    '<div style="display:flex;gap:0.45rem;">' +
-    '<button type="button" id="adminLazyReloadBtn" ' +
-    'style="padding:0.45rem 0.85rem;border:none;border-radius:6px;' +
-    'background:#1a7a8f;color:#fff;font-weight:600;cursor:pointer;font:inherit;">Reload</button>' +
-    '<button type="button" id="adminLazyDismissBtn" ' +
-    'style="padding:0.45rem 0.85rem;border:1px solid #d4e4e9;border-radius:6px;' +
-    'background:#fff;color:#4a6572;cursor:pointer;font:inherit;">Dismiss</button>' +
-    "</div>";
-  document.body.appendChild(banner);
-  const reloadBtn = banner.querySelector("#adminLazyReloadBtn");
-  const dismissBtn = banner.querySelector("#adminLazyDismissBtn");
-  if (reloadBtn)
-    reloadBtn.addEventListener("click", function () {
-      window.location.reload();
-    });
-  if (dismissBtn)
-    dismissBtn.addEventListener("click", function () {
-      banner.remove();
-    });
-}
+// Lazy-load failure banner extracted to assets/admin-lazy-load-banner.js
+// so the controller registry (admin-controller-registry.js) can import it
+// without round-tripping through admin.js.
 
 function readReviewActivityView() {
   try {
@@ -4953,20 +4937,11 @@ function renderDeferredLicensureQueue() {
 }
 
 function renderLicensureActivity() {
-  withLazyAdminModule("./admin-licensure-activity.js", function (module) {
-    module.renderLicensureActivityPanel({
-      root: document.getElementById("licensureActivity"),
-      countEl: document.getElementById("licensureActivityCount"),
-      authRequired: authRequired,
-      rows: licensureActivityFeed,
-      activeFilter: licensureActivityFilter,
-      onFilterChange: function (nextFilter) {
-        licensureActivityFilter = nextFilter;
-        renderLicensureActivity();
-      },
-      escapeHtml: escapeHtml,
-    });
-  });
+  // Migrated to the controller pattern. Everything (data, filter, auth
+  // gating) flows through adminStore + adminRegistry; this orchestration
+  // function just kicks the registry. Kept as a function for
+  // compatibility with the renderAdminSection wrapper below.
+  adminRegistry.render("licensureActivity");
 }
 
 function renderImportBlockerSprint() {

@@ -203,3 +203,36 @@ function formatDisplayDate(value) {
   }
   return date.toLocaleString();
 }
+
+// Controller registration. The legacy renderLicensureActivityPanel export
+// stays for any test or call site that still wires it directly; the new
+// shape below is what assets/admin-controller-registry.js consumes.
+//
+// This is the first tab migrated to the controller pattern. See
+// docs/admin-refactor or assets/admin-controller-registry.js for the
+// pattern and the rationale.
+const controller = {
+  id: "licensureActivity",
+  regionId: "licensureActivity",
+  countElId: "licensureActivityCount",
+  lazyModule: "./admin-licensure-activity.js",
+  storeSlices: ["data.licensureActivityFeed", "filters.licensureActivity", "authRequired"],
+  render(ctx) {
+    const store = ctx.store;
+    renderLicensureActivityPanel({
+      root: ctx.dom.root,
+      countEl: ctx.dom.count,
+      authRequired: store.get("authRequired") === true,
+      rows: store.get("data.licensureActivityFeed") || [],
+      activeFilter: store.get("filters.licensureActivity") || "",
+      escapeHtml: ctx.deps.escapeHtml,
+      onFilterChange(next) {
+        store.set("filters.licensureActivity", next || "");
+      },
+    });
+  },
+};
+
+// Importing default loads the controller; the legacy named export
+// (renderLicensureActivityPanel) remains available for direct calls.
+export default controller;
