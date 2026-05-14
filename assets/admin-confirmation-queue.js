@@ -480,3 +480,31 @@ export function renderConfirmationQueuePanel(options) {
 
   options.bindConfirmationResponseCapture(root);
 }
+
+// Controller registration. PR 4 of the admin.js refactor.
+//
+// The Confirmation Queue panel has a ~40-prop option bag closured over
+// admin.js state (data getters, action helpers, render callbacks for
+// peer panels). Rather than route all of that through the store now,
+// the controller delegates option-bag construction to a single
+// `buildOptions(store)` closure passed via ctx.deps. That keeps the
+// migration scoped: structure moves to the controller pattern, the
+// helper-sprawl audit happens in a follow-up.
+//
+// The controller subscribes to authRequired so a logout/login transition
+// re-renders. All other re-renders are still triggered imperatively by
+// existing call sites in admin.js (which now route through
+// adminRegistry.render("confirmationQueue")).
+const controller = {
+  id: "confirmationQueue",
+  regionId: "confirmationQueue",
+  countElId: "confirmationQueueCount",
+  storeSlices: ["authRequired"],
+  render(ctx) {
+    const build = ctx.deps.buildConfirmationQueueOptions;
+    if (typeof build !== "function") return;
+    renderConfirmationQueuePanel(build(ctx.store));
+  },
+};
+
+export default controller;

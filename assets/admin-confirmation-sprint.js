@@ -514,3 +514,18 @@ export function renderConfirmationSprintPanel(options) {
     });
   });
 }
+
+// Controller registration. PR 4 of the admin.js refactor. Sibling of
+// admin-confirmation-queue.js — same option-bag-via-buildOptions pattern.
+const controller = {
+  id: "confirmationSprint",
+  regionId: "confirmationSprint",
+  storeSlices: ["authRequired"],
+  render(ctx) {
+    const build = ctx.deps.buildConfirmationSprintOptions;
+    if (typeof build !== "function") return;
+    renderConfirmationSprintPanel(build(ctx.store));
+  },
+};
+
+export default controller;
