@@ -131,5 +131,106 @@ export function createAdminStore(initialState) {
     snapshot() {
       return state;
     },
+    // Declaratively wire store paths to localStorage keys. The store
+    // owns persistence so controllers don't each hand-roll their own
+    // localStorage readers/writers.
+    //
+    // map shape:
+    //   {
+    //     "filters.reviewActivity": "bth_review_activity_view_v1",
+    //     // or richer:
+    //     "data.savedViews": {
+    //       key: "bth_review_activity_saved_views_v1",
+    //       serialize(value)   { return JSON.stringify(value || []); },
+    //       deserialize(raw)   { const v = JSON.parse(raw); return Array.isArray(v) ? v : []; },
+    //     },
+    //   }
+    //
+    // On attach, hydrates each path from localStorage (if present and
+    // non-empty). On subsequent set()s, writes back to localStorage with
+    // a 250ms debounce per key to avoid thrash on rapid changes.
+    //
+    // Returns a detach function for tests.
+    attachLocalStorage(map, options) {
+      const storageOverride = options && options.storage;
+      const storage =
+        storageOverride ||
+        (typeof window !== "undefined" && window.localStorage ? window.localStorage : null);
+      if (!storage) return function noop() {};
+      const debounceMs = (options && options.debounceMs) || 250;
+      const pendingTimers = new Map();
+      const unsubscribers = [];
+
+      const entries = Object.entries(map || {}).map(function ([path, def]) {
+        const config = typeof def === "string" ? { key: def } : def || {};
+        const serialize =
+          typeof config.serialize === "function"
+            ? config.serialize
+            : function (value) {
+                return JSON.stringify(value);
+              };
+        const deserialize =
+          typeof config.deserialize === "function"
+            ? config.deserialize
+            : function (raw) {
+                return JSON.parse(raw);
+              };
+        return { path: path, key: config.key, serialize: serialize, deserialize: deserialize };
+      });
+
+      // Hydrate each path from storage. Skip silently on any error so a
+      // corrupt entry doesn't break the whole app.
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        let raw = null;
+        try {
+          raw = storage.getItem(entry.key);
+        } catch (_error) {
+          continue;
+        }
+        if (raw == null || raw === "") continue;
+        let parsed;
+        try {
+          parsed = entry.deserialize(raw);
+        } catch (_error) {
+          continue;
+        }
+        if (parsed !== undefined) {
+          this.set(entry.path, parsed);
+        }
+      }
+
+      // Subscribe to writes back to storage. One subscription per entry
+      // so we can debounce per key.
+      const self = this;
+      for (let i = 0; i < entries.length; i++) {
+        const entry = entries[i];
+        const unsub = self.subscribe([entry.path], function () {
+          if (pendingTimers.has(entry.key)) {
+            clearTimeout(pendingTimers.get(entry.key));
+          }
+          const timer = setTimeout(function () {
+            pendingTimers.delete(entry.key);
+            try {
+              storage.setItem(entry.key, entry.serialize(self.get(entry.path)));
+            } catch (_error) {
+              // Storage quota or disabled — keep the UI usable.
+            }
+          }, debounceMs);
+          pendingTimers.set(entry.key, timer);
+        });
+        unsubscribers.push(unsub);
+      }
+
+      return function detach() {
+        for (const timer of pendingTimers.values()) {
+          clearTimeout(timer);
+        }
+        pendingTimers.clear();
+        for (let i = 0; i < unsubscribers.length; i++) {
+          unsubscribers[i]();
+        }
+      };
+    },
   };
 }
