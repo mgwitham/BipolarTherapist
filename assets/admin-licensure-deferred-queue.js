@@ -122,3 +122,28 @@ function formatDisplayDate(value) {
   }
   return date.toLocaleString();
 }
+
+// Controller registration. PR 2 of the admin.js refactor. Shares
+// data.licensureActivityFeed with the Licensure Activity + Queue
+// controllers — the store fires this only on overlapping path changes.
+const controller = {
+  id: "deferredLicensureQueue",
+  regionId: "deferredLicensureQueue",
+  countElId: "deferredLicensureQueueCount",
+  storeSlices: ["data.deferredLicensureQueue", "data.licensureActivityFeed", "authRequired"],
+  render(ctx) {
+    const store = ctx.store;
+    renderDeferredLicensureQueuePanel({
+      root: ctx.dom.root,
+      countEl: ctx.dom.count,
+      authRequired: store.get("authRequired") === true,
+      rows: store.get("data.deferredLicensureQueue") || [],
+      activityFeed: store.get("data.licensureActivityFeed") || [],
+      decideLicensureOps: ctx.deps.decideLicensureOps,
+      loadData: ctx.deps.loadData,
+      escapeHtml: ctx.deps.escapeHtml,
+    });
+  },
+};
+
+export default controller;

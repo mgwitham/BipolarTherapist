@@ -14,6 +14,8 @@ import { showLazyLoadFailureBanner } from "./admin-lazy-load-banner.js";
 import { createAdminStore } from "./admin-store.js";
 import { createControllerRegistry } from "./admin-controller-registry.js";
 import licensureActivityController from "./admin-licensure-activity.js";
+import licensureQueueController from "./admin-licensure-queue.js";
+import deferredLicensureQueueController from "./admin-licensure-deferred-queue.js";
 
 async function fetchMatchedTherapistForCandidate(candidate) {
   if (!candidate) return null;
@@ -170,14 +172,30 @@ if (typeof window !== "undefined" && window.addEventListener && document.documen
 // are migrated in subsequent PRs.
 const adminStore = createAdminStore({
   authRequired: false,
-  data: { licensureActivityFeed: [] },
-  filters: { licensureActivity: "" },
+  data: {
+    licensureActivityFeed: [],
+    licensureRefreshQueue: [],
+    deferredLicensureQueue: [],
+  },
+  filters: {
+    licensureActivity: "",
+    licensureQueue: "",
+  },
 });
 const adminRegistry = createControllerRegistry({
   store: adminStore,
-  deps: { escapeHtml: escapeHtml },
+  // loadData and copyText are declared later as `async function`s but
+  // hoisted to the top of the module scope, so they're resolvable here.
+  deps: {
+    escapeHtml: escapeHtml,
+    decideLicensureOps: decideLicensureOps,
+    loadData: loadData,
+    copyText: copyText,
+  },
 });
 adminRegistry.register(licensureActivityController);
+adminRegistry.register(licensureQueueController);
+adminRegistry.register(deferredLicensureQueueController);
 
 let dataMode = "local";
 let remoteApplications = [];
@@ -196,7 +214,6 @@ let licensureActivityFeed = [];
 let profileConversionFreshnessQueue = [];
 let authRequired = false;
 let authErrorVisible = false;
-let licensureQueueFilter = "";
 let reviewActivityFilter = "";
 let reviewActivitySavedViewId = "";
 let adminWorkflowUrlParamsApplied = false;
@@ -962,15 +979,16 @@ function applyAdminRuntimeState(nextState) {
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "licensureRefreshQueue")) {
     licensureRefreshQueue = nextState.licensureRefreshQueue;
+    adminStore.set("data.licensureRefreshQueue", nextState.licensureRefreshQueue || []);
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "deferredLicensureQueue")) {
     deferredLicensureQueue = nextState.deferredLicensureQueue;
+    adminStore.set("data.deferredLicensureQueue", nextState.deferredLicensureQueue || []);
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "licensureActivityFeed")) {
     licensureActivityFeed = nextState.licensureActivityFeed;
-    // Mirror into the controller store so the migrated Licensure Activity
-    // controller re-renders. Other tabs still read the local `let` until
-    // they migrate.
+    // Mirror into the controller store so migrated controllers re-render.
+    // Other (still-unmigrated) tabs read the local `let` directly.
     adminStore.set("data.licensureActivityFeed", nextState.licensureActivityFeed || []);
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "profileConversionFreshnessQueue")) {
@@ -4882,24 +4900,9 @@ function renderListings() {
 }
 
 function renderLicensureQueue() {
-  withLazyAdminModule("./admin-licensure-queue.js", function (module) {
-    module.renderLicensureQueuePanel({
-      root: document.getElementById("licensureQueue"),
-      countEl: document.getElementById("licensureQueueCount"),
-      authRequired: authRequired,
-      rows: licensureRefreshQueue,
-      activityFeed: licensureActivityFeed,
-      activeFilter: licensureQueueFilter,
-      onFilterChange: function (nextFilter) {
-        licensureQueueFilter = nextFilter;
-        renderLicensureQueue();
-      },
-      decideLicensureOps: decideLicensureOps,
-      loadData: loadData,
-      escapeHtml: escapeHtml,
-      copyText: copyText,
-    });
-  });
+  // Migrated to the controller pattern (PR 2). Store + registry own
+  // data, filter, and auth state; this kicks the registry.
+  adminRegistry.render("licensureQueue");
 }
 
 function renderLicensureSprint() {
@@ -4922,18 +4925,8 @@ function renderLicensureSprint() {
 }
 
 function renderDeferredLicensureQueue() {
-  withLazyAdminModule("./admin-licensure-deferred-queue.js", function (module) {
-    module.renderDeferredLicensureQueuePanel({
-      root: document.getElementById("deferredLicensureQueue"),
-      countEl: document.getElementById("deferredLicensureQueueCount"),
-      authRequired: authRequired,
-      rows: deferredLicensureQueue,
-      activityFeed: licensureActivityFeed,
-      decideLicensureOps: decideLicensureOps,
-      loadData: loadData,
-      escapeHtml: escapeHtml,
-    });
-  });
+  // Migrated to the controller pattern (PR 2).
+  adminRegistry.render("deferredLicensureQueue");
 }
 
 function renderLicensureActivity() {
