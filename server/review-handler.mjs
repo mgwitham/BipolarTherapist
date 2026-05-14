@@ -170,7 +170,19 @@ function normalizeEmail(value) {
   return normalizeLower(value);
 }
 
-async function findDuplicateTherapistEntity(client, input) {
+// Find an existing therapist or in-progress application that matches the
+// intake identity.
+//
+// options.includeArchived (default false): when true, soft-deleted
+// therapists (listingActive=false OR status=archived) are also returned,
+// flagged as `archived: true` on the result. The intake route uses this
+// to take a restore-on-re-signup path: same person comes back, we
+// un-archive their old doc instead of creating a duplicate.
+//
+// When includeArchived is false (default), archived docs are skipped so
+// the legacy /applications endpoint keeps its current strict behavior.
+async function findDuplicateTherapistEntity(client, input, options) {
+  const includeArchived = Boolean(options && options.includeArchived);
   const identity = buildDuplicateIdentity(input);
   const [therapists, applications] = await Promise.all([
     client.fetch(
@@ -213,15 +225,14 @@ async function findDuplicateTherapistEntity(client, input) {
 
   const therapistMatch = (therapists || []).find(function (candidate) {
     const reasons = compareDuplicateIdentity(identity, candidate);
-    if (
-      reasons.length &&
-      candidate.listingActive !== false &&
-      String(candidate.status || "active").toLowerCase() !== "archived"
-    ) {
-      candidate.__duplicateReasons = reasons;
-      return true;
-    }
-    return false;
+    if (!reasons.length) return false;
+    const isArchived =
+      candidate.listingActive === false ||
+      String(candidate.status || "active").toLowerCase() === "archived";
+    if (isArchived && !includeArchived) return false;
+    candidate.__duplicateReasons = reasons;
+    candidate.__archived = isArchived;
+    return true;
   });
 
   if (therapistMatch) {
@@ -231,6 +242,7 @@ async function findDuplicateTherapistEntity(client, input) {
       slug: therapistMatch.slug || "",
       name: therapistMatch.name || "",
       reasons: therapistMatch.__duplicateReasons || [],
+      archived: Boolean(therapistMatch.__archived),
     };
   }
 

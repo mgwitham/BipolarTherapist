@@ -403,7 +403,7 @@ export function createMemoryClient(initialDocuments) {
           ifRevisionId() {
             return api;
           },
-          async commit() {
+          async commit(options) {
             const current = deepClone(state.documents.get(id) || {});
             const next = {
               ...current,
@@ -422,6 +422,12 @@ export function createMemoryClient(initialDocuments) {
               delete next[key];
             });
             state.documents.set(id, next);
+            // Match the real Sanity client: with returnDocuments: true
+            // return the full post-patch doc (callers use it to skip a
+            // follow-up fetch). Without it, return just the id stub.
+            if (options && options.returnDocuments) {
+              return deepClone(next);
+            }
             return { _id: id };
           },
         };

@@ -688,6 +688,122 @@ test("intake: missing treats_bipolar checkbox returns 400", async function () {
   assert.match(response.payload.error, /bipolar/i);
 });
 
+test("intake: archived therapist with matching license is restored (no duplicate created)", async function () {
+  // Regression guard for the "they come back in 2 weeks" scenario.
+  // Soft-deleted therapists get listingActive=false and status=archived.
+  // Without the restore branch, the dupe check skipped archived docs
+  // and intake created a fresh duplicate. With the branch, intake
+  // recognizes the archived match and un-archives the existing doc.
+  const { client, state } = createMemoryClient({
+    "therapist-archived": {
+      _id: "therapist-archived",
+      _type: "therapist",
+      name: "Dr. Jamie Rivera",
+      email: "jamie@example.com",
+      licenseNumber: "12345",
+      licenseState: "CA",
+      state: "CA",
+      slug: { current: "dr-jamie-rivera-los-angeles-ca", _type: "slug" },
+      listingActive: false,
+      status: "archived",
+      lifecycle: "archived",
+      visibilityIntent: "hidden",
+      notes: "[2026-05-01] Soft-deleted via outreach CRM.",
+      outreach: {
+        status: "bounced",
+        emailLog: [
+          { _key: "log_1", sentAt: "2026-04-15T12:00:00Z", template: "email_1", subject: "x" },
+        ],
+      },
+    },
+  });
+  const handler = createReviewApiHandler(
+    { ...createTestApiConfig(), dcaAppId: "app", dcaAppKey: "key" },
+    client,
+  );
+  const restore = withDcaFetchStub((url) => {
+    const match = String(url).match(/licType=(\d+)/);
+    const typeCode = match ? match[1] : "";
+    if (typeCode === "2001") {
+      return {
+        ok: true,
+        async json() {
+          return {
+            licenseDetails: [
+              {
+                getFullLicenseDetail: [
+                  {
+                    getLicenseDetails: [
+                      {
+                        primaryStatusCode: "20",
+                        expDate: "20990101",
+                        issueDate: "20100101",
+                        licenseNumber: "12345",
+                        boardCode: "04",
+                      },
+                    ],
+                    getNameDetails: [
+                      {
+                        individualNameDetails: [
+                          { firstName: "Jamie", middleName: "", lastName: "Rivera" },
+                        ],
+                      },
+                    ],
+                    getAddressDetail: [{ address: [{ city: "Los Angeles", state: "CA" }] }],
+                  },
+                ],
+              },
+            ],
+          };
+        },
+      };
+    }
+    return {
+      ok: true,
+      async json() {
+        return { licenseDetails: [] };
+      },
+    };
+  });
+
+  try {
+    const response = await runHandlerRequest(handler, {
+      body: {
+        name: "Dr. Jamie Rivera",
+        email: "jamie@example.com",
+        license_number: "12345",
+        city: "Los Angeles",
+        state: "CA",
+        treats_bipolar: true,
+      },
+      headers: { host: "localhost:8787", "x-forwarded-for": "10.20.0.9" },
+      method: "POST",
+      url: "/applications/intake",
+    });
+
+    assert.equal(response.statusCode, 200, "restore should succeed, not 409");
+    assert.equal(response.payload.therapist_id, "therapist-archived", "same _id reused");
+
+    // Exactly one therapist doc remains — no duplicate created.
+    const therapists = Array.from(state.documents.values()).filter((d) => d._type === "therapist");
+    assert.equal(therapists.length, 1, "no duplicate therapist doc created");
+
+    const restored = state.documents.get("therapist-archived");
+    // Source of truth was patched: listingActive flipped, status/
+    // lifecycle reset, intakeSource flagged as restore for audit trail.
+    assert.equal(restored.listingActive, false, "still pending_profile until portal save");
+    assert.equal(restored.status, "pending_profile");
+    assert.equal(restored.intakeSource, "signup_restore_after_archive");
+    // Outreach history preserved on the restored doc.
+    assert.ok(restored.outreach, "outreach data should not be wiped on restore");
+    assert.equal(restored.outreach.emailLog.length, 1, "email log preserved");
+    // Restore audit note appended to internal notes.
+    assert.match(restored.notes, /Restored from archive via signup re-entry/);
+  } finally {
+    restore();
+  }
+});
+
 test("intake: duplicate license (existing therapist) returns 409 with claim guidance", async function () {
   const { client } = createMemoryClient({
     "therapist-existing": {
