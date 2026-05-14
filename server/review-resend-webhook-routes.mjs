@@ -194,13 +194,36 @@ export async function handleResendWebhookRoutes(context) {
     return true;
   }
 
-  const recipientLower = recipients.map((r) => String(r).toLowerCase());
+  // Match the bounce/complaint to a specific therapist. Prefer the
+  // event's email_id (Resend's per-send identifier we recorded in the
+  // outreach.emailLog as resendId): exactly one therapist, the actual
+  // recipient of the send that bounced. Only fall back to address-based
+  // matching when the event has no email_id, which preserves the
+  // legacy behavior but contains the blast radius.
+  //
+  // Why this matters: matching by email alone meant a bounce on a
+  // recycled address force-flipped every therapist with that address to
+  // bounced/opted_out, and someone who controls a previously-sent-to
+  // mailbox could permanently kill outreach to anyone reusing it.
+  const resendId = event?.data?.email_id || "";
   let therapists = [];
   try {
-    therapists = await client.fetch(
-      `*[_type == "therapist" && lower(email) in $emails]{ _id, name, email, outreach }`,
-      { emails: recipientLower },
-    );
+    if (resendId) {
+      const matchByResendId = await client.fetch(
+        `*[_type == "therapist" && $resendId in outreach.emailLog[].resendId]{
+          _id, name, email, outreach
+        }`,
+        { resendId },
+      );
+      therapists = Array.isArray(matchByResendId) ? matchByResendId : [];
+    }
+    if (therapists.length === 0) {
+      const recipientLower = recipients.map((r) => String(r).toLowerCase());
+      therapists = await client.fetch(
+        `*[_type == "therapist" && lower(email) in $emails]{ _id, name, email, outreach }`,
+        { emails: recipientLower },
+      );
+    }
   } catch (err) {
     log.error("resend webhook fetch error", { err: err?.message || String(err) });
     response.writeHead(500, { "Content-Type": "application/json" });
