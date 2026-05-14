@@ -736,7 +736,9 @@ function renderBulkActionBar() {
     .filter(Boolean);
   const emailable = selectedRows.filter((t) => (t.email || "").trim()).length;
   const ptReady = selectedRows.filter((t) => getPTProfileUrl(t)).length;
-  const ptMissing = selectedRows.filter((t) => !getPTProfileUrl(t) && !(t.email || "").trim()).length;
+  const ptMissing = selectedRows.filter(
+    (t) => !getPTProfileUrl(t) && !(t.email || "").trim(),
+  ).length;
 
   bar.style.display = "flex";
   bar.innerHTML = `
