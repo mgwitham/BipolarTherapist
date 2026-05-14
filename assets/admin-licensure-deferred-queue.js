@@ -130,11 +130,7 @@ const controller = {
   id: "deferredLicensureQueue",
   regionId: "deferredLicensureQueue",
   countElId: "deferredLicensureQueueCount",
-  storeSlices: [
-    "data.deferredLicensureQueue",
-    "data.licensureActivityFeed",
-    "authRequired",
-  ],
+  storeSlices: ["data.deferredLicensureQueue", "data.licensureActivityFeed", "authRequired"],
   render(ctx) {
     const store = ctx.store;
     renderDeferredLicensureQueuePanel({

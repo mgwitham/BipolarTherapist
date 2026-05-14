@@ -111,29 +111,19 @@ test("registry: subscribers fire only on overlapping store paths", async functio
   // Change shared slice — both must re-render exactly once.
   store.set("data.activityFeed", [{ id: 1 }]);
   await flush();
-  assert.equal(
-    activityRenders - activityBaseline,
-    2,
-    "activity re-renders on shared slice change",
-  );
+  assert.equal(activityRenders - activityBaseline, 2, "activity re-renders on shared slice change");
   assert.equal(queueRenders - queueBaseline, 1, "queue re-renders on shared slice change");
 });
 
 test("registry: register() requires id and render", function () {
   const store = createAdminStore({});
   const registry = createControllerRegistry({ store });
-  assert.throws(
-    function () {
-      registry.register({});
-    },
-    /must have an id/,
-  );
-  assert.throws(
-    function () {
-      registry.register({ id: "x" });
-    },
-    /missing render/,
-  );
+  assert.throws(function () {
+    registry.register({});
+  }, /must have an id/);
+  assert.throws(function () {
+    registry.register({ id: "x" });
+  }, /missing render/);
 });
 
 test("registry: a controller render that throws is isolated", async function () {
