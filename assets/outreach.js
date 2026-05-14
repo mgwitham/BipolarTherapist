@@ -87,6 +87,24 @@ function getContactFormUrl(t) {
   return safeExternalUrl((t && (t.website || t.sourceUrl)) || "");
 }
 
+// Detect a Psychology Today profile URL. PT is a major outreach
+// channel for therapists who don't expose a direct email, so we treat
+// it as a first-class signal: the row gets a PT badge, and "Outreach
+// via PT" step-throughs target only these rows.
+function getPTProfileUrl(t) {
+  const candidates = [t?.sourceUrl, t?.website].map((v) => safeExternalUrl(v || ""));
+  return candidates.find((u) => /(^|\.)psychologytoday\.com\//i.test(u)) || "";
+}
+
+// Open a Google search scoped to psychologytoday.com so the user can
+// find a missing PT profile by name + license_state + city. No PT
+// requests come from us — the user clicks the result.
+function getPTSearchUrl(t) {
+  const parts = [t?.name, t?.city, t?.state || t?.licenseState, "psychology today"].filter(Boolean);
+  const q = encodeURIComponent(parts.join(" "));
+  return `https://www.google.com/search?q=${q}+site%3Apsychologytoday.com`;
+}
+
 function therapistPath(id) {
   return `/therapist/${encodeURIComponent(String(id || ""))}`;
 }
@@ -713,16 +731,215 @@ function renderBulkActionBar() {
     bar.innerHTML = "";
     return;
   }
+  const selectedRows = Array.from(state.selected)
+    .map((id) => state.therapists.find((t) => t._id === id))
+    .filter(Boolean);
+  const emailable = selectedRows.filter((t) => (t.email || "").trim()).length;
+  const ptReady = selectedRows.filter((t) => getPTProfileUrl(t)).length;
+  const ptMissing = selectedRows.filter(
+    (t) => !getPTProfileUrl(t) && !(t.email || "").trim(),
+  ).length;
+
   bar.style.display = "flex";
   bar.innerHTML = `
     <span style="font-weight:600;">${count} selected</span>
-    <button id="bulk-send" type="button" style="background:#2a5f6e;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;">Send batch</button>
+    <button id="bulk-send" type="button" ${emailable === 0 ? "disabled" : ""} style="background:#2a5f6e;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;${emailable === 0 ? "opacity:0.4;cursor:not-allowed;" : ""}" title="Send personalized emails through Resend to selected therapists with an email on file">Send email (${emailable})</button>
+    <button id="bulk-pt" type="button" ${ptReady === 0 ? "disabled" : ""} style="background:#5b21b6;color:#fff;border:none;border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;${ptReady === 0 ? "opacity:0.4;cursor:not-allowed;" : ""}" title="Step through Psychology Today contact forms for selected therapists with a PT URL">Outreach via PT (${ptReady})</button>
+    <button id="bulk-find-pt" type="button" ${ptMissing === 0 ? "disabled" : ""} style="background:transparent;color:#fff;border:1px solid #6b7280;border-radius:6px;padding:7px 12px;font-size:13px;cursor:pointer;${ptMissing === 0 ? "opacity:0.4;cursor:not-allowed;" : ""}" title="Open a Google search scoped to psychologytoday.com for each selected therapist with no PT URL on file">Find on PT (${ptMissing})</button>
     <button id="bulk-clear" type="button" style="background:transparent;color:#9ca3af;border:1px solid #374151;border-radius:6px;padding:7px 12px;font-size:13px;cursor:pointer;">Clear</button>
   `;
   document.getElementById("bulk-send")?.addEventListener("click", openBatchComposer);
+  document.getElementById("bulk-pt")?.addEventListener("click", openPTOutreach);
+  document.getElementById("bulk-find-pt")?.addEventListener("click", openFindOnPT);
   document.getElementById("bulk-clear")?.addEventListener("click", () => {
     state.selected.clear();
     refreshTable();
+  });
+}
+
+// Step-through Psychology Today outreach. Opens a modal that walks
+// the user through each selected therapist who has a PT profile URL.
+// For each one we copy the personalized outreach body to the
+// clipboard and open the PT page in a new tab so the user can paste
+// + submit the form manually (PT's CAPTCHA + ToS make full
+// automation a non-starter). After submit, "Mark sent" logs to the
+// therapist's emailLog via the existing log-contact-form endpoint —
+// so PT sends show up in Subject Performance and the status pill
+// flips to email_1_sent, same as Resend sends.
+function openPTOutreach() {
+  const queue = Array.from(state.selected)
+    .map((id) => state.therapists.find((t) => t._id === id))
+    .filter((t) => t && getPTProfileUrl(t));
+  if (queue.length === 0) return;
+
+  let idx = 0;
+  const overlay = document.createElement("div");
+  overlay.id = "pt-outreach-overlay";
+  overlay.style.cssText =
+    "position:fixed;inset:0;background:rgba(17,24,39,0.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
+  document.body.appendChild(overlay);
+
+  function renderStep() {
+    if (idx >= queue.length) {
+      overlay.innerHTML = `
+        <div style="background:#fff;border-radius:14px;max-width:440px;width:100%;padding:24px;box-shadow:0 24px 64px rgba(0,0,0,0.25);text-align:center;">
+          <div style="font-size:17px;font-weight:700;color:#111827;margin-bottom:6px;">Batch complete</div>
+          <div style="font-size:13px;color:#6b7280;margin-bottom:18px;">Stepped through ${queue.length} therapist${queue.length === 1 ? "" : "s"}.</div>
+          <button id="pt-close" type="button" class="btn-primary">Close</button>
+        </div>
+      `;
+      overlay.querySelector("#pt-close").addEventListener("click", () => {
+        overlay.remove();
+        state.selected.clear();
+        refreshTable();
+      });
+      return;
+    }
+
+    const t = queue[idx];
+    const ptUrl = getPTProfileUrl(t);
+    const rendered = getOutreachTemplate("email_1", t);
+
+    overlay.innerHTML = `
+      <div style="background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.25);">
+        <div style="padding:18px 22px 12px;border-bottom:1px solid #e5e7eb;display:flex;align-items:center;justify-content:space-between;gap:10px;">
+          <div>
+            <div style="font-size:12px;font-weight:600;color:#5b21b6;letter-spacing:0.4px;text-transform:uppercase;">Outreach via PT · ${idx + 1} of ${queue.length}</div>
+            <div style="font-size:17px;font-weight:700;color:#111827;margin-top:2px;">${esc(t.name || "Unknown")}</div>
+            <div style="font-size:12px;color:#6b7280;margin-top:1px;">${esc(t.city || "")}${t.city && t.state ? ", " : ""}${esc(t.state || "")}</div>
+          </div>
+          <button id="pt-close-x" type="button" aria-label="Close" style="background:none;border:none;font-size:22px;color:#9ca3af;cursor:pointer;line-height:1;">&times;</button>
+        </div>
+        <div style="padding:14px 22px;overflow-y:auto;flex:1;">
+          <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">Subject (for your reference)</div>
+          <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:6px;padding:8px 10px;font-size:13px;color:#111827;margin-bottom:12px;">${esc(rendered.subject)}</div>
+          <div style="font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">Message body (will be copied to your clipboard)</div>
+          <pre id="pt-preview" style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:12px;font-size:12px;color:#111827;white-space:pre-wrap;font-family:inherit;max-height:260px;overflow:auto;margin-bottom:14px;">${esc(rendered.body)}</pre>
+          <button id="pt-open" type="button" class="btn-primary" style="width:100%;background:#5b21b6;">Copy message + open PT form ↗</button>
+          <div id="pt-copy-status" style="font-size:11px;color:#9ca3af;margin-top:6px;text-align:center;"></div>
+        </div>
+        <div style="padding:12px 22px;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:0 0 14px 14px;">
+          <button id="pt-skip" type="button" class="btn-secondary">Skip</button>
+          <button id="pt-sent" type="button" class="btn-primary" style="margin-left:auto;">Mark sent → next</button>
+        </div>
+      </div>
+    `;
+
+    overlay.querySelector("#pt-close-x").addEventListener("click", () => {
+      overlay.remove();
+    });
+    overlay.querySelector("#pt-skip").addEventListener("click", () => {
+      idx++;
+      renderStep();
+    });
+    overlay.querySelector("#pt-open").addEventListener("click", async () => {
+      const status = overlay.querySelector("#pt-copy-status");
+      try {
+        await navigator.clipboard.writeText(rendered.body);
+        status.textContent = "Copied. Paste into the message field on PT.";
+        status.style.color = "#059669";
+      } catch {
+        status.textContent =
+          "Couldn't copy automatically. Select the body above and copy manually.";
+        status.style.color = "#b45309";
+      }
+      window.open(ptUrl, "_blank", "noopener");
+    });
+    overlay.querySelector("#pt-sent").addEventListener("click", async () => {
+      const btn = overlay.querySelector("#pt-sent");
+      btn.disabled = true;
+      btn.textContent = "Logging…";
+      const { ok } = await apiPost("/log-contact-form", {
+        therapistId: t._id,
+        template: "email_1",
+        subject: rendered.subject,
+        body: rendered.body,
+      });
+      if (!ok) {
+        btn.disabled = false;
+        btn.textContent = "Retry log";
+        return;
+      }
+      const now = new Date().toISOString();
+      mutateTherapist(t._id, (th) => {
+        if (!th.outreach) th.outreach = {};
+        th.outreach.status = "email_1_sent";
+        th.outreach.emailsSent = (th.outreach.emailsSent || 0) + 1;
+        th.outreach.lastContactedAt = now;
+        th.outreach.emailLog = [
+          ...(th.outreach.emailLog || []),
+          {
+            sentAt: now,
+            template: "email_1_via_form",
+            subject: rendered.subject,
+            body: rendered.body,
+          },
+        ];
+      });
+      state.selected.delete(t._id);
+      idx++;
+      renderStep();
+    });
+  }
+  renderStep();
+}
+
+// Find-on-PT helper. For each selected therapist without a PT URL on
+// file, opens a Google search scoped to psychologytoday.com so the
+// user can locate their profile. Once found, the user pastes the URL
+// into the therapist's Edit drawer (Source URL field) and saves —
+// next time they refresh the page, the therapist moves to the
+// Outreach-via-PT queue.
+function openFindOnPT() {
+  const queue = Array.from(state.selected)
+    .map((id) => state.therapists.find((t) => t._id === id))
+    .filter((t) => t && !getPTProfileUrl(t) && !(t.email || "").trim());
+  if (queue.length === 0) return;
+
+  const overlay = document.createElement("div");
+  overlay.style.cssText =
+    "position:fixed;inset:0;background:rgba(17,24,39,0.55);z-index:300;display:flex;align-items:center;justify-content:center;padding:20px;";
+  overlay.innerHTML = `
+    <div style="background:#fff;border-radius:14px;max-width:640px;width:100%;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.25);">
+      <div style="padding:18px 22px 12px;border-bottom:1px solid #e5e7eb;">
+        <div style="font-size:17px;font-weight:700;color:#111827;">Find on Psychology Today · ${queue.length}</div>
+        <div style="font-size:12px;color:#6b7280;margin-top:4px;line-height:1.45;">
+          These therapists don't have a PT URL on file. Click <strong>Search</strong> to open a Google query scoped to psychologytoday.com. When you find their PT profile, copy the URL, then paste it into the therapist's Edit drawer (Source URL field) and save. They'll move to the Outreach via PT queue.
+        </div>
+      </div>
+      <div style="padding:8px 0;overflow-y:auto;flex:1;">
+        ${queue
+          .map(
+            (t) => `
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 22px;border-bottom:1px solid #f3f4f6;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-size:13px;font-weight:600;color:#111827;">${esc(t.name || "Unknown")}</div>
+              <div style="font-size:11px;color:#6b7280;">${esc(t.city || "")}${t.city && t.state ? ", " : ""}${esc(t.state || "")}${t.licenseNumber ? ` · License ${esc(t.licenseNumber)}` : ""}</div>
+            </div>
+            <a href="${esc(getPTSearchUrl(t))}" target="_blank" rel="noopener" style="background:#5b21b6;color:#fff;border-radius:6px;padding:6px 12px;font-size:12px;font-weight:600;text-decoration:none;">Search ↗</a>
+            <button class="btn-secondary fop-edit-btn" data-id="${esc(t._id)}" style="font-size:12px;">Edit</button>
+          </div>
+        `,
+          )
+          .join("")}
+      </div>
+      <div style="padding:12px 22px;border-top:1px solid #e5e7eb;display:flex;align-items:center;gap:10px;background:#f9fafb;border-radius:0 0 14px 14px;">
+        <span style="font-size:12px;color:#6b7280;flex:1;">Tip: middle-click "Search" to open in a background tab.</span>
+        <button id="fop-close" type="button" class="btn-secondary">Done</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+  overlay.querySelector("#fop-close").addEventListener("click", () => overlay.remove());
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+  overlay.querySelectorAll(".fop-edit-btn").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const id = btn.dataset.id;
+      const t = state.therapists.find((x) => x._id === id);
+      if (t) openOutreachEditDrawer(t);
+    });
   });
 }
 
@@ -997,14 +1214,21 @@ function refreshTable() {
       const profileUrl = safeProfileUrl(t.profileUrl);
       const emailLabel = sendLabel || "Email";
       const hasEmail = Boolean((t.email || "").trim());
+      const ptUrl = getPTProfileUrl(t);
       const isSelected = state.selected.has(t._id);
-      const checkboxCell = hasEmail
-        ? `<input type="checkbox" class="row-select" data-id="${esc(t._id)}" data-no-row-click ${isSelected ? "checked" : ""} />`
-        : `<input type="checkbox" disabled title="No email on file — use the contact form individually" data-no-row-click />`;
+      // Any row is selectable — bulk actions route by capability:
+      // direct email needs t.email, PT outreach needs a PT URL, Find
+      // on PT needs neither.
+      const checkboxCell = `<input type="checkbox" class="row-select" data-id="${esc(t._id)}" data-no-row-click ${isSelected ? "checked" : ""} />`;
+      const emailCellInner = hasEmail
+        ? esc(t.email)
+        : ptUrl
+          ? `<span style="display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:600;background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;">PT</span>`
+          : "-";
       return `<tr data-id="${esc(t._id)}" style="cursor:pointer;${dueBg}">
       <td style="padding:11px 14px;width:32px;" data-no-row-click>${checkboxCell}</td>
       <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "-")}</td>
-      <td style="padding:11px 14px;color:#6b7280;">${esc(t.email || "-")}</td>
+      <td style="padding:11px 14px;color:#6b7280;">${emailCellInner}</td>
       <td style="padding:11px 14px;">${pill(s)}</td>
       <td style="padding:11px 14px;text-align:center;color:#6b7280;">${sent}</td>
       <td style="padding:11px 14px;color:#6b7280;">${relTime(last) || "-"}</td>
@@ -1017,13 +1241,14 @@ function refreshTable() {
     })
     .join("");
 
-  // Header checkbox state: checked when every email-bearing visible row
-  // is selected; indeterminate when some but not all are.
-  const emailable = filtered.filter((t) => (t.email || "").trim());
-  const selectedVisible = emailable.filter((t) => state.selected.has(t._id)).length;
-  const allChecked = emailable.length > 0 && selectedVisible === emailable.length;
-  const indeterminate = selectedVisible > 0 && selectedVisible < emailable.length;
-  const headerCheckbox = `<input type="checkbox" id="select-all" ${allChecked ? "checked" : ""} ${indeterminate ? 'data-indeterminate="1"' : ""} title="Select all email-bearing therapists in view" />`;
+  // Header checkbox state: checked when every visible row is selected;
+  // indeterminate when some but not all are. Bulk actions route by
+  // capability (email / PT / find-on-PT) so non-emailable rows are
+  // still useful in the selection.
+  const selectedVisible = filtered.filter((t) => state.selected.has(t._id)).length;
+  const allChecked = filtered.length > 0 && selectedVisible === filtered.length;
+  const indeterminate = selectedVisible > 0 && selectedVisible < filtered.length;
+  const headerCheckbox = `<input type="checkbox" id="select-all" ${allChecked ? "checked" : ""} ${indeterminate ? 'data-indeterminate="1"' : ""} title="Select all visible therapists" />`;
 
   // Sortable headers: Status + Last contact have a click-to-sort
   // toggle. The arrow appears only on the active column.
@@ -1087,22 +1312,20 @@ function handleRowSelectChange(e) {
   renderBulkActionBar();
   // Update header checkbox state without a full table rerender.
   const filtered = applyFilters();
-  const emailable = filtered.filter((t) => (t.email || "").trim());
-  const selectedVisible = emailable.filter((t) => state.selected.has(t._id)).length;
+  const selectedVisible = filtered.filter((t) => state.selected.has(t._id)).length;
   const selectAll = document.getElementById("select-all");
   if (selectAll) {
-    selectAll.checked = emailable.length > 0 && selectedVisible === emailable.length;
-    selectAll.indeterminate = selectedVisible > 0 && selectedVisible < emailable.length;
+    selectAll.checked = filtered.length > 0 && selectedVisible === filtered.length;
+    selectAll.indeterminate = selectedVisible > 0 && selectedVisible < filtered.length;
   }
 }
 
 function handleSelectAllChange(e) {
   const filtered = applyFilters();
-  const emailable = filtered.filter((t) => (t.email || "").trim());
   if (e.target.checked) {
-    emailable.forEach((t) => state.selected.add(t._id));
+    filtered.forEach((t) => state.selected.add(t._id));
   } else {
-    emailable.forEach((t) => state.selected.delete(t._id));
+    filtered.forEach((t) => state.selected.delete(t._id));
   }
   refreshTable();
 }
