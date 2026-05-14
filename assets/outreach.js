@@ -210,8 +210,7 @@ function engagementTrailHtml(t) {
       const title = `Email ${i + 1}: ${subj} · sent ${when} · ${stateLabel}`;
       const fill =
         state === "opened" ? "#059669" : state === "unopened" ? "transparent" : "#e5e7eb";
-      const border =
-        state === "opened" ? "#059669" : state === "unopened" ? "#9ca3af" : "#d1d5db";
+      const border = state === "opened" ? "#059669" : state === "unopened" ? "#9ca3af" : "#d1d5db";
       return `<span title="${esc(title)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${fill};border:1.5px solid ${border};margin-right:3px;vertical-align:middle;"></span>`;
     })
     .join("");
