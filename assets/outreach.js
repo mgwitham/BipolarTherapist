@@ -790,6 +790,14 @@ function renderEditDrawerContent(t) {
             <div class="ed-field is-full"><label>Practice name</label>
               <input name="practiceName" type="text" value="${esc(t.practiceName || t.practice_name || "")}" autocomplete="off" />
             </div>
+            <div class="ed-field is-full"><label>Gender</label>
+              <div class="ed-check-row" style="margin-top:4px;">
+                <label class="ed-check"><input type="radio" name="gender" value="" ${!t.gender ? "checked" : ""}/> Not set</label>
+                <label class="ed-check"><input type="radio" name="gender" value="male" ${t.gender === "male" ? "checked" : ""}/> Male</label>
+                <label class="ed-check"><input type="radio" name="gender" value="female" ${t.gender === "female" ? "checked" : ""}/> Female</label>
+                <label class="ed-check"><input type="radio" name="gender" value="non_binary" ${t.gender === "non_binary" ? "checked" : ""}/> Non-binary</label>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -996,6 +1004,12 @@ function readDrawerForm() {
     const el = form.elements.namedItem(f);
     if (el) out[f] = el.value.trim();
   });
+  const genderEls = form.elements.namedItem("gender");
+  if (genderEls) {
+    const list = genderEls.length ? Array.from(genderEls) : [genderEls];
+    const picked = list.find((el) => el.checked);
+    out.gender = picked ? picked.value : "";
+  }
   const arrayFields = [
     "specialties",
     "treatmentModalities",

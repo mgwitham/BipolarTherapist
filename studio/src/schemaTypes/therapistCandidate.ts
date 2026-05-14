@@ -69,6 +69,7 @@ export const therapistCandidateType = defineType({
         list: [
           { title: "Male", value: "male" },
           { title: "Female", value: "female" },
+          { title: "Non-binary", value: "non_binary" },
         ],
         layout: "radio",
       },
