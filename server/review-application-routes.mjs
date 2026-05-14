@@ -127,8 +127,15 @@ export async function handleApplicationRoutes(context) {
         String(body.photo_upload_base64 || "").trim().length > 0 ? "therapist_uploaded" : "",
     };
 
-    const duplicate = await findDuplicateTherapistEntity(client, intakeBody);
-    if (duplicate) {
+    // Include archived therapists in the dupe check so a returning
+    // therapist whose listing was soft-deleted can be restored instead
+    // of creating a duplicate doc. The downstream branch below routes
+    // archived matches to the restore path; only ACTIVE duplicates
+    // return 409.
+    const duplicate = await findDuplicateTherapistEntity(client, intakeBody, {
+      includeArchived: true,
+    });
+    if (duplicate && !(duplicate.kind === "therapist" && duplicate.archived)) {
       const responsePayload =
         duplicate.kind === "therapist"
           ? {
@@ -151,6 +158,12 @@ export async function handleApplicationRoutes(context) {
       sendJson(response, 409, responsePayload, origin, config);
       return true;
     }
+
+    // Track the archived match so the post-verification branch knows to
+    // un-archive instead of creating a fresh therapist doc. Cleared if
+    // verification gates fail (the doc stays archived in that case).
+    const archivedRestoreTarget =
+      duplicate && duplicate.kind === "therapist" && duplicate.archived ? duplicate : null;
 
     // Synchronous DCA verification. Signup only collects the license
     // number (no type dropdown), so we race all 6 California license
@@ -293,10 +306,9 @@ export async function handleApplicationRoutes(context) {
     applicationDocument.licensureVerification = verification.licensureVerification;
     const applicationCreated = await client.create(applicationDocument);
 
-    // Build the therapist doc directly. Override listingActive=false
-    // + status=pending_profile so the stub-bio listing stays out of
-    // the public directory until the therapist saves a real bio from
-    // the portal editor.
+    // Build the therapist doc shape (snake-cased application → camel
+    // Sanity doc). For a fresh intake we'll create it; for an archived
+    // restore we'll patch the existing doc with these fields.
     const therapistDraft = buildTherapistDocument(
       { ...applicationCreated, licensureVerification: verification.licensureVerification },
       undefined,
@@ -305,12 +317,63 @@ export async function handleApplicationRoutes(context) {
     therapistDraft.listingActive = false;
     therapistDraft.status = "pending_profile";
     therapistDraft.claimStatus = "unclaimed";
-    therapistDraft.intakeSource = "signup_instant_checkout";
+    therapistDraft.intakeSource = archivedRestoreTarget
+      ? "signup_restore_after_archive"
+      : "signup_instant_checkout";
     // Cached copies so admin filters + listings workspace can surface
     // these therapists cleanly without a join.
     therapistDraft.signupCompletedAt = new Date().toISOString();
 
-    const therapistCreated = await client.create(therapistDraft);
+    // Restore-on-re-signup path: a matching archived therapist was
+    // found in the dupe check. Patch the existing doc instead of
+    // creating a duplicate. Preserves outreach.emailLog, audit notes,
+    // claim history, and the public slug.
+    //
+    // We strip any keys that would conflict on patch (_id, _type,
+    // _rev, slug — keep the existing slug so old links don't break)
+    // and apply everything else from the freshly-built draft.
+    let therapistCreated;
+    if (archivedRestoreTarget) {
+      const nowIso = new Date().toISOString();
+      const restorePatch = { ...therapistDraft };
+      delete restorePatch._id;
+      delete restorePatch._type;
+      delete restorePatch._rev;
+      delete restorePatch.slug;
+      // Append a restore audit line to internal notes for traceability.
+      const existing = await client.fetch(
+        `*[_type == "therapist" && _id == $id][0]{ _id, notes, "slug": slug }`,
+        { id: archivedRestoreTarget.id },
+      );
+      if (!existing) {
+        sendJson(
+          response,
+          409,
+          {
+            error:
+              "Could not find the previously archived listing to restore. Please retry, and if it keeps failing, email support.",
+          },
+          origin,
+          config,
+        );
+        return true;
+      }
+      const restoreNote = `[${nowIso.slice(0, 10)}] Restored from archive via signup re-entry.`;
+      restorePatch.notes = existing.notes ? `${existing.notes}\n${restoreNote}` : restoreNote;
+      therapistCreated = await client
+        .patch(archivedRestoreTarget.id)
+        .set(restorePatch)
+        .commit({ returnDocuments: true });
+      // Sanity returns the post-patch doc here. Normalize slug shape so
+      // downstream code (which reads therapistCreated.slug.current) keeps
+      // working — the existing doc's slug field may already match this
+      // shape, but defensively coerce.
+      if (typeof therapistCreated?.slug === "string") {
+        therapistCreated.slug = { current: therapistCreated.slug };
+      }
+    } else {
+      therapistCreated = await client.create(therapistDraft);
+    }
 
     // Link the application to the newly published therapist for the
     // audit trail. Non-fatal if this write fails — the therapist doc

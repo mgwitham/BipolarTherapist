@@ -116,10 +116,9 @@ async function handleSoftDelete(req, res, id) {
   const nowIso = new Date().toISOString();
   let updated;
   try {
-    const existing = await client.fetch(
-      `*[_type == "therapist" && _id == $id][0]{ _id, notes }`,
-      { id },
-    );
+    const existing = await client.fetch(`*[_type == "therapist" && _id == $id][0]{ _id, notes }`, {
+      id,
+    });
     if (!existing) {
       res.status(404).json({ error: "Therapist not found" });
       return;

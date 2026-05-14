@@ -1006,7 +1006,12 @@ function readDrawerForm() {
     const el = form.elements.namedItem(f);
     if (el) out[f] = parseCsv(el.value);
   });
-  const boolFields = ["acceptsTelehealth", "acceptsInPerson", "acceptingNewPatients", "slidingScale"];
+  const boolFields = [
+    "acceptsTelehealth",
+    "acceptsInPerson",
+    "acceptingNewPatients",
+    "slidingScale",
+  ];
   boolFields.forEach((f) => {
     const el = form.elements.namedItem(f);
     if (el) out[f] = el.checked;
