@@ -341,6 +341,10 @@ function renderDashboard() {
 
     <div id="panel-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:199;opacity:0;pointer-events:none;transition:opacity 0.2s;"></div>
     <div id="detail-panel" style="position:fixed;top:0;right:0;width:480px;max-width:100vw;height:100%;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,0.12);z-index:200;transform:translateX(100%);transition:transform 0.25s ease;overflow-y:auto;"></div>
+
+    <div id="ed-drawer-overlay" class="ed-drawer-overlay"></div>
+    <div id="ed-drawer" class="ed-drawer" role="dialog" aria-modal="true" aria-label="Edit therapist profile"></div>
+    <div id="ed-confirm-overlay" class="ed-confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirm delete"></div>
   `;
 
   refreshTable();
@@ -629,7 +633,10 @@ function renderPanelContent(t) {
         <div style="font-size:16px;font-weight:700;">${esc(t.name || "-")}</div>
         ${profileUrl ? `<a href="${esc(profileUrl)}" target="_blank" rel="noopener" style="font-size:12px;color:#2a5f6e;margin-top:4px;display:inline-block;">View live profile →</a>` : ""}
       </div>
-      <button id="panel-close" type="button" aria-label="Close panel" style="background:none;border:none;font-size:22px;color:#9ca3af;line-height:1;padding:0;flex-shrink:0;">×</button>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+        <button id="panel-edit-profile" type="button" class="btn-secondary" style="white-space:nowrap;" title="Open the full profile editor">Edit profile</button>
+        <button id="panel-close" type="button" aria-label="Close panel" style="background:none;border:none;font-size:22px;color:#9ca3af;line-height:1;padding:0;">×</button>
+      </div>
     </div>
 
     <div class="panel-section">
@@ -722,6 +729,424 @@ function getTemplateDefaults(template, t) {
     name: t.name,
     profileUrl: safeProfileUrl(t.profileUrl) || "[your profile URL]",
   });
+}
+
+// ---- EDIT-PROFILE DRAWER ----
+//
+// Full-control drawer for editing a therapist's profile fields. Opens
+// from the small detail panel's "Edit profile" button. Save submits a
+// single PATCH to /api/admin/therapist/[id] with the changed-fields
+// payload; Delete opens a type-to-confirm modal that hits the same
+// endpoint with DELETE (soft delete: listingActive=false, status=
+// archived, lifecycle=archived).
+//
+// The drawer is mounted once on init (the overlay + drawer + confirm-
+// overlay divs live in the page-level template). Each open() call
+// rerenders its body innerHTML for the current therapist; close()
+// just animates it back off-screen.
+
+function joinCsv(arr) {
+  return Array.isArray(arr) ? arr.join(", ") : "";
+}
+function parseCsv(value) {
+  return String(value || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+function selOption(value, label, current) {
+  return `<option value="${esc(value)}" ${current === value ? "selected" : ""}>${esc(label)}</option>`;
+}
+
+function renderEditDrawerContent(t) {
+  const profileUrl = safeProfileUrl(t.profileUrl);
+  return `
+    <div class="ed-drawer-header">
+      <div>
+        <div class="ed-drawer-title">${esc(t.name || "Unnamed")}</div>
+        <div class="ed-drawer-subtitle">
+          ${esc(t.email || "no email on file")}
+          ${profileUrl ? ` · <a href="${esc(profileUrl)}" target="_blank" rel="noopener" style="color:#2a5f6e;">view live →</a>` : ""}
+        </div>
+      </div>
+      <button id="ed-close" type="button" class="ed-drawer-close" aria-label="Close">&times;</button>
+    </div>
+
+    <div class="ed-drawer-body">
+      <form id="ed-form" novalidate>
+
+        <div class="ed-section">
+          <div class="ed-section-title">Identity</div>
+          <div class="ed-grid">
+            <div class="ed-field is-full"><label>Full name</label>
+              <input name="name" type="text" value="${esc(t.name || "")}" autocomplete="off" />
+            </div>
+            <div class="ed-field"><label>Credentials</label>
+              <input name="credentials" type="text" value="${esc(t.credentials || "")}" placeholder="e.g. LMFT" autocomplete="off" />
+            </div>
+            <div class="ed-field"><label>Title</label>
+              <input name="title" type="text" value="${esc(t.title || "")}" autocomplete="off" />
+            </div>
+            <div class="ed-field is-full"><label>Practice name</label>
+              <input name="practiceName" type="text" value="${esc(t.practiceName || t.practice_name || "")}" autocomplete="off" />
+            </div>
+          </div>
+        </div>
+
+        <div class="ed-section">
+          <div class="ed-section-title">Location</div>
+          <div class="ed-grid">
+            <div class="ed-field"><label>City</label>
+              <input name="city" type="text" value="${esc(t.city || "")}" autocomplete="off" />
+            </div>
+            <div class="ed-field"><label>State</label>
+              <input name="state" type="text" value="${esc(t.state || "")}" placeholder="CA" autocomplete="off" />
+            </div>
+            <div class="ed-field"><label>ZIP</label>
+              <input name="zip" type="text" value="${esc(t.zip || "")}" autocomplete="off" />
+            </div>
+          </div>
+        </div>
+
+        <div class="ed-section">
+          <div class="ed-section-title">License</div>
+          <div class="ed-grid">
+            <div class="ed-field"><label>License state</label>
+              <input name="licenseState" type="text" value="${esc(t.licenseState || t.license_state || "")}" placeholder="CA" autocomplete="off" />
+            </div>
+            <div class="ed-field"><label>License number</label>
+              <input name="licenseNumber" type="text" value="${esc(t.licenseNumber || t.license_number || "")}" autocomplete="off" />
+            </div>
+          </div>
+        </div>
+
+        <div class="ed-section">
+          <div class="ed-section-title">Contact</div>
+          <div class="ed-grid">
+            <div class="ed-field"><label>Email</label>
+              <input name="email" type="email" value="${esc(t.email || "")}" autocomplete="off" />
+            </div>
+            <div class="ed-field"><label>Phone</label>
+              <input name="phone" type="tel" value="${esc(t.phone || "")}" autocomplete="off" />
+            </div>
+            <div class="ed-field"><label>Website</label>
+              <input name="website" type="url" value="${esc(t.website || "")}" placeholder="https://" autocomplete="off" />
+            </div>
+            <div class="ed-field"><label>Booking URL</label>
+              <input name="bookingUrl" type="url" value="${esc(t.bookingUrl || t.booking_url || "")}" placeholder="https://" autocomplete="off" />
+            </div>
+            <div class="ed-field is-full"><label>Preferred contact method</label>
+              <select name="preferredContactMethod">
+                ${selOption("", "— Not set —", t.preferredContactMethod || t.preferred_contact_method || "")}
+                ${selOption("email", "Email", t.preferredContactMethod || t.preferred_contact_method)}
+                ${selOption("phone", "Phone", t.preferredContactMethod || t.preferred_contact_method)}
+                ${selOption("website", "Website", t.preferredContactMethod || t.preferred_contact_method)}
+                ${selOption("booking", "Booking link", t.preferredContactMethod || t.preferred_contact_method)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="ed-section">
+          <div class="ed-section-title">Care approach</div>
+          <div class="ed-grid is-full">
+            <div class="ed-field"><label>Bio</label>
+              <textarea name="bio" rows="4">${esc(t.bio || "")}</textarea>
+            </div>
+            <div class="ed-field"><label>How they help bipolar clients</label>
+              <textarea name="careApproach" rows="3">${esc(t.careApproach || t.care_approach || "")}</textarea>
+            </div>
+            <div class="ed-field"><label>Specialties</label>
+              <input name="specialties" type="text" value="${esc(joinCsv(t.specialties))}" autocomplete="off" />
+              <div class="ed-hint">Comma-separated</div>
+            </div>
+            <div class="ed-field"><label>Treatment modalities</label>
+              <input name="treatmentModalities" type="text" value="${esc(joinCsv(t.treatmentModalities || t.treatment_modalities))}" autocomplete="off" />
+              <div class="ed-hint">Comma-separated</div>
+            </div>
+            <div class="ed-field"><label>Populations served</label>
+              <input name="clientPopulations" type="text" value="${esc(joinCsv(t.clientPopulations || t.client_populations))}" autocomplete="off" />
+              <div class="ed-hint">Comma-separated</div>
+            </div>
+            <div class="ed-field"><label>Insurance accepted</label>
+              <input name="insuranceAccepted" type="text" value="${esc(joinCsv(t.insuranceAccepted || t.insurance_accepted))}" autocomplete="off" />
+              <div class="ed-hint">Comma-separated</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="ed-section">
+          <div class="ed-section-title">Availability &amp; fees</div>
+          <div class="ed-check-row" style="margin-bottom:10px;">
+            <label class="ed-check"><input name="acceptsTelehealth" type="checkbox" ${t.acceptsTelehealth ? "checked" : ""}/> Telehealth</label>
+            <label class="ed-check"><input name="acceptsInPerson" type="checkbox" ${t.acceptsInPerson ? "checked" : ""}/> In-person</label>
+            <label class="ed-check"><input name="acceptingNewPatients" type="checkbox" ${t.acceptingNewPatients ? "checked" : ""}/> Accepting new patients</label>
+            <label class="ed-check"><input name="slidingScale" type="checkbox" ${t.slidingScale ? "checked" : ""}/> Sliding scale</label>
+          </div>
+          <div class="ed-grid">
+            <div class="ed-field"><label>Fee min ($)</label>
+              <input name="sessionFeeMin" type="number" min="0" step="5" value="${t.sessionFeeMin ?? ""}" />
+            </div>
+            <div class="ed-field"><label>Fee max ($)</label>
+              <input name="sessionFeeMax" type="number" min="0" step="5" value="${t.sessionFeeMax ?? ""}" />
+            </div>
+          </div>
+        </div>
+
+        <div class="ed-section">
+          <div class="ed-section-title">Status &amp; visibility</div>
+          <div class="ed-grid">
+            <div class="ed-field"><label>Lifecycle</label>
+              <select name="lifecycle">
+                ${["draft", "in_review", "awaiting_confirmation", "approved", "paused", "archived"].map((v) => selOption(v, v.replace(/_/g, " "), t.lifecycle)).join("")}
+              </select>
+            </div>
+            <div class="ed-field"><label>Visibility</label>
+              <select name="visibilityIntent">
+                ${selOption("listed", "Listed", t.visibilityIntent || t.visibility_intent)}
+                ${selOption("hidden", "Hidden", t.visibilityIntent || t.visibility_intent)}
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="ed-section">
+          <div class="ed-section-title">Internal notes</div>
+          <div class="ed-grid is-full">
+            <div class="ed-field"><label>Admin-only notes</label>
+              <textarea name="internalNotes" rows="3" placeholder="Notes visible only to the review team">${esc(t.notes || "")}</textarea>
+            </div>
+          </div>
+        </div>
+
+        <div class="ed-danger-zone">
+          <div class="ed-danger-title">Danger zone</div>
+          <div class="ed-danger-body">
+            Deleting removes this therapist from the public directory and search. The Sanity document, outreach history, and email log are preserved, so this is reversible from Sanity Studio if needed.
+          </div>
+          <button id="ed-delete-btn" type="button" class="ed-delete-btn">Delete therapist</button>
+        </div>
+
+      </form>
+    </div>
+
+    <div class="ed-drawer-footer">
+      <button id="ed-save-btn" type="button" class="btn-primary">Save changes</button>
+      <button id="ed-cancel-btn" type="button" class="btn-secondary">Cancel</button>
+      <span id="ed-save-status" class="ed-save-status"></span>
+    </div>
+  `;
+}
+
+let _drawerTherapistId = null;
+
+function openEditDrawer(t) {
+  _drawerTherapistId = t._id;
+  const drawer = document.getElementById("ed-drawer");
+  const overlay = document.getElementById("ed-drawer-overlay");
+  if (!drawer || !overlay) return;
+  drawer.innerHTML = renderEditDrawerContent(t);
+  // Two-frame paint trick: set innerHTML, then add .is-open on the next
+  // frame so the CSS transition actually animates the transform.
+  // requestAnimationFrame is globally available in browsers; use a
+  // function reference rather than the bare identifier so eslint's
+  // no-undef rule (which doesn't know our env is browser-side) doesn't
+  // flag it.
+  window.requestAnimationFrame(() => {
+    drawer.classList.add("is-open");
+    overlay.classList.add("is-open");
+  });
+  setupEditDrawerListeners(t);
+}
+
+function closeEditDrawer() {
+  const drawer = document.getElementById("ed-drawer");
+  const overlay = document.getElementById("ed-drawer-overlay");
+  if (drawer) drawer.classList.remove("is-open");
+  if (overlay) overlay.classList.remove("is-open");
+  _drawerTherapistId = null;
+}
+
+function readDrawerForm() {
+  const form = document.getElementById("ed-form");
+  if (!form) return {};
+  const out = {};
+  const stringFields = [
+    "name",
+    "credentials",
+    "title",
+    "practiceName",
+    "city",
+    "state",
+    "zip",
+    "licenseState",
+    "licenseNumber",
+    "email",
+    "phone",
+    "website",
+    "bookingUrl",
+    "preferredContactMethod",
+    "bio",
+    "careApproach",
+    "lifecycle",
+    "visibilityIntent",
+    "internalNotes",
+  ];
+  stringFields.forEach((f) => {
+    const el = form.elements.namedItem(f);
+    if (el) out[f] = el.value.trim();
+  });
+  const arrayFields = [
+    "specialties",
+    "treatmentModalities",
+    "clientPopulations",
+    "insuranceAccepted",
+  ];
+  arrayFields.forEach((f) => {
+    const el = form.elements.namedItem(f);
+    if (el) out[f] = parseCsv(el.value);
+  });
+  const boolFields = ["acceptsTelehealth", "acceptsInPerson", "acceptingNewPatients", "slidingScale"];
+  boolFields.forEach((f) => {
+    const el = form.elements.namedItem(f);
+    if (el) out[f] = el.checked;
+  });
+  const feeMin = form.elements.namedItem("sessionFeeMin");
+  const feeMax = form.elements.namedItem("sessionFeeMax");
+  out.sessionFeeMin = feeMin && feeMin.value !== "" ? Number(feeMin.value) : null;
+  out.sessionFeeMax = feeMax && feeMax.value !== "" ? Number(feeMax.value) : null;
+  // State is conventionally uppercase. The server validator enforces it,
+  // so coerce here too rather than yelling at the user.
+  if (out.state) out.state = out.state.toUpperCase();
+  if (out.licenseState) out.licenseState = out.licenseState.toUpperCase();
+  return out;
+}
+
+async function saveDrawer() {
+  if (!_drawerTherapistId) return;
+  const status = document.getElementById("ed-save-status");
+  const saveBtn = document.getElementById("ed-save-btn");
+  if (status) {
+    status.textContent = "Saving…";
+    status.style.color = "#6b7280";
+  }
+  if (saveBtn) saveBtn.disabled = true;
+  const payload = readDrawerForm();
+  const r = await apiPatch(`/therapist/${encodeURIComponent(_drawerTherapistId)}`, payload);
+  if (saveBtn) saveBtn.disabled = false;
+  if (!r.ok) {
+    const msg = r.data?.error || "Save failed.";
+    if (status) {
+      status.textContent = msg;
+      status.style.color = "#dc2626";
+    }
+    toast(msg, "error");
+    return;
+  }
+  // Merge server-returned doc into local state so the table + panel
+  // reflect the save without a full reload.
+  if (r.data?.doc) {
+    const i = state.therapists.findIndex((x) => x._id === _drawerTherapistId);
+    if (i !== -1) {
+      state.therapists[i] = { ...state.therapists[i], ...mapServerDoc(r.data.doc) };
+      refreshTable();
+    }
+  }
+  if (status) {
+    status.textContent = "Saved.";
+    status.style.color = "#10b981";
+  }
+  toast("Profile saved", "success");
+}
+
+// Server returns the raw Sanity doc; the outreach list uses a slightly
+// different field shape from the list endpoint's projection. Pull the
+// fields that this page actually reads in render paths so the row + any
+// reopened panel stay accurate without a full data refetch.
+function mapServerDoc(doc) {
+  return {
+    name: doc.name,
+    email: doc.email,
+    phone: doc.phone,
+    website: doc.website,
+    city: doc.city,
+    state: doc.state,
+    licenseNumber: doc.licenseNumber,
+    claimStatus: doc.claimStatus,
+    listingActive: doc.listingActive,
+    status: doc.status,
+  };
+}
+
+function openDeleteConfirm(t) {
+  const overlay = document.getElementById("ed-confirm-overlay");
+  if (!overlay) return;
+  const expected = String(t.name || "").trim();
+  overlay.innerHTML = `
+    <div class="ed-confirm-modal" role="document">
+      <div class="ed-confirm-title">Delete this therapist?</div>
+      <div class="ed-confirm-body">
+        This removes <strong>${esc(expected)}</strong> from the public directory and search. Sanity history, outreach log, and emails are preserved — reversible from Sanity Studio.
+        <div style="margin-top:10px;">Type <strong>${esc(expected)}</strong> to confirm:</div>
+      </div>
+      <input id="ed-confirm-input" class="ed-confirm-input" type="text" autocomplete="off" spellcheck="false" />
+      <div class="ed-confirm-actions">
+        <button id="ed-confirm-cancel" type="button" class="ed-confirm-cancel">Cancel</button>
+        <button id="ed-confirm-delete" type="button" class="ed-confirm-delete" disabled>Delete therapist</button>
+      </div>
+    </div>
+  `;
+  overlay.classList.add("is-open");
+  const input = document.getElementById("ed-confirm-input");
+  const confirmBtn = document.getElementById("ed-confirm-delete");
+  const cancelBtn = document.getElementById("ed-confirm-cancel");
+  input?.focus();
+  input?.addEventListener("input", () => {
+    confirmBtn.disabled = input.value.trim() !== expected;
+  });
+  cancelBtn?.addEventListener("click", closeDeleteConfirm);
+  confirmBtn?.addEventListener("click", () => performDelete(t));
+}
+
+function closeDeleteConfirm() {
+  const overlay = document.getElementById("ed-confirm-overlay");
+  if (overlay) overlay.classList.remove("is-open");
+}
+
+async function performDelete(t) {
+  const confirmBtn = document.getElementById("ed-confirm-delete");
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Deleting…";
+  }
+  const r = await fetch(`${API}/therapist/${encodeURIComponent(t._id)}`, {
+    method: "DELETE",
+    credentials: "same-origin",
+    headers: { Accept: "application/json" },
+  });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) {
+    toast(data?.error || "Delete failed.", "error");
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Delete therapist";
+    }
+    return;
+  }
+  // Remove from local state, close everything, refresh the table.
+  state.therapists = state.therapists.filter((x) => x._id !== t._id);
+  closeDeleteConfirm();
+  closeEditDrawer();
+  refreshTable();
+  toast(`Deleted ${t.name || "therapist"}.`, "success");
+}
+
+function setupEditDrawerListeners(t) {
+  document.getElementById("ed-close")?.addEventListener("click", closeEditDrawer);
+  document.getElementById("ed-cancel-btn")?.addEventListener("click", closeEditDrawer);
+  document.getElementById("ed-drawer-overlay")?.addEventListener("click", closeEditDrawer);
+  document.getElementById("ed-save-btn")?.addEventListener("click", saveDrawer);
+  document.getElementById("ed-delete-btn")?.addEventListener("click", () => openDeleteConfirm(t));
 }
 
 // Gmail-style composer: From + To (or just From for form mode), an
@@ -817,12 +1242,32 @@ function setupDashboardListeners() {
 
   document.getElementById("panel-overlay")?.addEventListener("click", closePanel);
   document.addEventListener("keydown", (e) => {
-    if (e.key === "Escape") closePanel();
+    if (e.key !== "Escape") return;
+    // Layered escape: close the topmost open thing first. Confirm modal
+    // beats drawer beats panel.
+    const confirmOpen = document
+      .getElementById("ed-confirm-overlay")
+      ?.classList.contains("is-open");
+    const drawerOpen = document.getElementById("ed-drawer")?.classList.contains("is-open");
+    if (confirmOpen) {
+      closeDeleteConfirm();
+    } else if (drawerOpen) {
+      closeEditDrawer();
+    } else {
+      closePanel();
+    }
   });
 }
 
 function setupPanelListeners(t) {
   document.getElementById("panel-close")?.addEventListener("click", closePanel);
+  document.getElementById("panel-edit-profile")?.addEventListener("click", () => {
+    // Hand off from the small outreach panel to the full edit drawer.
+    // Close the panel underneath so they don't compete for the same
+    // right-edge real estate or fight for keyboard focus.
+    closePanel();
+    openEditDrawer(t);
+  });
 
   document.getElementById("template-select")?.addEventListener("change", (e) => {
     // Switching template repopulates the composer fields with the new
