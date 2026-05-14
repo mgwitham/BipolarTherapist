@@ -1,5 +1,10 @@
 import { createClient } from "@sanity/client";
 import { verifyAdminSession } from "../_adminAuth.mjs";
+import {
+  INITIAL_SUBJECT,
+  buildOutreachBody,
+  withOutreachRef,
+} from "../../shared/outreach-templates.mjs";
 
 // Direct fetch to the Resend HTTP API instead of the `resend` SDK.
 // The SDK isn't in package.json (the rest of the codebase posts to
@@ -25,44 +30,15 @@ async function resendSend({ apiKey, from, to, subject, html, text }) {
 
 const VALID_TEMPLATES = new Set(["email_1", "follow_up"]);
 
-// Strip leading title (Dr., Mr., etc.) and take the first word.
-function firstName(fullName) {
-  const tokens = String(fullName || "")
-    .replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Mx\.?)\s+/i, "")
-    .trim()
-    .split(/\s+/);
-  return tokens[0] || "there";
-}
-
 // Fallback copy used when the composer ships a blank subject/body
 // (shouldn't happen — the client validates — but defense in depth).
-// Keep this in sync with getTemplateDefaults() in assets/outreach.js.
-// Append ?ref=outreach so the profile page can attribute the view to
-// an outreach-email click for the daily clicked-but-didn't-claim digest.
-function withOutreachRef(url) {
-  if (!url) return "";
-  return url.includes("?") ? `${url}&ref=outreach` : `${url}?ref=outreach`;
-}
-const INITIAL_SUBJECT = "BipolarTherapyHub | Michael here. One Ask";
+// Subject + body live in shared/outreach-templates.mjs, used by both
+// the client composer and this server fallback.
 function buildSharedBody(t) {
-  const first = firstName(t.name);
-  const url = withOutreachRef(t.profileUrl || "");
-  return [
-    `Hi ${first},`,
-    "",
-    "I'm Michael. I built BipolarTherapyHub because I spent twenty years as the bipolar patient who couldn't find the right therapist.",
-    "",
-    "One ask: claim your profile.",
-    "",
-    url,
-    "",
-    "It takes two minutes. Patients searching for someone who actually gets the cycling, the mixed states, the medication piece will find you instead of giving up.",
-    "",
-    "If you'd rather not be listed, just reply and I'll take it down.",
-    "",
-    "Michael Witham",
-    "bipolartherapyhub.com",
-  ].join("\n");
+  return buildOutreachBody({
+    name: t.name,
+    profileUrl: withOutreachRef(t.profileUrl || ""),
+  });
 }
 const TEMPLATES = {
   email_1: {
