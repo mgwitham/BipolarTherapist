@@ -210,7 +210,59 @@ export async function handleAnalyticsRoutes(context) {
     return true;
   }
 
+  // Outreach link click stream — flat [{slug, viewedAt}] derived from
+  // outreach_profile_viewed events in the funnel log. Used by the
+  // Outreach CRM to compute per-subject click rates in Subject
+  // Performance. Sits in the existing dispatcher (vs. its own Vercel
+  // function) so we stay under the Hobby plan's function cap.
+  if (request.method === "GET" && routePath === "/admin/outreach-clicks") {
+    const authorized =
+      isAuthorized && isAuthorized(request, config) && getAuthorizedActor(request, config);
+    if (!authorized) {
+      sendJson(response, 401, { error: "Admin session required." }, origin, config);
+      return true;
+    }
+    let logDoc;
+    try {
+      logDoc = await client.getDocument(SINGLETON_ID);
+    } catch (err) {
+      sendJson(
+        response,
+        500,
+        { error: "Failed to read funnel log", detail: err?.message || String(err) },
+        origin,
+        config,
+      );
+      return true;
+    }
+    const events = Array.isArray(logDoc?.events) ? logDoc.events : [];
+    const out = [];
+    for (const event of events) {
+      if (event?.type !== "outreach_profile_viewed") continue;
+      const payload =
+        typeof event.payload === "string"
+          ? safeParseJson(event.payload) || {}
+          : event.payload && typeof event.payload === "object"
+            ? event.payload
+            : {};
+      const slug = String(payload.therapist_slug || "").trim();
+      const viewedAt = String(event.occurredAt || event.created_at || event.createdAt || "").trim();
+      if (!slug || !viewedAt) continue;
+      out.push({ slug, viewedAt });
+    }
+    sendJson(response, 200, { events: out }, origin, config);
+    return true;
+  }
+
   return false;
+}
+
+function safeParseJson(value) {
+  try {
+    return JSON.parse(value);
+  } catch {
+    return null;
+  }
 }
 
 // Server-side append helper. Used by routes that record durable

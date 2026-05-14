@@ -2071,8 +2071,15 @@ async function init() {
     // lookup when computing per-subject click rates. Tolerant of
     // failure — Subject Performance falls back to 0 clicks shown.
     try {
-      const clickRes = await apiGet("/outreach-clicks", {});
-      const events = clickRes?.data?.events || [];
+      // Route lives in the review API dispatcher (one Vercel function,
+      // many paths) to stay under the Hobby plan's function cap.
+      const r = await fetch("/api/review/admin/outreach-clicks", {
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { Accept: "application/json" },
+      });
+      const data = r.ok ? await r.json().catch(() => null) : null;
+      const events = data?.events || [];
       const bySlug = new Map();
       for (const e of events) {
         if (!bySlug.has(e.slug)) bySlug.set(e.slug, []);
