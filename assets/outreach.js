@@ -368,17 +368,15 @@ function renderDashboard() {
     ${overlays}
   `;
 
-  document
-    .querySelectorAll("[data-tab-target]")
-    .forEach((btn) =>
-      btn.addEventListener("click", () => {
-        const target = btn.getAttribute("data-tab-target");
-        if (target && target !== state.view) {
-          state.view = target;
-          renderDashboard();
-        }
-      }),
-    );
+  document.querySelectorAll("[data-tab-target]").forEach((btn) =>
+    btn.addEventListener("click", () => {
+      const target = btn.getAttribute("data-tab-target");
+      if (target && target !== state.view) {
+        state.view = target;
+        renderDashboard();
+      }
+    }),
+  );
 
   if (state.view === "live") {
     refreshLiveTable();
