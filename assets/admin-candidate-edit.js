@@ -5,6 +5,8 @@ import { isProfileLive } from "../shared/profile-live-status.mjs";
 
 let _drawerEl = null;
 let _onSaved = null;
+let _onDeleted = null;
+let _enableDelete = false;
 let _editMode = "candidate"; // "candidate" | "therapist"
 let _editId = null;
 let _initialSnapshot = "";
@@ -132,6 +134,88 @@ function syncDirtyState() {
 function markSavedState() {
   _initialSnapshot = serializeForm(getForm());
   syncDirtyState();
+}
+
+function setDangerZoneVisibility(show) {
+  const zone = document.getElementById("editDangerZone");
+  if (!zone) return;
+  if (show) zone.removeAttribute("hidden");
+  else zone.setAttribute("hidden", "");
+}
+
+// Type-to-confirm delete modal. Reuses the shared #editConfirmOverlay
+// element rendered by edit-drawer-shell.js. Type the full therapist
+// name to unlock the delete button; soft-delete via the existing
+// /api/admin/therapist/:id DELETE endpoint.
+function openDeleteConfirm() {
+  const overlay = document.getElementById("editConfirmOverlay");
+  if (!overlay) return;
+  const expected = String((_initialTherapist && _initialTherapist.name) || "").trim();
+  overlay.innerHTML =
+    '<div class="edit-confirm-modal" role="document">' +
+    '<div class="edit-confirm-title">Delete this therapist?</div>' +
+    '<div class="edit-confirm-body">This removes <strong>' +
+    escapeHtml(expected) +
+    "</strong> from the public directory and search. Sanity history, outreach log, and emails are preserved — reversible from Sanity Studio." +
+    '<div style="margin-top:10px;">Type <strong>' +
+    escapeHtml(expected) +
+    "</strong> to confirm:</div>" +
+    "</div>" +
+    '<input id="editConfirmInput" class="edit-confirm-input" type="text" autocomplete="off" spellcheck="false" />' +
+    '<div class="edit-confirm-actions">' +
+    '<button id="editConfirmCancel" type="button" class="edit-confirm-cancel">Cancel</button>' +
+    '<button id="editConfirmDelete" type="button" class="edit-confirm-delete" disabled>Delete therapist</button>' +
+    "</div></div>";
+  overlay.classList.add("is-open");
+  const input = document.getElementById("editConfirmInput");
+  const confirmBtn = document.getElementById("editConfirmDelete");
+  const cancelBtn = document.getElementById("editConfirmCancel");
+  if (input) {
+    input.focus();
+    input.addEventListener("input", function () {
+      confirmBtn.disabled = input.value.trim() !== expected;
+    });
+  }
+  if (cancelBtn) cancelBtn.addEventListener("click", closeDeleteConfirm);
+  if (confirmBtn) confirmBtn.addEventListener("click", performDelete);
+}
+
+function closeDeleteConfirm() {
+  const overlay = document.getElementById("editConfirmOverlay");
+  if (overlay) overlay.classList.remove("is-open");
+}
+
+async function performDelete() {
+  const confirmBtn = document.getElementById("editConfirmDelete");
+  if (confirmBtn) {
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = "Deleting…";
+  }
+  const id = _editId;
+  let ok = false;
+  try {
+    const r = await fetch("/api/admin/therapist/" + encodeURIComponent(id), {
+      method: "DELETE",
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+    });
+    ok = r.ok;
+  } catch {
+    ok = false;
+  }
+  if (!ok) {
+    if (confirmBtn) {
+      confirmBtn.disabled = false;
+      confirmBtn.textContent = "Delete therapist";
+    }
+    return;
+  }
+  closeDeleteConfirm();
+  // Bypass the unsaved-changes prompt — the record is gone, there's
+  // nothing left to save.
+  _isDirty = false;
+  closeCandidateEditDrawer();
+  if (_onDeleted) _onDeleted(id);
 }
 
 function setSectionVisibility(showStatusAndAudit) {
@@ -318,8 +402,11 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   _editMode = "candidate";
   _editId = candidate.id || candidate._id || "";
   _onSaved = onSaved || null;
+  _onDeleted = null;
+  _enableDelete = false;
   _initialTherapist = null;
   drawer.dataset.candidateId = _editId;
+  setDangerZoneVisibility(false);
 
   setDrawerTitle("Edit candidate profile");
   // Hide the therapist-only sections — Live status, lifecycle, audit log
@@ -349,6 +436,7 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   setVal("editPreferredContactMethod", candidate.preferred_contact_method);
 
   // Care
+  setVal("editBio", candidate.bio);
   setVal("editCareApproach", candidate.care_approach);
   setVal("editSpecialties", arrayToTags(candidate.specialties));
   setVal("editTreatmentModalities", arrayToTags(candidate.treatment_modalities));
@@ -382,15 +470,22 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   markSavedState();
 }
 
-export function openTherapistEditDrawer(therapist, onSaved) {
+// options: { enableDelete?: boolean, onDeleted?: (id) => void }
+// Pass `enableDelete: true` from surfaces that want the danger-zone
+// delete control visible (e.g. Outreach CRM). Admin's review path keeps
+// it hidden — destructive ops belong elsewhere in admin.
+export function openTherapistEditDrawer(therapist, onSaved, options) {
   const drawer = getDrawer();
   if (!drawer) return;
 
   _editMode = "therapist";
   _editId = therapist.id || therapist._id || "";
   _onSaved = onSaved || null;
+  _onDeleted = (options && options.onDeleted) || null;
+  _enableDelete = Boolean(options && options.enableDelete);
   _initialTherapist = therapist;
   drawer.dataset.candidateId = _editId;
+  setDangerZoneVisibility(_enableDelete);
 
   setDrawerTitle("Edit therapist profile");
   setSectionVisibility(true);
@@ -423,6 +518,7 @@ export function openTherapistEditDrawer(therapist, onSaved) {
   setVal("editPreferredContactMethod", read("preferred_contact_method", "preferredContactMethod"));
 
   // Care
+  setVal("editBio", read("bio", "bio"));
   setVal("editCareApproach", read("care_approach", "careApproach"));
   setVal("editSpecialties", arrayToTags(read("specialties", "specialties")));
   setVal(
@@ -519,6 +615,17 @@ export function bindCandidateEditDrawer() {
     closeBtn.addEventListener("click", closeCandidateEditDrawer);
   }
 
+  // Delete button — opens a type-to-confirm modal. Only meaningful for
+  // therapist mode with enableDelete=true; the button itself stays
+  // hidden otherwise (see setDangerZoneVisibility).
+  const deleteBtn = document.getElementById("editDeleteBtn");
+  if (deleteBtn) {
+    deleteBtn.addEventListener("click", function () {
+      if (_editMode !== "therapist" || !_enableDelete) return;
+      openDeleteConfirm();
+    });
+  }
+
   // Save
   const form = drawer.querySelector(".edit-drawer-form");
   const statusEl = drawer.querySelector(".edit-save-status");
@@ -588,6 +695,7 @@ export function bindCandidateEditDrawer() {
           website: getVal("editWebsite"),
           bookingUrl: getVal("editBookingUrl"),
           preferredContactMethod: getVal("editPreferredContactMethod"),
+          bio: getVal("editBio"),
           careApproach: getVal("editCareApproach"),
           specialties: tagsToArray(getVal("editSpecialties")),
           treatmentModalities: tagsToArray(getVal("editTreatmentModalities")),
@@ -597,6 +705,11 @@ export function bindCandidateEditDrawer() {
           acceptsInPerson: getVal("editAcceptsInPerson"),
           acceptingNewPatients: getVal("editAcceptingNewPatients"),
           slidingScale: getVal("editSlidingScale"),
+          sessionFeeMin:
+            getVal("editSessionFeeMin") !== "" ? Number(getVal("editSessionFeeMin")) : undefined,
+          sessionFeeMax:
+            getVal("editSessionFeeMax") !== "" ? Number(getVal("editSessionFeeMax")) : undefined,
+          notes: getVal("editNotes"),
           lifecycle,
           visibilityIntent,
         };
@@ -622,6 +735,7 @@ export function bindCandidateEditDrawer() {
           website: getVal("editWebsite"),
           booking_url: getVal("editBookingUrl"),
           preferred_contact_method: getVal("editPreferredContactMethod"),
+          bio: getVal("editBio"),
           care_approach: getVal("editCareApproach"),
           specialties: tagsToArray(getVal("editSpecialties")),
           treatment_modalities: tagsToArray(getVal("editTreatmentModalities")),
