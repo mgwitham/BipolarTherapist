@@ -17,6 +17,8 @@ import licensureActivityController from "./admin-licensure-activity.js";
 import licensureQueueController from "./admin-licensure-queue.js";
 import deferredLicensureQueueController from "./admin-licensure-deferred-queue.js";
 import reviewActivityController from "./admin-review-activity.js";
+import confirmationQueueController from "./admin-confirmation-queue.js";
+import confirmationSprintController from "./admin-confirmation-sprint.js";
 
 async function fetchMatchedTherapistForCandidate(candidate) {
   if (!candidate) return null;
@@ -213,7 +215,8 @@ const adminRegistry = createControllerRegistry({
   store: adminStore,
   // loadData / copyText / formatDate are declared later as `function`s
   // but hoisted to the top of the module scope, so they're resolvable
-  // here. renderReviewActivitySavedViews / Meta same.
+  // here. Same for renderReviewActivitySavedViews / Meta and the
+  // buildConfirmation*Options option-bag factories (PR 4).
   deps: {
     escapeHtml: escapeHtml,
     decideLicensureOps: decideLicensureOps,
@@ -222,12 +225,16 @@ const adminRegistry = createControllerRegistry({
     formatDate: formatDate,
     renderReviewActivitySavedViews: renderReviewActivitySavedViews,
     renderReviewActivitySavedViewMeta: renderReviewActivitySavedViewMeta,
+    buildConfirmationQueueOptions: buildConfirmationQueueOptions,
+    buildConfirmationSprintOptions: buildConfirmationSprintOptions,
   },
 });
 adminRegistry.register(licensureActivityController);
 adminRegistry.register(licensureQueueController);
 adminRegistry.register(deferredLicensureQueueController);
 adminRegistry.register(reviewActivityController);
+adminRegistry.register(confirmationQueueController);
+adminRegistry.register(confirmationSprintController);
 
 // Mirror the persisted filter into the legacy `let reviewActivityFilter`
 // so non-controller code that reads it (deep-link builder, savedViews
@@ -5026,102 +5033,119 @@ function renderImportBlockerSprint() {
   });
 }
 
+// Option-bag factory for the Confirmation Sprint panel. Closes over
+// admin.js helpers and getters. PR 4: lifted out of the inline
+// renderConfirmationSprint() body so the controller can call it
+// idempotently via ctx.deps.buildConfirmationSprintOptions(store).
+//
+// FOLLOW-UP — the ~40 helpers below are exactly the "helper sprawl"
+// the refactor plan flagged. A future PR can split them by category
+// (pure data helpers → shared module import; closures over admin.js
+// state → store-backed slices) without touching the controller shape.
+function buildConfirmationSprintOptions(store) {
+  return {
+    authRequired: store.get("authRequired") === true,
+    getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
+    getConfirmationSprintRows: getConfirmationSprintRows,
+    getImportBlockerSprintRows: getImportBlockerSprintRows,
+    getOverlappingAskDetails: getOverlappingAskDetails,
+    buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
+    applyOverlapRecommendationContext: applyOverlapRecommendationContext,
+    getConfirmationSprintRecommendation: getConfirmationSprintRecommendation,
+    getConfirmationSprintMiniLanes: getConfirmationSprintMiniLanes,
+    escapeHtml: escapeHtml,
+    getConfirmationSprintHealthSummary: getConfirmationSprintHealthSummary,
+    getConfirmationSprintBottleneckSummary: getConfirmationSprintBottleneckSummary,
+    getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
+    getConfirmationSprintThemeDetails: getConfirmationSprintThemeDetails,
+    getConfirmationSprintThemeSummary: getConfirmationSprintThemeSummary,
+    getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
+    getOutreachChannelMixSummary: getOutreachChannelMixSummary,
+    getTopOutreachWaveRows: getTopOutreachWaveRows,
+    getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
+    formatFieldLabel: formatFieldLabel,
+    formatStatusLabel: formatStatusLabel,
+    getConfirmationQueueEntry: getConfirmationQueueEntry,
+    getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
+    buildConfirmationLink: buildConfirmationLink,
+    getPreferredFieldOrder: getPreferredFieldOrder,
+    getConfirmationResultLabel: getConfirmationResultLabel,
+    getConfirmationTarget: getConfirmationTarget,
+    getConfirmationLastActionNote: getConfirmationLastActionNote,
+    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+    buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
+    buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
+    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+    buildConfirmationApplySummary: buildConfirmationApplySummary,
+    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
+    buildConfirmationSprintCsv: buildConfirmationSprintCsv,
+    buildConfirmationSprintMarkdown: buildConfirmationSprintMarkdown,
+    copyText: copyText,
+    buildOverlappingAskPacket: buildOverlappingAskPacket,
+    buildTopOutreachWavePacket: buildTopOutreachWavePacket,
+    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+    renderStats: renderStats,
+    renderImportBlockerSprint: renderImportBlockerSprint,
+    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+    renderConfirmationSprint: renderConfirmationSprint,
+    renderConfirmationQueue: renderConfirmationQueue,
+    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+    setConfirmationQueueFilter: function (value) {
+      setConfirmationQueueFilter(value);
+    },
+  };
+}
+
 function renderConfirmationSprint() {
-  withLazyAdminModule("./admin-confirmation-sprint.js", function (module) {
-    module.renderConfirmationSprintPanel({
-      authRequired: authRequired,
-      getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
-      getConfirmationSprintRows: getConfirmationSprintRows,
-      getImportBlockerSprintRows: getImportBlockerSprintRows,
-      getOverlappingAskDetails: getOverlappingAskDetails,
-      buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
-      applyOverlapRecommendationContext: applyOverlapRecommendationContext,
-      getConfirmationSprintRecommendation: getConfirmationSprintRecommendation,
-      getConfirmationSprintMiniLanes: getConfirmationSprintMiniLanes,
-      escapeHtml: escapeHtml,
-      getConfirmationSprintHealthSummary: getConfirmationSprintHealthSummary,
-      getConfirmationSprintBottleneckSummary: getConfirmationSprintBottleneckSummary,
-      getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
-      getConfirmationSprintThemeDetails: getConfirmationSprintThemeDetails,
-      getConfirmationSprintThemeSummary: getConfirmationSprintThemeSummary,
-      getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
-      getOutreachChannelMixSummary: getOutreachChannelMixSummary,
-      getTopOutreachWaveRows: getTopOutreachWaveRows,
-      getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
-      formatFieldLabel: formatFieldLabel,
-      formatStatusLabel: formatStatusLabel,
-      getConfirmationQueueEntry: getConfirmationQueueEntry,
-      getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
-      buildConfirmationLink: buildConfirmationLink,
-      getPreferredFieldOrder: getPreferredFieldOrder,
-      getConfirmationResultLabel: getConfirmationResultLabel,
-      getConfirmationTarget: getConfirmationTarget,
-      getConfirmationLastActionNote: getConfirmationLastActionNote,
-      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-      buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
-      buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
-      buildConfirmationApplyCsv: buildConfirmationApplyCsv,
-      buildConfirmationApplySummary: buildConfirmationApplySummary,
-      buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
-      buildConfirmationSprintCsv: buildConfirmationSprintCsv,
-      buildConfirmationSprintMarkdown: buildConfirmationSprintMarkdown,
-      copyText: copyText,
-      buildOverlappingAskPacket: buildOverlappingAskPacket,
-      buildTopOutreachWavePacket: buildTopOutreachWavePacket,
-      updateConfirmationQueueEntry: updateConfirmationQueueEntry,
-      renderStats: renderStats,
-      renderImportBlockerSprint: renderImportBlockerSprint,
-      renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
-      renderConfirmationSprint: renderConfirmationSprint,
-      renderConfirmationQueue: renderConfirmationQueue,
-      buildConfirmationApplyBrief: buildConfirmationApplyBrief,
-      setConfirmationQueueFilter: function (value) {
-        setConfirmationQueueFilter(value);
-      },
-    });
-  });
+  // Migrated to the controller pattern (PR 4).
+  adminRegistry.render("confirmationSprint");
+}
+
+// Option-bag factory for the Confirmation Queue panel. Same shape and
+// rationale as buildConfirmationSprintOptions above. PR 4.
+function buildConfirmationQueueOptions(store) {
+  return {
+    root: document.getElementById("confirmationQueue"),
+    statusFilter: document.getElementById("confirmationQueueStatusFilter"),
+    countLabel: document.getElementById("confirmationQueueCount"),
+    authRequired: store.get("authRequired") === true,
+    confirmationQueueFilter: getConfirmationQueueFilter(),
+    confirmationStatusOptions: CONFIRMATION_STATUS_OPTIONS,
+    getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
+    getConfirmationQueuePrimaryField: getConfirmationQueuePrimaryField,
+    getConfirmationQueueEntry: getConfirmationQueueEntry,
+    getConfirmationLastActionNote: getConfirmationLastActionNote,
+    buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
+    buildConfirmationLink: buildConfirmationLink,
+    getPreferredFieldOrder: getPreferredFieldOrder,
+    formatStatusLabel: formatStatusLabel,
+    formatFieldLabel: formatFieldLabel,
+    buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
+    buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
+    formatDate: formatDate,
+    escapeHtml: escapeHtml,
+    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
+    buildConfirmationApplySummary: buildConfirmationApplySummary,
+    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
+    copyText: copyText,
+    buildOrderedConfirmationRequestMessage: buildOrderedConfirmationRequestMessage,
+    setConfirmationActionStatus: setConfirmationActionStatus,
+    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
+    renderStats: renderStats,
+    renderImportBlockerSprint: renderImportBlockerSprint,
+    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
+    renderConfirmationSprint: renderConfirmationSprint,
+    renderConfirmationQueue: renderConfirmationQueue,
+    buildConfirmationChecklist: buildConfirmationChecklist,
+    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
+    bindConfirmationResponseCapture: bindConfirmationResponseCapture,
+    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
+  };
 }
 
 function renderConfirmationQueue() {
-  withLazyAdminModule("./admin-confirmation-queue.js", function (module) {
-    module.renderConfirmationQueuePanel({
-      root: document.getElementById("confirmationQueue"),
-      statusFilter: document.getElementById("confirmationQueueStatusFilter"),
-      countLabel: document.getElementById("confirmationQueueCount"),
-      authRequired: authRequired,
-      confirmationQueueFilter: getConfirmationQueueFilter(),
-      confirmationStatusOptions: CONFIRMATION_STATUS_OPTIONS,
-      getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
-      getConfirmationQueuePrimaryField: getConfirmationQueuePrimaryField,
-      getConfirmationQueueEntry: getConfirmationQueueEntry,
-      getConfirmationLastActionNote: getConfirmationLastActionNote,
-      buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
-      buildConfirmationLink: buildConfirmationLink,
-      getPreferredFieldOrder: getPreferredFieldOrder,
-      formatStatusLabel: formatStatusLabel,
-      formatFieldLabel: formatFieldLabel,
-      buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
-      buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
-      formatDate: formatDate,
-      escapeHtml: escapeHtml,
-      buildConfirmationApplyCsv: buildConfirmationApplyCsv,
-      buildConfirmationApplySummary: buildConfirmationApplySummary,
-      buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
-      copyText: copyText,
-      buildOrderedConfirmationRequestMessage: buildOrderedConfirmationRequestMessage,
-      setConfirmationActionStatus: setConfirmationActionStatus,
-      updateConfirmationQueueEntry: updateConfirmationQueueEntry,
-      renderStats: renderStats,
-      renderImportBlockerSprint: renderImportBlockerSprint,
-      renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
-      renderConfirmationSprint: renderConfirmationSprint,
-      renderConfirmationQueue: renderConfirmationQueue,
-      buildConfirmationChecklist: buildConfirmationChecklist,
-      buildConfirmationApplyBrief: buildConfirmationApplyBrief,
-      bindConfirmationResponseCapture: bindConfirmationResponseCapture,
-      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-    });
-  });
+  // Migrated to the controller pattern (PR 4).
+  adminRegistry.render("confirmationQueue");
 }
 
 function renderApplications() {
