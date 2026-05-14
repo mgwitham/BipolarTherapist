@@ -185,11 +185,7 @@ export function normalizePublicTherapist(doc, options = {}) {
         ? Boolean(doc.acceptsInPerson)
         : Boolean(doc.accepts_in_person),
     accepting_new_patients:
-      doc.acceptingNewPatients === true || doc.accepting_new_patients === true
-        ? true
-        : doc.acceptingNewPatients === false || doc.accepting_new_patients === false
-          ? false
-          : null,
+      doc.acceptingNewPatients === false || doc.accepting_new_patients === false ? false : true,
     years_experience: doc.yearsExperience || doc.years_experience || null,
     bipolar_years_experience: doc.bipolarYearsExperience || doc.bipolar_years_experience || null,
     languages: arrayValue(doc.languages, ["English"]).length
