@@ -472,8 +472,9 @@ export function openCandidateEditDrawer(candidate, onSaved) {
 
 // options: { enableDelete?: boolean, onDeleted?: (id) => void }
 // Pass `enableDelete: true` from surfaces that want the danger-zone
-// delete control visible (e.g. Outreach CRM). Admin's review path keeps
-// it hidden — destructive ops belong elsewhere in admin.
+// delete control visible. Today: Outreach CRM and the Admin profile
+// edit drawer (so support requests like "delete my account" can be
+// handled in one place).
 export function openTherapistEditDrawer(therapist, onSaved, options) {
   const drawer = getDrawer();
   if (!drawer) return;
