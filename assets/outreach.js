@@ -9,13 +9,32 @@ const API = "/api/admin";
 
 const state = {
   therapists: [],
-  filters: { status: "", state: "CA", search: "", followUpDue: false },
+  // view: which tab is active. "outreach" = cold-outreach CRM (default),
+  // "live" = therapists who have claimed and are published — different
+  // segment, different future messaging, not part of the cold queue.
+  view: "outreach",
+  // includeDone: terminal statuses (claimed/paid/replied/bounced/opted_out)
+  // are hidden from the outreach queue by default so the working list
+  // stays focused on people who can still convert. Toggle reveals them.
+  filters: { status: "", state: "CA", search: "", followUpDue: false, includeDone: false },
+  liveFilters: { search: "" },
   // Sort: which column + direction. Last contact desc mirrors the API
   // query's default and is the most useful first view.
   sort: { column: "lastContactedAt", direction: "desc" },
+  liveSort: { column: "claimedAt", direction: "desc" },
   selectedId: null,
   patientSignal: null, // { matchRequests, profileViews, ctaClicks, generatedAt }
 };
+
+// A therapist is "live" when they've claimed (either via outreach
+// status or the signup flow that stamps claimedAt) AND are actually
+// visible to patients (listingActive). Ingested-but-unclaimed records
+// don't count — Live is about people who chose to be on the platform.
+function isLive(t) {
+  const status = t.outreach?.status;
+  const claimed = ["claimed", "paid"].includes(status) || Boolean(t.claimedAt);
+  return claimed && t.listingActive === true;
+}
 
 // ---- UTILS ----
 
@@ -150,9 +169,13 @@ async function apiPatch(path, body) {
 // ---- FILTERS ----
 
 function applyFilters() {
-  const { status, state: stateF, search, followUpDue } = state.filters;
+  const { status, state: stateF, search, followUpDue, includeDone } = state.filters;
   const filtered = state.therapists.filter((t) => {
     const s = t.outreach?.status || "not_contacted";
+    // Hide terminal statuses by default so claimed/paid/replied/bounced
+    // therapists don't clutter the working queue. Explicit status pick
+    // overrides the gate so "filter to Claimed" still works.
+    if (!includeDone && !status && TERMINAL_STATUSES.has(s)) return false;
     if (status && s !== status) return false;
     if (stateF && t.state !== stateF) return false;
     if (followUpDue && !isFollowUpDue(t)) return false;
@@ -164,6 +187,39 @@ function applyFilters() {
     return true;
   });
   return applySort(filtered);
+}
+
+function applyLiveFilters() {
+  const { search } = state.liveFilters;
+  const filtered = state.therapists.filter((t) => {
+    if (!isLive(t)) return false;
+    if (search) {
+      const q = search.toLowerCase();
+      if (!(t.name || "").toLowerCase().includes(q) && !(t.email || "").toLowerCase().includes(q))
+        return false;
+    }
+    return true;
+  });
+  return applyLiveSort(filtered);
+}
+
+function applyLiveSort(list) {
+  const { column, direction } = state.liveSort || {};
+  if (!column) return list;
+  const dir = direction === "asc" ? 1 : -1;
+  const sorted = [...list];
+  if (column === "claimedAt") {
+    sorted.sort((a, b) => {
+      const aT = a.claimedAt ? new Date(a.claimedAt).getTime() : 0;
+      const bT = b.claimedAt ? new Date(b.claimedAt).getTime() : 0;
+      return (aT - bT) * dir;
+    });
+  } else if (column === "name") {
+    sorted.sort((a, b) => (a.name || "").localeCompare(b.name || "") * dir);
+  } else if (column === "status") {
+    sorted.sort((a, b) => (statusRank(a.outreach?.status) - statusRank(b.outreach?.status)) * dir);
+  }
+  return sorted;
 }
 
 // Canonical status ordering — funnel progression rather than alpha.
@@ -273,72 +329,26 @@ function redirectToAdminLogin() {
 // ---- DASHBOARD SHELL ----
 
 function renderDashboard() {
-  const stats = computeStats(state.therapists);
-
-  document.getElementById("app").innerHTML = `
-    <div style="min-height:100vh;display:flex;flex-direction:column;">
-
-      <div style="background:#2a5f6e;color:#fff;height:52px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-        <span style="font-size:15px;font-weight:700;letter-spacing:-0.3px;">Outreach CRM</span>
-        <div style="display:flex;align-items:center;gap:8px;">
-          <a href="/admin" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:6px;padding:4px 12px;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Open the admin page">Admin →</a>
-          <button id="logout-btn" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:13px;">Log out</button>
-        </div>
+  const tabs = `
+    <div style="padding:0 24px;border-bottom:1px solid #e5e7eb;background:#fff;flex-shrink:0;">
+      <div style="display:flex;gap:4px;">
+        ${tabButton("outreach", "Outreach")}
+        ${tabButton("live", "Live therapists")}
       </div>
-
-      <div style="padding:14px 24px 0;flex-shrink:0;">
-        <div id="profileSearchWidget" class="ps-widget-root" style="padding:0;"></div>
-      </div>
-
-      <div style="padding:14px 24px 0;flex-shrink:0;">
-        <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">
-          Outreach (your sends)
-        </div>
-        <div style="display:flex;gap:14px;">
-          ${statCard("Total", stats.total, "#2a5f6e")}
-          ${statCard("Contacted", stats.contacted, "#3b82f6")}
-          ${statCard("Replied", stats.replied, "#7c3aed")}
-          ${statCard("Reply rate", stats.replyRate + "%", "#f59e0b")}
-        </div>
-      </div>
-
-      ${subjectPerformanceHtml(computeSubjectPerformance(state.therapists))}
-
-      <div style="padding:14px 24px 0;flex-shrink:0;">
-        <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:baseline;gap:8px;">
-          <span>Patient signal (last 30 days)</span>
-          <span id="patient-signal-trend" style="font-size:10px;font-weight:500;color:#6b7280;text-transform:none;letter-spacing:0;"></span>
-        </div>
-        <div id="patient-signal-row" style="display:flex;gap:14px;">
-          ${patientSignalCardsHtml(state.patientSignal)}
-        </div>
-      </div>
-
-      <div style="display:flex;gap:10px;align-items:center;padding:14px 24px;flex-shrink:0;flex-wrap:wrap;border-bottom:1px solid #e5e7eb;">
-        <select id="f-status" class="form-input" style="width:160px;">
-          <option value="">All statuses</option>
-          ${Object.entries(STATUS_LABELS)
-            .map(
-              ([v, l]) =>
-                `<option value="${v}" ${state.filters.status === v ? "selected" : ""}>${l}</option>`,
-            )
-            .join("")}
-        </select>
-        <select id="f-state" class="form-input" style="width:90px;">
-          <option value="">All states</option>
-          <option value="CA" ${state.filters.state === "CA" ? "selected" : ""}>CA</option>
-        </select>
-        <input id="f-search" type="search" class="form-input" style="width:200px;" placeholder="Search name or email…" value="${esc(state.filters.search)}" />
-        <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#374151;cursor:pointer;white-space:nowrap;">
-          <input id="f-followup" type="checkbox" ${state.filters.followUpDue ? "checked" : ""} />
-          Follow-up due
-        </label>
-        <span id="result-count" style="margin-left:auto;font-size:13px;color:#6b7280;"></span>
-      </div>
-
-      <div style="flex:1;padding:0 24px 24px;" id="table-container"></div>
     </div>
+  `;
 
+  const header = `
+    <div style="background:#2a5f6e;color:#fff;height:52px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
+      <span style="font-size:15px;font-weight:700;letter-spacing:-0.3px;">Outreach CRM</span>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <a href="/admin" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:6px;padding:4px 12px;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Open the admin page">Admin →</a>
+        <button id="logout-btn" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:13px;">Log out</button>
+      </div>
+    </div>
+  `;
+
+  const overlays = `
     <div id="panel-overlay" style="position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:199;opacity:0;pointer-events:none;transition:opacity 0.2s;"></div>
     <div id="detail-panel" style="position:fixed;top:0;right:0;width:480px;max-width:100vw;height:100%;background:#fff;box-shadow:-4px 0 24px rgba(0,0,0,0.12);z-index:200;transform:translateX(100%);transition:transform 0.25s ease;overflow-y:auto;"></div>
 
@@ -347,14 +357,286 @@ function renderDashboard() {
     <div id="ed-confirm-overlay" class="ed-confirm-overlay" role="dialog" aria-modal="true" aria-label="Confirm delete"></div>
   `;
 
-  refreshTable();
-  setupDashboardListeners();
-  initProfileSearchWidget();
+  const body = state.view === "live" ? renderLiveView() : renderOutreachView();
 
-  // Patient signal loads asynchronously so it doesn't block the table.
-  // Reuses cached value while fetching to avoid flash of empty state on
-  // re-render (e.g. after a status save).
-  loadAndRenderPatientSignal();
+  document.getElementById("app").innerHTML = `
+    <div style="min-height:100vh;display:flex;flex-direction:column;">
+      ${header}
+      ${tabs}
+      ${body}
+    </div>
+    ${overlays}
+  `;
+
+  document
+    .querySelectorAll("[data-tab-target]")
+    .forEach((btn) =>
+      btn.addEventListener("click", () => {
+        const target = btn.getAttribute("data-tab-target");
+        if (target && target !== state.view) {
+          state.view = target;
+          renderDashboard();
+        }
+      }),
+    );
+
+  if (state.view === "live") {
+    refreshLiveTable();
+    setupLiveListeners();
+  } else {
+    refreshTable();
+    setupDashboardListeners();
+    // Patient signal loads asynchronously so it doesn't block the table.
+    // Reuses cached value while fetching to avoid flash of empty state on
+    // re-render (e.g. after a status save).
+    loadAndRenderPatientSignal();
+  }
+  initProfileSearchWidget();
+}
+
+function tabButton(target, label) {
+  const active = state.view === target;
+  const style = active
+    ? "border-bottom:2px solid #2a5f6e;color:#2a5f6e;font-weight:600;"
+    : "border-bottom:2px solid transparent;color:#6b7280;font-weight:500;";
+  return `<button data-tab-target="${target}" style="background:none;border:none;padding:12px 16px;font-size:14px;cursor:pointer;${style}">${label}</button>`;
+}
+
+function renderOutreachView() {
+  const stats = computeStats(state.therapists);
+  return `
+    <div style="padding:14px 24px 0;flex-shrink:0;">
+      <div id="profileSearchWidget" class="ps-widget-root" style="padding:0;"></div>
+    </div>
+
+    <div style="padding:14px 24px 0;flex-shrink:0;">
+      <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">
+        Outreach (your sends)
+      </div>
+      <div style="display:flex;gap:14px;">
+        ${statCard("Total", stats.total, "#2a5f6e")}
+        ${statCard("Contacted", stats.contacted, "#3b82f6")}
+        ${statCard("Replied", stats.replied, "#7c3aed")}
+        ${statCard("Reply rate", stats.replyRate + "%", "#f59e0b")}
+      </div>
+      <div style="margin-top:8px;font-size:12px;color:#6b7280;">
+        ${stats.claimed} therapist${stats.claimed === 1 ? "" : "s"} have claimed —
+        <button id="go-live-tab" style="background:none;border:none;padding:0;color:#2a5f6e;font-weight:600;text-decoration:underline;cursor:pointer;font-size:12px;">view on Live tab →</button>
+      </div>
+    </div>
+
+    ${subjectPerformanceHtml(computeSubjectPerformance(state.therapists))}
+
+    <div style="padding:14px 24px 0;flex-shrink:0;">
+      <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;display:flex;align-items:baseline;gap:8px;">
+        <span>Patient signal (last 30 days)</span>
+        <span id="patient-signal-trend" style="font-size:10px;font-weight:500;color:#6b7280;text-transform:none;letter-spacing:0;"></span>
+      </div>
+      <div id="patient-signal-row" style="display:flex;gap:14px;">
+        ${patientSignalCardsHtml(state.patientSignal)}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;padding:14px 24px;flex-shrink:0;flex-wrap:wrap;border-bottom:1px solid #e5e7eb;">
+      <select id="f-status" class="form-input" style="width:160px;">
+        <option value="">Active only</option>
+        ${Object.entries(STATUS_LABELS)
+          .map(
+            ([v, l]) =>
+              `<option value="${v}" ${state.filters.status === v ? "selected" : ""}>${l}</option>`,
+          )
+          .join("")}
+      </select>
+      <select id="f-state" class="form-input" style="width:90px;">
+        <option value="">All states</option>
+        <option value="CA" ${state.filters.state === "CA" ? "selected" : ""}>CA</option>
+      </select>
+      <input id="f-search" type="search" class="form-input" style="width:200px;" placeholder="Search name or email…" value="${esc(state.filters.search)}" />
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#374151;cursor:pointer;white-space:nowrap;">
+        <input id="f-followup" type="checkbox" ${state.filters.followUpDue ? "checked" : ""} />
+        Follow-up due
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;color:#374151;cursor:pointer;white-space:nowrap;" title="Show claimed, paid, replied, bounced, and opted-out therapists">
+        <input id="f-includedone" type="checkbox" ${state.filters.includeDone ? "checked" : ""} />
+        Include done
+      </label>
+      <span id="result-count" style="margin-left:auto;font-size:13px;color:#6b7280;"></span>
+    </div>
+
+    <div style="flex:1;padding:0 24px 24px;" id="table-container"></div>
+  `;
+}
+
+function renderLiveView() {
+  const live = state.therapists.filter(isLive);
+  const total = live.length;
+  const fromOutreach = live.filter((t) => ["claimed", "paid"].includes(t.outreach?.status)).length;
+  const direct = total - fromOutreach;
+  const paid = live.filter((t) => t.outreach?.status === "paid").length;
+
+  return `
+    <div style="padding:14px 24px 0;flex-shrink:0;">
+      <div id="profileSearchWidget" class="ps-widget-root" style="padding:0;"></div>
+    </div>
+
+    <div style="padding:14px 24px 0;flex-shrink:0;">
+      <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin-bottom:6px;">
+        Live therapists (claimed + published)
+      </div>
+      <div style="display:flex;gap:14px;">
+        ${statCard("Live", total, "#2a5f6e")}
+        ${statCard("Claimed via outreach", fromOutreach, "#3b82f6")}
+        ${statCard("Direct signup", direct, "#7c3aed")}
+        ${statCard("Paid", paid, "#059669")}
+      </div>
+    </div>
+
+    <div style="display:flex;gap:10px;align-items:center;padding:14px 24px;flex-shrink:0;flex-wrap:wrap;border-bottom:1px solid #e5e7eb;">
+      <input id="live-search" type="search" class="form-input" style="width:240px;" placeholder="Search name or email…" value="${esc(state.liveFilters.search)}" />
+      <span id="live-result-count" style="margin-left:auto;font-size:13px;color:#6b7280;"></span>
+    </div>
+
+    <div style="flex:1;padding:0 24px 24px;" id="live-table-container"></div>
+  `;
+}
+
+function refreshLiveTable() {
+  const filtered = applyLiveFilters();
+  const container = document.getElementById("live-table-container");
+  const countEl = document.getElementById("live-result-count");
+  if (countEl)
+    countEl.textContent = `${filtered.length} therapist${filtered.length !== 1 ? "s" : ""}`;
+  if (!container) return;
+
+  if (filtered.length === 0) {
+    container.innerHTML = `<div style="text-align:center;padding:48px;color:#6b7280;">No live therapists match the current filters.</div>`;
+    return;
+  }
+
+  const rows = filtered
+    .map((t) => {
+      const status = t.outreach?.status || "not_contacted";
+      const channel = ["claimed", "paid"].includes(status) ? "outreach" : "direct";
+      const channelPill =
+        channel === "outreach"
+          ? `<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:500;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;">Outreach</span>`
+          : `<span style="display:inline-block;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:500;background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;">Direct signup</span>`;
+      const profileUrl = safeProfileUrl(t.profileUrl);
+      const claimedDisplay = t.claimedAt ? relTime(t.claimedAt) : "-";
+      return `<tr data-id="${esc(t._id)}" style="cursor:pointer;">
+      <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "-")}</td>
+      <td style="padding:11px 14px;color:#6b7280;">${esc(t.email || "-")}</td>
+      <td style="padding:11px 14px;color:#6b7280;">${esc(t.city || "-")}</td>
+      <td style="padding:11px 14px;">${channelPill}</td>
+      <td style="padding:11px 14px;">${pill(status)}</td>
+      <td style="padding:11px 14px;color:#6b7280;">${claimedDisplay}</td>
+      <td style="padding:11px 14px;white-space:nowrap;">
+        ${profileUrl ? `<a class="profile-link" href="${esc(profileUrl)}" target="_blank" rel="noopener" data-no-row-click style="margin-right:6px;display:inline-block;padding:4px 10px;border:1px solid #d1d5db;border-radius:6px;color:#2a5f6e;font-size:12px;text-decoration:none;">Profile ↗</a>` : ""}
+        <button class="live-edit-btn btn-secondary" data-id="${esc(t._id)}" style="margin-right:6px;">Edit</button>
+        <button class="view-btn btn-secondary" data-id="${esc(t._id)}">Email</button>
+      </td>
+    </tr>`;
+    })
+    .join("");
+
+  const headers = [
+    { label: "Name", sortKey: "name" },
+    { label: "Email" },
+    { label: "City" },
+    { label: "Signup channel" },
+    { label: "Status", sortKey: "status" },
+    { label: "Claimed", sortKey: "claimedAt" },
+    { label: "Actions" },
+  ];
+  const { column: activeSort, direction: activeDir } = state.liveSort || {};
+  const arrow = (key) => {
+    if (!key || key !== activeSort) return "";
+    return activeDir === "asc" ? " ▲" : " ▼";
+  };
+  const headerHtml = headers
+    .map((h) => {
+      const clickable = h.sortKey
+        ? `cursor:pointer;user-select:none;${h.sortKey === activeSort ? "color:#2a5f6e;" : ""}`
+        : "";
+      const attr = h.sortKey ? `data-sort-key="${h.sortKey}"` : "";
+      return `<th ${attr} style="padding:9px 14px;text-align:left;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;${clickable}">${h.label}${arrow(h.sortKey)}</th>`;
+    })
+    .join("");
+
+  container.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;border-radius:10px;overflow:hidden;margin-top:14px;">
+      <thead>
+        <tr id="live-thead-row" style="background:#f9fafb;border-bottom:1px solid #e5e7eb;">
+          ${headerHtml}
+        </tr>
+      </thead>
+      <tbody id="live-tbody" style="border-top:none;">${rows}</tbody>
+    </table>
+  `;
+
+  document.getElementById("live-tbody").addEventListener("click", handleLiveTableClick);
+  document.getElementById("live-thead-row").addEventListener("click", handleLiveHeaderSortClick);
+}
+
+function handleLiveHeaderSortClick(e) {
+  const th = e.target.closest("th[data-sort-key]");
+  if (!th) return;
+  const key = th.dataset.sortKey;
+  if (state.liveSort.column === key) {
+    state.liveSort.direction = state.liveSort.direction === "asc" ? "desc" : "asc";
+  } else {
+    state.liveSort.column = key;
+    state.liveSort.direction = key === "claimedAt" ? "desc" : "asc";
+  }
+  refreshLiveTable();
+}
+
+function handleLiveTableClick(e) {
+  if (e.target.closest("[data-no-row-click]")) return;
+
+  const editBtn = e.target.closest(".live-edit-btn");
+  const viewBtn = e.target.closest(".view-btn");
+  const row = e.target.closest("tr[data-id]");
+  const id = editBtn?.dataset.id || viewBtn?.dataset.id || row?.dataset.id;
+  if (!id) return;
+  if (e.target.closest("button") && !editBtn && !viewBtn) return;
+
+  const t = state.therapists.find((x) => x._id === id);
+  if (!t) return;
+
+  if (editBtn) {
+    openEditDrawer(t);
+    return;
+  }
+  openPanel(t);
+}
+
+function setupLiveListeners() {
+  document.getElementById("logout-btn")?.addEventListener("click", async () => {
+    await fetch("/api/review/admin/session", { method: "DELETE", credentials: "same-origin" });
+    redirectToAdminLogin();
+  });
+
+  document.getElementById("live-search")?.addEventListener("input", (e) => {
+    state.liveFilters.search = e.target.value;
+    refreshLiveTable();
+  });
+
+  document.getElementById("panel-overlay")?.addEventListener("click", closePanel);
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Escape") return;
+    const confirmOpen = document
+      .getElementById("ed-confirm-overlay")
+      ?.classList.contains("is-open");
+    const drawerOpen = document.getElementById("ed-drawer")?.classList.contains("is-open");
+    if (confirmOpen) {
+      closeDeleteConfirm();
+    } else if (drawerOpen) {
+      closeEditDrawer();
+    } else {
+      closePanel();
+    }
+  });
 }
 
 // Reuses the admin Find-profile widget so the outreach page can jump
@@ -1243,6 +1525,14 @@ function setupDashboardListeners() {
   document.getElementById("f-followup")?.addEventListener("change", (e) => {
     state.filters.followUpDue = e.target.checked;
     refilter();
+  });
+  document.getElementById("f-includedone")?.addEventListener("change", (e) => {
+    state.filters.includeDone = e.target.checked;
+    refilter();
+  });
+  document.getElementById("go-live-tab")?.addEventListener("click", () => {
+    state.view = "live";
+    renderDashboard();
   });
 
   document.getElementById("panel-overlay")?.addEventListener("click", closePanel);
