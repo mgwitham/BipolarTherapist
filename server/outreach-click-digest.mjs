@@ -44,11 +44,28 @@ export async function runOutreachClickDigest({ client, config, nowIso }) {
     if (slug) slugsInWindow.add(slug);
   }
 
+  // Two independent claim signals exist:
+  //
+  //   1. therapist.claimStatus == "claimed" — set by the portal claim
+  //      flow (review-claim-routes.mjs:1199). This is the canonical
+  //      "the therapist authenticated as the owner" signal.
+  //
+  //   2. therapist.outreach.status in ("claimed", "paid") — set by the
+  //      admin manually in the outreach CRM. Bookkeeping for cases
+  //      where the claim was verified out-of-band (e.g. Slack reply,
+  //      direct email confirmation) or the therapist completed Stripe
+  //      checkout, which is downstream of claiming.
+  //
+  // The digest's purpose is "clicked but didn't claim," so we want
+  // EITHER signal to count as claimed. Without the second signal,
+  // therapists the admin already manually marked as claimed show up
+  // as false-positive "clicked, no claim" entries.
   let claimedSlugs = new Set();
   if (slugsInWindow.size > 0) {
     try {
       const rows = await client.fetch(
-        `*[_type == "therapist" && slug.current in $slugs && claimStatus == "claimed"]{
+        `*[_type == "therapist" && slug.current in $slugs &&
+            (claimStatus == "claimed" || outreach.status in ["claimed", "paid"])]{
           "slug": slug.current
         }`,
         { slugs: Array.from(slugsInWindow) },
