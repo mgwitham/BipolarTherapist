@@ -18,6 +18,10 @@
 
 import { isProfileLive } from "../shared/profile-live-status.mjs";
 import { escapeHtml as esc } from "./escape-html.js";
+// Styles live in a sibling CSS file so outreach.html can reuse the
+// widget without copying ~150 lines of CSS into a second page. Vite
+// bundles the CSS into whichever page imports this module.
+import "./profile-search.css";
 
 const MIN_CHARS = 2;
 const DEBOUNCE_MS = 200;
