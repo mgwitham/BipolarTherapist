@@ -216,11 +216,7 @@ const controller = {
   regionId: "licensureActivity",
   countElId: "licensureActivityCount",
   lazyModule: "./admin-licensure-activity.js",
-  storeSlices: [
-    "data.licensureActivityFeed",
-    "filters.licensureActivity",
-    "authRequired",
-  ],
+  storeSlices: ["data.licensureActivityFeed", "filters.licensureActivity", "authRequired"],
   render(ctx) {
     const store = ctx.store;
     renderLicensureActivityPanel({

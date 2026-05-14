@@ -47,7 +47,6 @@ export function createControllerRegistry(options) {
     try {
       controller.render({ store, dom, deps });
     } catch (error) {
-      // eslint-disable-next-line no-console
       console.error("Controller render failed:", controller.id, error);
     }
   }
@@ -74,7 +73,6 @@ export function createControllerRegistry(options) {
     render(id) {
       const controller = controllers.get(id);
       if (!controller) {
-        // eslint-disable-next-line no-console
         console.warn("No controller registered for id:", id);
         return;
       }

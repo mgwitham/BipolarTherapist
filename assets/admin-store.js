@@ -82,7 +82,7 @@ export function createAdminStore(initialState) {
           sub.handler(state, changedPaths);
         } catch (error) {
           // One bad subscriber shouldn't break the rest.
-          // eslint-disable-next-line no-console
+
           console.error("admin-store subscriber failed:", error);
         }
       }
@@ -105,7 +105,11 @@ export function createAdminStore(initialState) {
     set(path, value) {
       const current = getPath(state, path);
       if (current === value) return;
-      if (typeof current === "object" && typeof value === "object" && shallowEqual(current, value)) {
+      if (
+        typeof current === "object" &&
+        typeof value === "object" &&
+        shallowEqual(current, value)
+      ) {
         return;
       }
       state = setPath(state, path, value);
