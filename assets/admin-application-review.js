@@ -691,3 +691,24 @@ export function renderApplicationsPanel(options) {
     mod.reapplyFocusAfterRender(root);
   });
 }
+
+// Controller registration. PR 5 of the admin.js refactor — the hot
+// path. Same buildOptions(store) pattern as the confirmation tabs in
+// PR 4: a ~70-prop option bag (publish/approve/reject callbacks, data
+// getters, recommender helpers) lives in admin.js where the helpers
+// already exist, and the controller is a passthrough.
+//
+// The panel looks up its own root via getElementById("applicationsList"),
+// so the registry's region check uses the same id.
+const controller = {
+  id: "applications",
+  regionId: "applicationsList",
+  storeSlices: ["authRequired"],
+  render(ctx) {
+    const build = ctx.deps.buildApplicationsOptions;
+    if (typeof build !== "function") return;
+    renderApplicationsPanel(build(ctx.store));
+  },
+};
+
+export default controller;
