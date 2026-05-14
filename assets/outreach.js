@@ -1,5 +1,6 @@
 import "./sentry-init.js";
 import { escapeHtml as esc } from "./escape-html.js";
+import { getOutreachTemplate } from "../shared/outreach-templates.mjs";
 
 const API = "/api/admin";
 
@@ -682,57 +683,16 @@ function renderPanelContent(t) {
   `;
 }
 
-// Strip leading title (Dr., Dr, Mr., Ms., Mrs.) and return the first
-// word — good enough for "Hi Jane," opening lines.
-function firstName(fullName) {
-  const tokens = String(fullName || "")
-    .replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Mx\.?)\s+/i, "")
-    .trim()
-    .split(/\s+/);
-  return tokens[0] || "there";
-}
-
 // Default starting subject + body for each template. The composer
 // pre-fills these into editable inputs; the user edits before sending.
-// Append ?ref=outreach so the profile page can attribute the view to
-// an outreach-email click for the daily 'clicked but didn't claim'
-// digest. Safe for both real URLs and the bracketed placeholder.
-function withOutreachRef(url) {
-  if (!url || url.startsWith("[")) return url;
-  return url.includes("?") ? `${url}&ref=outreach` : `${url}?ref=outreach`;
-}
-
+// Template content lives in shared/outreach-templates.mjs (used by the
+// server too) — this just adapts the profileUrl to the placeholder the
+// admin sees when no URL is on file yet.
 function getTemplateDefaults(template, t) {
-  const first = firstName(t.name);
-  const profileUrl = withOutreachRef(safeProfileUrl(t.profileUrl) || "[your profile URL]");
-  const initialSubject = `BipolarTherapyHub | Michael here. One Ask`;
-  const sharedBody = `Hi ${first},
-
-I'm Michael. I built BipolarTherapyHub because I spent twenty years as the bipolar patient who couldn't find the right therapist.
-
-One ask: claim your profile.
-
-${profileUrl}
-
-It takes two minutes. Patients searching for someone who actually gets the cycling, the mixed states, the medication piece will find you instead of giving up.
-
-If you'd rather not be listed, just reply and I'll take it down.
-
-Michael Witham
-bipolartherapyhub.com`;
-  if (template === "follow_up") {
-    // Same body as the initial — the messaging is doing the work. Subject
-    // gets a Re: prefix so Gmail threads it under the original instead of
-    // showing up as a fresh inbox entry.
-    return {
-      subject: `Re: ${initialSubject}`,
-      body: sharedBody,
-    };
-  }
-  return {
-    subject: initialSubject,
-    body: sharedBody,
-  };
+  return getOutreachTemplate(template, {
+    name: t.name,
+    profileUrl: safeProfileUrl(t.profileUrl) || "[your profile URL]",
+  });
 }
 
 // Gmail-style composer: From + To (or just From for form mode), an
