@@ -410,11 +410,7 @@ export async function handleRecoveryRoutes(context) {
       "cross_channel_email",
       "other",
     ]);
-    const STRONG_METHODS = new Set([
-      "self_confirm",
-      "phone_call_dca",
-      "phone_call_website",
-    ]);
+    const STRONG_METHODS = new Set(["self_confirm", "phone_call_dca", "phone_call_website"]);
     const verificationMethods = verificationMethodsRaw
       .map((v) => String(v || "").trim())
       .filter((v) => ALLOWED_METHODS.has(v));

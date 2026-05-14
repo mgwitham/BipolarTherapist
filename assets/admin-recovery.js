@@ -575,11 +575,7 @@ function bindCardActions(container) {
         'input[name="verification_method"][data-request-id="' + id + '"]:checked',
       );
       const verificationMethods = Array.from(methodInputs).map((el) => el.value);
-      const STRONG = new Set([
-        "self_confirm",
-        "phone_call_dca",
-        "phone_call_website",
-      ]);
+      const STRONG = new Set(["self_confirm", "phone_call_dca", "phone_call_website"]);
       const hasStrong = verificationMethods.some((m) => STRONG.has(m));
       if (coldTakeover && !hasStrong) {
         setFeedback(
