@@ -144,3 +144,100 @@ test("admin-store: update() applies a function to the current value", async func
   });
   assert.deepEqual(store.get("list"), [1, 2, 3]);
 });
+
+// In-memory localStorage stub so tests don't depend on a real browser.
+function makeStorageStub(initial) {
+  const map = new Map(Object.entries(initial || {}));
+  return {
+    getItem(key) {
+      return map.has(key) ? map.get(key) : null;
+    },
+    setItem(key, value) {
+      map.set(key, String(value));
+    },
+    removeItem(key) {
+      map.delete(key);
+    },
+    _map: map,
+  };
+}
+
+test("attachLocalStorage: hydrates existing values on attach", function () {
+  const storage = makeStorageStub({
+    "bth_filter": JSON.stringify("ops"),
+  });
+  const store = createAdminStore({});
+  store.attachLocalStorage({ "filters.review": "bth_filter" }, { storage });
+  assert.equal(store.get("filters.review"), "ops");
+});
+
+test("attachLocalStorage: respects legacy wrapped JSON via custom deserialize", function () {
+  // The Review Activity tab serializes its filter as { filter: "..." } in
+  // localStorage; the deserializer must unwrap. This is the regression
+  // guard for "keep the same localStorage keys" from the refactor plan.
+  const storage = makeStorageStub({
+    "bth_review_activity_view_v1": JSON.stringify({ filter: "candidate" }),
+  });
+  const store = createAdminStore({});
+  store.attachLocalStorage(
+    {
+      "filters.reviewActivity": {
+        key: "bth_review_activity_view_v1",
+        deserialize(raw) {
+          try {
+            return JSON.parse(raw).filter || "";
+          } catch (_error) {
+            return "";
+          }
+        },
+        serialize(value) {
+          return JSON.stringify({ filter: value || "" });
+        },
+      },
+    },
+    { storage },
+  );
+  assert.equal(store.get("filters.reviewActivity"), "candidate");
+});
+
+test("attachLocalStorage: skips missing or empty keys", function () {
+  const storage = makeStorageStub({});
+  const store = createAdminStore({ filters: { review: "default" } });
+  store.attachLocalStorage({ "filters.review": "bth_missing" }, { storage });
+  assert.equal(store.get("filters.review"), "default", "no overwrite when storage is empty");
+});
+
+test("attachLocalStorage: skips corrupt JSON", function () {
+  const storage = makeStorageStub({ "bth_filter": "{not json" });
+  const store = createAdminStore({ filters: { review: "default" } });
+  store.attachLocalStorage({ "filters.review": "bth_filter" }, { storage });
+  assert.equal(store.get("filters.review"), "default", "corrupt entry doesn't blow up the app");
+});
+
+test("attachLocalStorage: persists changes back with debounce", async function () {
+  const storage = makeStorageStub({});
+  const store = createAdminStore({});
+  store.attachLocalStorage({ "filters.review": "bth_filter" }, { storage, debounceMs: 10 });
+  store.set("filters.review", "ops");
+  // Not written yet — debounced.
+  assert.equal(storage.getItem("bth_filter"), null);
+  await new Promise(function (r) {
+    setTimeout(r, 25);
+  });
+  assert.equal(storage.getItem("bth_filter"), JSON.stringify("ops"));
+});
+
+test("attachLocalStorage: detach stops further writes", async function () {
+  const storage = makeStorageStub({});
+  const store = createAdminStore({});
+  const detach = store.attachLocalStorage(
+    { "filters.review": "bth_filter" },
+    { storage, debounceMs: 5 },
+  );
+  detach();
+  store.set("filters.review", "ops");
+  await new Promise(function (r) {
+    setTimeout(r, 20);
+  });
+  assert.equal(storage.getItem("bth_filter"), null, "no write after detach");
+});

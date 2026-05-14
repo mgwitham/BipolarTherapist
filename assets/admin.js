@@ -16,6 +16,7 @@ import { createControllerRegistry } from "./admin-controller-registry.js";
 import licensureActivityController from "./admin-licensure-activity.js";
 import licensureQueueController from "./admin-licensure-queue.js";
 import deferredLicensureQueueController from "./admin-licensure-deferred-queue.js";
+import reviewActivityController from "./admin-review-activity.js";
 
 async function fetchMatchedTherapistForCandidate(candidate) {
   if (!candidate) return null;
@@ -172,30 +173,69 @@ if (typeof window !== "undefined" && window.addEventListener && document.documen
 // are migrated in subsequent PRs.
 const adminStore = createAdminStore({
   authRequired: false,
+  dataMode: "local",
   data: {
     licensureActivityFeed: [],
     licensureRefreshQueue: [],
     deferredLicensureQueue: [],
+    reviewActivityItems: [],
+    reviewActivityNextCursor: "",
+    reviewActivityLoading: false,
   },
   filters: {
     licensureActivity: "",
     licensureQueue: "",
+    reviewActivity: "",
   },
 });
+
+// PR 3 — declarative localStorage persistence. Source of truth is the
+// store; reads on init, debounced writes on change. Legacy localStorage
+// keys preserved verbatim so deployed users keep their saved filter.
+adminStore.attachLocalStorage({
+  "filters.reviewActivity": {
+    key: "bth_review_activity_view_v1",
+    deserialize(raw) {
+      try {
+        const parsed = JSON.parse(raw);
+        return parsed && typeof parsed.filter === "string" ? parsed.filter : "";
+      } catch (_error) {
+        return "";
+      }
+    },
+    serialize(value) {
+      return JSON.stringify({ filter: value || "" });
+    },
+  },
+});
+
 const adminRegistry = createControllerRegistry({
   store: adminStore,
-  // loadData and copyText are declared later as `async function`s but
-  // hoisted to the top of the module scope, so they're resolvable here.
+  // loadData / copyText / formatDate are declared later as `function`s
+  // but hoisted to the top of the module scope, so they're resolvable
+  // here. renderReviewActivitySavedViews / Meta same.
   deps: {
     escapeHtml: escapeHtml,
     decideLicensureOps: decideLicensureOps,
     loadData: loadData,
     copyText: copyText,
+    formatDate: formatDate,
+    renderReviewActivitySavedViews: renderReviewActivitySavedViews,
+    renderReviewActivitySavedViewMeta: renderReviewActivitySavedViewMeta,
   },
 });
 adminRegistry.register(licensureActivityController);
 adminRegistry.register(licensureQueueController);
 adminRegistry.register(deferredLicensureQueueController);
+adminRegistry.register(reviewActivityController);
+
+// Mirror the persisted filter into the legacy `let reviewActivityFilter`
+// so non-controller code that reads it (deep-link builder, savedViews
+// metadata, fetch payloads, etc.) keeps working without a rewrite. The
+// controller reads from the store directly.
+adminStore.subscribe(["filters.reviewActivity"], function () {
+  reviewActivityFilter = adminStore.get("filters.reviewActivity") || "";
+});
 
 let dataMode = "local";
 let remoteApplications = [];
@@ -234,7 +274,6 @@ let commandPaletteActiveIndex = 0;
 const adminLazyModuleCache = new Map();
 const CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
 const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
-const REVIEW_ACTIVITY_VIEW_KEY = "bth_review_activity_view_v1";
 const REVIEW_ACTIVITY_SAVED_VIEWS_KEY = "bth_review_activity_saved_views_v1";
 const COMMAND_PALETTE_RECENTS_KEY = "bth_admin_command_palette_recents_v1";
 const COMMAND_PALETTE_FAVORITES_KEY = "bth_admin_command_palette_favorites_v1";
@@ -437,16 +476,17 @@ const listingsWorkspace = createListingsWorkspace({
   },
   getTherapists: getTherapists,
 });
-const savedReviewActivityView = readReviewActivityView();
-if (savedReviewActivityView && typeof savedReviewActivityView.filter === "string") {
-  reviewActivityFilter = savedReviewActivityView.filter;
-}
+// localStorage hydration handled by adminStore.attachLocalStorage above.
+// URL ?reviewActivityLane= still wins over a persisted value, so check it
+// after attach and overwrite. The store subscription above keeps the
+// legacy `let reviewActivityFilter` in sync.
+reviewActivityFilter = adminStore.get("filters.reviewActivity") || "";
 if (typeof window !== "undefined") {
   var reviewActivityLaneParam = new URL(window.location.href).searchParams.get(
     "reviewActivityLane",
   );
   if (typeof reviewActivityLaneParam === "string") {
-    reviewActivityFilter = reviewActivityLaneParam;
+    adminStore.set("filters.reviewActivity", reviewActivityLaneParam);
   }
 }
 applyAdminWorkflowUrlParams();
@@ -949,6 +989,7 @@ function applyAdminRuntimeState(nextState) {
 
   if (Object.prototype.hasOwnProperty.call(nextState, "dataMode")) {
     dataMode = nextState.dataMode;
+    adminStore.set("dataMode", nextState.dataMode || "local");
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "remoteApplications")) {
     remoteApplications = nextState.remoteApplications;
@@ -964,12 +1005,15 @@ function applyAdminRuntimeState(nextState) {
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "reviewActivityItems")) {
     reviewActivityItems = nextState.reviewActivityItems;
+    adminStore.set("data.reviewActivityItems", nextState.reviewActivityItems || []);
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "reviewActivityNextCursor")) {
     reviewActivityNextCursor = nextState.reviewActivityNextCursor;
+    adminStore.set("data.reviewActivityNextCursor", nextState.reviewActivityNextCursor || "");
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "reviewActivityLoading")) {
     reviewActivityLoading = nextState.reviewActivityLoading;
+    adminStore.set("data.reviewActivityLoading", nextState.reviewActivityLoading === true);
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "publishedTherapists")) {
     publishedTherapists = nextState.publishedTherapists;
@@ -1125,21 +1169,11 @@ function withLazyAdminModule(path, onReady, onError) {
 // so the controller registry (admin-controller-registry.js) can import it
 // without round-tripping through admin.js.
 
-function readReviewActivityView() {
-  try {
-    return JSON.parse(window.localStorage.getItem(REVIEW_ACTIVITY_VIEW_KEY) || "{}");
-  } catch (_error) {
-    return {};
-  }
-}
-
-function writeReviewActivityView(value) {
-  try {
-    window.localStorage.setItem(REVIEW_ACTIVITY_VIEW_KEY, JSON.stringify(value || {}));
-  } catch (_error) {
-    // Ignore storage errors and keep the UI usable.
-  }
-}
+// readReviewActivityView / writeReviewActivityView were inlined here in
+// PR 3 — adminStore.attachLocalStorage owns reading and writing
+// bth_review_activity_view_v1 now. Saved-views (the multi-view dropdown
+// surface) still uses the helpers below; a later PR can fold that into
+// the store if the surface keeps growing.
 
 function readReviewActivitySavedViews() {
   try {
@@ -5373,11 +5407,14 @@ async function loadReviewActivityFeed(options) {
     reviewActivityItems = [];
     reviewActivityNextCursor = "";
     reviewActivityLoading = false;
+    adminStore.set("data.reviewActivityItems", []);
+    adminStore.set("data.reviewActivityNextCursor", "");
+    adminStore.set("data.reviewActivityLoading", false);
     return;
   }
 
   reviewActivityLoading = true;
-  renderReviewActivity();
+  adminStore.set("data.reviewActivityLoading", true);
 
   try {
     const response = await fetchReviewEvents({
@@ -5388,14 +5425,18 @@ async function loadReviewActivityFeed(options) {
     const items = response && Array.isArray(response.items) ? response.items : [];
     reviewActivityItems = config.reset ? items : reviewActivityItems.concat(items);
     reviewActivityNextCursor = response && response.next_cursor ? response.next_cursor : "";
+    adminStore.set("data.reviewActivityItems", reviewActivityItems);
+    adminStore.set("data.reviewActivityNextCursor", reviewActivityNextCursor);
   } catch (_error) {
     if (config.reset) {
       reviewActivityItems = [];
       reviewActivityNextCursor = "";
+      adminStore.set("data.reviewActivityItems", []);
+      adminStore.set("data.reviewActivityNextCursor", "");
     }
   } finally {
     reviewActivityLoading = false;
-    renderReviewActivity();
+    adminStore.set("data.reviewActivityLoading", false);
   }
 }
 
@@ -5411,18 +5452,8 @@ const renderReviewEventSnippetHtml = adminReviewActivity.renderReviewEventSnippe
 const renderReviewEventTimelineHtml = adminReviewActivity.renderReviewEventTimelineHtml;
 
 function renderReviewActivity() {
-  adminReviewActivity.renderReviewActivityPanel({
-    authRequired: authRequired,
-    dataMode: dataMode,
-    reviewActivityFilter: reviewActivityFilter,
-    reviewActivityItems: reviewActivityItems,
-    reviewActivityLoading: reviewActivityLoading,
-    reviewActivityNextCursor: reviewActivityNextCursor,
-    escapeHtml: escapeHtml,
-    formatDate: formatDate,
-    renderReviewActivitySavedViews: renderReviewActivitySavedViews,
-    renderReviewActivitySavedViewMeta: renderReviewActivitySavedViewMeta,
-  });
+  // Migrated to the controller pattern (PR 3).
+  adminRegistry.render("reviewActivity");
 }
 
 function renderPortalRequestsQueue() {
@@ -5950,11 +5981,12 @@ document.getElementById("portalRequestStatusFilter").addEventListener("change", 
 });
 
 document.getElementById("reviewActivityFilter").addEventListener("change", async function (event) {
-  reviewActivityFilter = event.target.value || "";
+  // Single source of truth — store.set fires the controller re-render
+  // and the attachLocalStorage subscription, which persists the filter
+  // to bth_review_activity_view_v1. The legacy `let reviewActivityFilter`
+  // is mirrored by the subscription wired at module init.
+  adminStore.set("filters.reviewActivity", event.target.value || "");
   reviewActivitySavedViewId = "";
-  writeReviewActivityView({
-    filter: reviewActivityFilter,
-  });
   syncReviewActivityDeepLink();
   await loadReviewActivityFeed({ reset: true, limit: 12 });
 });
@@ -5973,10 +6005,7 @@ document
       return;
     }
     reviewActivitySavedViewId = nextView.id || "";
-    reviewActivityFilter = nextView.filter || "";
-    writeReviewActivityView({
-      filter: reviewActivityFilter,
-    });
+    adminStore.set("filters.reviewActivity", nextView.filter || "");
     syncReviewActivityDeepLink();
     await loadReviewActivityFeed({ reset: true, limit: 12 });
   });

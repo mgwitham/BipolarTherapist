@@ -369,3 +369,43 @@ export function renderReviewActivityPanel(options) {
         "</button></div>"
       : "");
 }
+
+// Controller registration. PR 3 of the admin.js refactor.
+//
+// Subscribes to:
+//   - data.reviewActivityItems / nextCursor / loading (fetched feed state)
+//   - filters.reviewActivity (persisted via store.attachLocalStorage)
+//   - dataMode and authRequired (UI gates)
+//
+// Saved-views state and the renderSavedViews helpers still live in
+// admin.js for now; they're passed as deps. A later PR can fold them
+// into the store + controller if that surface keeps growing.
+const controller = {
+  id: "reviewActivity",
+  regionId: "reviewActivity",
+  storeSlices: [
+    "data.reviewActivityItems",
+    "data.reviewActivityNextCursor",
+    "data.reviewActivityLoading",
+    "filters.reviewActivity",
+    "dataMode",
+    "authRequired",
+  ],
+  render(ctx) {
+    const store = ctx.store;
+    renderReviewActivityPanel({
+      authRequired: store.get("authRequired") === true,
+      dataMode: store.get("dataMode") || "local",
+      reviewActivityFilter: store.get("filters.reviewActivity") || "",
+      reviewActivityItems: store.get("data.reviewActivityItems") || [],
+      reviewActivityLoading: store.get("data.reviewActivityLoading") === true,
+      reviewActivityNextCursor: store.get("data.reviewActivityNextCursor") || "",
+      escapeHtml: ctx.deps.escapeHtml,
+      formatDate: ctx.deps.formatDate,
+      renderReviewActivitySavedViews: ctx.deps.renderReviewActivitySavedViews,
+      renderReviewActivitySavedViewMeta: ctx.deps.renderReviewActivitySavedViewMeta,
+    });
+  },
+};
+
+export default controller;
