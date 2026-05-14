@@ -767,6 +767,19 @@ export function getMatchScore(filterState, therapist) {
   return score;
 }
 
+// Default-sort completeness signal. Rewards profiles that have both a
+// headshot and a stated bipolar-years-experience over profiles that
+// have one or neither. Three tiers (2 / 1 / 0) so the stable-random
+// shuffle still operates within each tier — we don't want the top
+// row to be the same person every reload.
+function getCompletenessTier(therapist) {
+  var hasPhoto = Boolean(therapist && therapist.photo_url);
+  var hasBipolarYears = Number((therapist && therapist.bipolar_years_experience) || 0) >= 1;
+  if (hasPhoto && hasBipolarYears) return 2;
+  if (hasPhoto || hasBipolarYears) return 1;
+  return 0;
+}
+
 export function compareTherapistsWithFilters(filterState, a, b) {
   if (filterState.sortBy === "stable_random" || filterState.sortBy === "near_zip") {
     if (filterState.sortBy === "near_zip") {
@@ -785,6 +798,8 @@ export function compareTherapistsWithFilters(filterState, a, b) {
     }
     var acceptDiff = (b.accepting_new_patients ? 1 : 0) - (a.accepting_new_patients ? 1 : 0);
     if (acceptDiff !== 0) return acceptDiff;
+    var tierDiff = getCompletenessTier(b) - getCompletenessTier(a);
+    if (tierDiff !== 0) return tierDiff;
     var orderA = filterState.stableOrderMap ? filterState.stableOrderMap.get(a.slug) || 0 : 0;
     var orderB = filterState.stableOrderMap ? filterState.stableOrderMap.get(b.slug) || 0 : 0;
     return orderA - orderB;
