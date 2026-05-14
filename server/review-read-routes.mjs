@@ -228,26 +228,26 @@ export async function handleReadRoutes(context) {
     const beforeCursor = String((url && url.searchParams.get("before")) || "").trim();
     const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 50, 200);
 
+    // Push `before` cursor and a hard fetch window into GROQ so the
+    // event log doesn't get fully materialized on every admin page load.
+    // Lane filter stays JS-side (the lane logic in getEventLane() is
+    // non-trivial), but only operates over the bounded window. The
+    // window is intentionally larger than `limit` so lane-filtered
+    // pagination can find enough matches without a second round-trip.
+    const fetchWindow = Math.min(500, limit * 5);
     const docs = await client.fetch(
-      `*[_type == "therapistPublishEvent"] | order(coalesce(createdAt, _createdAt) desc){
+      `*[_type == "therapistPublishEvent" && (!defined($before) || coalesce(createdAt, _createdAt) < $before)]
+        | order(coalesce(createdAt, _createdAt) desc)[0...$window]{
         _id, _createdAt, eventType, providerId, candidateId, candidateDocumentId, applicationId,
         therapistId, decision, reviewStatus, publishRecommendation, actorName, rationale,
         notes, changedFields, createdAt
       }`,
+      { before: beforeCursor || null, window: fetchWindow },
     );
 
     const filtered = docs
       .filter(function (doc) {
-        if (laneFilter && getEventLane(doc) !== laneFilter) {
-          return false;
-        }
-        if (beforeCursor) {
-          const createdAt = doc.createdAt || doc._createdAt || "";
-          if (!createdAt || createdAt >= beforeCursor) {
-            return false;
-          }
-        }
-        return true;
+        return !laneFilter || getEventLane(doc) === laneFilter;
       })
       .slice(0, limit + 1);
 
@@ -734,12 +734,18 @@ export async function handleReadRoutes(context) {
       .toLowerCase();
     const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 500, 1000);
 
+    // Bound the export the same way as /events: push `limit` into GROQ
+    // so we don't materialize the entire event log just to slice it
+    // down. Lane filter stays JS-side; over-fetch by 5x to give it
+    // enough matches without a second round-trip.
+    const fetchWindow = Math.min(limit * 5, 5000);
     const docs = await client.fetch(
-      `*[_type == "therapistPublishEvent"] | order(coalesce(createdAt, _createdAt) desc){
+      `*[_type == "therapistPublishEvent"] | order(coalesce(createdAt, _createdAt) desc)[0...$window]{
         _id, _createdAt, eventType, providerId, candidateId, candidateDocumentId, applicationId,
         therapistId, decision, reviewStatus, publishRecommendation, actorName, rationale,
         notes, changedFields, createdAt
       }`,
+      { window: fetchWindow },
     );
 
     const items = docs
