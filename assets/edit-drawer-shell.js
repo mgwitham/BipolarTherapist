@@ -35,11 +35,11 @@ const EDIT_DRAWER_HTML = `
         hidden
       >
         <div class="edit-live-panel-head">
-          <span>Live status (preview)</span>
+          <span>Status</span>
           <span class="ps-badge ps-badge--hidden" id="editLivePanelBadge">Hidden</span>
         </div>
         <div class="edit-live-panel-transition" id="editLivePanelTransition" hidden></div>
-        <ul class="edit-live-panel-gates" id="editLivePanelGates"></ul>
+        <div class="edit-live-panel-reason" id="editLivePanelReason" hidden></div>
       </aside>
       <form class="edit-drawer-form" id="candidateEditForm" novalidate>
         <div class="edit-section-title">Identity</div>

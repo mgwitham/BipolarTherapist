@@ -251,31 +251,14 @@ body.drawer-open {
   background: #fee2e2;
   color: #b91c1c;
 }
-.edit-live-panel-gates {
-  margin: 0.6rem 0 0;
-  padding: 0;
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.2rem;
+.edit-live-panel-reason {
+  margin-top: 0.4rem;
   font-size: 0.82rem;
-}
-.edit-live-panel-gates li {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.4rem;
   line-height: 1.4;
+  color: #92400e;
 }
-.edit-live-panel-gates .gate-mark {
-  flex-shrink: 0;
-  width: 1.05rem;
-  font-weight: 800;
-}
-.edit-live-panel-gates .gate-mark.is-pass {
-  color: #15803d;
-}
-.edit-live-panel-gates .gate-mark.is-fail {
-  color: #dc2626;
+.edit-live-panel-reason[hidden] {
+  display: none;
 }
 .edit-audit-log {
   display: flex;
