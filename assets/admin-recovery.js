@@ -7,6 +7,7 @@
 import { escapeHtml } from "./escape-html.js";
 import {
   approveRecoveryRequest,
+  dismissRecoveryRequest,
   fetchRecoveryRequests,
   rejectRecoveryRequest,
   resendRecoverySignin,
@@ -250,7 +251,9 @@ function renderRequestCard(req) {
       ? "is-approved"
       : req.status === "rejected"
         ? "is-rejected"
-        : "is-pending";
+        : req.status === "dismissed"
+          ? "is-dismissed"
+          : "is-pending";
   const coldTakeover = isColdTakeover(req);
   const nameMismatch =
     req.profileName &&
@@ -409,6 +412,9 @@ function renderRequestCard(req) {
         '<button type="button" class="btn-secondary admin-recovery-reject" data-request-id="' +
         escapeHtml(req._id) +
         '">Reject</button>' +
+        '<button type="button" class="btn-secondary admin-recovery-dismiss" data-request-id="' +
+        escapeHtml(req._id) +
+        '" title="Clear this request without sending any email. Use for duplicates or junk.">Dismiss (no email)</button>' +
         "</div>" +
         '<div class="admin-recovery-feedback" data-feedback-for="' +
         escapeHtml(req._id) +
@@ -623,6 +629,26 @@ function bindCardActions(container) {
         window.setTimeout(loadRecoveryDashboard, 800);
       } catch (error) {
         setFeedback(id, "warn", (error && error.message) || "Reject failed.");
+        button.disabled = false;
+      }
+    });
+  });
+  container.querySelectorAll(".admin-recovery-dismiss").forEach(function (button) {
+    button.addEventListener("click", async function () {
+      const id = button.getAttribute("data-request-id");
+      const note = window.prompt(
+        "Dismiss this request without notifying the therapist.\n\nWhy are you dismissing it? (saved on the request for audit)",
+        "Duplicate submission",
+      );
+      if (note === null) return;
+      button.disabled = true;
+      setFeedback(id, "info", "Dismissing...");
+      try {
+        await dismissRecoveryRequest(id, { admin_note: note });
+        setFeedback(id, "success", "Dismissed. No email sent.");
+        window.setTimeout(loadRecoveryDashboard, 800);
+      } catch (error) {
+        setFeedback(id, "warn", (error && error.message) || "Dismiss failed.");
         button.disabled = false;
       }
     });

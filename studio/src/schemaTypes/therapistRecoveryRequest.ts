@@ -51,6 +51,7 @@ export const therapistRecoveryRequestType = defineType({
           { title: "Pending review", value: "pending" },
           { title: "Approved", value: "approved" },
           { title: "Rejected", value: "rejected" },
+          { title: "Dismissed (no notification sent)", value: "dismissed" },
         ],
       },
       initialValue: "pending",
@@ -235,7 +236,13 @@ export const therapistRecoveryRequestType = defineType({
     },
     prepare: (selection) => {
       const statusEmoji =
-        selection.status === "approved" ? "✅" : selection.status === "rejected" ? "❌" : "⏳";
+        selection.status === "approved"
+          ? "✅"
+          : selection.status === "rejected"
+            ? "❌"
+            : selection.status === "dismissed"
+              ? "🗑️"
+              : "⏳";
       return {
         title: `${statusEmoji} ${selection.title || "(no name)"}`,
         subtitle: `License ${selection.subtitle || "?"} · ${selection.status || "pending"}`,

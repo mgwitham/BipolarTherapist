@@ -517,6 +517,14 @@ export async function rejectRecoveryRequest(id, payload) {
   });
 }
 
+export async function dismissRecoveryRequest(id, payload) {
+  return request("/recovery-requests/" + encodeURIComponent(id) + "/dismiss", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify(payload || {}),
+  });
+}
+
 export async function searchTherapistQuickClaim(query) {
   return request("/portal/quick-claim/search?q=" + encodeURIComponent(query || ""), {
     method: "GET",
