@@ -1040,8 +1040,11 @@ export async function handlePortalProfileRoutes(context) {
       sendJson(response, 400, { error: "slug query param is required." }, origin, config);
       return true;
     }
+    // Mirror the send endpoint's filter exactly so admin can't preview an
+    // email for a record that would be silently rejected at send time.
+    // Includes claim_status because nudges only target claimed therapists.
     const t = await client.fetch(
-      `*[_type == "therapist" && slug.current == $slug][0]{
+      `*[_type == "therapist" && claimStatus == "claimed" && slug.current == $slug][0]{
         _id,
         "slug": slug.current,
         name,
@@ -1052,7 +1055,7 @@ export async function handlePortalProfileRoutes(context) {
       { slug: slugParam },
     );
     if (!t) {
-      sendJson(response, 404, { error: "Therapist not found." }, origin, config);
+      sendJson(response, 404, { error: "Therapist not found or not claimed." }, origin, config);
       return true;
     }
     const rendered = renderPortalCompletenessNudge(config, t, config.portalBaseUrl);
@@ -1113,44 +1116,61 @@ export async function handlePortalProfileRoutes(context) {
       { slugs },
     );
 
-    let sent = 0;
-    let failed = 0;
-    const results = [];
-    for (const t of therapists) {
+    // Process therapists in bounded-concurrency chunks. Each Resend request
+    // is mostly network-bound (~200-500ms), and a 50-row batch in series
+    // would block the response for 10-25 seconds. 4 in flight keeps us
+    // well under Resend's rate limits (10 req/sec on paid) while cutting
+    // wall time by ~4x. Each task is fully isolated — one failure does
+    // not affect the rest.
+    const NUDGE_CONCURRENCY = 4;
+
+    async function nudgeOne(t) {
       const toEmail = String(t.email || "")
         .trim()
         .toLowerCase();
       if (!toEmail) {
-        results.push({ slug: t.slug, status: "skipped", reason: "no email on file" });
-        continue;
+        return { slug: t.slug, status: "skipped", reason: "no email on file" };
       }
       try {
         await sendPortalCompletenessNudge(config, t, config.portalBaseUrl);
-        sent += 1;
-        results.push({ slug: t.slug, status: "sent", to: toEmail });
         // Durable tracking — increment lifetime count + stamp last-sent so the
-        // admin Completeness tracker can surface "Sent 3× · 4d ago" and
-        // sort by least-recently-nudged. Fire-and-forget; the send already
-        // succeeded and we shouldn't fail the response on a Sanity patch glitch.
+        // admin Completeness tracker can surface "Sent 3× · 4d ago" and sort
+        // by least-recently-nudged. Log on failure rather than swallowing so
+        // we notice if the count drifts.
         client
           .patch(t._id)
           .setIfMissing({ portalNudgeSentCount: 0 })
           .inc({ portalNudgeSentCount: 1 })
           .set({ portalNudgeLastSentAt: new Date().toISOString() })
           .commit({ visibility: "async" })
-          .catch(() => {});
+          .catch((patchErr) => {
+            log.warn("[nudge] failed to persist nudge count", {
+              slug: t.slug,
+              err: patchErr?.message || String(patchErr),
+            });
+          });
         // Aggregate trend — feeds the existing admin Funnel tab.
         appendFunnelEvent(client, "portal_nudge_sent", {
           therapist_slug: t.slug,
           score: typeof t.portalCompletenessScore === "number" ? t.portalCompletenessScore : null,
         });
+        return { slug: t.slug, status: "sent", to: toEmail };
       } catch (err) {
-        failed += 1;
-        results.push({ slug: t.slug, status: "failed", reason: (err && err.message) || "unknown" });
+        return { slug: t.slug, status: "failed", reason: (err && err.message) || "unknown" };
       }
     }
 
-    sendJson(response, 200, { ok: true, sent, failed, results }, origin, config);
+    const results = [];
+    for (let i = 0; i < therapists.length; i += NUDGE_CONCURRENCY) {
+      const chunk = therapists.slice(i, i + NUDGE_CONCURRENCY);
+      const settled = await Promise.all(chunk.map(nudgeOne));
+      results.push(...settled);
+    }
+    const sent = results.filter((r) => r.status === "sent").length;
+    const failed = results.filter((r) => r.status === "failed").length;
+    const skipped = results.filter((r) => r.status === "skipped").length;
+
+    sendJson(response, 200, { ok: true, sent, failed, skipped, results }, origin, config);
     return true;
   }
 
