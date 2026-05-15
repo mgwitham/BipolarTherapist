@@ -189,14 +189,17 @@ function openedLatest(t) {
 }
 
 // Renders the open-trail for a therapist as a row of colored dots.
-// One dot per send in chronological order; hovering each dot shows
-// subject + send time + open state via the title attribute.
+// Only tracked sends (Resend direct) get a dot — form / PT sends are
+// blind to open tracking so we drop them entirely. The Status pill
+// + Last contact column still communicate "we did reach out via PT,"
+// just without a misleading neutral dot on the engagement trail.
 function engagementTrailHtml(t) {
   const log = Array.isArray(t.outreach?.emailLog) ? t.outreach.emailLog : [];
-  if (log.length === 0) {
+  const tracked = log.filter((e) => openState(e) !== "untracked");
+  if (tracked.length === 0) {
     return `<span style="color:#9ca3af;font-size:11px;">—</span>`;
   }
-  const dots = log
+  const dots = tracked
     .map((e, i) => {
       const state = openState(e);
       const subj = String(e.subject || "(no subject)").replace(/"/g, "&quot;");
@@ -204,13 +207,10 @@ function engagementTrailHtml(t) {
       const stateLabel =
         state === "opened"
           ? `opened ${e.openedAt ? new Date(e.openedAt).toLocaleString() : ""}`
-          : state === "unopened"
-            ? "not opened"
-            : "no tracking (form / PT)";
+          : "not opened";
       const title = `Email ${i + 1}: ${subj} · sent ${when} · ${stateLabel}`;
-      const fill =
-        state === "opened" ? "#059669" : state === "unopened" ? "transparent" : "#e5e7eb";
-      const border = state === "opened" ? "#059669" : state === "unopened" ? "#9ca3af" : "#d1d5db";
+      const fill = state === "opened" ? "#059669" : "transparent";
+      const border = state === "opened" ? "#059669" : "#9ca3af";
       return `<span title="${esc(title)}" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${fill};border:1.5px solid ${border};margin-right:3px;vertical-align:middle;"></span>`;
     })
     .join("");
