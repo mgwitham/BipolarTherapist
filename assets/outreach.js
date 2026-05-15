@@ -132,6 +132,7 @@ const STATUS_LABELS = {
   not_contacted: "Not contacted",
   email_1_sent: "Email 1 sent",
   followed_up: "Followed up",
+  profile_gap_sent: "Profile gap sent",
   replied: "Replied",
   bounced: "Bounced",
   claimed: "Claimed",
@@ -143,6 +144,7 @@ const STATUS_STYLES = {
   not_contacted: "background:#f3f4f6;color:#6b7280;border:1px solid #d1d5db;",
   email_1_sent: "background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;",
   followed_up: "background:#fffbeb;color:#b45309;border:1px solid #fcd34d;",
+  profile_gap_sent: "background:#fdf4ff;color:#86198f;border:1px solid #f0abfc;",
   replied: "background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;",
   bounced:
     "background:#f3f4f6;color:#374151;border:1px solid #9ca3af;text-decoration:line-through;",
@@ -348,6 +350,7 @@ const STATUS_ORDER = [
   "not_contacted",
   "email_1_sent",
   "followed_up",
+  "profile_gap_sent",
   "replied",
   "claimed",
   "paid",
@@ -385,7 +388,9 @@ function applySort(list) {
 function computeStats(list) {
   const total = list.length;
   const contacted = list.filter((t) =>
-    ["email_1_sent", "followed_up", "replied", "claimed", "paid"].includes(t.outreach?.status),
+    ["email_1_sent", "followed_up", "profile_gap_sent", "replied", "claimed", "paid"].includes(
+      t.outreach?.status,
+    ),
   ).length;
   const replied = list.filter((t) =>
     ["replied", "claimed", "paid"].includes(t.outreach?.status),
@@ -1075,6 +1080,16 @@ function openFindOnPT() {
   });
 }
 
+// Mirror of the server-side TEMPLATES[*].nextStatus map. Kept in sync
+// so the optimistic client-side mutation matches what the server writes
+// to Sanity on a successful send. New templates need an entry here AND
+// in api/admin/send-email.mjs.
+function nextStatusForTemplate(template) {
+  if (template === "email_1") return "email_1_sent";
+  if (template === "profile_gap") return "profile_gap_sent";
+  return "followed_up";
+}
+
 // True if this therapist's outreach.emailLog already contains an entry
 // for the given template. Used to flag/exclude already-emailed recipients
 // in the batch composer so a re-run can't silently double-send. The
@@ -1133,6 +1148,7 @@ function openBatchComposer() {
         <select id="batch-template" class="form-input" style="margin-bottom:12px;">
           <option value="email_1" selected>Initial outreach</option>
           <option value="follow_up">Follow-up</option>
+          <option value="profile_gap">Profile gap (photo + experience)</option>
         </select>
 
         <div id="batch-dupe-warning" style="display:none;margin-bottom:12px;"></div>
@@ -1315,7 +1331,7 @@ async function sendBatch(recipients, template, subject, campaign, overlay, force
       const now = new Date().toISOString();
       mutateTherapist(t._id, (th) => {
         if (!th.outreach) th.outreach = {};
-        th.outreach.status = template === "email_1" ? "email_1_sent" : "followed_up";
+        th.outreach.status = nextStatusForTemplate(template);
         th.outreach.emailsSent = (th.outreach.emailsSent || 0) + 1;
         th.outreach.lastContactedAt = now;
         th.outreach.emailLog = [
@@ -1491,7 +1507,7 @@ function refreshTable() {
           ? channel === "email"
             ? "Send email 1"
             : "Open form 1"
-          : s === "email_1_sent" || s === "followed_up"
+          : s === "email_1_sent" || s === "followed_up" || s === "profile_gap_sent"
             ? channel === "email"
               ? "Send follow-up"
               : "Open form follow-up"
@@ -1754,7 +1770,7 @@ function renderPanelContent(t) {
   // Quick-action reply buttons make sense after we've contacted them
   // but before they've reached a terminal status. Keeps the dropdown-
   // and-Save dance off the most common reply outcomes.
-  const showQuickActions = ["email_1_sent", "followed_up"].includes(status);
+  const showQuickActions = ["email_1_sent", "followed_up", "profile_gap_sent"].includes(status);
 
   return `
     <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
@@ -1840,7 +1856,11 @@ function renderPanelContent(t) {
             <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;">
               <div style="flex:1;min-width:0;">
                 <div style="font-weight:500;">${
-                  e.template?.startsWith("email_1") ? "Initial outreach" : "Follow-up"
+                  e.template?.startsWith("email_1")
+                    ? "Initial outreach"
+                    : e.template === "profile_gap"
+                      ? "Profile gap"
+                      : "Follow-up"
                 }${isFormSend ? " (contact form)" : ""}</div>
                 <div style="color:#6b7280;font-size:12px;margin-top:2px;">${esc(e.subject)}</div>
                 <div style="color:#9ca3af;font-size:12px;margin-top:2px;">${e.sentAt ? new Date(e.sentAt).toLocaleString() : "-"}${e.campaign ? ` · campaign: ${esc(e.campaign)}` : ""}</div>
@@ -1916,6 +1936,7 @@ function gmailComposerHtml(t, defaultTemplate, mode) {
     <select id="template-select" class="form-input" style="margin-bottom:12px;">
       <option value="email_1" ${defaultTemplate === "email_1" ? "selected" : ""}>Initial outreach</option>
       <option value="follow_up" ${defaultTemplate === "follow_up" ? "selected" : ""}>Follow-up</option>
+      <option value="profile_gap" ${defaultTemplate === "profile_gap" ? "selected" : ""}>Profile gap (photo + experience)</option>
     </select>
   `;
 
@@ -2149,7 +2170,7 @@ function setupPanelListeners(t) {
       const now = new Date().toISOString();
       mutateTherapist(t._id, (th) => {
         if (!th.outreach) th.outreach = {};
-        th.outreach.status = composer.template === "email_1" ? "email_1_sent" : "followed_up";
+        th.outreach.status = nextStatusForTemplate(composer.template);
         th.outreach.emailsSent = (th.outreach.emailsSent || 0) + 1;
         th.outreach.lastContactedAt = now;
         th.outreach.emailLog = [
@@ -2262,7 +2283,7 @@ function setupPanelListeners(t) {
       const now = new Date().toISOString();
       mutateTherapist(t._id, (th) => {
         if (!th.outreach) th.outreach = {};
-        th.outreach.status = composer.template === "email_1" ? "email_1_sent" : "followed_up";
+        th.outreach.status = nextStatusForTemplate(composer.template);
         th.outreach.emailsSent = (th.outreach.emailsSent || 0) + 1;
         th.outreach.lastContactedAt = now;
         th.outreach.emailLog = [

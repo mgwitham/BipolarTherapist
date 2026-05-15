@@ -3,6 +3,7 @@ import { verifyAdminSession } from "../_adminAuth.mjs";
 import {
   INITIAL_SUBJECT,
   buildOutreachBody,
+  buildProfileGapBody,
   withOutreachRef,
 } from "../../shared/outreach-templates.mjs";
 
@@ -28,7 +29,7 @@ async function resendSend({ apiKey, from, to, subject, html, text }) {
   return data;
 }
 
-const VALID_TEMPLATES = new Set(["email_1", "follow_up"]);
+const VALID_TEMPLATES = new Set(["email_1", "follow_up", "profile_gap"]);
 
 // Fallback copy used when the composer ships a blank subject/body
 // (shouldn't happen — the client validates — but defense in depth).
@@ -36,6 +37,12 @@ const VALID_TEMPLATES = new Set(["email_1", "follow_up"]);
 // the client composer and this server fallback.
 function buildSharedBody(t) {
   return buildOutreachBody({
+    name: t.name,
+    profileUrl: withOutreachRef(t.profileUrl || ""),
+  });
+}
+function buildSharedProfileGapBody(t) {
+  return buildProfileGapBody({
     name: t.name,
     profileUrl: withOutreachRef(t.profileUrl || ""),
   });
@@ -53,6 +60,15 @@ const TEMPLATES = {
     text: (t) => buildSharedBody(t),
     html: (t) => plainTextToHtml(buildSharedBody(t)),
     nextStatus: "followed_up",
+  },
+  profile_gap: {
+    // Touch-3 angle: addresses the two highest-friction gaps on the
+    // therapist's profile (photo + bipolar-years-experience). Threaded
+    // as Re: so it lands in the same Gmail conversation as touches 1+2.
+    subject: () => `Re: ${INITIAL_SUBJECT}`,
+    text: (t) => buildSharedProfileGapBody(t),
+    html: (t) => plainTextToHtml(buildSharedProfileGapBody(t)),
+    nextStatus: "profile_gap_sent",
   },
 };
 
