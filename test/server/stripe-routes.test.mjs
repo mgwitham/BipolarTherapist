@@ -320,6 +320,63 @@ test("webhook: duplicate event ID is skipped as stale", async () => {
   assert.equal(doc.status, "trialing");
 });
 
+test("webhook: returns 503 on revision conflict so Stripe redelivers", async () => {
+  // Concurrent webhook race: another instance wrote the subscription doc
+  // between our getDocument() and our patch(). Sanity surfaces this as a 409
+  // from ifRevisionId. We must return 5xx so Stripe redelivers — on retry
+  // the fresh read either filters via shouldApplyEvent or rebuilds the merge.
+  const { client } = createMemoryClient({
+    "therapistSubscription-jamie-rivera": {
+      _id: "therapistSubscription-jamie-rivera",
+      _rev: "rev-old",
+      _type: "therapistSubscription",
+      therapistSlug: "jamie-rivera",
+      status: "trialing",
+      lastEventId: "evt_prev",
+      lastEventAt: "2020-01-01T00:00:00.000Z",
+    },
+  });
+  const racingClient = {
+    ...client,
+    patch() {
+      const err = new Error("Revision mismatch");
+      err.statusCode = 409;
+      return {
+        ifRevisionId() {
+          return this;
+        },
+        set() {
+          return this;
+        },
+        commit() {
+          return Promise.reject(err);
+        },
+      };
+    },
+  };
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/webhook",
+    headers: { "stripe-signature": "sig-ok" },
+    client: racingClient,
+    deps: {
+      parseBody: async () => null,
+      parseRawBody: async () => Buffer.from("{}"),
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => ({
+        id: "evt_racing",
+        type: "customer.subscription.updated",
+        created: 1_700_000_500,
+        data: { object: buildStripeSubscription({ status: "active" }) },
+      }),
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 503);
+});
+
 test("webhook: customer.subscription.deleted flips plan to none", async () => {
   const { client, state } = createMemoryClient({
     "therapistSubscription-jamie-rivera": deepClone({

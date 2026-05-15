@@ -342,7 +342,39 @@ export async function handleStripeRoutes(context) {
     });
     const merged = mergeSubscriptionDocuments(existing, next);
 
-    await client.transaction().createOrReplace(merged).commit({ visibility: "async" });
+    // Optimistic concurrency. shouldApplyEvent above dedups serial replays of
+    // the same event.id, but does nothing if two different events for the same
+    // therapist race (both read existing=S0, both write — the older event's
+    // write can clobber the newer one). The _rev guard makes the write fail
+    // if the doc changed since we read it; on 409 we return 503 and let Stripe
+    // redeliver, at which point the fresh read either filters the now-stale
+    // event via shouldApplyEvent or rebuilds against the new baseline.
+    // visibility: "sync" so /stripe/subscription reads landing right after
+    // the webhook see the new state instead of the async-replicated cache.
+    try {
+      if (existing && existing._rev) {
+        await client
+          .patch(subscriptionId)
+          .ifRevisionId(existing._rev)
+          .set(merged)
+          .commit({ visibility: "sync" });
+      } else {
+        await client.create({ ...merged, _id: subscriptionId }, { visibility: "sync" });
+      }
+    } catch (error) {
+      const status = error && (error.statusCode || error.status);
+      if (status === 409) {
+        sendJson(
+          response,
+          503,
+          { error: "Concurrent subscription update; please retry." },
+          origin,
+          config,
+        );
+        return true;
+      }
+      throw error;
+    }
 
     // Founder alerts: trial-start, trial-converted-to-paid, and
     // subscription-canceled. All look at the same `existing` (prior
