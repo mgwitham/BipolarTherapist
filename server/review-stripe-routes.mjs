@@ -264,13 +264,7 @@ export async function handleStripeRoutes(context) {
         plan: plan || undefined,
         message: error && error.message,
       });
-      sendJson(
-        response,
-        500,
-        { error: "Failed to create checkout session." },
-        origin,
-        config,
-      );
+      sendJson(response, 500, { error: "Failed to create checkout session." }, origin, config);
     }
     return true;
   }
