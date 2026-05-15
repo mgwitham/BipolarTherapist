@@ -29,25 +29,50 @@ var token = new URLSearchParams(window.location.search).get("token") || "";
 var devLoginEmail = new URLSearchParams(window.location.search).get("dev_login") || "";
 var claimSessionState = null;
 
-function scrubMagicLinkTokenFromUrl(nextSlug) {
+// Strip the magic-link token from the address bar as fast as possible.
+// Runs synchronously at module load (before any fetch/await) so:
+//   - Sentry's first error capture, if it fires, can't pull window.location
+//     with the token in it (sentry-init.js also scrubs as defence in depth).
+//   - A Referer header from any sub-resource fetch initiated by other module
+//     imports doesn't ship the token to a third party.
+//   - The back-button history entry doesn't expose the token.
+// Token is already captured into the `token` variable above; the URL copy
+// has served its purpose.
+function scrubTokenFromUrl() {
   try {
     var params = new URLSearchParams(window.location.search);
-    if (!params.has("token")) {
-      return;
-    }
+    if (!params.has("token")) return;
     params.delete("token");
-    if (nextSlug) {
-      params.set("slug", nextSlug);
-    }
     var nextUrl =
       window.location.pathname +
       (params.toString() ? "?" + params.toString() : "") +
       window.location.hash;
     window.history.replaceState({}, document.title, nextUrl);
-    token = "";
-    slug = nextSlug || params.get("slug") || slug;
   } catch (_error) {
     // Non-fatal; the signed token is still short-lived and single-use.
+  }
+}
+
+scrubTokenFromUrl();
+
+// Late-flow hook: once the server resolves the session, update the
+// module-scoped slug to match (server may canonicalize). Token is already
+// gone from the URL by the time this runs.
+function applyResolvedSlug(nextSlug) {
+  if (!nextSlug) return;
+  try {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get("slug") !== nextSlug) {
+      params.set("slug", nextSlug);
+      var nextUrl =
+        window.location.pathname +
+        (params.toString() ? "?" + params.toString() : "") +
+        window.location.hash;
+      window.history.replaceState({}, document.title, nextUrl);
+    }
+    slug = nextSlug;
+  } catch (_error) {
+    slug = nextSlug;
   }
 }
 
@@ -2760,7 +2785,8 @@ function renderPortal(therapist, options) {
       if (session.therapist && session.therapist.claim_status === "claimed") {
         trackFunnelEvent("portal_signin_completed", { slug: session.therapist.slug || "" });
       }
-      scrubMagicLinkTokenFromUrl((session.therapist && session.therapist.slug) || "");
+      applyResolvedSlug((session.therapist && session.therapist.slug) || "");
+      token = "";
       renderPortal(session.therapist, {
         sessionMode: session.therapist.claim_status === "claimed" ? "claimed" : "claim_token",
       });
