@@ -1,3 +1,4 @@
+import { log } from "./logger.mjs";
 import {
   buildSubscriptionId,
   deriveSubscriptionDocumentFromStripe,
@@ -199,10 +200,18 @@ export async function handleStripeRoutes(context) {
       });
       sendJson(response, 200, { ok: true, url: portal.url }, origin, config);
     } catch (error) {
+      // Stripe SDK errors include customer IDs, emails, and configuration
+      // details in their `message`. Log server-side, return a generic string
+      // to the client so error telemetry / browser devtools can't surface PII.
+      log.error("Stripe billing portal session creation failed", {
+        slug: session.slug,
+        customerId: subscription.stripeCustomerId,
+        message: error && error.message,
+      });
       sendJson(
         response,
         500,
-        { error: error.message || "Failed to create billing portal session." },
+        { error: "Failed to create billing portal session." },
         origin,
         config,
       );
@@ -248,13 +257,14 @@ export async function handleStripeRoutes(context) {
         config,
       );
     } catch (error) {
-      sendJson(
-        response,
-        500,
-        { error: error.message || "Failed to create checkout session." },
-        origin,
-        config,
-      );
+      // Same hazard as portal-session above: Stripe error messages can carry
+      // price IDs, customer IDs, plan codes. Return generic; log details.
+      log.error("Stripe checkout session creation failed", {
+        therapistSlug,
+        plan: plan || undefined,
+        message: error && error.message,
+      });
+      sendJson(response, 500, { error: "Failed to create checkout session." }, origin, config);
     }
     return true;
   }
@@ -278,13 +288,13 @@ export async function handleStripeRoutes(context) {
     try {
       event = await verifyAndParseWebhook(config, rawBody, signature);
     } catch (error) {
-      sendJson(
-        response,
-        400,
-        { error: `Webhook verification failed: ${error.message || "invalid signature"}` },
-        origin,
-        config,
-      );
+      // Webhook signature errors can reveal SDK internals to anyone probing
+      // the endpoint. Stripe's own dashboard tracks delivery failures, so we
+      // don't need to expose the underlying reason in the response body.
+      log.error("Stripe webhook signature verification failed", {
+        message: error && error.message,
+      });
+      sendJson(response, 400, { error: "Webhook verification failed." }, origin, config);
       return true;
     }
 
