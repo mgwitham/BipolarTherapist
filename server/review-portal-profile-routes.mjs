@@ -1000,8 +1000,15 @@ export async function handlePortalProfileRoutes(context) {
       sendJson(response, 401, { error: "Admin session required." }, origin, config);
       return true;
     }
+    // Sort: least-recently-nudged first so the daily admin flow naturally
+    // picks up therapists you haven't touched in the longest. Never-nudged
+    // therapists (null portalNudgeLastSentAt) come before any with a date,
+    // ordered by completeness ascending within that group.
     const rows = await client.fetch(
-      `*[_type == "therapist" && claimStatus == "claimed"] | order(portalCompletenessScore asc) {
+      `*[_type == "therapist" && claimStatus == "claimed"] | order(
+        coalesce(portalNudgeLastSentAt, "1970-01-01T00:00:00Z") asc,
+        portalCompletenessScore asc
+      ) {
         "slug": slug.current,
         name,
         email,
@@ -1011,6 +1018,8 @@ export async function handlePortalProfileRoutes(context) {
         portalCompletionFields,
         portalLastSaveAt,
         portalCompletenessUpdatedAt,
+        portalNudgeSentCount,
+        portalNudgeLastSentAt,
         "hasEmail": defined(email) && email != ""
       }`,
     );
@@ -1119,6 +1128,22 @@ export async function handlePortalProfileRoutes(context) {
         await sendPortalCompletenessNudge(config, t, config.portalBaseUrl);
         sent += 1;
         results.push({ slug: t.slug, status: "sent", to: toEmail });
+        // Durable tracking — increment lifetime count + stamp last-sent so the
+        // admin Completeness tracker can surface "Sent 3× · 4d ago" and
+        // sort by least-recently-nudged. Fire-and-forget; the send already
+        // succeeded and we shouldn't fail the response on a Sanity patch glitch.
+        client
+          .patch(t._id)
+          .setIfMissing({ portalNudgeSentCount: 0 })
+          .inc({ portalNudgeSentCount: 1 })
+          .set({ portalNudgeLastSentAt: new Date().toISOString() })
+          .commit({ visibility: "async" })
+          .catch(() => {});
+        // Aggregate trend — feeds the existing admin Funnel tab.
+        appendFunnelEvent(client, "portal_nudge_sent", {
+          therapist_slug: t.slug,
+          score: typeof t.portalCompletenessScore === "number" ? t.portalCompletenessScore : null,
+        });
       } catch (err) {
         failed += 1;
         results.push({ slug: t.slug, status: "failed", reason: (err && err.message) || "unknown" });
