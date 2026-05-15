@@ -959,6 +959,7 @@ export const therapistType = defineType({
               { title: "Not contacted", value: "not_contacted" },
               { title: "Email 1 sent", value: "email_1_sent" },
               { title: "Followed up", value: "followed_up" },
+              { title: "Profile gap sent", value: "profile_gap_sent" },
               { title: "Replied", value: "replied" },
               { title: "Bounced", value: "bounced" },
               { title: "Claimed", value: "claimed" },
