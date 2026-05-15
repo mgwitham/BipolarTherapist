@@ -165,6 +165,7 @@ export default async function handler(req, res) {
     body: bodyOverride,
     sendToSelf,
     campaign: rawCampaign,
+    force,
   } = body || {};
   // Free-text campaign tag set per batch. Capped at 80 chars and
   // sanitized to slug-style so noisy entries don't pollute Subject
@@ -221,6 +222,30 @@ export default async function handler(req, res) {
   if (!sendToSelf && !therapist.email) {
     res.status(400).json({ error: "Therapist has no email address on file" });
     return;
+  }
+
+  // Duplicate-send guard. On 2026-05-15 two batch waves overlapped and
+  // shipped the same `email_1` to ~30 therapists twice within ~30s. Now
+  // we hard-block any real send (not test) where the same template
+  // already appears in outreach.emailLog. The client can pass
+  // `force: true` after explicit confirmation if a re-send is truly
+  // intentional. Test sends (sendToSelf) bypass the check.
+  if (!sendToSelf && !force) {
+    const existingLog = Array.isArray(therapist.outreach?.emailLog)
+      ? therapist.outreach.emailLog
+      : [];
+    const priorSameTemplate = existingLog
+      .filter((entry) => entry && entry.template === template && entry.sentAt)
+      .sort((a, b) => String(b.sentAt).localeCompare(String(a.sentAt)))[0];
+    if (priorSameTemplate) {
+      res.status(409).json({
+        error: "duplicate_send",
+        message: `This therapist already received the "${template}" template at ${priorSameTemplate.sentAt}. Pass force:true to re-send.`,
+        lastSentAt: priorSameTemplate.sentAt,
+        template,
+      });
+      return;
+    }
   }
 
   const resendKey = process.env.RESEND_API_KEY;
