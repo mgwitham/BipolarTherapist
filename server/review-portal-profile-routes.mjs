@@ -2,7 +2,7 @@ import { log } from "./logger.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { appendFunnelEvent } from "./review-analytics-routes.mjs";
-import { sendPortalCompletenessNudge } from "./review-email.mjs";
+import { renderPortalCompletenessNudge, sendPortalCompletenessNudge } from "./review-email.mjs";
 import {
   normalizeUrl,
   validateBookingUrl,
@@ -1015,6 +1015,59 @@ export async function handlePortalProfileRoutes(context) {
       }`,
     );
     sendJson(response, 200, { ok: true, therapists: rows || [] }, origin, config);
+    return true;
+  }
+
+  // GET /portal/completeness-nudge/preview?slug=<slug> — admin-only.
+  // Returns the rendered email so the admin can see exactly what would
+  // be sent before clicking Send. Does NOT send anything.
+  if (request.method === "GET" && routePath === "/portal/completeness-nudge/preview") {
+    if (!deps.isAuthorized || !deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Admin session required." }, origin, config);
+      return true;
+    }
+    const slugParam = String((url && url.searchParams.get("slug")) || "").trim();
+    if (!slugParam) {
+      sendJson(response, 400, { error: "slug query param is required." }, origin, config);
+      return true;
+    }
+    const t = await client.fetch(
+      `*[_type == "therapist" && slug.current == $slug][0]{
+        _id,
+        "slug": slug.current,
+        name,
+        email,
+        portalCompletenessScore,
+        portalCompletionFields
+      }`,
+      { slug: slugParam },
+    );
+    if (!t) {
+      sendJson(response, 404, { error: "Therapist not found." }, origin, config);
+      return true;
+    }
+    const rendered = renderPortalCompletenessNudge(config, t, config.portalBaseUrl);
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        preview: {
+          subject: rendered.subject,
+          html: rendered.html,
+          text: rendered.text,
+          to_email: rendered.toEmail,
+          portal_url: rendered.portalUrl,
+          name: t.name || "",
+          slug: t.slug,
+          score: rendered.score,
+          missing_shown: rendered.missingShown,
+          missing_total: rendered.missingTotal,
+        },
+      },
+      origin,
+      config,
+    );
     return true;
   }
 
