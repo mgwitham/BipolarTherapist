@@ -1,4 +1,9 @@
-import { fetchPortalCompletenessSummary, sendPortalCompletenessNudges } from "./review-api.js";
+import {
+  fetchPortalCompletenessSummary,
+  previewPortalCompletenessNudge,
+  sendPortalCompletenessNudges,
+} from "./review-api.js";
+import { escapeHtml } from "./escape-html.js";
 
 const COMPLETENESS_FIELD_LABELS = {
   card_bio: "Card bio",
@@ -26,6 +31,113 @@ const REQUIRED_FIELDS = ["card_bio", "contact"];
 
 // Per-session nudge tracking so the button reflects "Sent" without a page reload.
 let _portalNudgeSent = {};
+
+// Preview-before-send modal. Fetches the rendered email for `previewSlug`
+// and shows it in an iframe sandbox so the email's inline styles can't
+// leak into admin chrome. Confirm sends to every slug in `slugs` (single
+// or batch). Resolves the `onSuccess` callback after a successful send.
+function openNudgePreview(options) {
+  const slugs = Array.isArray(options.slugs) ? options.slugs : [];
+  const previewSlug = options.previewSlug || slugs[0];
+  if (!previewSlug || slugs.length === 0) return;
+
+  // Drop any pre-existing modal in case the admin double-clicks.
+  document.querySelectorAll(".pc-preview-overlay").forEach((el) => el.remove());
+
+  const overlay = document.createElement("div");
+  overlay.className = "pc-preview-overlay";
+  overlay.setAttribute("role", "dialog");
+  overlay.setAttribute("aria-modal", "true");
+  overlay.setAttribute("aria-label", "Preview completeness nudge email");
+  overlay.innerHTML =
+    '<div class="pc-preview-modal">' +
+    '<header class="pc-preview-head">' +
+    '<h3 class="pc-preview-title">Preview nudge email</h3>' +
+    '<button type="button" class="pc-preview-close" aria-label="Close">×</button>' +
+    "</header>" +
+    '<div class="pc-preview-body" id="pcPreviewBody">' +
+    '<p class="pc-preview-loading">Loading preview…</p>' +
+    "</div>" +
+    '<footer class="pc-preview-foot">' +
+    '<button type="button" class="pc-preview-cancel">Cancel</button>' +
+    '<button type="button" class="pc-preview-send" disabled>Send</button>' +
+    '<span class="pc-preview-status"></span>' +
+    "</footer>" +
+    "</div>";
+  document.body.appendChild(overlay);
+
+  const closeBtn = overlay.querySelector(".pc-preview-close");
+  const cancelBtn = overlay.querySelector(".pc-preview-cancel");
+  const sendBtn = overlay.querySelector(".pc-preview-send");
+  const statusEl = overlay.querySelector(".pc-preview-status");
+  const bodyEl = overlay.querySelector("#pcPreviewBody");
+
+  function close() {
+    overlay.remove();
+    document.removeEventListener("keydown", onKey);
+  }
+  function onKey(e) {
+    if (e.key === "Escape") close();
+  }
+  document.addEventListener("keydown", onKey);
+  closeBtn.addEventListener("click", close);
+  cancelBtn.addEventListener("click", close);
+  overlay.addEventListener("click", function (e) {
+    if (e.target === overlay) close();
+  });
+
+  // Fetch the preview, render header summary + iframe with the email body.
+  previewPortalCompletenessNudge(previewSlug)
+    .then(function (result) {
+      const p = (result && result.preview) || {};
+      const isBatch = slugs.length > 1;
+      const subjectLine = p.subject || "—";
+      const recipientLine = isBatch
+        ? `<strong>Sending to ${slugs.length} therapists.</strong> Preview shown is for <em>${escapeHtml(p.name || previewSlug)}</em>. Each recipient gets their own personalized score and missing-fields list.`
+        : `To: <strong>${escapeHtml(p.to_email || "—")}</strong>`;
+      bodyEl.innerHTML =
+        '<div class="pc-preview-meta">' +
+        '<div><span class="pc-preview-label">Subject</span><div class="pc-preview-subject">' +
+        escapeHtml(subjectLine) +
+        "</div></div>" +
+        '<div class="pc-preview-recipient">' +
+        recipientLine +
+        "</div>" +
+        "</div>" +
+        '<iframe class="pc-preview-frame" sandbox title="Email body preview"></iframe>';
+      const frame = bodyEl.querySelector(".pc-preview-frame");
+      // Inject the HTML via srcdoc so the iframe is a fresh document and
+      // the email's inline styles never reach admin chrome.
+      frame.srcdoc = p.html || "<p>(no body)</p>";
+      sendBtn.disabled = false;
+      sendBtn.textContent = isBatch ? "Send to " + slugs.length : "Send";
+    })
+    .catch(function (err) {
+      bodyEl.innerHTML =
+        '<p class="pc-preview-error">Preview failed: ' +
+        escapeHtml((err && err.message) || "unknown") +
+        "</p>";
+    });
+
+  sendBtn.addEventListener("click", async function () {
+    sendBtn.disabled = true;
+    cancelBtn.disabled = true;
+    sendBtn.textContent = "Sending…";
+    statusEl.textContent = "";
+    try {
+      const result = await sendPortalCompletenessNudges(slugs);
+      statusEl.textContent = "Sent.";
+      if (typeof options.onSuccess === "function") options.onSuccess(result);
+      // Brief confirmation so admin sees success state before modal closes.
+      window.setTimeout(close, 600);
+    } catch (err) {
+      sendBtn.disabled = false;
+      cancelBtn.disabled = false;
+      sendBtn.textContent = slugs.length > 1 ? "Send to " + slugs.length : "Send";
+      statusEl.textContent = "Failed: " + ((err && err.message) || "unknown");
+    }
+  });
+}
 
 export async function renderPortalCompletenessPanel() {
   const root = document.getElementById("portalCompleteness");
@@ -177,49 +289,41 @@ export async function renderPortalCompletenessPanel() {
     });
 
     root.querySelectorAll("[data-pc-nudge]").forEach((btn) => {
-      btn.addEventListener("click", async function () {
+      btn.addEventListener("click", function () {
         const slug = btn.getAttribute("data-pc-nudge");
-        btn.disabled = true;
-        btn.textContent = "Sending…";
-        try {
-          await sendPortalCompletenessNudges([slug]);
-          _portalNudgeSent[slug] = true;
-          btn.classList.add("is-sent");
-          btn.textContent = "Sent";
-        } catch (err) {
-          btn.disabled = false;
-          btn.textContent = "Nudge";
-          window.alert("Failed: " + err.message);
-        }
+        openNudgePreview({
+          slugs: [slug],
+          previewSlug: slug,
+          onSuccess: function () {
+            _portalNudgeSent[slug] = true;
+            btn.classList.add("is-sent");
+            btn.disabled = true;
+            btn.textContent = "Sent";
+          },
+        });
       });
     });
 
     const batchBtn = document.getElementById("pcBatchSend");
     if (batchBtn) {
-      batchBtn.addEventListener("click", async function () {
+      batchBtn.addEventListener("click", function () {
         const slugs = batchBtn.getAttribute("data-slugs").split(",").filter(Boolean);
-        batchBtn.disabled = true;
-        batchBtn.textContent = "Sending…";
-        const statusEl = document.getElementById("pcBatchStatus");
-        try {
-          const result = await sendPortalCompletenessNudges(slugs);
-          slugs.forEach((s) => {
-            _portalNudgeSent[s] = true;
-          });
-          const sent = result.sent || slugs.length;
-          if (statusEl) {
-            statusEl.textContent = "Sent " + sent + " nudge" + (sent !== 1 ? "s" : "") + ".";
-            statusEl.style.display = "";
-          }
-          renderTable();
-        } catch (err) {
-          batchBtn.disabled = false;
-          batchBtn.textContent = "Send nudge to all " + slugs.length + " with email";
-          if (statusEl) {
-            statusEl.textContent = "Failed: " + err.message;
-            statusEl.style.display = "";
-          }
-        }
+        openNudgePreview({
+          slugs,
+          previewSlug: slugs[0],
+          onSuccess: function (result) {
+            slugs.forEach((s) => {
+              _portalNudgeSent[s] = true;
+            });
+            const sent = (result && result.sent) || slugs.length;
+            const statusEl = document.getElementById("pcBatchStatus");
+            if (statusEl) {
+              statusEl.textContent = "Sent " + sent + " nudge" + (sent !== 1 ? "s" : "") + ".";
+              statusEl.style.display = "";
+            }
+            renderTable();
+          },
+        });
       });
     }
   }

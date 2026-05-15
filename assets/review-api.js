@@ -289,6 +289,15 @@ export async function sendPortalCompletenessNudges(slugs) {
   });
 }
 
+// Returns the rendered email payload for a single therapist without
+// sending. Used by the admin preview-before-send modal.
+export async function previewPortalCompletenessNudge(slug) {
+  return request("/portal/completeness-nudge/preview?slug=" + encodeURIComponent(slug), {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
 // Server-side sign-out is stateless (signed tokens, no session table),
 // so this endpoint's job is funnel instrumentation + future-proofing.
 // The actual sign-out happens client-side via clearTherapistSessionToken.

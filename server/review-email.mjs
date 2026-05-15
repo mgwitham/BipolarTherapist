@@ -1338,12 +1338,14 @@ const COMPLETENESS_FIELD_LABELS = {
   },
 };
 
-export async function sendPortalCompletenessNudge(config, therapist, portalBaseUrl) {
-  if (!hasEmailConfig(config)) return;
+// Renders the portal-completeness-nudge email without sending. Returns
+// { subject, html, text, toEmail, portalUrl, missingShown }. Used by both
+// the live send path and the admin preview endpoint so what an admin sees
+// before clicking Send is byte-identical to what gets delivered.
+export function renderPortalCompletenessNudge(config, therapist, portalBaseUrl) {
   const toEmail = String((therapist && therapist.email) || "")
     .trim()
     .toLowerCase();
-  if (!toEmail) return;
 
   const name = String(therapist.name || "").split(" ")[0] || "there";
   const score =
@@ -1351,9 +1353,15 @@ export async function sendPortalCompletenessNudge(config, therapist, portalBaseU
   const missing = Array.isArray(therapist.portalCompletionFields)
     ? therapist.portalCompletionFields
     : [];
-  const slug = String(therapist.slug || "").trim();
+  // Accept both Sanity-shape slug { current: "x" } and the flat string the
+  // server-side GROQ projection returns. Older callers passed the object
+  // directly which stringified to "[object Object]" — the snapshot fixture
+  // exposed that path.
+  const slugRaw =
+    (therapist && therapist.slug && therapist.slug.current) || (therapist && therapist.slug) || "";
+  const slug = String(slugRaw || "").trim();
   const base = String(
-    portalBaseUrl || config.portalBaseUrl || "https://www.bipolartherapyhub.com",
+    portalBaseUrl || (config && config.portalBaseUrl) || "https://www.bipolartherapyhub.com",
   ).replace(/\/+$/, "");
   const portalUrl = slug ? `${base}/portal?slug=${encodeURIComponent(slug)}` : `${base}/portal`;
 
@@ -1446,12 +1454,30 @@ export async function sendPortalCompletenessNudge(config, therapist, portalBaseU
     footerLines: ["Questions? Email support@bipolartherapyhub.com"],
   });
 
-  await sendEmail(config, {
-    from: config.emailFrom,
-    to: [toEmail],
-    reply_to: "support@bipolartherapyhub.com",
+  return {
     subject: `Your BipolarTherapyHub profile is ${score}% complete`,
     html,
     text,
+    toEmail,
+    portalUrl,
+    score,
+    missingShown: fieldsToShow,
+    missingTotal: missing.length,
+  };
+}
+
+// Thin wrapper that renders then sends. Skips when there's no email config
+// or no recipient on file — same gating as the original combined function.
+export async function sendPortalCompletenessNudge(config, therapist, portalBaseUrl) {
+  if (!hasEmailConfig(config)) return;
+  const rendered = renderPortalCompletenessNudge(config, therapist, portalBaseUrl);
+  if (!rendered.toEmail) return;
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [rendered.toEmail],
+    reply_to: "support@bipolartherapyhub.com",
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
   });
 }
