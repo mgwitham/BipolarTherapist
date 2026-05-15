@@ -881,6 +881,7 @@ function createReviewRouteModules() {
         createBillingPortalSession,
         createFeaturedCheckoutSession,
         getAuthorizedTherapist,
+        isAuthorized,
         parseBody,
         parseRawBody,
         retrieveSubscription,

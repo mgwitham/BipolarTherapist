@@ -11,6 +11,7 @@ import {
 import { fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
 import { showLazyLoadFailureBanner } from "./admin-lazy-load-banner.js";
+import { renderAdminHome } from "./admin-home.js";
 import { createAdminStore } from "./admin-store.js";
 import { createControllerRegistry } from "./admin-controller-registry.js";
 import licensureActivityController from "./admin-licensure-activity.js";
@@ -5548,6 +5549,13 @@ function renderAdminSection(label, renderFn) {
 }
 
 function renderAll() {
+  renderAdminSection("home dashboard", function () {
+    renderAdminHome({
+      applications: remoteApplications,
+      candidates: remoteCandidates,
+      portalRequests: remotePortalRequests,
+    });
+  });
   renderAdminSection("stats", renderStats);
   if (!authRequired) {
     var statsRoot = document.getElementById("adminStats");

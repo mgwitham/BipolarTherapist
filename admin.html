@@ -411,11 +411,190 @@
         opacity: 1;
         transform: translateY(0);
       }
+      body:not([data-admin-view="home"]) [data-view-group="home"],
       body:not([data-admin-view="review"]) [data-view-group="review"],
       body:not([data-admin-view="reports"]) [data-view-group="reports"],
       body:not([data-admin-view="portal"]) [data-view-group="portal"],
       body [data-view-group="hidden"] {
         display: none !important;
+      }
+      /* Home dashboard */
+      .admin-home-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin-top: 1rem;
+      }
+      .admin-home-card {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 1rem 1.15rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.55rem;
+      }
+      .admin-home-card--wide {
+        grid-column: 1 / -1;
+      }
+      .admin-home-card-head {
+        display: flex;
+        align-items: baseline;
+        gap: 0.6rem;
+      }
+      .admin-home-card-title {
+        margin: 0;
+        font-size: 0.78rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        color: #2a5f6e;
+      }
+      .admin-home-card-status {
+        margin-left: auto;
+        font-size: 0.78rem;
+        font-weight: 600;
+        color: #6b7280;
+      }
+      .admin-home-card-body {
+        flex: 1;
+      }
+      .admin-home-card-loading,
+      .admin-home-card-empty {
+        margin: 0;
+        font-size: 0.85rem;
+        color: #6b7280;
+        line-height: 1.45;
+      }
+      .admin-home-card-foot {
+        display: flex;
+        justify-content: flex-end;
+      }
+      .admin-home-card-link {
+        font-size: 0.82rem;
+        font-weight: 600;
+        color: #2a5f6e;
+        text-decoration: none;
+      }
+      .admin-home-card-link:hover {
+        text-decoration: underline;
+      }
+      .admin-home-metric-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+        gap: 0.6rem 0.9rem;
+        margin: 0;
+      }
+      .admin-home-metric {
+        display: flex;
+        flex-direction: column;
+        gap: 0.15rem;
+      }
+      .admin-home-metric dt {
+        font-size: 0.72rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: #6b7280;
+        font-weight: 600;
+      }
+      .admin-home-metric dd {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #111827;
+      }
+      .admin-home-metric.is-headline dd {
+        font-size: 1.8rem;
+        line-height: 1.15;
+      }
+      .admin-home-metric.is-warn dd {
+        color: #b45309;
+      }
+      .admin-home-queue-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+      }
+      .admin-home-queue-row {
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        gap: 0.7rem;
+        align-items: center;
+        padding: 0.55rem 0.7rem;
+        background: #f8fbfc;
+        border: 1px solid #e5e7eb;
+        border-radius: 8px;
+      }
+      .admin-home-queue-count {
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: #2a5f6e;
+        min-width: 1.5rem;
+        text-align: center;
+      }
+      .admin-home-queue-label {
+        font-size: 0.88rem;
+        color: #111827;
+      }
+      .admin-home-queue-cta {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #2a5f6e;
+        text-decoration: none;
+      }
+      .admin-home-queue-cta:hover {
+        text-decoration: underline;
+      }
+      .admin-home-queue-empty {
+        font-size: 0.88rem;
+        color: #6b7280;
+        padding: 0.6rem 0.2rem;
+      }
+      .admin-home-replies-lede {
+        margin: 0 0 0.5rem;
+        font-size: 0.88rem;
+        color: #111827;
+        line-height: 1.45;
+      }
+      .admin-home-replies-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0.3rem;
+      }
+      .admin-home-replies-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.6rem;
+        padding: 0.4rem 0.6rem;
+        background: #fff8e1;
+        border: 1px solid #fcd34d;
+        border-radius: 6px;
+        font-size: 0.85rem;
+      }
+      .admin-home-replies-name {
+        color: #111827;
+        font-weight: 500;
+      }
+      .admin-home-replies-age {
+        color: #92400e;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+      .admin-home-replies-more {
+        margin: 0.4rem 0 0;
+        font-size: 0.8rem;
+        color: #6b7280;
+      }
+      @media (max-width: 720px) {
+        .admin-home-grid {
+          grid-template-columns: 1fr;
+        }
       }
       /* Portal completeness tab */
       .pc-table {
@@ -5625,9 +5804,18 @@
         <button
           type="button"
           class="admin-tab is-active"
-          data-admin-tab="review"
+          data-admin-tab="home"
           role="tab"
           aria-selected="true"
+        >
+          Home
+        </button>
+        <button
+          type="button"
+          class="admin-tab"
+          data-admin-tab="review"
+          role="tab"
+          aria-selected="false"
         >
           Review
           <span class="admin-tab-count" id="navCountReview"></span>
@@ -6062,6 +6250,76 @@
           </aside>
 
           <main class="admin-region">
+            <section class="admin-region-shell" id="homeRegion" data-view-group="home">
+              <header class="admin-live-header">
+                <h2 class="admin-live-title">Home</h2>
+                <p class="admin-live-subtitle">
+                  The morning briefing — revenue, what needs you today, and outreach awaiting a
+                  reply.
+                </p>
+              </header>
+              <div class="admin-home-grid" id="adminHomeGrid">
+                <!-- Revenue -->
+                <section
+                  class="admin-home-card"
+                  id="adminHomeRevenue"
+                  aria-labelledby="adminHomeRevenueTitle"
+                >
+                  <header class="admin-home-card-head">
+                    <h3 class="admin-home-card-title" id="adminHomeRevenueTitle">Revenue</h3>
+                    <span class="admin-home-card-status" id="adminHomeRevenueStatus"></span>
+                  </header>
+                  <div class="admin-home-card-body" id="adminHomeRevenueBody">
+                    <p class="admin-home-card-loading">Loading…</p>
+                  </div>
+                  <footer class="admin-home-card-foot">
+                    <a
+                      class="admin-home-card-link"
+                      href="https://dashboard.stripe.com"
+                      target="_blank"
+                      rel="noopener"
+                      >Open in Stripe ↗</a
+                    >
+                  </footer>
+                </section>
+
+                <!-- Today's Queue -->
+                <section
+                  class="admin-home-card"
+                  id="adminHomeQueue"
+                  aria-labelledby="adminHomeQueueTitle"
+                >
+                  <header class="admin-home-card-head">
+                    <h3 class="admin-home-card-title" id="adminHomeQueueTitle">Today's queue</h3>
+                    <span class="admin-home-card-status" id="adminHomeQueueStatus"></span>
+                  </header>
+                  <ul class="admin-home-queue-list" id="adminHomeQueueList">
+                    <li class="admin-home-card-loading">Loading…</li>
+                  </ul>
+                </section>
+
+                <!-- Outreach replies -->
+                <section
+                  class="admin-home-card admin-home-card--wide"
+                  id="adminHomeReplies"
+                  aria-labelledby="adminHomeRepliesTitle"
+                >
+                  <header class="admin-home-card-head">
+                    <h3 class="admin-home-card-title" id="adminHomeRepliesTitle">
+                      Outreach awaiting reply
+                    </h3>
+                    <span class="admin-home-card-status" id="adminHomeRepliesStatus"></span>
+                  </header>
+                  <div class="admin-home-card-body" id="adminHomeRepliesBody">
+                    <p class="admin-home-card-loading">Loading…</p>
+                  </div>
+                  <footer class="admin-home-card-foot">
+                    <a class="admin-home-card-link" href="/outreach.html">Open Outreach CRM →</a>
+                  </footer>
+                </section>
+              </div>
+            </section>
+
             <section class="admin-region-shell" id="supplyReviewRegion" data-view-group="review">
               <header class="admin-live-header">
                 <h2 class="admin-live-title">Review</h2>

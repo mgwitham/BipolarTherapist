@@ -58,6 +58,7 @@ export async function handleStripeRoutes(context) {
     createBillingPortalSession,
     createFeaturedCheckoutSession,
     getAuthorizedTherapist,
+    isAuthorized,
     parseBody,
     parseRawBody,
     sendFounderAlert,
@@ -79,6 +80,86 @@ export async function handleStripeRoutes(context) {
       response,
       200,
       { ok: true, subscription: shapeSubscriptionForClient(doc) },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  // GET /stripe/admin/metrics — aggregate revenue snapshot for the admin Home
+  // dashboard. Reads from local subscription docs (kept in sync by the
+  // /stripe/webhook handler), so this is cheap and rate-limit-free.
+  // Returns: { mrr_cents, activeSubscribers, trialing, pastDue, lapsed,
+  // newThisMonth, lostThisMonth, currency }.
+  if (request.method === "GET" && routePath === "/stripe/admin/metrics") {
+    if (!isAuthorized || !isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+    const subs = await client.fetch(
+      `*[_type == "therapistSubscription"]{
+        status, tier, interval, plan, priceCents, currency,
+        currentPeriodEndsAt, cancelAtPeriodEnd,
+        createdAt, updatedAt, cancelledAt, lapsedAt
+      }`,
+    );
+    const ACTIVE = new Set(["active", "trialing"]);
+    const LAPSED = new Set(["canceled", "cancelled", "incomplete_expired", "unpaid"]);
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+    monthStart.setUTCHours(0, 0, 0, 0);
+    const monthStartIso = monthStart.toISOString();
+
+    let mrrCents = 0;
+    let activeSubscribers = 0;
+    let trialing = 0;
+    let pastDue = 0;
+    let lapsed = 0;
+    let newThisMonth = 0;
+    let lostThisMonth = 0;
+    const currencies = new Set();
+
+    for (const s of Array.isArray(subs) ? subs : []) {
+      const status = String(s.status || "").toLowerCase();
+      const interval = String(s.interval || "month").toLowerCase();
+      const priceCents = Number(s.priceCents) > 0 ? Number(s.priceCents) : 0;
+      if (s.currency) currencies.add(String(s.currency).toLowerCase());
+
+      if (ACTIVE.has(status)) {
+        activeSubscribers += 1;
+        if (status === "trialing") trialing += 1;
+        // Normalize annual → monthly for MRR.
+        if (priceCents > 0) {
+          mrrCents += interval === "year" ? Math.round(priceCents / 12) : priceCents;
+        }
+      } else if (status === "past_due" || status === "incomplete") {
+        pastDue += 1;
+      } else if (LAPSED.has(status)) {
+        lapsed += 1;
+      }
+
+      if (s.createdAt && s.createdAt >= monthStartIso) newThisMonth += 1;
+      const lostAt = s.cancelledAt || s.lapsedAt;
+      if (lostAt && lostAt >= monthStartIso && LAPSED.has(status)) lostThisMonth += 1;
+    }
+
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        metrics: {
+          mrr_cents: mrrCents,
+          active_subscribers: activeSubscribers,
+          trialing,
+          past_due: pastDue,
+          lapsed,
+          new_this_month: newThisMonth,
+          lost_this_month: lostThisMonth,
+          currency: currencies.size === 1 ? Array.from(currencies)[0] : "usd",
+          total_subs: Array.isArray(subs) ? subs.length : 0,
+        },
+      },
       origin,
       config,
     );
