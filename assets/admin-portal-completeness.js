@@ -222,8 +222,25 @@ export async function renderPortalCompletenessPanel() {
       return;
     }
 
+    // Aggregate counter strip — tells the admin at a glance how many
+    // nudges have ever shipped + how many today. Driven entirely off
+    // the per-row counters, so no extra fetch.
+    const totalNudges = rows.reduce((sum, r) => sum + (r.portalNudgeSentCount || 0), 0);
+    const todayIso = new Date().toISOString().slice(0, 10);
+    const sentToday = rows.filter(
+      (r) => r.portalNudgeLastSentAt && r.portalNudgeLastSentAt.slice(0, 10) === todayIso,
+    ).length;
     html +=
-      '<table class="pc-table"><thead><tr><th>Therapist</th><th>Score</th><th>Missing</th><th></th></tr></thead><tbody>';
+      '<div class="pc-nudge-summary"><strong>' +
+      totalNudges +
+      "</strong> nudge" +
+      (totalNudges === 1 ? "" : "s") +
+      " sent all-time · <strong>" +
+      sentToday +
+      "</strong> today</div>";
+
+    html +=
+      '<table class="pc-table"><thead><tr><th>Therapist</th><th>Score</th><th>Missing</th><th>Last nudge</th><th></th></tr></thead><tbody>';
 
     visible.forEach((t) => {
       const slug = t.slug?.current || t.slug || "";
@@ -267,6 +284,27 @@ export async function renderPortalCompletenessPanel() {
         '<td style="max-width:320px">' +
         (chips || '<span class="subtle">Complete</span>') +
         "</td>";
+
+      // Last-nudge cell: per-therapist count + relative time. Yellow soft
+      // warning when nudged in the last 14 days so admin notices before
+      // re-nudging. Never-nudged shows a dash so the column doesn't read
+      // as "0 times" which can imply data quality concern.
+      const nudgeCount = Number(t.portalNudgeSentCount || 0);
+      const lastAt = t.portalNudgeLastSentAt;
+      let lastNudgeHtml = '<span class="subtle">—</span>';
+      let recentClass = "";
+      if (lastAt) {
+        const daysAgo = Math.max(
+          0,
+          Math.floor((Date.now() - new Date(lastAt).getTime()) / (24 * 60 * 60 * 1000)),
+        );
+        const ago = daysAgo === 0 ? "today" : daysAgo === 1 ? "1d ago" : daysAgo + "d ago";
+        if (daysAgo < 14) recentClass = " is-recent";
+        lastNudgeHtml =
+          '<span class="pc-nudge-cell' + recentClass + '">' + nudgeCount + "× · " + ago + "</span>";
+      }
+      html += '<td style="white-space:nowrap">' + lastNudgeHtml + "</td>";
+
       html +=
         '<td><button type="button" class="pc-nudge-btn' +
         (alreadySent ? " is-sent" : "") +

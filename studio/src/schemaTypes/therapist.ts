@@ -274,6 +274,21 @@ export const therapistType = defineType({
       group: "practice",
     }),
     defineField({
+      name: "portalNudgeSentCount",
+      title: "Portal nudge emails sent",
+      type: "number",
+      group: "practice",
+      validation: (rule) => rule.min(0),
+      description:
+        "Lifetime count of profile-completion nudge emails sent by admin. Drives the soft-cooldown warning in the Completeness tracker.",
+    }),
+    defineField({
+      name: "portalNudgeLastSentAt",
+      title: "Portal nudge last sent at",
+      type: "datetime",
+      group: "practice",
+    }),
+    defineField({
       name: "lastWeeklyDigestSentAt",
       title: "Last weekly digest sent at",
       type: "datetime",
