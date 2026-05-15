@@ -7755,3 +7755,380 @@ img.bth-avatar {
 .mx-email-nudge-dismiss:hover {
   color: #1a7a8f;
 }
+
+/* ── Shortlist viewer ─────────────────────────────────────────────────
+ * Rebuilt comparison view that frames the page as a decision (pick one
+ * to reach out to today) instead of a spreadsheet. Hero pick at the
+ * top, supporting cards in a row, a "where they differ" diff strip,
+ * full attribute grid behind a disclosure, share affordance at the
+ * bottom. Replaces the old dense grid as the default for shortlist
+ * mode. */
+
+.mx-sl-feature {
+  display: flex;
+  flex-direction: column;
+  gap: 1.6rem;
+  margin-top: 1.5rem;
+}
+
+.mx-sl-page-head {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-width: 640px;
+}
+.mx-sl-page-kicker {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--teal-dark, #155f70);
+}
+.mx-sl-page-title {
+  margin: 0;
+  font-family: "Fraunces", "Inter", serif;
+  font-weight: 500;
+  font-size: 1.6rem;
+  line-height: 1.2;
+  color: #0f1f28;
+}
+.mx-sl-page-sub {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #547283;
+  line-height: 1.5;
+}
+
+/* Hero pick — earns its size because the matching engine ranked
+   this #1. Visual hierarchy mirrors the algorithm's ranking. */
+.mx-sl-hero {
+  position: relative;
+  background: linear-gradient(180deg, #fefefe 0%, #f6fbfc 100%);
+  border: 1px solid #c9dce1;
+  border-radius: 18px;
+  padding: 1.5rem;
+  box-shadow:
+    0 16px 36px rgba(15, 31, 40, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+.mx-sl-hero-badge {
+  align-self: flex-start;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: #155f70;
+  background: rgba(26, 122, 143, 0.1);
+  padding: 0.32rem 0.7rem;
+  border-radius: 999px;
+}
+.mx-sl-hero-body {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.mx-sl-hero-photo {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #e8f3f6;
+  box-shadow: inset 0 0 0 1px rgba(15, 31, 40, 0.05);
+}
+.mx-sl-hero-photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.mx-sl-hero-photo-fill {
+  font-family: "Fraunces", "Inter", serif;
+  font-size: 1.6rem;
+  color: #1a7a8f;
+}
+.mx-sl-hero-ident {
+  flex: 1;
+  min-width: 0;
+}
+.mx-sl-hero-name {
+  font-family: "Fraunces", "Inter", serif;
+  font-weight: 500;
+  font-size: 1.4rem;
+  line-height: 1.15;
+  color: #0f1f28;
+  margin-bottom: 0.2rem;
+}
+.mx-sl-hero-cred {
+  font-family: "Inter", sans-serif;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #6b8290;
+}
+.mx-sl-hero-sub {
+  font-size: 0.88rem;
+  color: #547283;
+}
+.mx-sl-hero-why-title {
+  font-size: 0.74rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b8290;
+  margin-top: 0.4rem;
+}
+.mx-sl-hero-reasons {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.mx-sl-hero-reasons li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: #1d3a4a;
+  line-height: 1.4;
+}
+.mx-sl-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.05rem;
+  height: 1.05rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.mx-sl-hero-cta {
+  margin-top: 0.2rem;
+}
+.mx-sl-hero-full-link {
+  align-self: flex-start;
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: #1a7a8f;
+  text-decoration: none;
+}
+.mx-sl-hero-full-link:hover {
+  text-decoration: underline;
+}
+
+/* Supporting cards — same visual cadence so the eye can scan,
+   smaller scale so they don't compete with the hero. */
+.mx-sl-section-title {
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b8290;
+  margin-bottom: 0.35rem;
+}
+.mx-sl-section-sub {
+  font-size: 0.86rem;
+  color: #547283;
+  line-height: 1.45;
+  margin-bottom: 0.9rem;
+  max-width: 580px;
+}
+.mx-sl-supporting {
+  display: flex;
+  flex-direction: column;
+}
+.mx-sl-supporting-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 0.9rem;
+}
+.mx-sl-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #d4e4e9;
+  border-radius: 14px;
+  padding: 1rem 1.1rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.mx-sl-card:hover {
+  border-color: #b6d3da;
+  box-shadow: 0 6px 18px rgba(15, 31, 40, 0.06);
+}
+.mx-sl-card-rank {
+  align-self: flex-start;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: #6b8290;
+  background: #f1f6f8;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+}
+.mx-sl-card-name {
+  font-family: "Fraunces", "Inter", serif;
+  font-weight: 500;
+  font-size: 1.1rem;
+  line-height: 1.2;
+  color: #0f1f28;
+}
+.mx-sl-card-cred {
+  font-family: "Inter", sans-serif;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #6b8290;
+}
+.mx-sl-card-sub {
+  font-size: 0.84rem;
+  color: #547283;
+}
+.mx-sl-card-reason {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.88rem;
+  color: #1d3a4a;
+  margin-top: 0.25rem;
+  line-height: 1.4;
+}
+.mx-sl-card-meta {
+  font-size: 0.8rem;
+  color: #6b8290;
+  margin-top: 0.1rem;
+}
+.mx-sl-card-cta {
+  margin-top: 0.55rem;
+}
+
+/* "Where they differ" — only the rows whose value varies. Reduces
+   the dense grid down to the signal that drives a decision. */
+.mx-sl-diff {
+  background: #fbfdfe;
+  border: 1px solid #d4e4e9;
+  border-radius: 14px;
+  padding: 1.2rem 1.3rem;
+}
+.mx-sl-diff-grid {
+  display: grid;
+  gap: 0;
+  border: 1px solid #e2eaed;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #fff;
+}
+.mx-sl-diff-cell {
+  padding: 0.7rem 0.85rem;
+  font-size: 0.86rem;
+  color: #1d3a4a;
+  border-top: 1px solid #eef2f4;
+  display: flex;
+  align-items: center;
+  min-width: 0;
+}
+.mx-sl-diff-cell:nth-child(-n + 99) {
+  /* Every cell starts with a top border; clear it on the first row. */
+}
+.mx-sl-diff-grid > .mx-sl-diff-head {
+  border-top: none;
+  background: #f4f9fa;
+  font-weight: 700;
+  font-size: 0.78rem;
+  color: #155f70;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.mx-sl-diff-label-cell {
+  font-weight: 600;
+  color: #6b8290;
+  background: #fafcfd;
+  font-size: 0.8rem;
+}
+.mx-sl-diff-head-name {
+  font-family: "Fraunces", "Inter", serif;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #0f1f28;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Full attribute grid — collapsed by default. For the patient who
+   wants every row in one place; not the default view. */
+.mx-sl-fullgrid {
+  border: 1px solid #d4e4e9;
+  border-radius: 14px;
+  background: #fff;
+}
+.mx-sl-fullgrid > summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 1rem 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.92rem;
+  color: #1a7a8f;
+  font-weight: 600;
+}
+.mx-sl-fullgrid > summary::-webkit-details-marker {
+  display: none;
+}
+.mx-sl-fullgrid > summary svg {
+  transition: transform 0.18s ease;
+}
+.mx-sl-fullgrid[open] > summary svg {
+  transform: rotate(180deg);
+}
+.mx-sl-fullgrid-body {
+  padding: 0 1.2rem 1.2rem;
+}
+.mx-sl-fullgrid-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Share affordance — single home for the partner-summary thing the
+   old design buried under a tiny chevron. */
+.mx-sl-share {
+  margin-top: 0.4rem;
+}
+
+/* Mobile: stack hero photo + ident, keep supporting cards full-width. */
+@media (max-width: 640px) {
+  .mx-sl-page-title {
+    font-size: 1.35rem;
+  }
+  .mx-sl-hero {
+    padding: 1.2rem;
+  }
+  .mx-sl-hero-body {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .mx-sl-supporting-grid {
+    grid-template-columns: 1fr;
+  }
+  .mx-sl-diff {
+    padding: 1rem;
+  }
+  .mx-sl-diff-grid {
+    /* On narrow screens the grid overflows horizontally so columns
+       stay legible; user can scroll the diff strip if it's wide. */
+    overflow-x: auto;
+  }
+}

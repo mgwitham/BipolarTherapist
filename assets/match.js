@@ -2136,53 +2136,19 @@ function renderPartnerCompareSummary(entries, profile) {
   );
 }
 
-function renderComparison(entries) {
-  var root = document.getElementById("matchCompare");
-  var topEntries = entries.slice(0, PRIMARY_SHORTLIST_LIMIT);
-  var profile = latestProfile;
-
-  if (topEntries.length < 2) {
-    root.innerHTML = "";
-    return;
-  }
-
-  var rows = [
-    {
-      label: "Who to contact first",
-      kind: "order",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        var index = topEntries.findIndex(function (entry) {
-          return entry && entry.therapist && entry.therapist.slug === therapist.slug;
-        });
-        return getCompareRole(topEntries[index], index);
-      },
-    },
-    {
-      label: "How to reach out",
-      alwaysShow: true,
-      getValue: function (therapist) {
-        var entry = topEntries.find(function (item) {
-          return item && item.therapist && item.therapist.slug === therapist.slug;
-        });
-        var routeType = getPreferredRouteType(entry);
-        if (routeType === "booking") return "Book a consultation";
-        if (routeType === "email") return "Email";
-        if (routeType === "phone") return "Call";
-        if (routeType === "website") return "Visit website";
-        return "View profile";
-      },
-    },
+// Build the canonical row definitions for the shortlist comparison.
+// Extracted so the diff-strip and full-grid views can share the same
+// data + formatting without duplicating the row table.
+function buildShortlistCompareRows(topEntries) {
+  return [
     {
       label: "Session cost",
-      alwaysShow: true,
       getValue: function (therapist) {
         return getCompareCostLabel(therapist);
       },
     },
     {
       label: "Insurance",
-      alwaysShow: true,
       getValue: function (therapist) {
         var accepted = (therapist.insurance_accepted || []).slice(0, 3);
         return accepted.length ? accepted : [];
@@ -2191,7 +2157,6 @@ function renderComparison(entries) {
     {
       label: "Telehealth / In-person",
       kind: "format",
-      alwaysShow: true,
       getValue: function (therapist) {
         return [
           therapist.accepts_telehealth ? "Telehealth" : "",
@@ -2201,14 +2166,12 @@ function renderComparison(entries) {
     },
     {
       label: "Availability",
-      alwaysShow: true,
       getValue: function (therapist) {
         return getCompareTimingLabel(therapist);
       },
     },
     {
       label: "Bipolar experience",
-      alwaysShow: true,
       getValue: function (therapist) {
         return therapist.bipolar_years_experience
           ? therapist.bipolar_years_experience + " years"
@@ -2224,30 +2187,215 @@ function renderComparison(entries) {
     },
     {
       label: "Languages",
-      alwaysShow: true,
       getValue: function (therapist) {
         return therapist.languages || [];
       },
     },
+    {
+      label: "How to reach out",
+      getValue: function (therapist) {
+        var entry = topEntries.find(function (item) {
+          return item && item.therapist && item.therapist.slug === therapist.slug;
+        });
+        var routeType = getPreferredRouteType(entry);
+        if (routeType === "booking") return "Book a consultation";
+        if (routeType === "email") return "Email";
+        if (routeType === "phone") return "Call";
+        if (routeType === "website") return "Visit website";
+        return "View profile";
+      },
+    },
   ];
+}
 
-  var visibleRows = rows.filter(function (row) {
-    var values = topEntries.map(function (entry) {
-      return row.getValue(entry.therapist);
-    });
-    if (row.alwaysShow) {
-      return true;
+// Smart-diff: returns true when the row's value differs across entries.
+// Booleans, strings, and arrays are all normalized to a comparable
+// signature so e.g. ["Aetna","BCBS"] vs ["BCBS","Aetna"] is the same.
+function shortlistRowDiffers(row, topEntries) {
+  var sigs = topEntries.map(function (entry) {
+    var v = row.getValue(entry.therapist);
+    if (Array.isArray(v)) {
+      return v
+        .map(function (x) {
+          return String(x || "").toLowerCase();
+        })
+        .sort()
+        .join("|");
     }
-    return values.some(function (value) {
-      return Array.isArray(value) ? value.length : Boolean(value);
-    });
+    if (typeof v === "boolean") return v ? "y" : "n";
+    return String(v || "").toLowerCase();
   });
+  var first = sigs[0];
+  for (var i = 1; i < sigs.length; i++) {
+    if (sigs[i] !== first) return true;
+  }
+  return false;
+}
 
-  var headerCells = [
-    '<div class="compare-cell compare-cell-label compare-cell-header">Compare</div>',
-  ]
-    .concat(
-      topEntries.map(function (entry, index) {
+// "Best fit" hero card: photo, name, location, 3 differentiating
+// reasons, primary CTA expanded by default. The hero earns its size
+// because the matching engine already ranked this one #1 — surface
+// that signal instead of pretending all are equal.
+function renderShortlistHero(entry, profile) {
+  var t = (entry && entry.therapist) || {};
+  var reasons = getHeroFitReasons(entry, t, profile);
+  var photo =
+    t.photo_url || t.photo
+      ? '<img src="' + escapeHtml(t.photo_url || t.photo) + '" alt="" loading="lazy" />'
+      : '<div class="mx-sl-hero-photo-fill">' +
+        escapeHtml(String(t.name || "?").charAt(0)) +
+        "</div>";
+  var location = formatTherapistLocationLine(t);
+  var reasonsHtml = reasons.length
+    ? '<ul class="mx-sl-hero-reasons">' +
+      reasons
+        .map(function (r) {
+          return (
+            '<li><span class="mx-sl-check" aria-hidden="true">✓</span>' + escapeHtml(r) + "</li>"
+          );
+        })
+        .join("") +
+      "</ul>"
+    : "";
+  var outreach = buildMatchOutreachDisclosure(entry, { expanded: true });
+  var slug = String(t.slug || "");
+  return (
+    '<section class="mx-sl-hero" data-slug="' +
+    escapeHtml(slug) +
+    '">' +
+    '<div class="mx-sl-hero-badge">Best match for you</div>' +
+    '<div class="mx-sl-hero-body">' +
+    '<div class="mx-sl-hero-photo">' +
+    photo +
+    "</div>" +
+    '<div class="mx-sl-hero-ident">' +
+    '<div class="mx-sl-hero-name">' +
+    escapeHtml(t.name || "") +
+    (t.credentials
+      ? ', <span class="mx-sl-hero-cred">' + escapeHtml(t.credentials) + "</span>"
+      : "") +
+    "</div>" +
+    '<div class="mx-sl-hero-sub">' +
+    escapeHtml(location) +
+    "</div>" +
+    "</div>" +
+    "</div>" +
+    (reasonsHtml
+      ? '<div class="mx-sl-hero-why-title">Why we lead with this one</div>' + reasonsHtml
+      : "") +
+    '<div class="mx-sl-hero-cta">' +
+    outreach +
+    "</div>" +
+    (slug
+      ? '<a class="mx-sl-hero-full-link" href="/therapists/' +
+        escapeHtml(slug) +
+        '?ref=shortlist">See full profile →</a>'
+      : "") +
+    "</section>"
+  );
+}
+
+// Compact card for ranks 2..N. One per supporting therapist, in a
+// responsive row. Each gets the same shape so visual cadence helps
+// the eye scan: name, one-line differentiator, one-line metadata,
+// expandable Reach-out disclosure.
+function renderShortlistSupporting(entry, rank, profile) {
+  var t = (entry && entry.therapist) || {};
+  var reasons = getHeroFitReasons(entry, t, profile);
+  var oneReason = reasons[0] || "";
+  var cost = getCompareCostLabel(t) || "";
+  var wait = getCompareTimingLabel(t) || "";
+  var meta = [cost, wait].filter(Boolean).join(" · ");
+  var outreach = buildMatchOutreachDisclosure(entry, { expanded: false });
+  var slug = String(t.slug || "");
+  return (
+    '<article class="mx-sl-card" data-slug="' +
+    escapeHtml(slug) +
+    '">' +
+    '<div class="mx-sl-card-rank">#' +
+    String(rank) +
+    "</div>" +
+    '<div class="mx-sl-card-name">' +
+    escapeHtml(t.name || "") +
+    (t.credentials
+      ? ', <span class="mx-sl-card-cred">' + escapeHtml(t.credentials) + "</span>"
+      : "") +
+    "</div>" +
+    '<div class="mx-sl-card-sub">' +
+    escapeHtml(formatTherapistLocationLine(t)) +
+    "</div>" +
+    (oneReason
+      ? '<div class="mx-sl-card-reason"><span class="mx-sl-check" aria-hidden="true">✓</span>' +
+        escapeHtml(oneReason) +
+        "</div>"
+      : "") +
+    (meta ? '<div class="mx-sl-card-meta">' + escapeHtml(meta) + "</div>" : "") +
+    '<div class="mx-sl-card-cta">' +
+    outreach +
+    "</div>" +
+    "</article>"
+  );
+}
+
+// "What's different" strip — renders only rows where the value
+// differs across the shortlist. Rows where everyone matches are
+// suppressed entirely. This is the synthesis the patient would have
+// to do mentally otherwise.
+function renderShortlistDiffStrip(diffRows, topEntries) {
+  if (!diffRows.length) return "";
+  var cols = topEntries.length;
+  var headerCells =
+    '<div class="mx-sl-diff-cell mx-sl-diff-label-cell mx-sl-diff-head">Where they differ</div>' +
+    topEntries
+      .map(function (entry) {
+        var t = entry.therapist || {};
+        return (
+          '<div class="mx-sl-diff-cell mx-sl-diff-head"><div class="mx-sl-diff-head-name">' +
+          escapeHtml(t.name || "") +
+          "</div></div>"
+        );
+      })
+      .join("");
+  var rowCells = diffRows
+    .map(function (row) {
+      return (
+        '<div class="mx-sl-diff-cell mx-sl-diff-label-cell">' +
+        escapeHtml(row.label) +
+        "</div>" +
+        topEntries
+          .map(function (entry) {
+            return (
+              '<div class="mx-sl-diff-cell">' +
+              renderCompareValue(row.getValue(entry.therapist), row.kind) +
+              "</div>"
+            );
+          })
+          .join("")
+      );
+    })
+    .join("");
+  return (
+    '<section class="mx-sl-diff">' +
+    '<div class="mx-sl-section-title">Where they differ</div>' +
+    '<div class="mx-sl-section-sub">Skipping the rows where they all match. Focus on what actually shapes your decision.</div>' +
+    '<div class="mx-sl-diff-grid" style="grid-template-columns: 140px repeat(' +
+    String(cols) +
+    ', minmax(0, 1fr));">' +
+    headerCells +
+    rowCells +
+    "</div></section>"
+  );
+}
+
+// Full attribute grid, collapsed by default. The detail-oriented
+// patient who wants everything in one place can expand; everyone
+// else doesn't see the clutter.
+function renderShortlistFullGrid(rows, topEntries) {
+  if (!rows.length) return "";
+  var headerCells =
+    '<div class="compare-cell compare-cell-label compare-cell-header">Compare</div>' +
+    topEntries
+      .map(function (entry, index) {
         return (
           '<div class="compare-cell compare-cell-header' +
           (index === topEntries.length - 1 ? " compare-cell-end-col" : "") +
@@ -2257,13 +2405,11 @@ function renderComparison(entries) {
           escapeHtml(formatTherapistLocationLine(entry.therapist)) +
           "</div></div>"
         );
-      }),
-    )
-    .join("");
-
-  var bodyCells = visibleRows
+      })
+      .join("");
+  var bodyCells = rows
     .map(function (row, rowIndex) {
-      var isLastRow = rowIndex === visibleRows.length - 1;
+      var isLastRow = rowIndex === rows.length - 1;
       return (
         '<div class="compare-cell compare-cell-label' +
         (isLastRow ? " compare-cell-last-row" : "") +
@@ -2285,21 +2431,79 @@ function renderComparison(entries) {
       );
     })
     .join("");
-  root.innerHTML =
-    '<div class="match-compare-feature">' +
-    '<div class="match-compare-feature-head">' +
-    '<span class="match-compare-kicker">Side-by-side</span>' +
-    '<h3 class="match-compare-feature-title">Compare your matches</h3>' +
-    '<p class="match-compare-feature-copy">Cost, insurance, format, and experience across all your matches — so you can pick one and reach out.</p>' +
-    "</div>" +
-    '<section class="match-compare">' +
+  return (
+    '<details class="mx-sl-fullgrid">' +
+    '<summary><span class="mx-sl-fullgrid-label">See every attribute side-by-side</span>' +
+    '<svg width="11" height="7" viewBox="0 0 11 7" fill="none" aria-hidden="true"><path d="M1 1l4.5 4.5L10 1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></summary>' +
+    '<section class="match-compare mx-sl-fullgrid-body">' +
     '<div class="compare-grid" style="grid-template-columns: 160px repeat(' +
-    escapeHtml(String(topEntries.length)) +
+    String(topEntries.length) +
     ', minmax(0, 1fr));">' +
     headerCells +
     bodyCells +
-    "</div></section>" +
-    renderPartnerCompareSummary(topEntries, profile) +
+    "</div></section></details>"
+  );
+}
+
+// Shortlist viewer entry point. Replaces the old dense comparison
+// grid with a decision-support layout: hero pick, supporting cards,
+// "where they differ" diff strip, full grid behind a disclosure, and
+// a single share affordance at the bottom. Keeps the same DOM target
+// (#matchCompare) so the existing caller is unchanged.
+function renderComparison(entries) {
+  var root = document.getElementById("matchCompare");
+  if (!root) return;
+  var topEntries = entries.slice(0, PRIMARY_SHORTLIST_LIMIT);
+  var profile = latestProfile;
+  if (topEntries.length === 0) {
+    root.innerHTML = "";
+    return;
+  }
+  var hero = topEntries[0];
+  var supporting = topEntries.slice(1);
+  var rows = buildShortlistCompareRows(topEntries);
+  var diffRows =
+    topEntries.length >= 2
+      ? rows.filter(function (row) {
+          return shortlistRowDiffers(row, topEntries);
+        })
+      : [];
+
+  var heroHtml = renderShortlistHero(hero, profile);
+  var supportingHtml = supporting.length
+    ? '<section class="mx-sl-supporting">' +
+      '<div class="mx-sl-section-title">Also worth a look</div>' +
+      '<div class="mx-sl-supporting-grid">' +
+      supporting
+        .map(function (entry, idx) {
+          return renderShortlistSupporting(entry, idx + 2, profile);
+        })
+        .join("") +
+      "</div></section>"
+    : "";
+  var diffHtml = renderShortlistDiffStrip(diffRows, topEntries);
+  var fullGridHtml = topEntries.length >= 2 ? renderShortlistFullGrid(rows, topEntries) : "";
+  var shareHtml = renderPartnerCompareSummary(topEntries, profile);
+
+  var pageHeader =
+    '<header class="mx-sl-page-head">' +
+    '<div class="mx-sl-page-kicker">Your shortlist · ' +
+    String(topEntries.length) +
+    " therapist" +
+    (topEntries.length === 1 ? "" : "s") +
+    "</div>" +
+    '<h2 class="mx-sl-page-title">Pick one to reach out to today.</h2>' +
+    '<p class="mx-sl-page-sub">Most patients hear back within 2 business days. You can always come back and reach out to another.</p>' +
+    "</header>";
+
+  root.innerHTML =
+    '<div class="mx-sl-feature">' +
+    pageHeader +
+    heroHtml +
+    supportingHtml +
+    diffHtml +
+    fullGridHtml +
+    (shareHtml ? '<div class="mx-sl-share">' + shareHtml + "</div>" : "") +
     "</div>";
 
   var copyBtn = root.querySelector("[data-copy-partner-summary]");
