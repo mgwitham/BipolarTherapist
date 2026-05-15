@@ -56,15 +56,47 @@ export function buildOutreachBody({ name, profileUrl }) {
   ].join("\n");
 }
 
+// Touch-3 angle: assumes touches 1 and 2 have landed and the inbox
+// already knows who Michael is. Leads with the specific friction in
+// the recipient's profile (missing photo + bipolar-years-experience)
+// and explains in one beat why those two fields disproportionately
+// drive contact rate for bipolar patients. Threaded as a Re: of the
+// initial subject so it lands in the same Gmail conversation.
+export function buildProfileGapBody({ name, profileUrl }) {
+  const first = firstName(name);
+  const url = profileUrl || "";
+  return [
+    `Hi ${first},`,
+    "",
+    "Quick follow-up on my note last week.",
+    "",
+    "Your profile is already live on BipolarTherapyHub, and honestly it's not bad. But two things are missing that patients look for before they reach out:",
+    "",
+    "A photo. And how long you've been working with bipolar clients specifically.",
+    "",
+    "Patients searching for a bipolar specialist aren't browsing casually. They've usually been through a few therapists who didn't get it. A face and a number like \"8 years\" do a lot of work.",
+    "",
+    "Claiming takes two minutes:",
+    "",
+    url,
+    "",
+    "Michael",
+  ].join("\n");
+}
+
 // Convenience for the client composer: returns the { subject, body }
 // pair for a given template. Server consumers use INITIAL_SUBJECT and
 // buildOutreachBody directly because they wrap them in their own
 // dispatch shape.
 export function getOutreachTemplate(template, { name, profileUrl }) {
-  const body = buildOutreachBody({
-    name,
-    profileUrl: withOutreachRef(profileUrl),
-  });
+  const refUrl = withOutreachRef(profileUrl);
+  if (template === "profile_gap") {
+    return {
+      subject: `Re: ${INITIAL_SUBJECT}`,
+      body: buildProfileGapBody({ name, profileUrl: refUrl }),
+    };
+  }
+  const body = buildOutreachBody({ name, profileUrl: refUrl });
   if (template === "follow_up") {
     return { subject: `Re: ${INITIAL_SUBJECT}`, body };
   }
