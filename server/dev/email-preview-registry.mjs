@@ -422,12 +422,13 @@ export const EMAIL_TEMPLATES = [
     invoke: async function (config) {
       return captureFromSender(function () {
         return sendPortalCompletenessNudge(
-          Object.assign({}, config, {
-            // sendPortalCompletenessNudge reads completenessScore + missingFields off therapist
-          }),
+          config,
+          // Match the Sanity field names the email render function reads:
+          // portalCompletenessScore + portalCompletionFields. Older fixture
+          // used different keys and the preview rendered empty.
           Object.assign({}, sampleTherapist, {
-            completenessScore: sampleCompletenessSnapshot.completenessScore,
-            completenessMissingFields: sampleCompletenessSnapshot.missingFields,
+            portalCompletenessScore: sampleCompletenessSnapshot.completenessScore,
+            portalCompletionFields: sampleCompletenessSnapshot.missingFields,
           }),
           sampleLinks.portalBaseUrl,
         );

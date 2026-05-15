@@ -1292,11 +1292,11 @@ export async function sendPortalContactEmail(config, body) {
 const COMPLETENESS_FIELD_LABELS = {
   card_bio: {
     label: "Card bio",
-    note: "Required to go live — this is the first thing patients read.",
+    note: "First thing patients read. Your strongest conversion lever.",
   },
   contact: {
     label: "Contact route",
-    note: "Required to go live — patients can't reach you without it.",
+    note: "Patients can't reach you without this. Top priority.",
   },
   headshot: { label: "Headshot", note: "Profiles with photos earn 3× more clicks." },
   name: {
@@ -1306,7 +1306,7 @@ const COMPLETENESS_FIELD_LABELS = {
   location: { label: "Location", note: "Lets patients know where you practice." },
   years: {
     label: "Years treating bipolar",
-    note: "Shown on patient cards — 8+ unlocks a ranking boost.",
+    note: "Shown on patient cards. 8+ unlocks a ranking boost.",
   },
   full_bio: { label: "Full bio", note: "Long-form profile shown on your public profile page." },
   practice_name: { label: "Practice name", note: "If you practice under a group or clinic name." },
@@ -1373,10 +1373,13 @@ export function renderPortalCompletenessNudge(config, therapist, portalBaseUrl) 
   const missingRowsHtml = fieldsToShow
     .map((key) => {
       const info = COMPLETENESS_FIELD_LABELS[key] || { label: key, note: "" };
-      const isRequired = key === "card_bio" || key === "contact";
+      const isPriority = key === "card_bio" || key === "contact";
+      const pill = isPriority
+        ? ' <span style="display:inline-block;margin-left:6px;padding:2px 8px;font-size:11px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;background:#fdecea;color:#b03636;border-radius:999px;">Top priority</span>'
+        : "";
       return `<tr>
   <td style="padding:10px 0;border-bottom:1px solid #eef3f5;vertical-align:top">
-    <strong style="color:${isRequired ? "#b03636" : "#0f1f28"}">${info.label}${isRequired ? " — required" : ""}</strong>
+    <strong style="color:${isPriority ? "#b03636" : "#0f1f28"}">${info.label}</strong>${pill}
     <br><span style="font-size:13px;color:#6b8189">${info.note}</span>
   </td>
 </tr>`;
@@ -1426,7 +1429,7 @@ export function renderPortalCompletenessNudge(config, therapist, portalBaseUrl) 
   });
 
   const requiredNote = required.length
-    ? "Required to go live: " +
+    ? "Top priority: " +
       required.map((k) => COMPLETENESS_FIELD_LABELS[k]?.label || k).join(", ") +
       "."
     : "";

@@ -132,9 +132,12 @@ export const samplePortalContactForm = {
     "Hi — I just moved practices and need to update my street address and primary phone. Can you walk me through it?",
 };
 
+// Sample fixture for the portal completeness nudge preview. Field keys
+// must match COMPLETENESS_FIELD_LABELS in server/review-email.mjs so the
+// rendered rows look like a real low-score therapist.
 export const sampleCompletenessSnapshot = {
-  completenessScore: 72,
-  missingFields: ["headshot photo", "first-step expectation", "preferred contact method"],
+  completenessScore: 38,
+  missingFields: ["contact", "headshot", "first_step", "languages", "wait_time"],
 };
 
 export const sampleLinks = {
