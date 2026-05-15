@@ -65,6 +65,19 @@ export async function renderPortalCompletenessPanel() {
     return "pc-score-bar-amber";
   }
 
+  // Bind filter-pill click handlers. Called from both the populated and
+  // the empty-state branches of renderTable so a filter that drops the
+  // count to zero doesn't strand the pills without click handlers
+  // (which was the "freeze" symptom — pills repainted but unresponsive).
+  function bindFilterHandlers() {
+    root.querySelectorAll("[data-pc-filter]").forEach((btn) => {
+      btn.addEventListener("click", function () {
+        activeFilter = btn.getAttribute("data-pc-filter");
+        renderTable();
+      });
+    });
+  }
+
   function renderTable() {
     const visible = filteredRows();
     const batchSlugs = visible
@@ -93,6 +106,7 @@ export async function renderPortalCompletenessPanel() {
     if (!visible.length) {
       html += '<p class="pc-empty">No therapists match this filter.</p>';
       root.innerHTML = html;
+      bindFilterHandlers();
       return;
     }
 
@@ -168,13 +182,7 @@ export async function renderPortalCompletenessPanel() {
     }
 
     root.innerHTML = html;
-
-    root.querySelectorAll("[data-pc-filter]").forEach((btn) => {
-      btn.addEventListener("click", function () {
-        activeFilter = btn.getAttribute("data-pc-filter");
-        renderTable();
-      });
-    });
+    bindFilterHandlers();
 
     root.querySelectorAll("[data-pc-nudge]").forEach((btn) => {
       btn.addEventListener("click", async function () {
