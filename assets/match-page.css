@@ -2780,7 +2780,10 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
 }
 .match-card:hover,
 .match-card:focus-within {
-  transform: translateY(-6px);
+  /* Lift effect via shadow only — translating the card up moved child
+     elements out from under the cursor and caused the hover state to
+     drop, snap back, and re-trigger, producing a rapid finger/arrow
+     cursor flicker on certain rows. */
   border-color: rgba(26, 122, 143, 0.24);
   box-shadow:
     0 28px 52px rgba(14, 77, 95, 0.14),
