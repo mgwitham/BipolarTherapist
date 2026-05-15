@@ -2,6 +2,7 @@ import { createClient } from "@sanity/client";
 import { verifyAdminSession } from "../_adminAuth.mjs";
 import {
   INITIAL_SUBJECT,
+  PROFILE_GAP_SUBJECT,
   buildOutreachBody,
   buildProfileGapBody,
   withOutreachRef,
@@ -63,9 +64,10 @@ const TEMPLATES = {
   },
   profile_gap: {
     // Touch-3 angle: addresses the two highest-friction gaps on the
-    // therapist's profile (photo + bipolar-years-experience). Threaded
-    // as Re: so it lands in the same Gmail conversation as touches 1+2.
-    subject: () => `Re: ${INITIAL_SUBJECT}`,
+    // therapist's profile (photo + bipolar-years-experience). Uses a
+    // fresh, action-oriented subject (not threaded) to earn inbox
+    // attention back after two prior touches.
+    subject: () => PROFILE_GAP_SUBJECT,
     text: (t) => buildSharedProfileGapBody(t),
     html: (t) => plainTextToHtml(buildSharedProfileGapBody(t)),
     nextStatus: "profile_gap_sent",
