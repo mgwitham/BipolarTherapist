@@ -10,7 +10,10 @@ import { log } from "./logger.mjs";
 // One-time setup:
 //   1. Resend dashboard → Webhooks → Add Endpoint
 //      URL: https://www.bipolartherapyhub.com/api/review/webhooks/resend
-//      Events: email.bounced, email.complained
+//      Events: email.bounced, email.complained, email.opened
+//      (email.opened required for the Outreach CRM engagement trail
+//      to register opens — handler code below has supported it since
+//      May 2026.)
 //   2. Copy the signing secret (whsec_…)
 //   3. Add to Vercel env: RESEND_WEBHOOK_SECRET
 //
