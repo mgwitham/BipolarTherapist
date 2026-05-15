@@ -10,22 +10,25 @@ function read(file) {
   return readFileSync(path.join(repoRoot, file), "utf8");
 }
 
-test("admin page: top-level modes are review and reports", function () {
+test("admin page: top-level modes include home, review, reports, portal", function () {
   const html = read("admin.html");
   const tabsJs = read("assets/admin-view-tabs.js");
 
+  assert.match(html, /data-admin-tab="home"/);
   assert.match(html, /data-admin-tab="review"/);
   assert.match(html, /data-admin-tab="reports"/);
   assert.doesNotMatch(html, /data-admin-tab="today"/);
   assert.doesNotMatch(html, /data-admin-tab="listings"/);
   assert.doesNotMatch(html, /data-admin-tab="recovery"/);
-  assert.match(tabsJs, /const DEFAULT_VIEW = "review"/);
-  assert.match(tabsJs, /const VALID_VIEWS = \["review", "reports", "portal"\]/);
+  assert.match(tabsJs, /const DEFAULT_VIEW = "home"/);
+  assert.match(tabsJs, /const VALID_VIEWS = \["home", "review", "reports", "portal"\]/);
 });
 
-test("admin page: review is the default visible admin workflow", function () {
+test("admin page: home is the default visible admin workflow", function () {
   const html = read("admin.html");
 
+  assert.match(html, /id="homeRegion" data-view-group="home"/);
+  assert.match(html, /<h2 class="admin-live-title">Home<\/h2>/);
   assert.match(html, /id="supplyReviewRegion" data-view-group="review"/);
   assert.match(html, /<h2 class="admin-live-title">Review<\/h2>/);
   assert.match(html, /Review therapist signups first/);
