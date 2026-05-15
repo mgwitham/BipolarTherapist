@@ -4,30 +4,10 @@ import {
   sendPortalCompletenessNudges,
 } from "./review-api.js";
 import { escapeHtml } from "./escape-html.js";
-
-const COMPLETENESS_FIELD_LABELS = {
-  card_bio: "Card bio",
-  contact: "Contact route",
-  headshot: "Headshot",
-  name: "Name",
-  location: "Location",
-  years: "Bipolar years",
-  full_bio: "Full bio",
-  practice_name: "Practice name",
-  website: "Website",
-  languages: "Languages",
-  fee: "Fees",
-  modalities: "Modalities",
-  format: "Session format",
-  insurance: "Insurance",
-  wait_time: "Wait time",
-  first_step: "First step",
-  specialties: "Specialties",
-  populations: "Populations",
-  total_years: "Years exp.",
-};
-
-const REQUIRED_FIELDS = ["card_bio", "contact"];
+import {
+  PORTAL_COMPLETENESS_SHORT_LABELS as COMPLETENESS_FIELD_LABELS,
+  PORTAL_COMPLETENESS_REQUIRED_FIELDS as REQUIRED_FIELDS,
+} from "../shared/portal-completeness-registry.mjs";
 
 // Per-session nudge tracking so the button reflects "Sent" without a page reload.
 let _portalNudgeSent = {};
