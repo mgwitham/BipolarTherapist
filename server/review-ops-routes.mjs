@@ -1,3 +1,8 @@
+import {
+  computePortalCompletenessSnapshot,
+  persistCompletenessSnapshot,
+} from "./portal-completeness-snapshot.mjs";
+
 // Lifecycle values that allow a profile to be Live; everything else
 // implies the listing should be hidden from public queries.
 const APPROVED_LIFECYCLE = "approved";
@@ -206,6 +211,19 @@ export async function handleOpsRoutes(context) {
     });
     await transaction.commit({ visibility: "sync" });
     const updated = await client.getDocument(therapistId);
+
+    // Recompute the portal completeness snapshot whenever an admin edits a
+    // therapist. Without this, the Completeness Tracker stays stale until
+    // the therapist themselves logs in and saves their portal — which means
+    // an admin who fills in (say) a missing gender field via God-mode still
+    // sees "Gender" in the missing-fields list and the score doesn't move.
+    // Snapshot includes a hasPhoto flag that the predicate reads — match
+    // the same logic the portal upload route uses (a photo asset reference
+    // counts as "has photo").
+    const hasPhoto = Boolean(updated && updated.photo && updated.photo.asset);
+    const snapshot = computePortalCompletenessSnapshot({ ...updated, hasPhoto });
+    persistCompletenessSnapshot(client, therapistId, snapshot, new Date().toISOString());
+
     sendJson(response, 200, { ok: true, therapist: updated }, origin, config);
     return true;
   }
