@@ -43,6 +43,11 @@ const state = {
   // Last-used campaign tag, remembered across sends within a session
   // so the operator doesn't retype it for back-to-back batches.
   lastCampaign: "",
+  // True while a sendBatch loop is running. Guards against the 2026-05-15
+  // incident where two batches got kicked off in parallel and interleaved
+  // their POSTs, producing 30+ duplicate sends. openBatchComposer refuses
+  // to open a new composer while this is true.
+  batchInFlight: false,
   liveFilters: { search: "" },
   // Sort: which column + direction. Last contact desc mirrors the API
   // query's default and is the most useful first view.
@@ -1070,10 +1075,39 @@ function openFindOnPT() {
   });
 }
 
+// True if this therapist's outreach.emailLog already contains an entry
+// for the given template. Used to flag/exclude already-emailed recipients
+// in the batch composer so a re-run can't silently double-send. The
+// `_via_form` templates (PT contact-form pathway) are distinct values,
+// so they don't false-positive an `email_1` send.
+function therapistAlreadySent(t, template) {
+  const log = Array.isArray(t?.outreach?.emailLog) ? t.outreach.emailLog : [];
+  return log.some((e) => e && e.template === template);
+}
+
+// Find the most recent sentAt for a given template, used to label the
+// "already received" warning row.
+function lastSentAtForTemplate(t, template) {
+  const log = Array.isArray(t?.outreach?.emailLog) ? t.outreach.emailLog : [];
+  return log
+    .filter((e) => e && e.template === template && e.sentAt)
+    .map((e) => e.sentAt)
+    .sort()
+    .pop();
+}
+
 // Modal for composing the batch send. Shows a template selector, an
 // editable subject, a single rendered preview for the first selected
 // therapist, and a type-to-confirm gate before the actual send.
 function openBatchComposer() {
+  // Hard guard: refuse to open a second composer while a batch is in
+  // flight. Today's incident (2026-05-15) happened because two batches
+  // ran concurrently — interleaved POSTs produced 30+ duplicate sends.
+  if (state.batchInFlight) {
+    toast("A batch is already running — wait for it to finish.", "error");
+    return;
+  }
+
   const ids = Array.from(state.selected);
   const recipients = ids
     .map((id) => state.therapists.find((t) => t._id === id))
@@ -1100,6 +1134,8 @@ function openBatchComposer() {
           <option value="email_1" selected>Initial outreach</option>
           <option value="follow_up">Follow-up</option>
         </select>
+
+        <div id="batch-dupe-warning" style="display:none;margin-bottom:12px;"></div>
 
         <label style="display:block;font-size:12px;font-weight:600;color:#374151;margin-bottom:4px;">Subject</label>
         <input id="batch-subject" class="form-input" type="text" value="${esc(example.subject)}" style="margin-bottom:12px;" />
@@ -1130,6 +1166,68 @@ function openBatchComposer() {
   const preview = overlay.querySelector("#batch-preview");
   const confirmEl = overlay.querySelector("#batch-confirm");
   const goBtn = overlay.querySelector("#batch-go");
+  const warnEl = overlay.querySelector("#batch-dupe-warning");
+
+  // Tracks the "include already-emailed anyway" checkbox state. Default
+  // OFF so the safe path is one-click: the user types SEND and only
+  // fresh recipients ship. They have to explicitly opt in to re-send.
+  let includeAlreadySent = false;
+
+  function classifyAndRenderWarning() {
+    const template = tmplSel.value;
+    const already = recipients.filter((t) => therapistAlreadySent(t, template));
+    const fresh = recipients.filter((t) => !therapistAlreadySent(t, template));
+    const willSend = includeAlreadySent ? recipients : fresh;
+
+    if (already.length === 0) {
+      warnEl.style.display = "none";
+      warnEl.innerHTML = "";
+    } else {
+      const preview = already
+        .slice(0, 5)
+        .map((t) => {
+          const when = lastSentAtForTemplate(t, template);
+          const whenLabel = when ? new Date(when).toLocaleString() : "earlier";
+          return `<li style="font-size:12px;color:#7c2d12;">${esc(t.name || t.email || t._id)} <span style="color:#9a3412;font-weight:400;">— sent ${esc(whenLabel)}</span></li>`;
+        })
+        .join("");
+      const more =
+        already.length > 5
+          ? `<li style="font-size:12px;color:#9a3412;list-style:none;">…and ${already.length - 5} more.</li>`
+          : "";
+      warnEl.style.display = "block";
+      warnEl.innerHTML = `
+        <div style="background:#fff7ed;border:1px solid #fdba74;border-radius:8px;padding:12px;">
+          <div style="font-size:13px;font-weight:700;color:#9a3412;margin-bottom:6px;">⚠️ ${already.length} recipient${already.length === 1 ? "" : "s"} already received this template</div>
+          <ul style="margin:0 0 8px;padding-left:18px;">${preview}${more}</ul>
+          <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:#7c2d12;cursor:pointer;">
+            <input id="batch-include-already" type="checkbox" ${includeAlreadySent ? "checked" : ""} style="margin:0;" />
+            Re-send to these ${already.length} anyway (the server will reject without this).
+          </label>
+        </div>
+      `;
+      const cb = warnEl.querySelector("#batch-include-already");
+      cb.addEventListener("change", () => {
+        includeAlreadySent = cb.checked;
+        updateGoButton();
+      });
+    }
+    updateGoButton();
+  }
+
+  function getActiveRecipients() {
+    const template = tmplSel.value;
+    return includeAlreadySent
+      ? recipients
+      : recipients.filter((t) => !therapistAlreadySent(t, template));
+  }
+
+  function updateGoButton() {
+    const count = getActiveRecipients().length;
+    const sendOk = confirmEl.value.trim().toUpperCase() === "SEND";
+    goBtn.textContent = count > 0 ? `Send to ${count}` : "Nothing to send";
+    goBtn.disabled = !sendOk || count === 0;
+  }
 
   function rerenderPreview() {
     const t = recipients[0];
@@ -1137,11 +1235,12 @@ function openBatchComposer() {
     subjEl.value = rendered.subject;
     preview.textContent = rendered.body;
   }
-  tmplSel.addEventListener("change", rerenderPreview);
-
-  confirmEl.addEventListener("input", () => {
-    goBtn.disabled = confirmEl.value.trim().toUpperCase() !== "SEND";
+  tmplSel.addEventListener("change", () => {
+    rerenderPreview();
+    classifyAndRenderWarning();
   });
+
+  confirmEl.addEventListener("input", updateGoButton);
 
   overlay.querySelector("#batch-cancel").addEventListener("click", () => overlay.remove());
   overlay.addEventListener("click", (e) => {
@@ -1151,6 +1250,8 @@ function openBatchComposer() {
   const campaignEl = overlay.querySelector("#batch-campaign");
 
   goBtn.addEventListener("click", async () => {
+    const activeRecipients = getActiveRecipients();
+    if (activeRecipients.length === 0) return;
     goBtn.disabled = true;
     confirmEl.disabled = true;
     subjEl.disabled = true;
@@ -1158,29 +1259,56 @@ function openBatchComposer() {
     if (campaignEl) campaignEl.disabled = true;
     const campaign = (campaignEl?.value || "").trim();
     state.lastCampaign = campaign;
-    await sendBatch(recipients, tmplSel.value, subjEl.value.trim(), campaign, overlay);
+    state.batchInFlight = true;
+    try {
+      await sendBatch(
+        activeRecipients,
+        tmplSel.value,
+        subjEl.value.trim(),
+        campaign,
+        overlay,
+        includeAlreadySent,
+      );
+    } finally {
+      state.batchInFlight = false;
+    }
   });
+
+  // Initial classification (warns immediately if any selected recipient
+  // has already received the default template).
+  classifyAndRenderWarning();
 }
 
 // Sequential send with a small delay so we don't trip Resend's rate
 // limits. Each call goes through the existing /send-email endpoint, so
 // server-side validation, audit log, and emailLog write all happen on
 // the standard path. Progress is rendered into the modal's footer.
-async function sendBatch(recipients, template, subject, campaign, overlay) {
+//
+// `force` is set from the "include already-emailed anyway" checkbox in
+// the composer. When false, the server hard-rejects same-template
+// duplicates with 409 — we count those as `skipped` (not failed) so the
+// final toast distinguishes "I couldn't send" from "I refused to send".
+async function sendBatch(recipients, template, subject, campaign, overlay, force) {
   const progressEl = overlay.querySelector("#batch-progress");
   const goBtn = overlay.querySelector("#batch-go");
   let ok = 0;
   let failed = 0;
+  let skipped = 0;
   for (let i = 0; i < recipients.length; i++) {
     const t = recipients[i];
     progressEl.textContent = `Sending ${i + 1}/${recipients.length}…`;
     const rendered = getOutreachTemplate(template, t);
-    const { ok: success } = await apiPost("/send-email", {
+    const {
+      ok: success,
+      status,
+      data,
+    } = await apiPost("/send-email", {
       therapistId: t._id,
       template,
       subject,
       body: rendered.body,
       ...(campaign ? { campaign } : {}),
+      ...(force ? { force: true } : {}),
     });
     if (success) {
       ok++;
@@ -1202,6 +1330,13 @@ async function sendBatch(recipients, template, subject, campaign, overlay) {
         ];
       });
       state.selected.delete(t._id);
+    } else if (status === 409 && data?.error === "duplicate_send") {
+      // Server refused because the same template is already in this
+      // therapist's emailLog. Treat as a skip — the desired no-op outcome.
+      skipped++;
+      console.warn(
+        `[sendBatch] skipped duplicate to ${t.name || t._id}: last sent at ${data.lastSentAt}`,
+      );
     } else {
       failed++;
     }
@@ -1209,7 +1344,12 @@ async function sendBatch(recipients, template, subject, campaign, overlay) {
       await new Promise((r) => setTimeout(r, 200));
     }
   }
-  progressEl.textContent = `Done · ${ok} sent${failed ? `, ${failed} failed` : ""}.`;
+  const parts = [
+    `${ok} sent`,
+    skipped ? `${skipped} skipped (already received)` : "",
+    failed ? `${failed} failed` : "",
+  ].filter(Boolean);
+  progressEl.textContent = `Done · ${parts.join(", ")}.`;
   goBtn.textContent = "Close";
   goBtn.disabled = false;
   goBtn.onclick = () => {
@@ -1217,7 +1357,7 @@ async function sendBatch(recipients, template, subject, campaign, overlay) {
     refreshTable();
     renderBulkActionBar();
   };
-  toast(`Sent ${ok}${failed ? `, ${failed} failed` : ""}`, failed ? "error" : "success");
+  toast(parts.join(", "), failed ? "error" : "success");
 }
 
 function statCard(label, value, color) {
@@ -2088,6 +2228,22 @@ function setupPanelListeners(t) {
       return;
     }
 
+    // Duplicate-send confirmation: if this therapist already received
+    // the selected template, force the operator through an explicit
+    // confirm() before we pass force:true to the server. Without this,
+    // a misclick on a row whose status field is out of view can ship
+    // a second copy of the same template.
+    let force = false;
+    if (therapistAlreadySent(t, composer.template)) {
+      const when = lastSentAtForTemplate(t, composer.template);
+      const whenLabel = when ? new Date(when).toLocaleString() : "earlier";
+      const proceed = window.confirm(
+        `${t.name || t.email} already received the "${composer.template}" template on ${whenLabel}.\n\nSend it again anyway?`,
+      );
+      if (!proceed) return;
+      force = true;
+    }
+
     btn.disabled = true;
     btn.textContent = "Sending…";
 
@@ -2096,6 +2252,7 @@ function setupPanelListeners(t) {
       template: composer.template,
       subject: composer.subject,
       body: composer.body,
+      ...(force ? { force: true } : {}),
     });
     btn.disabled = false;
     btn.textContent = "Send email";
