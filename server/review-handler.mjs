@@ -152,7 +152,6 @@ const PUBLIC_WRITE_RATE_LIMITS = {
   "GET /portal/quick-claim/search": { limit: 60, windowMs: 60 * 60 * 1000 },
   "POST /portal/claim-by-slug": { limit: 120, windowMs: 60 * 60 * 1000 },
   "POST /portal/claim-link": { limit: 120, windowMs: 60 * 60 * 1000 },
-  "POST /portal/claim-trial": { limit: 60, windowMs: 60 * 60 * 1000 },
   "POST /portal/listing-removal/request": { limit: 30, windowMs: 60 * 60 * 1000 },
   "POST /portal/quick-claim": { limit: 120, windowMs: 60 * 60 * 1000 },
   "POST /portal/recovery-request": { limit: 30, windowMs: 60 * 60 * 1000 },
