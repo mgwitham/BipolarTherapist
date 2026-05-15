@@ -32,6 +32,11 @@ export function withOutreachRef(url) {
 // original instead of starting a fresh inbox entry.
 export const INITIAL_SUBJECT = "BipolarTherapyHub | Michael here. One Ask";
 
+// Touch-3 (profile_gap) uses a fresh, action-oriented subject instead
+// of threading under the initial subject. Standalone framing earns the
+// inbox attention back after two prior touches.
+export const PROFILE_GAP_SUBJECT = "BipolarTherapyHub | Complete Your Profile";
+
 // The body is identical for the initial email and the follow-up. The
 // messaging is doing the work; we just want the second message in the
 // same thread.
@@ -81,6 +86,7 @@ export function buildProfileGapBody({ name, profileUrl }) {
     url,
     "",
     "Michael",
+    "bipolartherapyhub.com",
   ].join("\n");
 }
 
@@ -92,7 +98,7 @@ export function getOutreachTemplate(template, { name, profileUrl }) {
   const refUrl = withOutreachRef(profileUrl);
   if (template === "profile_gap") {
     return {
-      subject: `Re: ${INITIAL_SUBJECT}`,
+      subject: PROFILE_GAP_SUBJECT,
       body: buildProfileGapBody({ name, profileUrl: refUrl }),
     };
   }
