@@ -161,14 +161,25 @@ function isFollowUpDue(t) {
   return last && Date.now() - new Date(last).getTime() >= 7 * 24 * 60 * 60 * 1000;
 }
 
+// Open tracking went live when the Resend tracking subdomain was
+// verified (2026-05-15). Sends before this date were transmitted
+// without the open-tracking pixel, so even a real open today won't
+// fire the webhook — there's no signal to recover. Mark them
+// "untracked" so the engagement trail doesn't render misleading
+// hollow dots for sends we'll never have data on.
+const OPEN_TRACKING_ENABLED_AT = "2026-05-15T00:00:00Z";
+
 // Classify an emailLog entry's open state for the engagement trail.
 // "opened"   — Resend webhook stamped openedAt
 // "unopened" — Resend-tracked send, no open yet
-// "untracked" — sent via contact form / PT; we have no open signal
+// "untracked" — sent via contact form / PT, OR sent before open
+//               tracking was enabled (no pixel embedded, blind by
+//               design). The trail renderer drops untracked entries.
 function openState(entry) {
   if (!entry) return "untracked";
   const tmpl = String(entry.template || "");
   if (tmpl.endsWith("_via_form")) return "untracked";
+  if (entry.sentAt && entry.sentAt < OPEN_TRACKING_ENABLED_AT) return "untracked";
   return entry.openedAt ? "opened" : "unopened";
 }
 
