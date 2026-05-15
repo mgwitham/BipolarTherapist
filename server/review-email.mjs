@@ -1,4 +1,5 @@
 import { log } from "./logger.mjs";
+import { PORTAL_COMPLETENESS_EMAIL_LABELS as COMPLETENESS_FIELD_LABELS } from "../shared/portal-completeness-registry.mjs";
 
 export function hasEmailConfig(config) {
   return Boolean(config.resendApiKey && config.emailFrom && config.notificationTo);
@@ -1288,55 +1289,10 @@ export async function sendPortalContactEmail(config, body) {
 }
 
 // ─── Portal completeness nudge ─────────────────────────────────────────────
-
-const COMPLETENESS_FIELD_LABELS = {
-  card_bio: {
-    label: "Card bio",
-    note: "First thing patients read. Your strongest conversion lever.",
-  },
-  contact: {
-    label: "Contact route",
-    note: "Patients can't reach you without this. Top priority.",
-  },
-  headshot: { label: "Headshot", note: "Profiles with photos earn 3× more clicks." },
-  name: {
-    label: "Name & credentials",
-    note: "Confirms your identity to patients browsing your listing.",
-  },
-  location: { label: "Location", note: "Lets patients know where you practice." },
-  years: {
-    label: "Years treating bipolar",
-    note: "Shown on patient cards. 8+ unlocks a ranking boost.",
-  },
-  full_bio: { label: "Full bio", note: "Long-form profile shown on your public profile page." },
-  practice_name: { label: "Practice name", note: "If you practice under a group or clinic name." },
-  website: { label: "Website", note: "Links from your listing to your practice site." },
-  languages: { label: "Languages", note: "Bilingual therapists are in high demand." },
-  fee: { label: "Session fee", note: "Filters out price mismatches before they reach your inbox." },
-  modalities: {
-    label: "Treatment modalities",
-    note: "CBT, IPSRT, and DBT are high-signal for patients in your specialty.",
-  },
-  format: { label: "Session format", note: "In-person, telehealth, or both." },
-  insurance: {
-    label: "Insurance accepted",
-    note: "Patients filter by insurance before they even browse.",
-  },
-  wait_time: { label: "Estimated wait time", note: "Especially important for patients in crisis." },
-  first_step: {
-    label: "First step expectation",
-    note: "Reduces anxiety for new patients reaching out.",
-  },
-  specialties: {
-    label: "Bipolar specialties",
-    note: "Specific presentations you treat (Bipolar I, II, rapid cycling, etc.).",
-  },
-  populations: { label: "Populations served", note: "Patients filter heavily by these." },
-  total_years: {
-    label: "Total years in practice",
-    note: "General experience shown on your full profile.",
-  },
-};
+//
+// Field metadata (labels + notes) is imported from
+// shared/portal-completeness-registry.mjs — one source of truth shared
+// with the admin table and the in-portal scoring module.
 
 // Renders the portal-completeness-nudge email without sending. Returns
 // { subject, html, text, toEmail, portalUrl, missingShown }. Used by both

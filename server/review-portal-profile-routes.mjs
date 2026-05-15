@@ -3,6 +3,7 @@ import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { appendFunnelEvent } from "./review-analytics-routes.mjs";
 import { renderPortalCompletenessNudge, sendPortalCompletenessNudge } from "./review-email.mjs";
+import { PORTAL_COMPLETENESS_POINTS as PTS } from "../shared/portal-completeness-registry.mjs";
 import {
   normalizeUrl,
   validateBookingUrl,
@@ -87,8 +88,12 @@ function shapePortalTherapist(therapist) {
   };
 }
 
-// Mirrors the browser-side FIELD_REGISTRY in portal-td-completeness.js.
-// Must stay in sync when field weights change. Returns { score, missingFields }.
+// Server-side completeness score. Point values come from the shared
+// registry (shared/portal-completeness-registry.mjs); the per-field
+// "done" predicates stay here because they read the camelCase Sanity
+// doc shape. The browser version in assets/portal-td-completeness.js
+// imports the same registry so weights can never drift between the
+// two scoring paths.
 function computePortalCompletenessSnapshot(t) {
   if (!t) return { score: 0, missingFields: [] };
   const arr = (v) => (Array.isArray(v) ? v.filter(Boolean) : []);
@@ -96,10 +101,10 @@ function computePortalCompletenessSnapshot(t) {
   const num = (v) => Number(v) || 0;
   const method = str(t.preferredContactMethod).toLowerCase();
   const fields = [
-    { key: "card_bio", pts: 9, done: str(t.careApproach).length >= 50 },
+    { key: "card_bio", pts: PTS.card_bio, done: str(t.careApproach).length >= 50 },
     {
       key: "contact",
-      pts: 7,
+      pts: PTS.contact,
       done:
         method === "email"
           ? Boolean(str(t.email))
@@ -109,30 +114,30 @@ function computePortalCompletenessSnapshot(t) {
               ? Boolean(str(t.bookingUrl))
               : false,
     },
-    { key: "headshot", pts: 10, done: Boolean(t.hasPhoto) },
-    { key: "name", pts: 4, done: Boolean(str(t.name)) },
-    { key: "location", pts: 4, done: Boolean(str(t.city) && str(t.state)) },
-    { key: "years", pts: 4, done: num(t.bipolarYearsExperience) > 0 },
-    { key: "full_bio", pts: 6, done: Boolean(str(t.bio)) },
-    { key: "practice_name", pts: 2, done: Boolean(str(t.practiceName)) },
-    { key: "website", pts: 3, done: Boolean(str(t.website)) },
-    { key: "languages", pts: 2, done: arr(t.languages).length > 0 },
+    { key: "headshot", pts: PTS.headshot, done: Boolean(t.hasPhoto) },
+    { key: "name", pts: PTS.name, done: Boolean(str(t.name)) },
+    { key: "location", pts: PTS.location, done: Boolean(str(t.city) && str(t.state)) },
+    { key: "years", pts: PTS.years, done: num(t.bipolarYearsExperience) > 0 },
+    { key: "full_bio", pts: PTS.full_bio, done: Boolean(str(t.bio)) },
+    { key: "practice_name", pts: PTS.practice_name, done: Boolean(str(t.practiceName)) },
+    { key: "website", pts: PTS.website, done: Boolean(str(t.website)) },
+    { key: "languages", pts: PTS.languages, done: arr(t.languages).length > 0 },
     {
       key: "fee",
-      pts: 7,
+      pts: PTS.fee,
       done: num(t.sessionFeeMin) > 0 || num(t.sessionFeeMax) > 0 || t.slidingScale === true,
     },
-    { key: "modalities", pts: 8, done: arr(t.treatmentModalities).length > 0 },
-    { key: "format", pts: 4, done: Boolean(t.acceptsInPerson || t.acceptsTelehealth) },
-    { key: "insurance", pts: 6, done: arr(t.insuranceAccepted).length > 0 },
-    { key: "wait_time", pts: 3, done: Boolean(str(t.estimatedWaitTime)) },
-    { key: "first_step", pts: 4, done: Boolean(str(t.firstStepExpectation)) },
-    { key: "specialties", pts: 5, done: arr(t.specialties).length > 0 },
-    { key: "populations", pts: 7, done: arr(t.clientPopulations).length > 0 },
-    { key: "total_years", pts: 2, done: num(t.yearsExperience) > 0 },
+    { key: "modalities", pts: PTS.modalities, done: arr(t.treatmentModalities).length > 0 },
+    { key: "format", pts: PTS.format, done: Boolean(t.acceptsInPerson || t.acceptsTelehealth) },
+    { key: "insurance", pts: PTS.insurance, done: arr(t.insuranceAccepted).length > 0 },
+    { key: "wait_time", pts: PTS.wait_time, done: Boolean(str(t.estimatedWaitTime)) },
+    { key: "first_step", pts: PTS.first_step, done: Boolean(str(t.firstStepExpectation)) },
+    { key: "specialties", pts: PTS.specialties, done: arr(t.specialties).length > 0 },
+    { key: "populations", pts: PTS.populations, done: arr(t.clientPopulations).length > 0 },
+    { key: "total_years", pts: PTS.total_years, done: num(t.yearsExperience) > 0 },
     {
       key: "gender",
-      pts: 3,
+      pts: PTS.gender,
       done:
         str(t.gender) === "male" || str(t.gender) === "female" || str(t.gender) === "non_binary",
     },
