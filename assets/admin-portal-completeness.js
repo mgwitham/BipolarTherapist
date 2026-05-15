@@ -124,17 +124,59 @@ function openNudgePreview(options) {
     cancelBtn.disabled = true;
     sendBtn.textContent = "Sending…";
     statusEl.textContent = "";
+    statusEl.className = "pc-preview-status";
     try {
       const result = await sendPortalCompletenessNudges(slugs);
-      statusEl.textContent = "Sent.";
-      if (typeof options.onSuccess === "function") options.onSuccess(result);
-      // Brief confirmation so admin sees success state before modal closes.
-      window.setTimeout(close, 600);
+      const sent = Number((result && result.sent) || 0);
+      const failed = Number((result && result.failed) || 0);
+      const skipped = Number((result && result.skipped) || 0);
+      // Three cases: full success, partial success, or zero sends. Surface
+      // each distinctly so a quiet partial failure doesn't read like a win.
+      if (failed === 0 && skipped === 0) {
+        statusEl.textContent = "Sent.";
+        if (typeof options.onSuccess === "function") options.onSuccess(result);
+        window.setTimeout(close, 600);
+      } else if (sent > 0) {
+        const issues = [
+          failed > 0 ? `${failed} failed` : "",
+          skipped > 0 ? `${skipped} skipped (no email)` : "",
+        ]
+          .filter(Boolean)
+          .join(", ");
+        statusEl.textContent = `Sent ${sent}, ${issues}. See console for details.`;
+        statusEl.className = "pc-preview-status is-partial";
+        if (typeof options.onSuccess === "function") options.onSuccess(result);
+        // Leave the modal open so admin can act on the failures. Re-enable
+        // cancel so they can dismiss; keep send disabled to prevent a
+        // double-send loop on the same slugs.
+        cancelBtn.disabled = false;
+        cancelBtn.textContent = "Close";
+        if (result && Array.isArray(result.results)) {
+          // Log the per-row breakdown so admin can find which slugs failed.
+          console.warn("[nudge] partial send result", result.results);
+        }
+      } else {
+        const issues = [
+          failed > 0 ? `${failed} failed` : "",
+          skipped > 0 ? `${skipped} skipped (no email)` : "",
+        ]
+          .filter(Boolean)
+          .join(", ");
+        statusEl.textContent = `Nothing sent: ${issues || "no eligible recipients"}.`;
+        statusEl.className = "pc-preview-status is-failure";
+        sendBtn.disabled = false;
+        cancelBtn.disabled = false;
+        sendBtn.textContent = slugs.length > 1 ? "Send to " + slugs.length : "Send";
+        if (result && Array.isArray(result.results)) {
+          console.warn("[nudge] no sends succeeded", result.results);
+        }
+      }
     } catch (err) {
       sendBtn.disabled = false;
       cancelBtn.disabled = false;
       sendBtn.textContent = slugs.length > 1 ? "Send to " + slugs.length : "Send";
       statusEl.textContent = "Failed: " + ((err && err.message) || "unknown");
+      statusEl.className = "pc-preview-status is-failure";
     }
   });
 }
