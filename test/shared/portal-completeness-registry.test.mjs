@@ -83,15 +83,17 @@ test("drift: server email module references only registered field keys", functio
 });
 
 test("drift: server scoring uses registry points for every scored key", function () {
-  const src = readSource("server/review-portal-profile-routes.mjs");
+  // Scoring + persistence helpers were extracted into a dedicated module
+  // so the admin God-mode drawer can recompute the snapshot on every
+  // edit too (not just therapist portal saves).
+  const src = readSource("server/portal-completeness-snapshot.mjs");
   // Each scored field should pass through PTS.<key>, never a raw number.
-  // Pull every "pts: PTS.<x>" and confirm <x> exists in registry.
   const refs = Array.from(src.matchAll(/pts:\s*PTS\.([a-z_]+)/g));
   assert.ok(refs.length > 0, "expected server scoring to reference PTS.<key>");
   for (const m of refs) {
     assert.ok(KNOWN_KEYS.has(m[1]), `server scoring references unknown key: ${m[1]}`);
   }
-  // And no raw numeric pts literals should remain in the snapshot function.
+  // No raw numeric pts literals should remain in the snapshot function.
   const fnStart = src.indexOf("function computePortalCompletenessSnapshot");
   const fnEnd = src.indexOf("\n}\n", fnStart);
   const fnBody = src.slice(fnStart, fnEnd);

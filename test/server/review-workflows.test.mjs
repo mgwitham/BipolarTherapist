@@ -1083,6 +1083,59 @@ test("free-path-selected: invalid claim_token returns 401", async function () {
   assert.match(response.payload.error, /invalid|expired/i);
 });
 
+test("PATCH /therapists/:id: admin edit recomputes portal completeness snapshot", async function () {
+  // Before this lived in the server, an admin who filled in (e.g.) a
+  // missing gender via God-mode left the Completeness Tracker showing
+  // stale "Gender" missing and the old score until the therapist next
+  // logged in. This test pins the invariant: admin saves must refresh
+  // portalCompletenessScore and portalCompletionFields in lockstep with
+  // the field changes.
+  const { client, state } = createMemoryClient({
+    "therapist-stale-1": {
+      _id: "therapist-stale-1",
+      _type: "therapist",
+      name: "Dr. Stale",
+      lifecycle: "approved",
+      visibilityIntent: "listed",
+      listingActive: true,
+      status: "active",
+      licenseNumber: "X-STALE",
+      // Stale snapshot: score and missing list pre-date the upcoming
+      // gender edit. After the PATCH, both must move.
+      portalCompletenessScore: 50,
+      portalCompletionFields: ["gender", "card_bio", "headshot"],
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: { gender: "female" },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
+    method: "PATCH",
+    url: "/therapists/therapist-stale-1",
+  });
+
+  assert.equal(response.statusCode, 200);
+  // Persistence is fire-and-forget so let microtasks settle.
+  await new Promise((r) => setImmediate(r));
+  const t = state.documents.get("therapist-stale-1");
+  assert.equal(t.gender, "female", "the field itself must save");
+  assert.equal(
+    typeof t.portalCompletenessScore,
+    "number",
+    "score must be (re)computed after admin edits",
+  );
+  assert.ok(
+    !Array.isArray(t.portalCompletionFields) || !t.portalCompletionFields.includes("gender"),
+    "gender must drop out of the missing-fields list after admin sets it",
+  );
+  assert.ok(
+    t.portalCompletenessUpdatedAt,
+    "the freshness timestamp must move so the Completeness Tracker UI knows the snapshot is current",
+  );
+});
+
 test("PATCH /therapists/:id: pausing a Live profile flips listingActive off and writes audit entry", async function () {
   const { client, state } = createMemoryClient({
     "therapist-live-1": {
