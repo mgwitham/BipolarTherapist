@@ -7961,7 +7961,9 @@ img.bth-avatar {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 .mx-sl-card:hover {
   border-color: #b6d3da;

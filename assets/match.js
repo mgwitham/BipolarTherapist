@@ -2271,14 +2271,18 @@ function renderShortlistHero(entry, profile) {
     '<div class="mx-sl-hero-ident">' +
     '<div class="mx-sl-hero-name">' +
     escapeHtml(t.name || "") +
-    (t.credentials ? ', <span class="mx-sl-hero-cred">' + escapeHtml(t.credentials) + "</span>" : "") +
+    (t.credentials
+      ? ', <span class="mx-sl-hero-cred">' + escapeHtml(t.credentials) + "</span>"
+      : "") +
     "</div>" +
     '<div class="mx-sl-hero-sub">' +
     escapeHtml(location) +
     "</div>" +
     "</div>" +
     "</div>" +
-    (reasonsHtml ? '<div class="mx-sl-hero-why-title">Why we lead with this one</div>' + reasonsHtml : "") +
+    (reasonsHtml
+      ? '<div class="mx-sl-hero-why-title">Why we lead with this one</div>' + reasonsHtml
+      : "") +
     '<div class="mx-sl-hero-cta">' +
     outreach +
     "</div>" +
@@ -2313,7 +2317,9 @@ function renderShortlistSupporting(entry, rank, profile) {
     "</div>" +
     '<div class="mx-sl-card-name">' +
     escapeHtml(t.name || "") +
-    (t.credentials ? ', <span class="mx-sl-card-cred">' + escapeHtml(t.credentials) + "</span>" : "") +
+    (t.credentials
+      ? ', <span class="mx-sl-card-cred">' + escapeHtml(t.credentials) + "</span>"
+      : "") +
     "</div>" +
     '<div class="mx-sl-card-sub">' +
     escapeHtml(formatTherapistLocationLine(t)) +
@@ -2456,11 +2462,12 @@ function renderComparison(entries) {
   var hero = topEntries[0];
   var supporting = topEntries.slice(1);
   var rows = buildShortlistCompareRows(topEntries);
-  var diffRows = topEntries.length >= 2
-    ? rows.filter(function (row) {
-        return shortlistRowDiffers(row, topEntries);
-      })
-    : [];
+  var diffRows =
+    topEntries.length >= 2
+      ? rows.filter(function (row) {
+          return shortlistRowDiffers(row, topEntries);
+        })
+      : [];
 
   var heroHtml = renderShortlistHero(hero, profile);
   var supportingHtml = supporting.length
