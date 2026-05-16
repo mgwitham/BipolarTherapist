@@ -1,4 +1,5 @@
 import "./sentry-init.js";
+import "./site-analytics.js";
 import { fetchDirectoryPageContent } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
 import { rememberTherapistContactRoute, trackFunnelEvent } from "./funnel-analytics.js";

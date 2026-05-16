@@ -3,6 +3,7 @@
 // the design from PR #660. /match keeps working as today; this page is the
 // new destination from the homepage form and the /match refine submit.
 
+import "./site-analytics.js";
 import { fetchPublicTherapists } from "./cms.js";
 import { rankTherapistsForUser, buildUserMatchProfile } from "./matching-model.js";
 import {

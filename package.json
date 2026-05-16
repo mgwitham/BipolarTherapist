@@ -120,6 +120,7 @@
     "@sentry/browser": "^10.53.1",
     "@sentry/node": "^10.53.1",
     "@vercel/analytics": "^2.0.1",
+    "posthog-js": "^1.373.5",
     "stripe": "^22.1.1"
   }
 }

@@ -1,4 +1,5 @@
 import "./sentry-init.js";
+import "./site-analytics.js";
 import { fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
 import {
