@@ -6,6 +6,9 @@
 
 import "./sentry-init.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
+import { mountTurnstile } from "./turnstile-widget.js";
+
+let turnstileHandle = null;
 
 const INTAKE_ENDPOINT = "/api/review/applications/intake";
 const FREE_PATH_ENDPOINT = "/api/review/applications/free-path-selected";
@@ -350,6 +353,8 @@ async function submitIntake(form, status) {
     zip,
     treats_bipolar: true,
     intake_source: "signup_short_form",
+    turnstile_token:
+      turnstileHandle && turnstileHandle.getToken ? turnstileHandle.getToken() : null,
   };
   if (pendingPhoto && pendingPhoto.dataUrl) {
     payload.photo_upload_base64 = pendingPhoto.dataUrl;
@@ -397,6 +402,17 @@ async function submitIntake(form, status) {
       headers: { Accept: "application/json", "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
+    if (response.status === 403) {
+      clearProgressTimers();
+      hideProgress(progress);
+      gtagEvent("signup_verification_failed", {
+        duration_ms: Date.now() - verifyStart,
+        reason: "verification_failed",
+      });
+      if (turnstileHandle && turnstileHandle.reset) turnstileHandle.reset();
+      setStatus(status, "Verification didn't complete. Refresh the page and try again.", "error");
+      return;
+    }
     if (response.status === 409) {
       clearProgressTimers();
       hideProgress(progress);
@@ -687,6 +703,17 @@ function bindIntakeForm() {
   gtagEvent("signup_page_viewed");
   bindPhotoControl();
   const status = document.getElementById("newListingStatus");
+  const submit = form.querySelector('button[type="submit"]');
+  const turnstileContainer = document.createElement("div");
+  turnstileContainer.className = "turnstile-container";
+  if (submit && submit.parentNode) {
+    submit.parentNode.insertBefore(turnstileContainer, submit);
+  } else {
+    form.appendChild(turnstileContainer);
+  }
+  mountTurnstile(turnstileContainer).then((handle) => {
+    turnstileHandle = handle;
+  });
   let firstInputTracked = false;
   form.addEventListener("input", function () {
     if (!firstInputTracked) {

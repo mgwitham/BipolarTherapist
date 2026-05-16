@@ -74,6 +74,8 @@ All secrets live in Vercel project env vars (Settings → Environment Variables)
 | Admin login           | regenerate password locally                                                | `REVIEW_API_ADMIN_PASSWORD` |
 | Session secret        | `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` | `REVIEW_API_SESSION_SECRET` |
 | Cron auth             | regenerate locally                                                         | `CRON_SECRET`               |
+| Turnstile site key    | dash.cloudflare.com → Turnstile → site → rotate                            | `VITE_TURNSTILE_SITE_KEY`   |
+| Turnstile secret key  | dash.cloudflare.com → Turnstile → site → rotate                            | `TURNSTILE_SECRET_KEY`      |
 
 **Rotating session secret invalidates all active sessions.** Do it during low-traffic hours. Admin will need to log back in. Therapist portal users will need to re-authenticate.
 
@@ -86,6 +88,7 @@ All secrets live in Vercel project env vars (Settings → Environment Variables)
 | `EMAIL_KILL_SWITCH=true` | Halts all outbound Resend sends (welcome, recovery, digests)                                               | Vercel env → redeploy         |
 | `ALLOW_DEV_LOGIN`        | **Must be unset on prod.** Server refuses to boot if `NODE_ENV=production` and this is truthy (PR #797).   | Vercel env → unset            |
 | `EMAIL_DEV_REDIRECT`     | Dev-only: rewrite all recipients to one inbox. **Production refuses to honor this** in `review-email.mjs`. | Vercel env (preview/dev only) |
+| Turnstile kill           | Unset `TURNSTILE_SECRET_KEY` (and optionally `VITE_TURNSTILE_SITE_KEY`) to disable captcha verification.   | Vercel env → unset → redeploy |
 
 ---
 
@@ -102,6 +105,17 @@ Fix: confirm `STRIPE_WEBHOOK_SECRET` matches the secret on the active endpoint i
 1. Check Resend dashboard — search by recipient email. If shown as "delivered" → check spam. Memory note: DMARC is `p=quarantine` as of 2026-05-15, so misaligned mail will land in spam.
 2. If not in Resend → API errored. Grep Vercel logs for the request that triggered the send.
 3. If kill switch is set: unset `EMAIL_KILL_SWITCH` and redeploy.
+
+### Turnstile blocking real users
+
+Symptom: real therapist reports the signup / claim / recover / remove form returns "Verification didn't complete." Cloudflare logs the rejection at dash.cloudflare.com → Turnstile → site → Analytics.
+
+Triage:
+
+1. Confirm both env vars are set on prod (`VITE_TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`) and match the active Cloudflare site. Mismatch = 100% rejection.
+2. Check Cloudflare's site analytics for a sudden spike in challenges. May indicate increased bot pressure (working as intended) or a misconfigured threshold.
+3. Emergency kill: unset `TURNSTILE_SECRET_KEY` on Vercel and redeploy. Server fails-open with the secret unset; widget will keep mounting client-side but tokens are ignored. Fix the underlying issue, then re-enable.
+4. If a single user is affected and Cloudflare is healthy: ask them to refresh, try a different browser, or disable an aggressive privacy extension that may be blocking `challenges.cloudflare.com`.
 
 ### Signup form rejecting valid licensees
 

@@ -1,6 +1,9 @@
 import "./sentry-init.js";
 import { requestAccountRecovery } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
+import { mountTurnstile } from "./turnstile-widget.js";
+
+let turnstileHandle = null;
 
 function isLikelyEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
@@ -50,6 +53,17 @@ function initRecoverPage() {
   const submit = document.getElementById("recoverSubmit");
   const status = document.getElementById("recoverStatus");
 
+  const turnstileContainer = document.createElement("div");
+  turnstileContainer.className = "turnstile-container";
+  if (submit && submit.parentNode) {
+    submit.parentNode.insertBefore(turnstileContainer, submit);
+  } else {
+    form.appendChild(turnstileContainer);
+  }
+  mountTurnstile(turnstileContainer).then((handle) => {
+    turnstileHandle = handle;
+  });
+
   form.addEventListener("submit", async function (event) {
     event.preventDefault();
     clearStatus(status);
@@ -59,6 +73,8 @@ function initRecoverPage() {
       license_number: (form.elements.license_number?.value || "").trim(),
       requested_email: (form.elements.requested_email?.value || "").trim(),
       prior_email: (form.elements.prior_email?.value || "").trim(),
+      turnstile_token:
+        turnstileHandle && turnstileHandle.getToken ? turnstileHandle.getToken() : null,
     };
 
     if (!payload.full_name || !payload.license_number || !payload.requested_email) {
@@ -88,6 +104,9 @@ function initRecoverPage() {
       form.reset();
       if (submit) submit.textContent = "Request sent";
     } catch (error) {
+      const status403 =
+        error && (error.status === 403 || /verification/i.test(error.message || ""));
+      if (status403 && turnstileHandle && turnstileHandle.reset) turnstileHandle.reset();
       showStatus(
         status,
         "warn",

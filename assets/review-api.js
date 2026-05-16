@@ -549,10 +549,11 @@ export async function lookupTherapistBySlug(slug) {
   });
 }
 
-export async function sendClaimLinkToSlug(slug) {
+export async function sendClaimLinkToSlug(slug, options) {
+  const turnstileToken = options && options.turnstileToken;
   return request("/portal/claim-by-slug", {
     method: "POST",
-    body: JSON.stringify({ slug }),
+    body: JSON.stringify(turnstileToken ? { slug, turnstile_token: turnstileToken } : { slug }),
   });
 }
 

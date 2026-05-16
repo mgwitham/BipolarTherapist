@@ -9,6 +9,9 @@ import {
   sendClaimLinkToSlug,
 } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
+import { mountTurnstile } from "./turnstile-widget.js";
+
+let turnstileHandle = null;
 
 function gtagEvent(name, params) {
   if (typeof window.gtag === "function") {
@@ -319,6 +322,19 @@ function initQuickClaim() {
   let pickedResult = null;
   let lastSend = null;
   let searchInputTracked = false;
+
+  // Mount Turnstile inside the confirm panel, right above the send-link
+  // button — the panel is hidden in step 1 and revealed in step 2, but
+  // the widget renders fine inside a display:none ancestor and becomes
+  // visible/interactive when the panel is revealed.
+  if (confirmSend && confirmSend.parentNode) {
+    const turnstileContainer = document.createElement("div");
+    turnstileContainer.className = "turnstile-container";
+    confirmSend.parentNode.insertBefore(turnstileContainer, confirmSend);
+    mountTurnstile(turnstileContainer).then((handle) => {
+      turnstileHandle = handle;
+    });
+  }
 
   // Step management: transition from search (step 1) to confirm (step 2)
   function enterStep2(searchQuery) {
@@ -635,7 +651,10 @@ function initQuickClaim() {
 
     const sendStart = Date.now();
     try {
-      const result = await sendClaimLinkToSlug(pickedResult.slug);
+      const result = await sendClaimLinkToSlug(pickedResult.slug, {
+        turnstileToken:
+          turnstileHandle && turnstileHandle.getToken ? turnstileHandle.getToken() : null,
+      });
       const elapsed = Date.now() - sendStart;
       await new Promise(function (r) {
         window.setTimeout(r, Math.max(0, 1200 - elapsed));
@@ -661,7 +680,14 @@ function initQuickClaim() {
       confirmSend.removeAttribute("aria-disabled");
       confirmSend.textContent = originalLabel;
       gtagEvent("claim_send_error", { reason: reason || "unknown" });
-      if (reason === "no_email_on_file") {
+      if (error && error.status === 403) {
+        if (turnstileHandle && turnstileHandle.reset) turnstileHandle.reset();
+        setConfirmStatus(
+          "warn",
+          "Verification didn't complete.",
+          "Refresh the page and try again.",
+        );
+      } else if (reason === "no_email_on_file") {
         setConfirmStatus(
           "warn",
           "No email is on file for this profile. Use the form below to verify ownership another way.",
@@ -697,7 +723,10 @@ function initQuickClaim() {
     }
     try {
       if (lastSend.kind === "slug") {
-        await sendClaimLinkToSlug(lastSend.slug);
+        await sendClaimLinkToSlug(lastSend.slug, {
+          turnstileToken:
+            turnstileHandle && turnstileHandle.getToken ? turnstileHandle.getToken() : null,
+        });
       } else if (lastSend.kind === "quick") {
         await requestTherapistQuickClaim(lastSend.payload);
       }

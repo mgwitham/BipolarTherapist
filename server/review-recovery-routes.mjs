@@ -1,6 +1,8 @@
 import crypto from "node:crypto";
 import { log } from "./logger.mjs";
 import { sendPortalContactEmail } from "./review-email.mjs";
+import { getClientAddress } from "./review-http-auth.mjs";
+import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 import { validateBody } from "./validate.mjs";
 
 const RECOVERY_REQUEST_SCHEMA = {
@@ -49,6 +51,7 @@ function maskEmail(email) {
 
 export async function handleRecoveryRoutes(context) {
   const { client, config, deps, origin, request, response, routePath, url } = context;
+  const contextRequestId = context.requestId;
 
   const {
     canAttemptPortalAuth,
@@ -123,6 +126,28 @@ export async function handleRecoveryRoutes(context) {
     if (typeof recordPortalAuthAttempt === "function") recordPortalAuthAttempt(request);
 
     const body = await parseBody(request);
+
+    const turnstile = await verifyTurnstileToken({
+      token: body && body.turnstile_token,
+      remoteIp: getClientAddress(request),
+      config,
+    });
+    if (!turnstile.ok) {
+      log.warn("Turnstile rejected /portal/recovery-request", {
+        requestId: contextRequestId,
+        code: turnstile.code,
+        errorCodes: turnstile.errorCodes,
+      });
+      sendJson(
+        response,
+        403,
+        { error: "Verification failed. Please refresh the page and try again." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     const recoveryValidation = validateBody(RECOVERY_REQUEST_SCHEMA, body);
     if (!recoveryValidation.ok) {
       sendJson(
