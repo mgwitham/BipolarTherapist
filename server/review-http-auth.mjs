@@ -21,7 +21,7 @@ const portalAttemptStore = new Map();
 const PORTAL_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const PORTAL_MAX_ATTEMPTS = 10;
 
-function getClientAddress(request) {
+export function getClientAddress(request) {
   // x-forwarded-for may be a comma-separated chain; take the first entry.
   const xff = request.headers && request.headers["x-forwarded-for"];
   if (xff) {

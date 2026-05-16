@@ -123,6 +123,12 @@ export function getReviewApiConfig() {
     cronSecret: process.env.CRON_SECRET || rootEnv.CRON_SECRET || "",
     dcaAppId: process.env.DCA_APP_ID || rootEnv.DCA_APP_ID || "",
     dcaAppKey: process.env.DCA_APP_KEY || rootEnv.DCA_APP_KEY || "",
+    // Cloudflare Turnstile secret for anti-bot verification on signup,
+    // claim, recovery, and removal endpoints. When unset, server-side
+    // verification is bypassed; the matching client side (VITE_TURNSTILE_SITE_KEY)
+    // independently controls whether the widget mounts. Either half
+    // missing means the integration is effectively off.
+    turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || rootEnv.TURNSTILE_SECRET_KEY || "",
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || rootEnv.STRIPE_SECRET_KEY || "",
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || rootEnv.STRIPE_WEBHOOK_SECRET || "",
     stripeFeaturedPriceId:

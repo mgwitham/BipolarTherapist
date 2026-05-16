@@ -1,6 +1,8 @@
 import { log } from "./logger.mjs";
 import { validateBody } from "./validate.mjs";
 import { DEFAULT_LICENSE_STATE } from "./license-states.mjs";
+import { getClientAddress } from "./review-http-auth.mjs";
+import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 
 const INTAKE_SCHEMA = {
   name: { type: "string", required: true, maxLength: 200 },
@@ -70,6 +72,28 @@ export async function handleApplicationRoutes(context) {
     recordIntakeAttempt(request);
 
     const body = await parseBody(request);
+
+    const turnstile = await verifyTurnstileToken({
+      token: body && body.turnstile_token,
+      remoteIp: getClientAddress(request),
+      config,
+    });
+    if (!turnstile.ok) {
+      log.warn("Turnstile rejected /applications/intake", {
+        requestId,
+        code: turnstile.code,
+        errorCodes: turnstile.errorCodes,
+      });
+      sendJson(
+        response,
+        403,
+        { error: "Verification failed. Please refresh the page and try again." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     const intakeValidation = validateBody(INTAKE_SCHEMA, body);
     if (!intakeValidation.ok) {
       sendJson(response, 400, { error: intakeValidation.error }, origin, config);

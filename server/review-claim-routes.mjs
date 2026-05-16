@@ -1,5 +1,10 @@
 import { log } from "./logger.mjs";
-import { THERAPIST_SESSION_COOKIE, makeSessionHelpers } from "./review-http-auth.mjs";
+import {
+  THERAPIST_SESSION_COOKIE,
+  getClientAddress,
+  makeSessionHelpers,
+} from "./review-http-auth.mjs";
+import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 
 function normalizeNameForMatch(value) {
   return String(value || "")
@@ -401,6 +406,27 @@ export async function handleClaimRoutes(context) {
 
     if (!slug) {
       sendJson(response, 400, { error: "Slug is required." }, origin, config);
+      return true;
+    }
+
+    const turnstile = await verifyTurnstileToken({
+      token: body && body.turnstile_token,
+      remoteIp: getClientAddress(request),
+      config,
+    });
+    if (!turnstile.ok) {
+      log.warn("Turnstile rejected /portal/claim-by-slug", {
+        requestId,
+        code: turnstile.code,
+        errorCodes: turnstile.errorCodes,
+      });
+      sendJson(
+        response,
+        403,
+        { error: "Verification failed. Please refresh the page and try again." },
+        origin,
+        config,
+      );
       return true;
     }
 

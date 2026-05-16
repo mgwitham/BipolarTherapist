@@ -1,4 +1,6 @@
 import { log } from "./logger.mjs";
+import { getClientAddress } from "./review-http-auth.mjs";
+import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { appendFunnelEvent } from "./review-analytics-routes.mjs";
@@ -780,6 +782,28 @@ export async function handlePortalProfileRoutes(context) {
   // can show useful hints to legitimate users.
   if (request.method === "POST" && routePath === "/portal/listing-removal/request") {
     const body = await parseBody(request);
+
+    const turnstile = await verifyTurnstileToken({
+      token: body && body.turnstile_token,
+      remoteIp: getClientAddress(request),
+      config,
+    });
+    if (!turnstile.ok) {
+      log.warn("Turnstile rejected /portal/listing-removal/request", {
+        requestId,
+        code: turnstile.code,
+        errorCodes: turnstile.errorCodes,
+      });
+      sendJson(
+        response,
+        403,
+        { error: "Verification failed. Please refresh the page and try again." },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     const rawFullName = String(body.full_name || "").trim();
     const rawEmail = String(body.email || "").trim();
     const rawLicense = String(body.license_number || "").trim();

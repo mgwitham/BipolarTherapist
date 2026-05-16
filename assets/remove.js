@@ -2,8 +2,11 @@ import "./sentry-init.js";
 import { searchTherapistQuickClaim } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { escapeHtml } from "./escape-html.js";
+import { mountTurnstile } from "./turnstile-widget.js";
 
 const REMOVAL_ENDPOINT = "/api/review/portal/listing-removal/request";
+
+let turnstileHandle = null;
 
 function isLikelyEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
@@ -58,6 +61,8 @@ async function submitRemovalRequest(form, status) {
     full_name: form.elements.full_name.value.trim(),
     license_number: form.elements.license_number.value.trim(),
     email: form.elements.email.value.trim(),
+    turnstile_token:
+      turnstileHandle && turnstileHandle.getToken ? turnstileHandle.getToken() : null,
   };
 
   if (!payload.full_name || !payload.license_number || !payload.email) {
@@ -86,6 +91,11 @@ async function submitRemovalRequest(form, status) {
       body: JSON.stringify(payload),
     });
     // Always treat non-5xx as success to avoid leaking listing existence.
+    if (response.status === 403) {
+      if (turnstileHandle && turnstileHandle.reset) turnstileHandle.reset();
+      setStatus(status, "Verification didn't complete. Refresh the page and try again.", "error");
+      return;
+    }
     if (response.status >= 500) {
       setStatus(
         status,
@@ -229,6 +239,17 @@ function bindRemovalForm() {
   const form = document.getElementById("removalForm");
   if (!form) return;
   const status = document.getElementById("removalStatus");
+  const submit = form.querySelector('button[type="submit"]');
+  const container = document.createElement("div");
+  container.className = "turnstile-container";
+  if (submit && submit.parentNode) {
+    submit.parentNode.insertBefore(container, submit);
+  } else {
+    form.appendChild(container);
+  }
+  mountTurnstile(container).then((handle) => {
+    turnstileHandle = handle;
+  });
   form.addEventListener("submit", (event) => {
     event.preventDefault();
     submitRemovalRequest(form, status);
