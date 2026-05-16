@@ -1479,7 +1479,7 @@ function renderListingReadiness(readiness, therapist) {
     '</p><div class="portal-actions" style="margin-top:0.75rem">' +
     '<a class="btn-primary" href="#portalEditProfile" data-portal-editor-jump="1" data-analytics-action="open_profile_editor">Open profile editor</a>' +
     ((therapist && therapist.slug) || ""
-      ? '<a class="btn-secondary" href="therapist.html?slug=' +
+      ? '<a class="btn-secondary" href="/therapists/' +
         encodeURIComponent(therapist.slug) +
         '" target="_blank" rel="noopener">View public listing ↗</a>'
       : "") +
@@ -2231,7 +2231,7 @@ function renderPortal(therapist, options) {
   // freshly claimed listing lands around 50–60 per spec.
   var tdScore = computeProfileScore(therapist);
   var tdBand = getScoreBand(tdScore);
-  var tdViewPublicHref = "therapist.html?slug=" + encodeURIComponent(therapist.slug || "");
+  var tdViewPublicHref = "/therapists/" + encodeURIComponent(therapist.slug || "");
   var tdAccepting = therapist.accepting_new_patients === true;
   var tdAcceptingHidden = therapist.accepting_new_patients === false;
 

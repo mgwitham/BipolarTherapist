@@ -12,7 +12,7 @@ export function renderNoResultsStateSection(options) {
     '<p class="match-empty-copy">Try loosening one or two filters. Most patients find a fit after relaxing insurance or care format.</p>' +
     '<div class="match-empty-actions">' +
     '<button type="button" class="match-empty-primary" data-empty-action="open-refine">Adjust filters</button>' +
-    '<a href="/match.html?mode=form" class="match-empty-secondary">Reset answers and start over</a>' +
+    '<a href="/match?mode=form" class="match-empty-secondary">Reset answers and start over</a>' +
     "</div>" +
     "</div>";
 }

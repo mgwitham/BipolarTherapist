@@ -137,8 +137,8 @@ var therapistCachePromise = null;
 var hasOpenedOnce = false;
 
 function getTherapistProfileHref(slug) {
-  if (!slug) return "directory.html";
-  return "therapist.html?slug=" + encodeURIComponent(slug);
+  if (!slug) return "/directory";
+  return "/therapists/" + encodeURIComponent(slug);
 }
 
 function getInitials(name) {
@@ -534,7 +534,7 @@ function renderFooter(list) {
       .join(",");
     return (
       '<div class="saved-list-panel-footer">' +
-      '<a class="saved-list-panel-cta" href="/match.html?shortlist=' +
+      '<a class="saved-list-panel-cta" href="/match?shortlist=' +
       encodeURIComponent(slugs) +
       '" data-saved-list-compare>Compare these therapists →</a>' +
       emailFormHtml +

@@ -2389,7 +2389,7 @@ export function renderOpsInboxPanel(options) {
       options.escapeHtml(item.id || item._id || "") +
       '" data-therapist-next="mark_reviewed">Mark reviewed</button><button class="btn-secondary" data-therapist-ops="' +
       options.escapeHtml(item.id || item._id || "") +
-      '" data-therapist-next="snooze_7d">Defer 7 days</button><a class="btn-secondary" href="therapist.html?slug=' +
+      '" data-therapist-next="snooze_7d">Defer 7 days</button><a class="btn-secondary" href="/therapists/' +
       encodeURIComponent(item.slug) +
       '">Open profile</a><button class="btn-secondary btn-inline" data-edit-therapist-id="' +
       options.escapeHtml(item.id || item._id || "") +
@@ -2554,7 +2554,7 @@ export function renderOpsInboxPanel(options) {
             .join("") +
           "</div>"
         : "") +
-      '<div class="ops-card-actions"><a class="btn-primary" href="therapist.html?slug=' +
+      '<div class="ops-card-actions"><a class="btn-primary" href="/therapists/' +
       encodeURIComponent(item.slug || "") +
       '">Open profile</a>' +
       (therapist
@@ -2669,7 +2669,7 @@ export function renderOpsInboxPanel(options) {
       options.escapeHtml(item.slug || "") +
       '">Copy apply brief</button><button class="btn-secondary" data-conversion-mark-applied="' +
       options.escapeHtml(item.slug || "") +
-      '">Mark applied</button><a class="btn-secondary" href="therapist.html?slug=' +
+      '">Mark applied</button><a class="btn-secondary" href="/therapists/' +
       encodeURIComponent(item.slug || "") +
       '">Open profile</a><a class="btn-secondary" href="/admin#confirmationQueue">Open confirmation queue</a></div><div class="review-coach-status" data-conversion-watch-status="' +
       options.escapeHtml(item.slug || "") +

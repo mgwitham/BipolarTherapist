@@ -249,9 +249,9 @@ function renderRequestCard(req) {
       ? "<dt>Previously claimed by</dt><dd>" + escapeHtml(req.profileClaimedEmail) + "</dd>"
       : "") +
     (req.therapistSlug
-      ? '<dt>View profile</dt><dd><a href="/therapist.html?slug=' +
-        escapeHtml(req.therapistSlug) +
-        '" target="_blank" rel="noopener">/therapist?slug=' +
+      ? '<dt>View profile</dt><dd><a href="/therapists/' +
+        encodeURIComponent(req.therapistSlug) +
+        '" target="_blank" rel="noopener">/therapists/' +
         escapeHtml(req.therapistSlug) +
         " ↗</a></dd>"
       : "") +

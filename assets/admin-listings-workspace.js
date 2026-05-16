@@ -432,7 +432,7 @@ export function createListingsWorkspace(options) {
               : "") +
             "</div>" +
             '<div class="launch-card-controls">' +
-            '<a class="btn-secondary btn-inline" href="therapist.html?slug=' +
+            '<a class="btn-secondary btn-inline" href="/therapists/' +
             encodeURIComponent(item.slug) +
             '">Open profile</a>' +
             '<button type="button" class="btn-secondary btn-inline" data-edit-therapist-id="' +
