@@ -5575,3 +5575,18 @@ body.dir-vb .dir-vb-modal-apply:hover {
     scroll-behavior: auto !important;
   }
 }
+
+/* Cloudflare Turnstile container. JS injects a div with this class
+   right above each form's submit button. With appearance:interaction-only
+   the container is usually empty for low-risk users; when Cloudflare
+   flags risk the widget renders and these styles center it. */
+.turnstile-container {
+  margin: 12px 0;
+  display: flex;
+  justify-content: center;
+  min-height: 0;
+}
+
+.turnstile-container:empty {
+  margin: 0;
+}

@@ -106,6 +106,13 @@ export function mountTurnstile(container) {
         // Managed mode lets Cloudflare pick invisible vs interactive
         // based on the request's risk score. Most legitimate users
         // see a brief checkbox at most.
+        theme: "light",
+        // interaction-only: the widget renders empty space unless
+        // Cloudflare flags the user as risky. Low-risk users (most
+        // signups) silently get a valid token in the background and
+        // see no checkbox at all. Keeps the forms uncluttered while
+        // still gating bots.
+        appearance: "interaction-only",
         callback: function (token) {
           currentToken = token;
         },
