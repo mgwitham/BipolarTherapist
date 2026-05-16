@@ -78,6 +78,7 @@ All secrets live in Vercel project env vars (Settings → Environment Variables)
 | Turnstile site key    | dash.cloudflare.com → Turnstile → site → rotate                            | `VITE_TURNSTILE_SITE_KEY`   |
 | Turnstile secret key  | dash.cloudflare.com → Turnstile → site → rotate                            | `TURNSTILE_SECRET_KEY`      |
 | PostHog project key   | posthog.com → Project Settings → Rotate API key                            | `VITE_POSTHOG_KEY`          |
+| Upstash Redis token   | console.upstash.com → Database → REST API → Rotate                         | `UPSTASH_REDIS_REST_TOKEN`  |
 
 **Rotating session secret invalidates all active sessions.** Do it during low-traffic hours. Admin will need to log back in. Therapist portal users will need to re-authenticate.
 
@@ -150,5 +151,5 @@ Free plan: 10k docs. Memory snapshot 2026-04-16 was 709 docs — plenty of room.
 ## 8. Known follow-ups
 
 - `assets/*.js` still has legacy `.html` URL patterns in places (Stripe return paths in `pricing.js` / `portal.js` / `signup-new-listing.js`; in-app admin anchors in `admin-ops-inbox.js`; `history.replaceState` to `match.html` in `match.js:6136`). The `check:internal-links` script intentionally only scans root HTML files for now. Cleaning the JS side needs a focused PR with a Stripe Checkout round-trip test.
-- Rate limiting is in-memory per serverless function invocation. Cold starts reset counters. Captcha (Cloudflare Turnstile) on signup / portal-auth / removal is the cheaper next step before adding a shared rate-limit store.
+- Rate limiting now supports a shared Upstash Redis store. Falls back to in-process Map when `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are unset. To activate: Vercel Marketplace → Storage → Upstash → create a free-tier database; the integration auto-sets both env vars on the project. Redeploy. Fail-open on Redis errors so an Upstash outage never blocks real users.
 - Tighten enforcing CSP to remove `'unsafe-inline'` from `script-src`. Requires extracting inline scripts and likely a nonce strategy.

@@ -160,7 +160,7 @@ export async function handleAuthRoutes(context) {
   }
 
   if (request.method === "POST" && routePath === "/auth/login") {
-    if (!canAttemptLogin(request, config)) {
+    if (!(await canAttemptLogin(request, config))) {
       sendJson(
         response,
         429,
@@ -186,12 +186,12 @@ export async function handleAuthRoutes(context) {
       constantTimeEquals(password, config.adminPassword);
 
     if (!valid) {
-      recordFailedLogin(request, config);
+      await recordFailedLogin(request, config);
       sendJson(response, 401, { error: "Invalid admin credentials." }, origin, config);
       return true;
     }
 
-    clearFailedLogins(request);
+    await clearFailedLogins(request, config);
     const sessionToken = createSignedSession(config, {
       username: username || config.adminUsername,
     });
