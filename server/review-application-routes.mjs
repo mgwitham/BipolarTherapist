@@ -59,7 +59,7 @@ export async function handleApplicationRoutes(context) {
   // and the therapist doc itself (listed in the admin listings
   // workspace with listingActive=false + status=pending_profile).
   if (request.method === "POST" && routePath === "/applications/intake") {
-    if (!canAttemptIntake(request)) {
+    if (!(await canAttemptIntake(request, config))) {
       sendJson(
         response,
         429,
@@ -69,7 +69,7 @@ export async function handleApplicationRoutes(context) {
       );
       return true;
     }
-    recordIntakeAttempt(request);
+    await recordIntakeAttempt(request, config);
 
     const body = await parseBody(request);
 

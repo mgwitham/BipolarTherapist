@@ -754,11 +754,16 @@ export async function handleClaimRoutes(context) {
   // by /portal/claim-link so a determined attacker can't multiply the
   // budget by spreading across endpoints.
   if (request.method === "POST" && routePath === "/portal/sign-in") {
-    if (typeof canAttemptPortalAuth === "function" && !canAttemptPortalAuth(request)) {
+    if (
+      typeof canAttemptPortalAuth === "function" &&
+      !(await canAttemptPortalAuth(request, config))
+    ) {
       sendJson(response, 429, { error: "Too many requests. Try again later." }, origin, config);
       return true;
     }
-    if (typeof recordPortalAuthAttempt === "function") recordPortalAuthAttempt(request);
+    if (typeof recordPortalAuthAttempt === "function") {
+      await recordPortalAuthAttempt(request, config);
+    }
 
     const body = await parseBody(request);
     const requesterEmail = String(body.email || "")
@@ -837,11 +842,16 @@ export async function handleClaimRoutes(context) {
   }
 
   if (request.method === "POST" && routePath === "/portal/claim-link") {
-    if (typeof canAttemptPortalAuth === "function" && !canAttemptPortalAuth(request)) {
+    if (
+      typeof canAttemptPortalAuth === "function" &&
+      !(await canAttemptPortalAuth(request, config))
+    ) {
       sendJson(response, 429, { error: "Too many requests. Try again later." }, origin, config);
       return true;
     }
-    if (typeof recordPortalAuthAttempt === "function") recordPortalAuthAttempt(request);
+    if (typeof recordPortalAuthAttempt === "function") {
+      await recordPortalAuthAttempt(request, config);
+    }
 
     const body = await parseBody(request);
     const therapistSlug = String(body.therapist_slug || "").trim();

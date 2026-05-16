@@ -223,42 +223,42 @@ test("buildExpiredSessionCookie: sets Max-Age=0", () => {
 
 // ─── Admin login brute-force protection ───────────────────────────────────────
 
-test("canAttemptLogin: allows attempts below threshold", () => {
+test("canAttemptLogin: allows attempts below threshold", async () => {
   const config = { ...createTestApiConfig(), loginMaxAttempts: 3, loginWindowMs: 60_000 };
   const request = {
     headers: { "x-forwarded-for": "10.0.0.1" },
     socket: { remoteAddress: "10.0.0.1" },
   };
   // Fresh IP — should be allowed
-  assert.equal(canAttemptLogin(request, config), true);
+  assert.equal(await canAttemptLogin(request, config), true);
 });
 
-test("canAttemptLogin: blocks after max failed attempts", () => {
+test("canAttemptLogin: blocks after max failed attempts", async () => {
   const config = { ...createTestApiConfig(), loginMaxAttempts: 3, loginWindowMs: 60_000 };
   const request = {
     headers: { "x-forwarded-for": "10.0.0.2" },
     socket: { remoteAddress: "10.0.0.2" },
   };
-  recordFailedLogin(request, config);
-  recordFailedLogin(request, config);
-  recordFailedLogin(request, config);
-  assert.equal(canAttemptLogin(request, config), false);
+  await recordFailedLogin(request, config);
+  await recordFailedLogin(request, config);
+  await recordFailedLogin(request, config);
+  assert.equal(await canAttemptLogin(request, config), false);
 });
 
-test("clearFailedLogins: resets attempt count for IP", () => {
+test("clearFailedLogins: resets attempt count for IP", async () => {
   const config = { ...createTestApiConfig(), loginMaxAttempts: 2, loginWindowMs: 60_000 };
   const request = {
     headers: { "x-forwarded-for": "10.0.0.3" },
     socket: { remoteAddress: "10.0.0.3" },
   };
-  recordFailedLogin(request, config);
-  recordFailedLogin(request, config);
-  assert.equal(canAttemptLogin(request, config), false, "should be blocked");
-  clearFailedLogins(request);
-  assert.equal(canAttemptLogin(request, config), true, "should be unblocked after clear");
+  await recordFailedLogin(request, config);
+  await recordFailedLogin(request, config);
+  assert.equal(await canAttemptLogin(request, config), false, "should be blocked");
+  await clearFailedLogins(request, config);
+  assert.equal(await canAttemptLogin(request, config), true, "should be unblocked after clear");
 });
 
-test("canAttemptLogin: different IPs have independent counters", () => {
+test("canAttemptLogin: different IPs have independent counters", async () => {
   const config = { ...createTestApiConfig(), loginMaxAttempts: 2, loginWindowMs: 60_000 };
   const requestA = {
     headers: { "x-forwarded-for": "10.1.0.1" },
@@ -268,48 +268,48 @@ test("canAttemptLogin: different IPs have independent counters", () => {
     headers: { "x-forwarded-for": "10.1.0.2" },
     socket: { remoteAddress: "10.1.0.2" },
   };
-  recordFailedLogin(requestA, config);
-  recordFailedLogin(requestA, config);
-  assert.equal(canAttemptLogin(requestA, config), false, "A should be blocked");
-  assert.equal(canAttemptLogin(requestB, config), true, "B should be unaffected");
+  await recordFailedLogin(requestA, config);
+  await recordFailedLogin(requestA, config);
+  assert.equal(await canAttemptLogin(requestA, config), false, "A should be blocked");
+  assert.equal(await canAttemptLogin(requestB, config), true, "B should be unaffected");
 });
 
 // ─── Intake rate limiting ──────────────────────────────────────────────────────
 
-test("canAttemptIntake: allows fresh IP", () => {
+test("canAttemptIntake: allows fresh IP", async () => {
   const request = {
     headers: { "x-forwarded-for": "20.0.0.1" },
     socket: { remoteAddress: "20.0.0.1" },
   };
-  assert.equal(canAttemptIntake(request), true);
+  assert.equal(await canAttemptIntake(request, {}), true);
 });
 
-test("canAttemptIntake: blocks after 5 attempts", () => {
+test("canAttemptIntake: blocks after 5 attempts", async () => {
   const request = {
     headers: { "x-forwarded-for": "20.0.0.2" },
     socket: { remoteAddress: "20.0.0.2" },
   };
-  for (let i = 0; i < 5; i++) recordIntakeAttempt(request);
-  assert.equal(canAttemptIntake(request), false);
+  for (let i = 0; i < 5; i++) await recordIntakeAttempt(request, {});
+  assert.equal(await canAttemptIntake(request, {}), false);
 });
 
 // ─── Portal auth rate limiting ────────────────────────────────────────────────
 
-test("canAttemptPortalAuth: allows fresh IP", () => {
+test("canAttemptPortalAuth: allows fresh IP", async () => {
   const request = {
     headers: { "x-forwarded-for": "30.0.0.1" },
     socket: { remoteAddress: "30.0.0.1" },
   };
-  assert.equal(canAttemptPortalAuth(request), true);
+  assert.equal(await canAttemptPortalAuth(request, {}), true);
 });
 
-test("canAttemptPortalAuth: blocks after 10 attempts", () => {
+test("canAttemptPortalAuth: blocks after 10 attempts", async () => {
   const request = {
     headers: { "x-forwarded-for": "30.0.0.2" },
     socket: { remoteAddress: "30.0.0.2" },
   };
-  for (let i = 0; i < 10; i++) recordPortalAuthAttempt(request);
-  assert.equal(canAttemptPortalAuth(request), false);
+  for (let i = 0; i < 10; i++) await recordPortalAuthAttempt(request, {});
+  assert.equal(await canAttemptPortalAuth(request, {}), false);
 });
 
 // ─── Session rotation ─────────────────────────────────────────────────────────

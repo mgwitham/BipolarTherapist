@@ -1,25 +1,16 @@
 import crypto from "node:crypto";
 
-// In-memory store — resets on every Vercel cold start. Provides
-// brute-force protection within a warm process but not across cold starts
-// or concurrent instances. Acceptable for current traffic; upgrade to
-// Vercel KV / Upstash if the admin endpoint is ever targeted.
-const loginAttemptStore = new Map();
+import { getRateLimiter } from "./rate-limit-store.mjs";
 
-// Separate store for intake (signup) rate limiting. Keyed by real client IP
-// (x-forwarded-for takes precedence over socket address since Vercel proxies
-// all traffic). Window and cap are intentionally more lenient than admin login
-// — a legitimate therapist retrying after a DCA failure should not be locked out.
-const intakeAttemptStore = new Map();
+// Rate-limit windows + caps. When config has Upstash Redis credentials,
+// the store persists across Vercel cold starts and concurrent function
+// instances. When it doesn't, falls back to an in-process Map (matching
+// the original behavior). See server/rate-limit-store.mjs for details.
+
 const INTAKE_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const INTAKE_MAX_ATTEMPTS = 5;
-
-// IP-level rate limit for portal auth endpoints (sign-in, claim-link, OTP,
-// recovery requests). Keyed by IP. More lenient than admin login — a real
-// therapist might retry a few times, but 10 attempts per 15 min is plenty.
-const portalAttemptStore = new Map();
+const INTAKE_MAX_ATTEMPTS = 5; // lenient: legitimate therapist may retry after DCA failures
 const PORTAL_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
-const PORTAL_MAX_ATTEMPTS = 10;
+const PORTAL_MAX_ATTEMPTS = 10; // lenient: portal sign-in / claim-link / OTP / recovery
 
 export function getClientAddress(request) {
   // x-forwarded-for may be a comma-separated chain; take the first entry.
@@ -31,64 +22,24 @@ export function getClientAddress(request) {
   return (request.socket && request.socket.remoteAddress) || "unknown";
 }
 
-function purgeExpiredIntakeWindows() {
-  const now = Date.now();
-  for (const [key, value] of intakeAttemptStore.entries()) {
-    if (!value || now - value.windowStartedAt > INTAKE_WINDOW_MS) {
-      intakeAttemptStore.delete(key);
-    }
-  }
+export async function canAttemptIntake(request, config) {
+  const limiter = getRateLimiter("intake", INTAKE_WINDOW_MS, INTAKE_MAX_ATTEMPTS, config);
+  return limiter.canAttempt(getClientAddress(request));
 }
 
-export function canAttemptIntake(request) {
-  purgeExpiredIntakeWindows();
-  const ip = getClientAddress(request);
-  const record = intakeAttemptStore.get(ip);
-  return !record || record.count < INTAKE_MAX_ATTEMPTS;
+export async function recordIntakeAttempt(request, config) {
+  const limiter = getRateLimiter("intake", INTAKE_WINDOW_MS, INTAKE_MAX_ATTEMPTS, config);
+  await limiter.record(getClientAddress(request));
 }
 
-export function recordIntakeAttempt(request) {
-  purgeExpiredIntakeWindows();
-  const ip = getClientAddress(request);
-  const existing = intakeAttemptStore.get(ip);
-  if (!existing) {
-    intakeAttemptStore.set(ip, { count: 1, windowStartedAt: Date.now() });
-  } else {
-    intakeAttemptStore.set(ip, {
-      count: existing.count + 1,
-      windowStartedAt: existing.windowStartedAt,
-    });
-  }
+export async function canAttemptPortalAuth(request, config) {
+  const limiter = getRateLimiter("portal", PORTAL_WINDOW_MS, PORTAL_MAX_ATTEMPTS, config);
+  return limiter.canAttempt(getClientAddress(request));
 }
 
-function purgeExpiredPortalWindows() {
-  const now = Date.now();
-  for (const [key, value] of portalAttemptStore.entries()) {
-    if (!value || now - value.windowStartedAt > PORTAL_WINDOW_MS) {
-      portalAttemptStore.delete(key);
-    }
-  }
-}
-
-export function canAttemptPortalAuth(request) {
-  purgeExpiredPortalWindows();
-  const ip = getClientAddress(request);
-  const record = portalAttemptStore.get(ip);
-  return !record || record.count < PORTAL_MAX_ATTEMPTS;
-}
-
-export function recordPortalAuthAttempt(request) {
-  purgeExpiredPortalWindows();
-  const ip = getClientAddress(request);
-  const existing = portalAttemptStore.get(ip);
-  if (!existing) {
-    portalAttemptStore.set(ip, { count: 1, windowStartedAt: Date.now() });
-  } else {
-    portalAttemptStore.set(ip, {
-      count: existing.count + 1,
-      windowStartedAt: existing.windowStartedAt,
-    });
-  }
+export async function recordPortalAuthAttempt(request, config) {
+  const limiter = getRateLimiter("portal", PORTAL_WINDOW_MS, PORTAL_MAX_ATTEMPTS, config);
+  await limiter.record(getClientAddress(request));
 }
 
 function encodeBase64Url(value) {
@@ -118,15 +69,6 @@ function getAllowedOrigin(origin, config) {
   }
 
   return config.allowedOrigins.includes(origin) ? origin : "";
-}
-
-function purgeExpiredLoginWindows(config) {
-  const now = Date.now();
-  Array.from(loginAttemptStore.entries()).forEach(function ([key, value]) {
-    if (!value || now - value.windowStartedAt > config.loginWindowMs) {
-      loginAttemptStore.delete(key);
-    }
-  });
 }
 
 export function getSecurityWarnings(config) {
@@ -415,39 +357,20 @@ export function parseRawBody(request, maxRequestBodyBytes) {
   });
 }
 
-export function canAttemptLogin(request, config) {
-  purgeExpiredLoginWindows(config);
-  const clientAddress = getClientAddress(request);
-  const attempts = loginAttemptStore.get(clientAddress);
-  if (!attempts) {
-    return true;
-  }
-
-  return attempts.count < config.loginMaxAttempts;
+function getLoginLimiter(config) {
+  return getRateLimiter("login", config.loginWindowMs, config.loginMaxAttempts, config);
 }
 
-export function recordFailedLogin(request, config) {
-  purgeExpiredLoginWindows(config);
-  const clientAddress = getClientAddress(request);
-  const existing = loginAttemptStore.get(clientAddress);
-
-  if (!existing) {
-    loginAttemptStore.set(clientAddress, {
-      count: 1,
-      windowStartedAt: Date.now(),
-    });
-    return;
-  }
-
-  loginAttemptStore.set(clientAddress, {
-    count: existing.count + 1,
-    windowStartedAt: existing.windowStartedAt,
-  });
+export async function canAttemptLogin(request, config) {
+  return getLoginLimiter(config).canAttempt(getClientAddress(request));
 }
 
-export function clearFailedLogins(request) {
-  const clientAddress = getClientAddress(request);
-  loginAttemptStore.delete(clientAddress);
+export async function recordFailedLogin(request, config) {
+  await getLoginLimiter(config).record(getClientAddress(request));
+}
+
+export async function clearFailedLogins(request, config) {
+  await getLoginLimiter(config).clear(getClientAddress(request));
 }
 
 // Rotate the therapist session cookie on every portal request when the token

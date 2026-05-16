@@ -129,6 +129,14 @@ export function getReviewApiConfig() {
     // independently controls whether the widget mounts. Either half
     // missing means the integration is effectively off.
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || rootEnv.TURNSTILE_SECRET_KEY || "",
+    // Upstash Redis credentials for rate-limit persistence across
+    // Vercel cold starts. When unset, rate limiters fall back to an
+    // in-process Map (resets per cold start). Activate by provisioning
+    // Upstash (Vercel Marketplace integration or upstash.com direct)
+    // and setting both env vars in Vercel. No code change needed.
+    upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL || rootEnv.UPSTASH_REDIS_REST_URL || "",
+    upstashRedisRestToken:
+      process.env.UPSTASH_REDIS_REST_TOKEN || rootEnv.UPSTASH_REDIS_REST_TOKEN || "",
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || rootEnv.STRIPE_SECRET_KEY || "",
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || rootEnv.STRIPE_WEBHOOK_SECRET || "",
     stripeFeaturedPriceId:

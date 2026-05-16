@@ -119,11 +119,16 @@ export async function handleRecoveryRoutes(context) {
   // "pending" state and fires a notification to admin. Rate-limited
   // to 3 pending per license to prevent flooding.
   if (request.method === "POST" && routePath === "/portal/recovery-request") {
-    if (typeof canAttemptPortalAuth === "function" && !canAttemptPortalAuth(request)) {
+    if (
+      typeof canAttemptPortalAuth === "function" &&
+      !(await canAttemptPortalAuth(request, config))
+    ) {
       sendJson(response, 429, { error: "Too many requests. Try again later." }, origin, config);
       return true;
     }
-    if (typeof recordPortalAuthAttempt === "function") recordPortalAuthAttempt(request);
+    if (typeof recordPortalAuthAttempt === "function") {
+      await recordPortalAuthAttempt(request, config);
+    }
 
     const body = await parseBody(request);
 
