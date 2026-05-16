@@ -1,16 +1,6 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q22R5G7VB5"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
-      gtag("config", "G-Q22R5G7VB5");
-    </script>
     <meta charset="UTF-8" />
     <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -39,25 +29,7 @@
          side-by-side view rather than phantom matches.
          Inline script runs synchronously before match.js loads so we
          never paint the misleading default state. -->
-    <script>
-      (function () {
-        try {
-          var params = new URLSearchParams(window.location.search);
-          if (params.get("qa") === "1") return;
-          if (params.get("mode") === "form") return;
-          if ((params.get("shortlist") || "").trim()) return;
-          var hasCare = (params.get("care_intent") || "").trim();
-          var hasZip = (params.get("location_query") || params.get("zip") || "").trim();
-          if (!hasCare || !hasZip) {
-            window.location.replace("/");
-          }
-        } catch (_e) {
-          // Swallow, never block render on an unexpected URL parsing
-          // failure. Worst case we render the page and the JS path
-          // takes over.
-        }
-      })();
-    </script>
+    <script src="/match-redirect-guard.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -879,12 +851,6 @@
     <script type="module" src="assets/match.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
     <script type="module" src="assets/nav.js"></script>
-    <script>
-      if ("serviceWorker" in navigator) {
-        window.addEventListener("load", function () {
-          navigator.serviceWorker.register("/sw.js");
-        });
-      }
-    </script>
+    <script type="module" src="assets/register-sw.js"></script>
   </body>
 </html>
