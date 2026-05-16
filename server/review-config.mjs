@@ -177,5 +177,16 @@ export function getReviewApiConfig() {
     );
   }
 
+  // Belt-and-suspenders for the dev-login bypass. The route itself already
+  // refuses to fire unless NODE_ENV === "development" (see review-auth-routes
+  // and review-application-routes). This refuses to even boot if a prod
+  // deploy ever gets the flag set, so the misconfig is loud rather than
+  // a silent-but-armed second pathway.
+  if (process.env.NODE_ENV === "production" && config.allowDevLogin === true) {
+    throw new Error(
+      "ALLOW_DEV_LOGIN must not be set in production. Unset it on the prod environment.",
+    );
+  }
+
   return config;
 }
