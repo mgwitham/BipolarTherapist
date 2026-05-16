@@ -162,9 +162,7 @@ async function main() {
         id: entry.id,
         error: error && error.message ? error.message : String(error),
       });
-      console.error(
-        "  FAIL " + entry.id + ": " + (error && error.message ? error.message : error),
-      );
+      console.error("  FAIL " + entry.id + ": " + (error && error.message ? error.message : error));
     }
   }
 
