@@ -12,7 +12,7 @@ import { getInPersonProximityBonus, getZipDistanceMiles } from "./zip-lookup.js"
 import { insuranceMatches } from "../shared/therapist-picker-options.mjs";
 import { toFilterArray } from "./directory-filters.js";
 
-// Multi-select filter helper — "any selected value of the filter set
+// Multi-select filter helper, "any selected value of the filter set
 // is present in the therapist's list". Used by specialty / modality /
 // population matchers after the step-4 state-shape migration.
 function arrayAnyMatch(filterValue, therapistValues) {
@@ -151,7 +151,7 @@ export function matchesDirectoryFilters(filterState, therapist) {
   if (!insuranceFilterMatches(filterState.insurance, therapist.insurance_accepted)) {
     return false;
   }
-  // Session fee range — exclude therapists whose published range is
+  // Session fee range, exclude therapists whose published range is
   // entirely outside the requested window. Range-overlap test: therapist
   // is in-range when therapist.max >= filter.min AND therapist.min <= filter.max.
   // Therapists with no fee data published bypass the filter (we don't
@@ -770,7 +770,7 @@ export function getMatchScore(filterState, therapist) {
 // Default-sort completeness signal. Rewards profiles that have both a
 // headshot and a stated bipolar-years-experience over profiles that
 // have one or neither. Three tiers (2 / 1 / 0) so the stable-random
-// shuffle still operates within each tier — we don't want the top
+// shuffle still operates within each tier, we don't want the top
 // row to be the same person every reload.
 function getCompletenessTier(therapist) {
   var hasPhoto = Boolean(therapist && therapist.photo_url);

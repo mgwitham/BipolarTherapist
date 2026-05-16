@@ -69,8 +69,10 @@ test("buildTherapistOpsEvent yields a legal Sanity document id for long ids", fu
 });
 
 test("isIntakeStub matches the short-form signup placeholders", function () {
+  const EM_DASH = String.fromCharCode(0x2014);
   assert.equal(isIntakeStub("Pending"), true);
-  assert.equal(isIntakeStub("Pending — completed after approval."), true);
+  assert.equal(isIntakeStub("Pending, completed after approval."), true);
+  assert.equal(isIntakeStub(`Pending ${EM_DASH} completed after approval.`), true);
   assert.equal(isIntakeStub("Pending - completed after approval."), true);
   assert.equal(isIntakeStub("  Pending  "), true);
 });
@@ -84,7 +86,9 @@ test("isIntakeStub returns false for real content and non-strings", function () 
 });
 
 test("scrubIntakeStub strips stubs but leaves real content intact", function () {
-  assert.equal(scrubIntakeStub("Pending — completed after approval."), "");
+  const EM_DASH = String.fromCharCode(0x2014);
+  assert.equal(scrubIntakeStub(`Pending ${EM_DASH} completed after approval.`), "");
+  assert.equal(scrubIntakeStub("Pending, completed after approval."), "");
   assert.equal(scrubIntakeStub("Pending"), "");
   assert.equal(scrubIntakeStub("My real bio."), "My real bio.");
   assert.equal(scrubIntakeStub(""), "");

@@ -95,7 +95,7 @@ var starterResultsMode = false;
 
 // Match-session conversion tracker. The single number that matters for
 // the patient funnel is "of all sessions where matches were shown, what
-// fraction ended with at least one contact CTA click?" — this state
+// fraction ended with at least one contact CTA click?", this state
 // counts the in-session interactions, then emits one
 // match_session_outcome event on pagehide. funnel-analytics already
 // flushes its queue on pagehide via sendBeacon, so the event delivers
@@ -852,7 +852,7 @@ function maybeLiveRecompute(event) {
   var careIntent = profile && profile.care_intent ? profile.care_intent : "";
   var zip = normalizeLocationQuery(profile && profile.location_query);
   if (!careIntent || !zip) {
-    // Nothing to recompute yet — surface a gentle prompt instead.
+    // Nothing to recompute yet, surface a gentle prompt instead.
     setLiveStatus("Pick care type and a ZIP code to see live matches.", false);
     return;
   }
@@ -869,7 +869,7 @@ function maybeLiveRecompute(event) {
   liveRecomputeTimer = window.setTimeout(async function () {
     liveRecomputeTimer = null;
     // The drawer now lives at its original DOM position (inside
-    // .match-layout), NOT inside #matchResults — so wiping
+    // .match-layout), NOT inside #matchResults, so wiping
     // #matchResults.innerHTML during executeMatch no longer detaches
     // the drawer subtree. Live recompute is safe again: cards under
     // the dimmed backdrop animate as the user tweaks filters.
@@ -909,12 +909,12 @@ function maybeLiveRecompute(event) {
 }
 
 // Update the drawer's commit button to reflect the live result count.
-// Button label reflects action, not a count — counts implied false precision.
+// Button label reflects action, not a count, counts implied false precision.
 function setRefineSubmitLabel(count) {
   var btn = document.querySelector(".refine-bottom-submit");
   if (!btn) return;
   if (count === 0) {
-    btn.textContent = "No matches — try fewer filters";
+    btn.textContent = "No matches, try fewer filters";
     btn.disabled = false;
   } else {
     btn.textContent = "See your matches";
@@ -1155,7 +1155,7 @@ function bindRefineButtons() {
     }
   });
 
-  // refineSearchButton: external trigger — always opens the drawer
+  // refineSearchButton: external trigger, always opens the drawer
   var externalBtn = document.getElementById("refineSearchButton");
   if (externalBtn && externalBtn.dataset.boundRefine !== "true") {
     externalBtn.dataset.boundRefine = "true";
@@ -1471,11 +1471,11 @@ function executeMatch(profile, options) {
     return false;
   }
 
-  // Adaptive ranking is disabled — every submit uses the deterministic
+  // Adaptive ranking is disabled, every submit uses the deterministic
   // base + zip-aware pipeline.
   activeSecondPassMode = "balanced";
   var entries = rankEntriesForProfile(profile);
-  // Flush any prior session's outcome before we overwrite stats — this
+  // Flush any prior session's outcome before we overwrite stats, this
   // covers the in-tab refine flow where match_submitted fires multiple
   // times without a navigation.
   if (matchSessionStats && !matchSessionStats.outcome_emitted) {
@@ -1727,7 +1727,7 @@ function buildEntryOutreachDraft(entry, profile) {
   return [introLine, context, whyNow, ask, close].filter(Boolean).join("\n\n");
 }
 
-// Engine reasons that every result on the page already passes — they
+// Engine reasons that every result on the page already passes, they
 // describe being on the list at all, not why THIS one over the others.
 // Suppressed in the supporting-card explanation so we don't dilute
 // trust with commodity bullets like "Available by telehealth in
@@ -1749,7 +1749,7 @@ function getMatchCardExplanation(entry) {
     : [];
   // Drop commodity reasons before falling back. If none remain, return
   // empty so the card hides the "Why this may be a good fit" block
-  // entirely — better than showing a non-differentiating bullet.
+  // entirely, better than showing a non-differentiating bullet.
   var differentiating = reasons.filter(function (r) {
     return !COMMODITY_REASON_RE.test(String(r).replace(/\.$/, ""));
   });
@@ -1763,8 +1763,8 @@ var BIPOLAR_RELEVANT_MODALITIES = {
   IPSRT: "Trained in IPSRT, a bipolar-specific therapy",
   FFT: "Family-focused therapy (proven for bipolar)",
   "CBT-BD": "CBT adapted for bipolar disorder",
-  "Family therapy": "Family therapy — supports bipolar households",
-  Psychoeducation: "Psychoeducation — core to bipolar self-management",
+  "Family therapy": "Family therapy, supports bipolar households",
+  Psychoeducation: "Psychoeducation, core to bipolar self-management",
 };
 
 function reasonsInsuranceMatches(requestedRaw, acceptedList) {
@@ -1788,21 +1788,21 @@ function reasonsInsuranceMatches(requestedRaw, acceptedList) {
 // Build the hero card's "Why this may be a good fit" list. Prioritize
 // concrete, differentiating signals over the engine's top-weighted
 // reasons (which are usually hard-constraint matches every result
-// already passes — "Sees patients in person nearby" / "Matches the
+// already passes, "Sees patients in person nearby" / "Matches the
 // requested care type"). Falls back to filtered engine reasons if the
 // therapist record is too sparse to synthesize anything specific.
 function getHeroFitReasons(entry, therapist, profileArg) {
   var profile = profileArg || {};
   var out = [];
 
-  // 1. Concrete bipolar experience (years, when ≥ 3) — most specific
+  // 1. Concrete bipolar experience (years, when ≥ 3), most specific
   //    signal a patient cares about. "8 years" beats "substantial".
   var years = Number(therapist.bipolar_years_experience || 0);
   if (years >= 3) {
     out.push(years + " " + (years === 1 ? "year" : "years") + " specializing in bipolar care");
   }
 
-  // 2. Specific bipolar specialty overlap — prefer what the user asked
+  // 2. Specific bipolar specialty overlap, prefer what the user asked
   //    for; otherwise surface bipolar-subtype specialties the therapist
   //    actually treats.
   var specialties = Array.isArray(therapist.specialties)
@@ -1839,7 +1839,7 @@ function getHeroFitReasons(entry, therapist, profileArg) {
     }
   }
 
-  // 4. Insurance match named explicitly — high practical signal
+  // 4. Insurance match named explicitly, high practical signal
   if (
     profile.insurance &&
     reasonsInsuranceMatches(profile.insurance, therapist.insurance_accepted)
@@ -1847,7 +1847,7 @@ function getHeroFitReasons(entry, therapist, profileArg) {
     out.push("In-network with " + profile.insurance);
   }
 
-  // 5. Concrete timing — only when it's actually fast. Vague timing
+  // 5. Concrete timing, only when it's actually fast. Vague timing
   //    isn't worth a bullet.
   var wait = therapist.estimated_wait_time ? String(therapist.estimated_wait_time) : "";
   if (/within\s*1\s*week|same\s*week|days|immediate/i.test(wait)) {
@@ -1859,7 +1859,7 @@ function getHeroFitReasons(entry, therapist, profileArg) {
     out.push("Provides medication management");
   }
 
-  // 7. Editorial verification — trust signal
+  // 7. Editorial verification, trust signal
   if (therapist.verification_status === "editorially_verified" && out.length < 3) {
     out.push("Editor-verified profile");
   }
@@ -2234,7 +2234,7 @@ function shortlistRowDiffers(row, topEntries) {
 
 // "Best fit" hero card: photo, name, location, 3 differentiating
 // reasons, primary CTA expanded by default. The hero earns its size
-// because the matching engine already ranked this one #1 — surface
+// because the matching engine already ranked this one #1, surface
 // that signal instead of pretending all are equal.
 function renderShortlistHero(entry, profile) {
   var t = (entry && entry.therapist) || {};
@@ -2337,7 +2337,7 @@ function renderShortlistSupporting(entry, rank, profile) {
   );
 }
 
-// "What's different" strip — renders only rows where the value
+// "What's different" strip, renders only rows where the value
 // differs across the shortlist. Rows where everyone matches are
 // suppressed entirely. This is the synthesis the patient would have
 // to do mentally otherwise.
@@ -3934,7 +3934,7 @@ function getTherapistContactEmailLink(entry) {
   else if (medMgmt === "No") details.push("without medication management");
   var body =
     bodyParts.join("") +
-    " — I'm looking for " +
+    ", I'm looking for " +
     details.join(", ") +
     ". Are you currently accepting new clients?";
 
@@ -4729,7 +4729,7 @@ function buildActiveFilterChipsHtml(profile) {
   if (!profile) return "";
   var chips = [];
 
-  // Only chip for an explicit format choice — "Either" is the model's
+  // Only chip for an explicit format choice, "Either" is the model's
   // internal default for "Any" and should not surface as an active filter.
   if (
     profile.care_format &&
@@ -4831,7 +4831,7 @@ function renderPrimaryMatchCards(entries, profile) {
 
   var isAsap = profile && String(profile.urgency || "").toUpperCase() === "ASAP";
 
-  // Hide entries with no working contact method — never render a card whose
+  // Hide entries with no working contact method, never render a card whose
   // only action would 404 or dead-end. A card must have at least one of:
   // booking_url, website, phone, or email.
   // When urgency is ASAP, also exclude therapists who are not accepting new patients.
@@ -4851,8 +4851,8 @@ function renderPrimaryMatchCards(entries, profile) {
   }
 
   var leadEntry = allEntries[0];
-  var runnerUps = allEntries.slice(1, 5); // ranks 2-5 — 2×2 grid, always visible
-  var moreEntries = allEntries.slice(5); // ranks 6+ — hidden behind Show more
+  var runnerUps = allEntries.slice(1, 5); // ranks 2-5, 2×2 grid, always visible
+  var moreEntries = allEntries.slice(5); // ranks 6+, hidden behind Show more
 
   // Only show the "Best match" badge when rank 1 materially beats rank 2.
   var leadScore = leadEntry && typeof leadEntry.score === "number" ? leadEntry.score : null;
@@ -4968,7 +4968,7 @@ function renderPrimaryMatchCards(entries, profile) {
     });
   });
 
-  // Active filter chip dismissal — clears the field from the form and re-runs match
+  // Active filter chip dismissal, clears the field from the form and re-runs match
   root.querySelectorAll("[data-clear-filter]").forEach(function (chip) {
     chip.addEventListener("click", function () {
       var field = chip.getAttribute("data-clear-filter");
@@ -5348,7 +5348,7 @@ function showMatchEmailNudge(root) {
         throw new Error((payload && payload.error) || "Could not send the email.");
       }
       nudge.innerHTML =
-        '<p class="mx-email-nudge-status mx-email-nudge-status--success" style="margin:0;padding:0.2rem 0;">Sent — check your inbox.</p>';
+        '<p class="mx-email-nudge-status mx-email-nudge-status--success" style="margin:0;padding:0.2rem 0;">Sent, check your inbox.</p>';
       try {
         window.sessionStorage.setItem("mxEmailNudge", "1");
       } catch (_) {}
@@ -5390,7 +5390,7 @@ function renderDetailsBody(entry) {
       "</span></div>"
     : "";
 
-  // Reaching out — only render labels when the corresponding clinician
+  // Reaching out, only render labels when the corresponding clinician
   // field is populated.
   var contactGuidance = String(therapist.contact_guidance || "").trim();
   var firstStep = String(therapist.first_step_expectation || "").trim();
@@ -5459,7 +5459,7 @@ function renderDetailsBody(entry) {
     (availabilityHtml ? '<span class="bth-modal-avail">' + availabilityHtml + "</span>" : "") +
     "</div>" +
     // Only surface the cascade in the modal when it's the clinician's
-    // own words — populations/modalities/etc. already get their own
+    // own words, populations/modalities/etc. already get their own
     // labeled rows below, so showing the cascade then would duplicate.
     (therapist.claim_status === "claimed" &&
     therapist.care_approach &&
@@ -5837,7 +5837,7 @@ function openContactDialog(slug) {
   trackFunnelEvent("match_contact_modal_opened", {
     slug: entry.therapist.slug || "",
   });
-  // Modal-open is the canonical contact-intent signal on /match.html —
+  // Modal-open is the canonical contact-intent signal on /match.html,
   // every contact path on a card routes through this dialog. Record it
   // as a contact click so match_session_outcome correctly classifies
   // the session as "contacted" rather than "bounced." Without this,
@@ -5985,7 +5985,7 @@ async function handleSubmit(event) {
   event.preventDefault();
   // If the submit was fired from inside the open drawer (the bottom
   // commit button), close the drawer before running so the user actually
-  // sees the new results — otherwise the drawer occludes them.
+  // sees the new results, otherwise the drawer occludes them.
   var drawerWasOpen = document.body.classList.contains("match-refine-drawer-open");
   if (drawerWasOpen) {
     setRefineDrawerOpen(false);
@@ -6000,7 +6000,7 @@ async function handleSubmit(event) {
 
   // Submission now hands off to /results, which reads the same URL
   // params, scores, and renders the new card design. /match keeps
-  // working as today on direct visits — only the post-submit render
+  // working as today on direct visits, only the post-submit render
   // path moved.
   var params = new URLSearchParams();
   var scalarKeys = [
@@ -6286,7 +6286,7 @@ function refreshIntakeUiFromForm() {
   if (noFitSubmit) {
     noFitSubmit.addEventListener("click", function () {
       recordShortlistFeedback("negative");
-      if (noFitStatus) noFitStatus.textContent = "Thanks — this shapes future matches.";
+      if (noFitStatus) noFitStatus.textContent = "Thanks, this shapes future matches.";
       window.setTimeout(closeNoFitDialog, 1200);
     });
   }

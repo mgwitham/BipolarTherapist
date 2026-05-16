@@ -243,7 +243,7 @@ export async function handleResendWebhookRoutes(context) {
   const now = new Date().toISOString();
   const noteSuffix =
     type === "email.bounced"
-      ? `[${now.slice(0, 10)}] Resend bounce: ${event?.data?.bounce?.type || "unknown"} — ${
+      ? `[${now.slice(0, 10)}] Resend bounce: ${event?.data?.bounce?.type || "unknown"}: ${
           event?.data?.bounce?.message || ""
         }`.trim()
       : `[${now.slice(0, 10)}] Resend complaint (recipient marked as spam).`;

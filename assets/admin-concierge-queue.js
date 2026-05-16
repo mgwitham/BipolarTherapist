@@ -288,9 +288,9 @@ export function renderConciergeQueuePanel(options) {
               1 +
               ". " +
               (item.name || "Unknown therapist") +
-              (item.priority ? " — " + item.priority : "") +
-              (item.note ? " — Note: " + item.note : "") +
-              (item.outreach ? " — Best route: " + item.outreach : "")
+              (item.priority ? ", " + item.priority : "") +
+              (item.note ? ", Note: " + item.note : "") +
+              (item.outreach ? ", Best route: " + item.outreach : "")
             );
           })
           .join("\n"),

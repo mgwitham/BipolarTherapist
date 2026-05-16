@@ -1,4 +1,4 @@
-// Outreach email template defaults — single source of truth for both
+// Outreach email template defaults, single source of truth for both
 // the client-side composer (assets/outreach.js) and the server-side
 // send-email handler (api/admin/send-email.mjs).
 //

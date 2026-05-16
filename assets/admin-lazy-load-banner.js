@@ -4,7 +4,7 @@
 // page was open; the banner offers a one-click reload so the user doesn't
 // sit looking at a blank panel wondering why nothing happened.
 //
-// Single banner instance per page — subsequent failures no-op (they're
+// Single banner instance per page, subsequent failures no-op (they're
 // almost certainly caused by the same stale deploy, so one banner is
 // enough signal).
 

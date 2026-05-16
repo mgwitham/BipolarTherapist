@@ -10,8 +10,8 @@ import { verifyAdminSession } from "../_adminAuth.mjs";
 const VALID_TEMPLATES = new Set(["email_1", "follow_up"]);
 
 const TEMPLATE_LABELS = {
-  email_1: { subject: "[FORM — Initial outreach]", nextStatus: "email_1_sent" },
-  follow_up: { subject: "[FORM — Follow-up]", nextStatus: "followed_up" },
+  email_1: { subject: "[FORM: Initial outreach]", nextStatus: "email_1_sent" },
+  follow_up: { subject: "[FORM: Follow-up]", nextStatus: "followed_up" },
 };
 
 function getSanityClient() {

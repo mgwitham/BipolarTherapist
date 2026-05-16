@@ -675,7 +675,7 @@ export async function handleClaimRoutes(context) {
         {
           ok: true,
           message:
-            "We couldn't auto-verify your email, so we sent this to manual review. Check your inbox for a confirmation — we'll email a decision within one business day.",
+            "We couldn't auto-verify your email, so we sent this to manual review. Check your inbox for a confirmation. We'll email a decision within one business day.",
           therapist_slug: therapist.slug.current,
           verification_method: "manual_review",
           recovery_request_id: created._id,
@@ -1051,9 +1051,9 @@ export async function handleClaimRoutes(context) {
           await sendFounderAlert(config, {
             subject: `[CLAIM] ${therapist.name || "Therapist"} claimed their profile`,
             lines: [
-              `Name: ${therapist.name || "—"}`,
-              `Email: ${payload.email || therapist.email || "—"}`,
-              `Slug: ${therapist.slug?.current || therapist.slug || "—"}`,
+              `Name: ${therapist.name || "(none)"}`,
+              `Email: ${payload.email || therapist.email || "(none)"}`,
+              `Slug: ${therapist.slug?.current || therapist.slug || "(none)"}`,
               `Claimed at: ${now}`,
             ],
           });

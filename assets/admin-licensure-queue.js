@@ -307,7 +307,7 @@ function buildFilterButton(options, value, label, count, activeFilter) {
 // Subscribes to data.licensureRefreshQueue (its own data),
 // data.licensureActivityFeed (shared with Licensure Activity), and its
 // own filter slice. Activity's filter changes don't fire this
-// controller — the store only notifies on overlapping declared paths.
+// controller, the store only notifies on overlapping declared paths.
 const controller = {
   id: "licensureQueue",
   regionId: "licensureQueue",

@@ -587,7 +587,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   function removeActiveFilter(filterKey) {
     if (!filterKey) return;
-    // Compound chip for the fee range — clears both bounds at once.
+    // Compound chip for the fee range, clears both bounds at once.
     if (filterKey === "session_fee") {
       filters = Object.assign({}, filters, { session_fee_min: "", session_fee_max: "" });
       currentPage = 1;
@@ -1024,7 +1024,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     var basePath = window.location.pathname.replace(/\/$/, "") || "/directory";
     var next = query ? basePath + "?" + query : basePath;
     window.history.replaceState({}, "", next);
-    // Noindex when filters beyond defaults are applied — keeps the canonical
+    // Noindex when filters beyond defaults are applied, keeps the canonical
     // /directory (and the always-default state=CA) indexable while avoiding
     // duplicate-content sprawl on filtered URLs Google might encounter.
     var meaningfulFilters = Object.keys(filters).some(function (key) {
@@ -1110,7 +1110,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
     // Step 7: inject a match nudge after the 12th card (between rows 6
     // and 7 in the 2-col grid). Quiet, secondary-background card
-    // spanning both columns — no icon, no illustration per spec.
+    // spanning both columns, no icon, no illustration per spec.
     var cardHtmlList = pageItems.map(renderCard);
     if (cardHtmlList.length > 12) {
       cardHtmlList.splice(12, 0, renderMatchNudgeMarkup());
@@ -1118,7 +1118,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     grid.innerHTML = cardHtmlList.join("");
   }
 
-  // Step 9: "You might also consider" — when the current filter set
+  // Step 9: "You might also consider", when the current filter set
   // returns nothing, try dropping each active filter one at a time and
   // pick the relaxation that yields the most results. Return up to 2
   // cards. If even the broadest single-drop returns nothing, render
@@ -1199,7 +1199,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       '<section class="dir-loosened">' +
       '<div class="dir-loosened-head">' +
       '<h4 class="dir-loosened-title">You might also consider</h4>' +
-      '<p class="dir-loosened-sub">These don\'t match all of your filters — we relaxed the <strong>' +
+      '<p class="dir-loosened-sub">These don\'t match all of your filters, we relaxed the <strong>' +
       escapeHtml(droppedLabel) +
       "</strong> filter to surface options.</p>" +
       "</div>" +
@@ -1254,11 +1254,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
     dialog.setAttribute("aria-hidden", "false");
 
-    // Set aria-label directly on the dialog — aria-labelledby can't be used because
+    // Set aria-label directly on the dialog, aria-labelledby can't be used because
     // the heading element is inside .dir-panel-head which is display:none on mobile.
     var displayName = therapist.name.split(",")[0].trim();
     var credSuffix = therapist.credentials ? ", " + therapist.credentials : "";
-    dialog.setAttribute("aria-label", displayName + credSuffix + " — Provider details");
+    dialog.setAttribute("aria-label", displayName + credSuffix + ", Provider details");
 
     // Hide bio toggle + fade when the bio already fits without scrolling.
     // Must run after innerHTML is set so layout is measurable.
@@ -1880,7 +1880,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return;
     }
 
-    // Card body click — open side panel (only when not clicking interactive elements)
+    // Card body click, open side panel (only when not clicking interactive elements)
     if (!event.target.closest("a, button")) {
       var cardEl = event.target.closest("[data-card-click]");
       if (cardEl) {
@@ -1964,7 +1964,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     } else {
       if (hasFiveDigits && marketStatus && marketStatus.status === "out_of_state") {
         var stateName = (marketStatus.place && marketStatus.place.stateName) || "your state";
-        setSortZipNotice("We’re California-only right now — not yet live in " + stateName + ".");
+        setSortZipNotice("We’re California-only right now, not yet live in " + stateName + ".");
         trackFunnelEvent("directory_zip_rejected", {
           zip: raw,
           reason: "out_of_state",
@@ -2166,7 +2166,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
           surface: "drawer",
           therapist_slug: callSlug,
         });
-        // do not preventDefault — let the tel: link open
+        // do not preventDefault, let the tel: link open
       }
 
       // Outreach: close button collapses the disclosure

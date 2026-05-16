@@ -163,7 +163,7 @@ async function main() {
         error: error && error.message ? error.message : String(error),
       });
       console.error(
-        "  FAIL " + entry.id + " — " + (error && error.message ? error.message : error),
+        "  FAIL " + entry.id + ": " + (error && error.message ? error.message : error),
       );
     }
   }

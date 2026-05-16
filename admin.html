@@ -1081,7 +1081,7 @@
         border-left: 4px solid #8a8a8a;
         opacity: 0.7;
       }
-      /* COLLAPSED ROW — resolved cards default to a one-line summary */
+      /* COLLAPSED ROW, resolved cards default to a one-line summary */
       .admin-recovery-card:has(.rec-collapsible) {
         padding: 0;
       }
@@ -1147,7 +1147,7 @@
           font-size: 0.82rem;
         }
       }
-      /* HEADER STRIP — the at-a-glance scan zone */
+      /* HEADER STRIP, the at-a-glance scan zone */
       .rec-strip {
         display: flex;
         gap: 1rem;
@@ -1194,7 +1194,7 @@
         gap: 0.35rem;
         flex-shrink: 0;
       }
-      /* PILLS — used in strip + inline next to fields */
+      /* PILLS, used in strip + inline next to fields */
       .rec-pill {
         display: inline-block;
         padding: 0.18rem 0.55rem;
@@ -1232,7 +1232,7 @@
         letter-spacing: 0;
         font-weight: 600;
       }
-      /* BODY GRID — request | profile */
+      /* BODY GRID, request | profile */
       .rec-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -1292,7 +1292,7 @@
       .rec-defs a {
         color: var(--teal, #1a7a8f);
       }
-      /* VERIFICATION ANCHORS — labeled compact grid */
+      /* VERIFICATION ANCHORS, labeled compact grid */
       .rec-anchors {
         display: grid;
         grid-template-columns: max-content 1fr;
@@ -1316,7 +1316,7 @@
         font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
         font-size: 0.82rem;
       }
-      /* FLAGS — auto-generated risk bullets */
+      /* FLAGS, auto-generated risk bullets */
       .admin-recovery-auto-flags {
         list-style: none;
         margin: 0.85rem 0 0;
@@ -1469,7 +1469,7 @@
       .admin-recovery-feedback[data-tone="info"] {
         color: var(--muted, #6b8290);
       }
-      /* RESOLUTION META — compact audit trail on resolved cards */
+      /* RESOLUTION META, compact audit trail on resolved cards */
       .rec-resolution {
         margin-top: 0.85rem;
         padding-top: 0.85rem;
@@ -3410,7 +3410,7 @@
           box-shadow 180ms ease,
           background-color 180ms ease;
       }
-      /* Triage focus mode — one-card-at-a-time keyboard review. */
+      /* Triage focus mode, one-card-at-a-time keyboard review. */
       #candidateQueueFocusToggle.is-active,
       #applicationsFocusToggle.is-active {
         background: #1a7a8f;
@@ -5571,7 +5571,7 @@
       .needs-attention-resolve-btn:hover {
         background: #fecaca;
       }
-      /* Resolve Duplicate modal — opens from the queue, never shown on
+      /* Resolve Duplicate modal, opens from the queue, never shown on
          non-duplicate profiles. Side-by-side compare with three actions:
          merge, mark not-duplicate, cancel. */
       .resolve-dup-backdrop {
@@ -6416,7 +6416,7 @@
               <header class="admin-live-header">
                 <h2 class="admin-live-title">Home</h2>
                 <p class="admin-live-subtitle">
-                  The morning briefing — revenue, what needs you today, and outreach awaiting a
+                  The morning briefing, revenue, what needs you today, and outreach awaiting a
                   reply.
                 </p>
               </header>
@@ -6915,7 +6915,7 @@
                   <h2 style="margin: 0">Account recovery queue</h2>
                   <p class="subtle" style="margin: 0.25rem 0 0">
                     Therapists who lost access to their on-file email. For cold takeovers, verify
-                    identity out-of-band — DCA, phone call, or a reply from the therapist — and pick
+                    identity out-of-band, DCA, phone call, or a reply from the therapist, and pick
                     the matching method before approving.
                   </p>
                 </div>
@@ -6971,7 +6971,7 @@
     <script type="module" src="assets/admin-recovery.js"></script>
     <script type="module" src="assets/admin.js"></script>
 
-    <!-- Resolve Duplicate modal — opens from a Resolve Duplicate button in
+    <!-- Resolve Duplicate modal, opens from a Resolve Duplicate button in
          the Needs Attention queue. Side-by-side compare of the live
          therapist vs the duplicate counterpart. Hidden by default. -->
     <div
@@ -6999,7 +6999,7 @@
           </div>
           <!-- Legend explaining what each action actually does. The merge
                rule is asymmetric (therapist wins, candidate fills gaps),
-               which is non-obvious from the buttons alone — admins
+               which is non-obvious from the buttons alone, admins
                otherwise have to trace through the server flow to know. -->
           <div class="resolve-dup-legend" id="resolveDuplicateLegend">
             <p class="resolve-dup-legend-row">

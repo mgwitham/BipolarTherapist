@@ -34,7 +34,7 @@ export function parsePlanCode(value) {
 export function resolveFeaturedPriceId(config, planCode) {
   const parsed = parsePlanCode(planCode);
   if (!parsed) {
-    // Unknown plan code — fall back to the legacy generic price id if
+    // Unknown plan code, fall back to the legacy generic price id if
     // the env is configured. Preserves the original behavior for any
     // callers still passing an empty/unknown plan.
     if (config && config.stripeFeaturedPriceId) {
@@ -50,7 +50,7 @@ export function resolveFeaturedPriceId(config, planCode) {
     regular_annual: config && config.stripeFeaturedRegularAnnualPriceId,
   };
   // Prefer the plan-specific env var. Fall back to the legacy
-  // stripeFeaturedPriceId for any plan whose env is unset — useful
+  // stripeFeaturedPriceId for any plan whose env is unset, useful
   // while migrating between the old and new plan models.
   const priceId = lookup[parsed.plan] || (config && config.stripeFeaturedPriceId) || "";
   if (!priceId) {

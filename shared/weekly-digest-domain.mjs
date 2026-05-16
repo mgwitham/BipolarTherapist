@@ -1,6 +1,6 @@
 // Build the weekly digest payload for a single therapist from two
 // consecutive weekly engagement rollup docs (current + prior). Pure
-// logic — no Sanity access, no email sending. The runner calls this
+// logic, no Sanity access, no email sending. The runner calls this
 // for each paid therapist to decide whether to send and, if so, what
 // numbers to put in the email.
 
@@ -75,7 +75,7 @@ function pctChange(currentValue, priorValue) {
 }
 
 // Build the digest object. Returns null when the therapist has zero
-// activity this week AND zero last week — nothing worth emailing about.
+// activity this week AND zero last week. Nothing worth emailing about.
 // (We still build + send when only one of the two is zero, because the
 // comparison is itself the story.)
 export function buildWeeklyDigest(options) {

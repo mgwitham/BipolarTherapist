@@ -168,7 +168,7 @@ if (typeof window !== "undefined" && window.addEventListener && document.documen
 }
 
 // Observable store + controller registry. PR 1 of the admin.js refactor.
-// Only the Licensure Activity tab is migrated — every other tab still uses
+// Only the Licensure Activity tab is migrated, every other tab still uses
 // the legacy renderXyz() + module-level let pattern. As tabs migrate, their
 // data and filter state moves into the store and their `let` declarations
 // below get deleted.
@@ -195,7 +195,7 @@ const adminStore = createAdminStore({
   },
 });
 
-// PR 3 — declarative localStorage persistence. Source of truth is the
+// PR 3, declarative localStorage persistence. Source of truth is the
 // store; reads on init, debounced writes on change. Legacy localStorage
 // keys preserved verbatim so deployed users keep their saved filter.
 adminStore.attachLocalStorage({
@@ -1185,7 +1185,7 @@ function withLazyAdminModule(path, onReady, onError) {
 // without round-tripping through admin.js.
 
 // readReviewActivityView / writeReviewActivityView were inlined here in
-// PR 3 — adminStore.attachLocalStorage owns reading and writing
+// PR 3, adminStore.attachLocalStorage owns reading and writing
 // bth_review_activity_view_v1 now. Saved-views (the multi-view dropdown
 // surface) still uses the helpers below; a later PR can fold that into
 // the store if the surface keeps growing.
@@ -4869,7 +4869,7 @@ function inferCoverageRole(item) {
 
 function renderNeedsAttention() {
   // Lazy-loaded to keep the Needs Attention queue out of admin.js's main
-  // bundle — the gates module ships in shared/ already, but the rendering
+  // bundle, the gates module ships in shared/ already, but the rendering
   // helpers are admin-only.
   withLazyAdminModule("./admin-needs-attention.js", function (module) {
     module.renderNeedsAttentionQueue({
@@ -5043,7 +5043,7 @@ function renderImportBlockerSprint() {
 // renderConfirmationSprint() body so the controller can call it
 // idempotently via ctx.deps.buildConfirmationSprintOptions(store).
 //
-// FOLLOW-UP — the ~40 helpers below are exactly the "helper sprawl"
+// FOLLOW-UP, the ~40 helpers below are exactly the "helper sprawl"
 // the refactor plan flagged. A future PR can split them by category
 // (pure data helpers → shared module import; closures over admin.js
 // state → store-backed slices) without touching the controller shape.
@@ -5157,7 +5157,7 @@ function renderConfirmationQueue() {
 // confirmation tabs in PR 4: the ~70-prop bag closures over admin.js
 // helpers and getters; the controller is a passthrough.
 //
-// Hot path — the publish flow runs through here. Keep this factory
+// Hot path, the publish flow runs through here. Keep this factory
 // pure (no side effects); state writes happen inside the panel's
 // handlers via the injected callbacks (approveApplication etc.).
 function buildApplicationsOptions(store) {
@@ -5232,7 +5232,7 @@ function buildApplicationsOptions(store) {
 
 function renderApplications() {
   // Migrated to the controller pattern (PR 5). The publish flow runs
-  // through this panel; semantics are preserved verbatim — same
+  // through this panel; semantics are preserved verbatim, same
   // option-bag contents, just routed via the registry.
   adminRegistry.render("applications");
 }
@@ -5276,7 +5276,7 @@ function buildCandidateDecisionActions(item) {
 // a passthrough invoking ctx.deps.buildOpsInboxOptions.
 //
 // admin-ops-inbox.js is 3,727 lines and intentionally NOT being split
-// internally in this PR — that's a separate follow-up project.
+// internally in this PR, that's a separate follow-up project.
 function buildOpsInboxOptions(store) {
   return {
     root: document.getElementById("opsInbox"),
@@ -5331,7 +5331,7 @@ function buildOpsInboxOptions(store) {
 }
 
 function renderOpsInbox() {
-  // Migrated to the controller pattern (PR 6 — final tab in the
+  // Migrated to the controller pattern (PR 6, final tab in the
   // planned refactor). The module's internal 3,727 lines stay intact;
   // a future PR can split it without touching the registry contract.
   adminRegistry.render("opsInbox");
@@ -5740,7 +5740,7 @@ async function loadData() {
       // so on a deploy the browser can keep serving stale admin.html
       // with references to chunk files that no longer exist, causing
       // the prompt to loop on every reload. We set a session flag
-      // before reloading — if the error recurs after we already
+      // before reloading, if the error recurs after we already
       // tried, we stop prompting and tell the reviewer to clear
       // site data manually.
       const RELOAD_FLAG = "bth_admin_chunk_reload_v1";
@@ -5775,8 +5775,8 @@ async function loadData() {
       );
     }
     // Only bounce to the login gate if the server actually rejected our
-    // session (401). Non-auth errors — stale chunk, network blip, Sanity
-    // CDN hiccup — must not flip authRequired to true, otherwise a user
+    // session (401). Non-auth errors, stale chunk, network blip, Sanity
+    // CDN hiccup, must not flip authRequired to true, otherwise a user
     // who just signed in successfully gets booted back to the login
     // screen with a misleading "credentials not accepted" banner.
     const status = error && typeof error.status === "number" ? error.status : 0;
@@ -5793,7 +5793,7 @@ async function loadData() {
       );
     } else if (hasSessionToken) {
       // Signed in but the dashboard data load failed for a non-auth
-      // reason. Keep the reviewer logged in with empty remote lists —
+      // reason. Keep the reviewer logged in with empty remote lists,
       // they can retry via a hard refresh without re-typing credentials.
       applyAdminRuntimeState(
         createRemoteSignedInState({
@@ -5900,7 +5900,7 @@ document.getElementById("adminAuthForm").addEventListener("submit", async functi
       // signInAdmin just returned a valid session token. If loadData
       // still flipped us to auth-required, it's a real 401 on a
       // downstream call (token rejected by the session check). Don't
-      // claim the typed credentials were wrong — the password already
+      // claim the typed credentials were wrong, the password already
       // passed the login endpoint.
       error.textContent = "Signed in, but the session was rejected. Try again.";
       error.style.display = "block";
@@ -6039,7 +6039,7 @@ document.getElementById("portalRequestStatusFilter").addEventListener("change", 
 });
 
 document.getElementById("reviewActivityFilter").addEventListener("change", async function (event) {
-  // Single source of truth — store.set fires the controller re-render
+  // Single source of truth, store.set fires the controller re-render
   // and the attachLocalStorage subscription, which persists the filter
   // to bth_review_activity_view_v1. The legacy `let reviewActivityFilter`
   // is mirrored by the subscription wired at module init.
@@ -6350,7 +6350,7 @@ if (typeof document !== "undefined" && document.documentElement) {
   document.documentElement.setAttribute("data-admin-boot", "listeners-bound");
 }
 
-// Profile search — reads live data arrays via closures so results are always current.
+// Profile search, reads live data arrays via closures so results are always current.
 let profileSearch = null;
 profileSearch = initAdminProfileSearch({
   getCandidates: function () {

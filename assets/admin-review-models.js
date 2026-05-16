@@ -571,7 +571,7 @@ export function createAdminReviewModels(dependencies) {
           "Applications are sorted to surface the fastest trustworthy publish decisions first.",
         batchIntro:
           "If you want quick wins right now, clear these publish-ready or nearly-ready applications first.",
-        packetHeading: "# Recommended Review Batch — Clear Publish-Ready Work",
+        packetHeading: "# Recommended Review Batch, Clear Publish-Ready Work",
         primaryActionLabel: "Copy publish batch",
         primaryActionMode: "packet",
       };
@@ -584,7 +584,7 @@ export function createAdminReviewModels(dependencies) {
           "Applications are sorted to surface the weakest trust cases and highest-fix review work first.",
         batchIntro:
           "If this session is about cleanup, start with the applications that need the clearest trust repairs.",
-        packetHeading: "# Recommended Review Batch — Clean Up Weak Applications",
+        packetHeading: "# Recommended Review Batch, Clean Up Weak Applications",
         primaryActionLabel: "Copy fix requests",
         primaryActionMode: "requests",
       };
@@ -597,7 +597,7 @@ export function createAdminReviewModels(dependencies) {
           "Applications are sorted to surface live-profile refresh updates and confirmation upkeep work first.",
         batchIntro:
           "If this session is about upkeep, start with these refresh-driven review actions first.",
-        packetHeading: "# Recommended Review Batch — Refresh Updates First",
+        packetHeading: "# Recommended Review Batch, Refresh Updates First",
         primaryActionLabel: "Copy refresh batch",
         primaryActionMode: "packet",
       };
@@ -870,10 +870,10 @@ export function createAdminReviewModels(dependencies) {
     var uniqueBlockers = Array.from(new Set(blockers));
     return {
       decision: uniqueBlockers.length
-        ? "Not yet — issues need resolving"
+        ? "Not yet, issues need resolving"
         : uniqueWatch.length
-          ? "Almost — a few things to check"
-          : "Yes — ready to publish",
+          ? "Almost, a few things to check"
+          : "Yes, ready to publish",
       strong: uniqueStrong,
       watch: uniqueWatch,
       blockers: uniqueBlockers,

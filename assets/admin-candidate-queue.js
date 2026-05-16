@@ -205,7 +205,7 @@ function renderCandidateCardHtml(item, index, options, therapists, applications,
       ". Check the match before publishing.</span></div>"
     : "";
 
-  // Primary actions — review mode drops "Needs more work" since the card is already parked there
+  // Primary actions, review mode drops "Needs more work" since the card is already parked there
   const primaryActions = isReviewMode
     ? '<button class="btn-primary" data-candidate-decision="' +
       options.escapeHtml(item.id) +
@@ -223,7 +223,7 @@ function renderCandidateCardHtml(item, index, options, therapists, applications,
       options.escapeHtml(item.id) +
       '" data-candidate-confirm="Archive this listing? It will be removed from the queue." data-candidate-next="archive">Archive</button>';
 
-  // Conditional duplicate action row — only when a duplicate has been flagged
+  // Conditional duplicate action row, only when a duplicate has been flagged
   const duplicateActions = isDuplicateFlagged
     ? '<div class="queue-duplicate-action">' +
       '<button class="btn-secondary" data-candidate-compare="' +
@@ -238,7 +238,7 @@ function renderCandidateCardHtml(item, index, options, therapists, applications,
       "</div>"
     : "";
 
-  // Secondary link row — de-emphasized tools. In review mode the details are
+  // Secondary link row, de-emphasized tools. In review mode the details are
   // already open so we drop the "See full details" toggle.
   const linkRow =
     '<div class="queue-card-links">' +

@@ -1,9 +1,9 @@
-// Admin Home dashboard — the morning briefing.
+// Admin Home dashboard, the morning briefing.
 //
 // Three cards, one screen:
-//   1. Revenue (MRR, active subs, new/past due) — fetches /api/review/stripe/admin/metrics
-//   2. Today's queue — counts pulled from already-loaded admin state arrays
-//   3. Outreach replies awaiting attention — fetches /api/admin/therapists and
+//   1. Revenue (MRR, active subs, new/past due), fetches /api/review/stripe/admin/metrics
+//   2. Today's queue, counts pulled from already-loaded admin state arrays
+//   3. Outreach replies awaiting attention, fetches /api/admin/therapists and
 //      counts non-terminal statuses sent more than a day ago.
 //
 // Each card refreshes when the host calls renderAdminHome({ applications,
@@ -64,7 +64,7 @@ function renderRevenue(metrics) {
     return;
   }
   if (!metrics.total_subs) {
-    renderRevenueEmpty("No subscriptions yet — first paid signup will appear here.");
+    renderRevenueEmpty("No subscriptions yet, first paid signup will appear here.");
     setText("adminHomeRevenueStatus", "0 active");
     return;
   }
@@ -151,7 +151,7 @@ function renderQueueCard() {
   if (!listEl) return;
   if (total === 0) {
     listEl.innerHTML =
-      '<li class="admin-home-queue-empty">Nothing in the queue — enjoy the quiet.</li>';
+      '<li class="admin-home-queue-empty">Nothing in the queue, enjoy the quiet.</li>';
     return;
   }
 
@@ -183,7 +183,7 @@ async function fetchOutreachAwaitingReply() {
     // Awaiting reply: an outreach email was sent (or a follow-up was) and
     // the status hasn't moved to a terminal value. We exclude profiles
     // contacted in the last 24h to give the auto-reply window time to land
-    // — those don't need admin attention yet.
+    //, those don't need admin attention yet.
     const MS_DAY = 24 * 60 * 60 * 1000;
     const cutoff = Date.now() - MS_DAY;
     const open = data.filter(function (t) {
@@ -215,7 +215,7 @@ function renderRepliesCard(open) {
 
   if (count === 0) {
     bodyEl.innerHTML =
-      '<p class="admin-home-card-empty">No outreach is sitting unread — every sent email has hit a terminal status.</p>';
+      '<p class="admin-home-card-empty">No outreach is sitting unread, every sent email has hit a terminal status.</p>';
     return;
   }
 
@@ -235,7 +235,7 @@ function renderRepliesCard(open) {
     .map(
       (t) =>
         `<li class="admin-home-replies-row">
-          <span class="admin-home-replies-name">${esc(t.name || "—")}</span>
+          <span class="admin-home-replies-name">${esc(t.name || "")}</span>
           <span class="admin-home-replies-age">${days(t.outreach.lastContactedAt)}d ago</span>
         </li>`,
     )
@@ -268,7 +268,7 @@ export async function renderAdminHome(stateUpdate) {
   renderRevenue(metrics);
   renderRepliesCard(open);
 
-  // Schedule the reply refresh (idempotent — clear any prior timer).
+  // Schedule the reply refresh (idempotent, clear any prior timer).
   if (_replyRefreshTimer) window.clearInterval(_replyRefreshTimer);
   _replyRefreshTimer = window.setInterval(async function () {
     if (document.body.getAttribute("data-admin-view") !== "home") return;

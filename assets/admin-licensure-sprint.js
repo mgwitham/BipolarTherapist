@@ -282,7 +282,7 @@ function buildLaneBrief(rows, lane) {
         1 +
         ". " +
         (item.name || "Unnamed therapist") +
-        " — " +
+        ", " +
         [item.credentials, item.location, item.license_number].filter(Boolean).join(" · "),
     );
     lines.push("   Reason: " + (item.reason || item.next_move || "Licensure action needed"));

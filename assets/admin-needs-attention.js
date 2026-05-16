@@ -1,9 +1,9 @@
-// Needs Attention queue — silent-failure catcher.
+// Needs Attention queue, silent-failure catcher.
 //
 // Lists every therapist whose admin intent is Live (lifecycle === "approved",
 // visibilityIntent === "listed") but where isProfileLive returns false. The
 // gap between intent and reality is the bug class this view exists to
-// surface — anything that quietly hid a previously-Live profile.
+// surface, anything that quietly hid a previously-Live profile.
 //
 // Sort: oldest _updatedAt first. The fields tracked by the trust gate
 // don't carry their own timestamps yet, so _updatedAt is the best proxy
@@ -79,7 +79,7 @@ function renderEntryHtml(entry) {
       "</ul>"
     : "";
   // Surface a Resolve Duplicate button only when one of the blockers is a
-  // duplicate detection. Routine missing-field blockers stay simple — only
+  // duplicate detection. Routine missing-field blockers stay simple, only
   // the Edit button shows. Avoids cluttering every card with an action that
   // would be a no-op for most rows.
   const counterpart = parseDuplicateCounterpart(blockers);

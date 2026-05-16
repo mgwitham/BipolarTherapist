@@ -3,7 +3,7 @@
  * Next.js 14 App Router: save as app/therapists/[slug]/page.tsx
  *
  * This file stays a Server Component (no 'use client') so that:
- *   1. generateMetadata runs server-side — title/description are in the
+ *   1. generateMetadata runs server-side: title/description are in the
  *      initial HTML response, visible to Google before JS executes.
  *   2. TherapistProfileClient is the interactive shell; it hydrates
  *      in the browser with the pre-fetched therapist data.
@@ -59,11 +59,11 @@ export async function generateMetadata({
 
   // Delegate to the shared builder so metadata and page stay in sync.
   // buildMetadata ignores its params arg (uses the passed therapist directly)
-  // — swap its internals for the fetched therapist object when you refactor.
+  // Swap its internals for the fetched therapist object when you refactor.
   return buildMetadata({ params });
 }
 
-// ─── Static Params (optional — enables full static generation) ────────────────
+// ─── Static Params (optional, enables full static generation) ────────────────
 
 // Uncomment to pre-render every therapist profile at build time:
 //

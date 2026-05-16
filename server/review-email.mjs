@@ -35,7 +35,7 @@ function applyDevRedirect(config, payload) {
   }
 
   if (process.env.NODE_ENV === "production") {
-    log.error("[email] CRITICAL — EMAIL_DEV_REDIRECT is set in production. Refusing to send.", {
+    log.error("[email] CRITICAL: EMAIL_DEV_REDIRECT is set in production. Refusing to send.", {
       recipients: payload.to || [],
     });
     throw new Error("EMAIL_DEV_REDIRECT must not be set in production.");
@@ -46,11 +46,11 @@ function applyDevRedirect(config, payload) {
     `<div style="background:#fff4cc;border:1px solid #d8b647;color:#5a3e00;` +
     `padding:10px 14px;font-family:Arial,sans-serif;font-size:13px;line-height:1.5;` +
     `border-radius:6px;margin:0 0 12px 0;">` +
-    `<strong>DEV MODE</strong> — original recipient: ` +
+    `<strong>DEV MODE</strong>, original recipient: ` +
     String(originalTo).replace(/[<>]/g, "") +
     `</div>`;
   const textBanner =
-    "[DEV MODE — original recipient: " + String(originalTo).replace(/[<>]/g, "") + "]\n\n";
+    "[DEV MODE, original recipient: " + String(originalTo).replace(/[<>]/g, "") + "]\n\n";
 
   const redirectedPayload = {
     ...payload,
@@ -82,10 +82,10 @@ export async function sendEmail(config, payload) {
   // recovery flows, portal nudges, founder digest, etc. Set EMAIL_KILL_SWITCH
   // to anything truthy in env to pause all of them. Manual outreach sends
   // from /api/admin/send-email use a separate code path and are NOT gated
-  // by this switch — that's intentional, the founder still needs to ship
+  // by this switch. That's intentional, the founder still needs to ship
   // intentional outreach from the CRM.
   if (String(process.env.EMAIL_KILL_SWITCH || "").toLowerCase() === "true") {
-    log.warn("[email] kill switch active — skipping send", { to: payload?.to });
+    log.warn("[email] kill switch active, skipping send", { to: payload?.to });
     return { skipped: true, killed: true };
   }
 
@@ -117,7 +117,7 @@ export async function sendEmail(config, payload) {
 
 // Lightweight plain-text founder alert for the per-event notifications
 // (claim completed, trial started, etc). Different shape from
-// notifyAdminOfSubmission: no branded HTML, no preheader — just a
+// notifyAdminOfSubmission: no branded HTML, no preheader, just a
 // one-line subject and a short text body the founder can read on a
 // phone notification.
 export async function sendFounderAlert(config, { subject, lines }) {
@@ -138,12 +138,12 @@ export async function notifyAdminOfSubmission(config, application) {
 
   const heading = "New therapist application";
   const detailRows = [
-    ["Name", application.name || "—"],
-    ["Email", application.email || "—"],
-    ["Location", `${application.city || "—"}, ${application.state || "—"}`],
+    ["Name", application.name || "(none)"],
+    ["Email", application.email || "(none)"],
+    ["Location", `${application.city || "(none)"}, ${application.state || "(none)"}`],
     ["Credentials", application.credentials || "Not provided"],
     ["Specialties", (application.specialties || []).join(", ") || "Not provided"],
-    ["Status", application.status || "—"],
+    ["Status", application.status || "(none)"],
   ];
   const bodyHtml =
     '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px;line-height:1.55;border-collapse:collapse;margin:0 0 16px 0;">' +
@@ -203,7 +203,7 @@ export async function notifyApplicantOfDecision(config, application, decision, o
     const heading = "Your listing was approved";
     const bodyHtml = magicLink
       ? `<p style="margin:0 0 12px 0;">Your BipolarTherapyHub application has been approved and your listing is live. One last step: complete your full profile so patients see what makes your practice a fit.</p>
-<p style="margin:0 0 20px 0;">The button below signs you into your portal with no password — just click and start editing your bio, specialties, insurance, telehealth states, and contact details. Takes about 10 minutes.</p>`
+<p style="margin:0 0 20px 0;">The button below signs you into your portal with no password. Just click and start editing your bio, specialties, insurance, telehealth states, and contact details. Takes about 10 minutes.</p>`
       : `<p style="margin:0 0 12px 0;">Your BipolarTherapyHub application has been approved and your listing is now live.</p>
 <p style="margin:0 0 20px 0;">Thank you for joining the directory.</p>`;
 
@@ -244,7 +244,7 @@ export async function notifyApplicantOfDecision(config, application, decision, o
     return;
   }
 
-  // Rejected path — no CTA, just a note with the support address.
+  // Rejected path: no CTA, just a note with the support address.
   const heading = "Your application was reviewed";
   const bodyHtml = `<p style="margin:0 0 12px 0;">Your BipolarTherapyHub application was reviewed and is not moving forward right now.</p>
 <p style="margin:0 0 20px 0;">You can email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a> if you want to follow up with updated details later.</p>`;
@@ -275,7 +275,7 @@ export async function notifyApplicantOfDecision(config, application, decision, o
 
 // Builds the portal magic link (or returns "" if we don't have
 // enough info). Uses a 7-day TTL for the approval token vs the 24h
-// default on claim links — approved therapists may not check email
+// default on claim links. Approved therapists may not check email
 // immediately, and expiring their first onboarding link at 24h would
 // waste the approval effort.
 function buildApprovalMagicLink(config, application, options) {
@@ -313,18 +313,18 @@ function escapeEmailHtml(value) {
 // sanitized/known-safe HTML (use escapeEmailHtml on user data).
 //
 // Props:
-//   heading          — plain text, escaped here.
-//   greetingName     — plain text, escaped. Rendered as "Hi {name},".
-//                      Pass "" to omit the greeting line.
-//   bodyHtml         — pre-built HTML for the body (paragraphs, lists).
-//   alertBanner      — optional { tone: "warn"|"info", html } for
-//                      callouts above the heading.
-//   primaryCta       — optional { label, url }. Teal button.
-//   secondaryCta     — optional { label, url }. Red button, paired
-//                      next to primary (used by confirm/deny recovery).
-//   footerLines      — array of plain-text lines rendered in the muted
-//                      footer. Supports minimal HTML via footerLinesHtml.
-//   footerLinesHtml  — array of HTML strings. Takes precedence over
+//   heading:          plain text, escaped here.
+//   greetingName:     plain text, escaped. Rendered as "Hi {name},".
+//                     Pass "" to omit the greeting line.
+//   bodyHtml:         pre-built HTML for the body (paragraphs, lists).
+//   alertBanner:      optional { tone: "warn"|"info", html } for
+//                     callouts above the heading.
+//   primaryCta:       optional { label, url }. Teal button.
+//   secondaryCta:     optional { label, url }. Red button, paired
+//                     next to primary (used by confirm/deny recovery).
+//   footerLines:      array of plain-text lines rendered in the muted
+//                     footer. Supports minimal HTML via footerLinesHtml.
+//   footerLinesHtml:  array of HTML strings. Takes precedence over
 //                      footerLines when set (caller pre-escaped).
 export function renderBrandedEmail(options) {
   const heading = escapeEmailHtml((options && options.heading) || "");
@@ -486,7 +486,7 @@ export function renderBrandedEmailText(options) {
   if (footerLines.length) {
     parts.push(...footerLines, "");
   }
-  parts.push("— BipolarTherapyHub");
+  parts.push("BipolarTherapyHub");
   return parts.join("\n");
 }
 
@@ -505,19 +505,19 @@ function buildPortalMagicLinkCopy(mode) {
       ctaLabel: "Sign in →",
       preheader: "Fresh sign-in link inside. Expires in 24 hours.",
       expiryLine: "This link expires in 24 hours.",
-      ignoreLine: "If you didn't ask for a sign-in link, ignore this email — your account is safe.",
+      ignoreLine: "If you didn't ask for a sign-in link, ignore this email, your account is safe.",
     };
   }
   return {
     subject: "Activate your BipolarTherapyHub listing",
     heading: "You're one click away",
     bodyParagraph:
-      "Click below to verify your email and unlock your profile controls — editing, analytics, accepting-patients status, bio, and headshot.",
+      "Click below to verify your email and unlock your profile controls: editing, analytics, accepting-patients status, bio, and headshot.",
     ctaLabel: "Activate my listing →",
-    preheader: "Activate your listing — this link expires in 24 hours.",
+    preheader: "Activate your listing. This link expires in 24 hours.",
     expiryLine: "This link expires in 24 hours.",
     ignoreLine:
-      "If you didn't just start a trial or request this link, ignore this email — your card won't be charged and nothing will happen.",
+      "If you didn't just start a trial or request this link, ignore this email, your card won't be charged and nothing will happen.",
   };
 }
 
@@ -664,14 +664,14 @@ export async function sendTrialEndingReminder(config, therapist, trialEndsAt) {
   const heading = "Your trial ends in 3 days";
 
   const bodyHtml = `<p style="margin:0 0 12px 0;">Your 14-day free trial ends on <strong>${escapeEmailHtml(endDate)}</strong>. After that, we'll charge your card on file $19 per month.</p>
-<p style="margin:0 0 8px 0;"><strong>If you want to keep your subscription active</strong>, no action needed — you'll be billed automatically.</p>
+<p style="margin:0 0 8px 0;"><strong>If you want to keep your subscription active</strong>, no action needed, you'll be billed automatically.</p>
 <p style="margin:0 0 20px 0;"><strong>If you want to cancel</strong>, open your portal and click "Manage subscription · Cancel trial". One click, cancels immediately, no charge.</p>`;
 
   const html = renderBrandedEmail({
     heading,
     greetingName: name,
     bodyHtml,
-    preheader: "Your trial ends soon — confirm billing or your listing pauses.",
+    preheader: "Your trial ends soon. Confirm billing or your listing pauses.",
     footerLinesHtml: [
       'This is a legally required pre-billing reminder under California consumer-subscription law. If you think this is a mistake, email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a>.',
     ],
@@ -714,7 +714,7 @@ export async function sendUnverifiedTrialCanceledNotice(config, therapist, activ
     return;
   }
   const name = (therapist && therapist.name) || "there";
-  const heading = "Trial canceled — ownership not verified";
+  const heading = "Trial canceled, ownership not verified";
 
   const bodyHtml = `<p style="margin:0 0 12px 0;">Your 14-day trial started but we never received your activation click, so we couldn't confirm you own this listing. We've canceled your subscription. <strong>Your card was not charged.</strong></p>
 ${activationUrl ? `<p style="margin:0 0 20px 0;">If you meant to activate, here's a fresh link (expires in 24 hours):</p>` : ""}`;
@@ -736,7 +736,7 @@ ${activationUrl ? `<p style="margin:0 0 20px 0;">If you meant to activate, here'
     bodyText:
       "Your 14-day trial started but we never received your activation click. We've canceled your subscription. Your card was not charged.",
     primaryCta: activationUrl ? { label: "Activate my listing", url: activationUrl } : null,
-    footerLines: ["If you didn't start this trial, ignore this email — nothing was charged."],
+    footerLines: ["If you didn't start this trial, ignore this email. Nothing was charged."],
   });
 
   await sendEmail(config, {
@@ -752,8 +752,8 @@ ${activationUrl ? `<p style="margin:0 0 20px 0;">If you meant to activate, here'
 // Listing-removal email. Sent to the email ON FILE for the listing,
 // not to whatever address the submitter typed, so a third party can't
 // remove a therapist by guessing their license number. If the email
-// on file is stale, the therapist has to contact support directly —
-// that's rare but the right tradeoff vs. allowing someone else to
+// on file is stale, the therapist has to contact support directly.
+// That's rare but the right tradeoff vs. allowing someone else to
 // delete a listing.
 export async function sendListingRemovalLink(
   config,
@@ -791,7 +791,7 @@ export async function sendListingRemovalLink(
     primaryCta: { label: "Confirm removal →", url: confirmUrl },
     footerLinesHtml: [
       "If you did not request this, ignore this email and your listing stays active. This link expires in 24 hours.",
-      'Once removed, you can create a new listing any time — visit the signup page and choose "List my practice".',
+      'Once removed, you can create a new listing any time. Visit the signup page and choose "List my practice".',
     ],
   });
 
@@ -802,7 +802,7 @@ export async function sendListingRemovalLink(
       "Someone asked to remove your BipolarTherapyHub listing. If that was you, click the link below. Your listing goes dark immediately after you click.",
     primaryCta: { label: "Confirm removal", url: confirmUrl },
     footerLines: [
-      "If you did not request this, ignore this email — your listing stays active.",
+      "If you did not request this, ignore this email and your listing stays active.",
       "Link expires in 24 hours.",
     ],
   });
@@ -832,15 +832,15 @@ export async function notifyAdminOfRecoveryRequest(config, recoveryRequest) {
 
   // When the therapist-self-confirm page returns "no", the caller tags
   // the request with adminAlert="therapist_denied_confirmation". That's
-  // the strongest attack signal we'll ever see — the real therapist, via
+  // the strongest attack signal we'll ever see: the real therapist, via
   // a channel the requester doesn't control, has said "not me." Surface
   // that as a distinct, loud email so it doesn't get lost in the queue.
   const isDenial = recoveryRequest.adminAlert === "therapist_denied_confirmation";
   const subject = isDenial
-    ? `ATTACK ATTEMPT — ${recoveryRequest.fullName || "(no name)"} denied a claim they didn't request`
+    ? `ATTACK ATTEMPT: ${recoveryRequest.fullName || "(no name)"} denied a claim they didn't request`
     : `New recovery request: ${recoveryRequest.fullName || "(no name)"}`;
   const preheader = isDenial
-    ? "Attack attempt — the real therapist denied this claim."
+    ? "Attack attempt: the real therapist denied this claim."
     : "A clinician asked to recover access to their listing.";
   const heading = isDenial
     ? "Therapist denied a recovery request"
@@ -852,13 +852,13 @@ export async function notifyAdminOfRecoveryRequest(config, recoveryRequest) {
     recoveryRequest.profileName.toLowerCase() !== recoveryRequest.fullName.toLowerCase();
 
   const detailRows = [
-    ["Name", recoveryRequest.fullName || "—"],
-    ["License", recoveryRequest.licenseNumber || "—"],
+    ["Name", recoveryRequest.fullName || "(none)"],
+    ["License", recoveryRequest.licenseNumber || "(none)"],
     [
       "Requested email" + (isDenial ? " (likely attacker)" : ""),
-      recoveryRequest.requestedEmail || "—",
+      recoveryRequest.requestedEmail || "(none)",
     ],
-    ["Prior email", recoveryRequest.priorEmail || "—"],
+    ["Prior email", recoveryRequest.priorEmail || "(none)"],
   ];
   if (isDenial && recoveryRequest.confirmationChannel) {
     detailRows.push([
@@ -871,10 +871,10 @@ export async function notifyAdminOfRecoveryRequest(config, recoveryRequest) {
   }
   detailRows.push([
     "Profile name on record",
-    (recoveryRequest.profileName || "—") + (profileNameMismatch ? " (mismatch!)" : ""),
+    (recoveryRequest.profileName || "(none)") + (profileNameMismatch ? " (mismatch!)" : ""),
   ]);
-  detailRows.push(["Profile email hint", recoveryRequest.profileEmailHint || "—"]);
-  detailRows.push(["Requester IP (first 3 octets)", recoveryRequest.requesterIp || "—"]);
+  detailRows.push(["Profile email hint", recoveryRequest.profileEmailHint || "(none)"]);
+  detailRows.push(["Requester IP (first 3 octets)", recoveryRequest.requesterIp || "(none)"]);
 
   const detailTable =
     '<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;font-size:14px;line-height:1.55;border-collapse:collapse;margin:0 0 16px 0;">' +
@@ -965,11 +965,11 @@ export async function notifyTherapistOfRecoveryReceived(config, recoveryRequest)
   const heading = "Request received";
 
   const bodyHtml = `<p style="margin:0 0 12px 0;">We got your request to claim your BipolarTherapyHub listing. To make sure it's really you, we may email one of your <strong>publicly-listed addresses</strong> (e.g. the contact email on your practice website, Psychology Today profile, or DCA record) with a quick "did you request this?" prompt.</p>
-<p style="margin:0 0 16px 0;"><strong>Please check any of your other professional inboxes over the next day</strong> for an email from us with the subject line "Did you request access to your bipolartherapyhub.com listing?" — click Yes on that email and you're in.</p>
+<p style="margin:0 0 16px 0;"><strong>Please check any of your other professional inboxes over the next day</strong> for an email from us with the subject line "Did you request access to your bipolartherapyhub.com listing?", click Yes on that email and you're in.</p>
 <p style="margin:0 0 8px 0;"><strong>What you submitted:</strong></p>
 <ul style="margin:0 0 20px 1.1rem;padding:0;">
-  <li style="margin-bottom:4px;">Name: ${escapeEmailHtml(recoveryRequest.fullName || "—")}</li>
-  <li style="margin-bottom:4px;">License: ${escapeEmailHtml(recoveryRequest.licenseNumber || "—")}</li>
+  <li style="margin-bottom:4px;">Name: ${escapeEmailHtml(recoveryRequest.fullName || "(none)")}</li>
+  <li style="margin-bottom:4px;">License: ${escapeEmailHtml(recoveryRequest.licenseNumber || "(none)")}</li>
   <li>Access email: ${escapeEmailHtml(email)}</li>
 </ul>`;
 
@@ -977,7 +977,7 @@ export async function notifyTherapistOfRecoveryReceived(config, recoveryRequest)
     heading,
     greetingName: name,
     bodyHtml,
-    preheader: "Got it. Watch your other inboxes — confirmation may come there.",
+    preheader: "Got it. Watch your other inboxes, confirmation may come there.",
     footerLinesHtml: [
       'Need to correct anything? Email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a>.',
     ],
@@ -987,7 +987,7 @@ export async function notifyTherapistOfRecoveryReceived(config, recoveryRequest)
     heading,
     greetingName: name,
     bodyText:
-      "We got your request to claim your BipolarTherapyHub listing. We may email one of your publicly-listed addresses (practice website, Psychology Today, DCA) with a 'did you request this?' prompt. Check your other professional inboxes over the next day — subject line 'Did you request access to your bipolartherapyhub.com listing?' — and click Yes.",
+      "We got your request to claim your BipolarTherapyHub listing. We may email one of your publicly-listed addresses (practice website, Psychology Today, DCA) with a 'did you request this?' prompt. Check your other professional inboxes over the next day for the subject line 'Did you request access to your bipolartherapyhub.com listing?', and click Yes.",
     footerLines: ["Need to correct anything? Email support@bipolartherapyhub.com"],
   });
 
@@ -995,7 +995,7 @@ export async function notifyTherapistOfRecoveryReceived(config, recoveryRequest)
     from: config.emailFrom,
     to: [email],
     reply_to: "support@bipolartherapyhub.com",
-    subject: "We got your request — watch your other inboxes too",
+    subject: "We got your request, watch your other inboxes too",
     html,
     text,
   });
@@ -1026,7 +1026,7 @@ export async function sendRecoveryConfirmationHeadsUp(config, recoveryRequest, m
     bodyHtml,
     preheader: "Action needed in another inbox to recover your listing.",
     footerLinesHtml: [
-      'If that address doesn\'t look familiar, email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a> — we may need to reach you a different way.',
+      'If that address doesn\'t look familiar, email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a>. We may need to reach you a different way.',
       "We only ever confirm through addresses that are already public for your practice. If you didn't request this claim, ignore every email from us.",
     ],
   });
@@ -1048,7 +1048,7 @@ export async function sendRecoveryConfirmationHeadsUp(config, recoveryRequest, m
     from: config.emailFrom,
     to: [email],
     reply_to: "support@bipolartherapyhub.com",
-    subject: "Action needed — check your other inbox",
+    subject: "Action needed, check your other inbox",
     html,
     text,
   });
@@ -1065,7 +1065,7 @@ export async function sendRecoveryApprovedEmail(config, recoveryRequest, magicLi
   const name = recoveryRequest.fullName || "there";
   const heading = "You're back in";
 
-  const bodyHtml = `<p style="margin:0 0 20px 0;">Verified — you're set. Click below to sign into your portal. From there you can update your bio, photo, accepting-patients status, and the rest of your profile.</p>${
+  const bodyHtml = `<p style="margin:0 0 20px 0;">Verified. You're set. Click below to sign into your portal. From there you can update your bio, photo, accepting-patients status, and the rest of your profile.</p>${
     customMessage
       ? `<p style="margin:0 0 8px 0;font-size:13px;font-weight:600;color:#1d3a4a;">A note from Michael:</p><p style="margin:0 0 20px 0;padding:12px 14px;background:#f4f8f9;border-radius:8px;color:#1d3a4a;font-size:14px;">${escapeEmailHtml(String(customMessage)).replace(/\n/g, "<br/>")}</p>`
       : ""
@@ -1089,7 +1089,7 @@ export async function sendRecoveryApprovedEmail(config, recoveryRequest, magicLi
     heading,
     greetingName: name,
     bodyText:
-      "Verified — you're set. Click the link below to sign into your portal. From there you can update your bio, photo, accepting-patients status, and the rest of your profile." +
+      "Verified. You're set. Click the link below to sign into your portal. From there you can update your bio, photo, accepting-patients status, and the rest of your profile." +
       (customMessage ? "\n\nA note from Michael:\n" + String(customMessage) : ""),
     primaryCta: { label: "Sign in to my portal", url: magicLink },
     footerLines: [
@@ -1148,7 +1148,7 @@ export async function sendRecoveryConfirmationEmail(
     primaryCta: { label: "Yes, that was me →", url: confirmUrl },
     secondaryCta: { label: "No, I didn't request this", url: denyUrl },
     footerLines: [
-      "If it wasn't you, click \"No\" — we'll block the request immediately and take no further action.",
+      "If it wasn't you, click \"No\" and we'll block the request immediately and take no further action.",
       "These links expire in 7 days.",
     ],
   });
@@ -1291,7 +1291,7 @@ export async function sendPortalContactEmail(config, body) {
 // ─── Portal completeness nudge ─────────────────────────────────────────────
 //
 // Field metadata (labels + notes) is imported from
-// shared/portal-completeness-registry.mjs — one source of truth shared
+// shared/portal-completeness-registry.mjs, one source of truth shared
 // with the admin table and the in-portal scoring module.
 
 // Renders the portal-completeness-nudge email without sending. Returns
@@ -1311,7 +1311,7 @@ export function renderPortalCompletenessNudge(config, therapist, portalBaseUrl) 
     : [];
   // Accept both Sanity-shape slug { current: "x" } and the flat string the
   // server-side GROQ projection returns. Older callers passed the object
-  // directly which stringified to "[object Object]" — the snapshot fixture
+  // directly which stringified to "[object Object]"; the snapshot fixture
   // exposed that path.
   const slugRaw =
     (therapist && therapist.slug && therapist.slug.current) || (therapist && therapist.slug) || "";
@@ -1426,7 +1426,7 @@ export function renderPortalCompletenessNudge(config, therapist, portalBaseUrl) 
 }
 
 // Thin wrapper that renders then sends. Skips when there's no email config
-// or no recipient on file — same gating as the original combined function.
+// or no recipient on file. Same gating as the original combined function.
 export async function sendPortalCompletenessNudge(config, therapist, portalBaseUrl) {
   if (!hasEmailConfig(config)) return;
   const rendered = renderPortalCompletenessNudge(config, therapist, portalBaseUrl);

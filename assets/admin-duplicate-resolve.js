@@ -5,13 +5,13 @@
 // module never shows up on profiles that don't have a duplicate to act on.
 //
 // Layout: side-by-side compare of the live therapist (left) vs the
-// duplicate counterpart (right — usually a candidate, occasionally another
+// duplicate counterpart (right, usually a candidate, occasionally another
 // therapist). Mismatched fields are highlighted so the admin can decide
 // fast.
 //
 // Actions:
 //   - Merge into existing therapist (only when counterpart is a candidate
-//     and the candidate's matchedTherapistId points at this therapist —
+//     and the candidate's matchedTherapistId points at this therapist,
 //     the existing /candidates/:id/decision merge_to_therapist flow does
 //     the heavy lifting).
 //   - Mark as not duplicate (sets candidate dedupeStatus =
@@ -219,7 +219,7 @@ async function handleMarkNotDuplicate() {
     setStatus("Missing candidate id.", "error");
     return;
   }
-  // Confirm — this is irreversible from the UI today.
+  // Confirm, this is irreversible from the UI today.
   const confirmed = window.confirm(
     "Mark this candidate as NOT a duplicate? It will stop triggering the duplicate detector and stay archived. Use only if you've verified these are different people.",
   );
@@ -315,7 +315,7 @@ export function openResolveDuplicate({ therapist, counterpart, counterpartKind, 
   if (subtitle) {
     subtitle.textContent =
       _counterpartKind === "therapist"
-        ? "Two therapist documents share an identifier. If they're intentionally distinct (e.g. shared group-practice inbox), use 'Mark as not duplicate' below — it patches both records so the warning stops."
+        ? "Two therapist documents share an identifier. If they're intentionally distinct (e.g. shared group-practice inbox), use 'Mark as not duplicate' below, it patches both records so the warning stops."
         : "Compare the two records below, then pick the action that matches.";
   }
 

@@ -63,7 +63,7 @@ async function submitResponse(token, therapistResponse) {
     if (result.outcome === "confirmed") {
       setStatus(
         "success",
-        result.message || "Thanks — you're back in. Check your inbox for the sign-in link.",
+        result.message || "Thanks, you're back in. Check your inbox for the sign-in link.",
       );
     } else {
       setStatus(
@@ -138,7 +138,7 @@ async function init() {
 
   // If the email link carried ?response=yes or ?response=no, the click
   // came from the therapist's inbox. Show the buttons anyway so they
-  // can verify context and confirm with an explicit second click — no
+  // can verify context and confirm with an explicit second click, no
   // silent auto-submit from a URL parameter, since a user forwarding
   // the email could trigger it unintentionally.
   if (prefilledResponse === "yes" || prefilledResponse === "no") {

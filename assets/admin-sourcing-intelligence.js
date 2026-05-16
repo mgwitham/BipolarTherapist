@@ -79,7 +79,7 @@ export function buildDiscoveryPromptForCity(cityLabel, options) {
 /**
  * Pull the configured CA metros as seed rows for the coverage picker.
  * Each entry becomes a synthetic zero-coverage row if the city isn't
- * present in the live therapist graph — the goal is to surface large
+ * present in the live therapist graph, the goal is to surface large
  * uncovered metros (Oakland, San Jose) ahead of small suburbs with 1-2
  * therapists.
  */
@@ -140,7 +140,7 @@ export function buildCoverageInsights(therapists, helpers, seedCities) {
   // Seed major metros that aren't yet in the therapist graph so a large
   // uncovered city (e.g. Oakland at 440k population, 0 listings) beats a
   // tiny suburb with 1-2 therapists. Seeds only inject when the city is
-  // absent — they never overwrite real coverage data.
+  // absent, they never overwrite real coverage data.
   (seedCities || []).forEach(function (seed) {
     if (!seed || !seed.name) return;
     const state = seed.state || "CA";
@@ -212,7 +212,7 @@ export function buildCoverageInsights(therapists, helpers, seedCities) {
 function renderCityActions(cityLabel, escapeHtml) {
   const configured = findConfiguredCityFromConfig(cityLabel, discoveryZipsConfig);
   if (configured) {
-    const claudeCodeCommand = `Run therapist discovery for ${configured.name} (use WebSearch — no paid API) and ingest results into the candidate review queue.`;
+    const claudeCodeCommand = `Run therapist discovery for ${configured.name} (use WebSearch, no paid API) and ingest results into the candidate review queue.`;
     return (
       '<button type="button" class="btn-primary btn-inline" data-claude-code-command="' +
       escapeHtml(claudeCodeCommand) +

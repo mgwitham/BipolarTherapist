@@ -569,7 +569,7 @@ function getFeeFloor(therapist) {
 }
 
 function getCompletenessScore(therapist) {
-  // Weights total 100. Photo is a tiebreaker signal only — it never
+  // Weights total 100. Photo is a tiebreaker signal only, it never
   // outranks clinical fit (it doesn't appear in `breakdown.clinical`),
   // but a complete profile rises slightly when other factors are even.
   var weightedFields = [
@@ -610,7 +610,7 @@ function getMissingReadinessItems(therapist) {
     items.push("Add a concise bipolar care approach summary.");
   }
   if (!therapist.photo_url) {
-    items.push("Upload a headshot — profiles with a photo earn more patient trust.");
+    items.push("Upload a headshot, profiles with a photo earn more patient trust.");
   }
   if (!(therapist.treatment_modalities && therapist.treatment_modalities.length)) {
     items.push("List treatment modalities to improve clinical-fit matching.");
@@ -825,7 +825,7 @@ function sortReasonsByWeight(reasons) {
 
 // Learning-signal contribution to ranking is currently disabled. The
 // underlying signals (feedback + outreach outcomes) are still captured
-// and stored — only their effect on the score is held to 0 so rankings
+// and stored, only their effect on the score is held to 0 so rankings
 // stay deterministic. The original implementations are preserved below
 // for future reactivation; the live readers short-circuit to 0.
 
@@ -1192,7 +1192,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     if (therapist.estimated_wait_time) {
       breakdown.practical += Math.max(0, 18 - getWaitPriority(therapist.estimated_wait_time) * 4);
     }
-    // Proxy: accepting_new_patients (96% populated) — strongly favor confirmed-open listings
+    // Proxy: accepting_new_patients (96% populated), strongly favor confirmed-open listings
     if (therapist.accepting_new_patients === true) {
       breakdown.practical += 12;
     } else if (therapist.accepting_new_patients === false) {
@@ -1215,17 +1215,17 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     // Proxy: breadth of bipolar specialties listed (98% populated)
     var specialtyCount = (therapist.specialties || []).length;
     breakdown.clinical += clamp(specialtyCount * 3, 0, 12);
-    // Proxy: number of treatment modalities (85% populated) — more = deeper toolbox
+    // Proxy: number of treatment modalities (85% populated), more = deeper toolbox
     var modalityCount = (therapist.treatment_modalities || []).length;
     breakdown.clinical += clamp(modalityCount * 1.5, 0, 6);
   }
 
   if (therapist.accepting_new_patients === false) {
-    hardFailures.push("Listing is currently paused — not accepting new patients.");
+    hardFailures.push("Listing is currently paused, not accepting new patients.");
   } else if (therapist.accepting_new_patients === true) {
     breakdown.practical += 6;
   } else {
-    // Status not explicitly set — apply a softer uncertainty penalty
+    // Status not explicitly set, apply a softer uncertainty penalty
     breakdown.practical -= 5;
     cautions.push("Accepting-patient status not confirmed.");
   }

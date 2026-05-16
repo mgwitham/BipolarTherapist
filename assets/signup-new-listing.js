@@ -45,18 +45,18 @@ const ALLOWED_PHOTO_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 // ==========================================================================
 // Analytics (gtag) events fired from this module and when they fire:
-//   signup_page_viewed           — once on page load
-//   signup_field_focused         — focus on any form field; field_name param
-//   signup_field_completed       — blur with non-empty value; field_name param
-//   signup_field_abandoned       — blur with empty value after prior focus; field_name param
-//   signup_duplicate_detected    — "already listed" nudge shown; triggering_field param
-//   signup_submit_clicked        — primary CTA click (before validation)
-//   signup_verification_started  — intake API call begins
-//   signup_verification_succeeded — API returns verified; duration_ms param
-//   signup_verification_failed   — API error or network failure; duration_ms + reason params
-//   signup_choice_shown          — trial-vs-free choice screen shown
-//   signup_choice_selected       — user picks a plan; value param ("trial"|"free")
-//   signup_claim_link_clicked    — either claim link clicked; source param
+//   signup_page_viewed          , once on page load
+//   signup_field_focused        , focus on any form field; field_name param
+//   signup_field_completed      , blur with non-empty value; field_name param
+//   signup_field_abandoned      , blur with empty value after prior focus; field_name param
+//   signup_duplicate_detected   , "already listed" nudge shown; triggering_field param
+//   signup_submit_clicked       , primary CTA click (before validation)
+//   signup_verification_started , intake API call begins
+//   signup_verification_succeeded, API returns verified; duration_ms param
+//   signup_verification_failed  , API error or network failure; duration_ms + reason params
+//   signup_choice_shown         , trial-vs-free choice screen shown
+//   signup_choice_selected      , user picks a plan; value param ("trial"|"free")
+//   signup_claim_link_clicked   , either claim link clicked; source param
 // ==========================================================================
 function gtagEvent(name, params) {
   if (typeof window.gtag === "function") {
@@ -93,7 +93,7 @@ async function lookupByLicense(licenseNumber) {
   const normalized = normalizeLicense(licenseNumber);
   if (normalized.length < 4) return null;
   // licenseOnly=1 keeps the server from falling back to fuzzy name
-  // matching — otherwise "A179040" pulls up anyone named Adam/Amir.
+  // matching, otherwise "A179040" pulls up anyone named Adam/Amir.
   const url = LICENSE_LOOKUP_ENDPOINT + "?licenseOnly=1&q=" + encodeURIComponent(normalized);
   try {
     const response = await fetch(url, {
@@ -174,7 +174,7 @@ function showDupNudge(match, typedName) {
     : "";
   const conflictPrefix = typedNameConflicts(typedName, match.name)
     ? "This license is registered to " + name + ". "
-    : name + (where ? " — " + where : "") + " ";
+    : name + (where ? ", " + where : "") + " ";
   const locationSuffix =
     typedNameConflicts(typedName, match.name) && where ? " (" + where + ")" : "";
   body.textContent = conflictPrefix + "matches this license number." + locationSuffix + emailHint;
@@ -200,7 +200,7 @@ function setStatus(node, message, tone) {
 // Detect CA license type from prefix and return the verifying board name.
 // Most CA mental-health license numbers carry an alpha prefix that maps
 // 1:1 to a board (LMFT/LCSW/LPCC/LEP → BBS, PSY/PSB → BoP, A/G → MBC,
-// 20A/20G → DO board). Pure-digit input has no signal — return null.
+// 20A/20G → DO board). Pure-digit input has no signal, return null.
 function detectLicenseBoard(raw) {
   const value = String(raw || "")
     .trim()
@@ -546,7 +546,7 @@ async function submitIntake(form, status) {
 
 // Build the portal magic-link URL that both the trial and free paths
 // eventually land the therapist on. Identical slug + token payload in
-// both cases — only the detour through Stripe differs.
+// both cases, only the detour through Stripe differs.
 function buildPortalTarget(therapistSlug, claimToken, entry) {
   return (
     "/portal.html?slug=" +
@@ -566,7 +566,7 @@ async function proceedFree(form, formStatus, intakeData, email) {
     therapist_slug: intakeData.therapist_slug || null,
   });
   try {
-    // Fire-and-forget magic-login email. Failure is non-fatal — the in-URL
+    // Fire-and-forget magic-login email. Failure is non-fatal, the in-URL
     // claim token still lands the therapist in the portal right now.
     await fetch(FREE_PATH_ENDPOINT, {
       method: "POST",

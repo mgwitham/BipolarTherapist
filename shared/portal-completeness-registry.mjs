@@ -1,16 +1,16 @@
 // Single source of truth for portal-completeness field metadata.
 //
 // Three surfaces previously each carried their own copy of this metadata:
-//   server/review-email.mjs            — labels + notes for the nudge email
-//   assets/admin-portal-completeness.js — short labels for the admin table chips
-//   assets/portal-td-completeness.js    — points + scoring rules for the in-portal score
+//   server/review-email.mjs            : labels + notes for the nudge email
+//   assets/admin-portal-completeness.js : short labels for the admin table chips
+//   assets/portal-td-completeness.js    : points + scoring rules for the in-portal score
 //
 // They drifted (5 fields had different labels between email and admin,
 // and `gender` was missing from email + admin entirely). This module
 // is the one place to add or rename a field; the consumers derive
 // everything they need from it.
 //
-// Scoring predicates are NOT in this file — they read different doc
+// Scoring predicates are NOT in this file, they read different doc
 // shapes (server camelCase vs browser snake_case) so they stay in
 // their respective modules. Points and required flags ARE here, so
 // the score is impossible to drift between server and browser.
@@ -165,7 +165,7 @@ export const PORTAL_COMPLETENESS_FIELD_MAP = Object.fromEntries(
   PORTAL_COMPLETENESS_FIELDS.map((f) => [f.key, f]),
 );
 
-// Email-shaped { label, note } dictionary — what server/review-email.mjs used to
+// Email-shaped { label, note } dictionary, what server/review-email.mjs used to
 // hand-maintain. Exported pre-shaped to keep the caller's render code clean.
 export const PORTAL_COMPLETENESS_EMAIL_LABELS = Object.fromEntries(
   PORTAL_COMPLETENESS_FIELDS.map((f) => [f.key, { label: f.label, note: f.note }]),

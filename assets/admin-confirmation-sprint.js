@@ -516,7 +516,7 @@ export function renderConfirmationSprintPanel(options) {
 }
 
 // Controller registration. PR 4 of the admin.js refactor. Sibling of
-// admin-confirmation-queue.js — same option-bag-via-buildOptions pattern.
+// admin-confirmation-queue.js, same option-bag-via-buildOptions pattern.
 const controller = {
   id: "confirmationSprint",
   regionId: "confirmationSprint",

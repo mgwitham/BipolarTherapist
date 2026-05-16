@@ -434,7 +434,7 @@ export function renderDirectoryDetailsMarkup(options) {
       escapeHtml(initials) +
       "</div>";
 
-  // Credential + role line — prefer full title over abbreviation
+  // Credential + role line, prefer full title over abbreviation
   var credLine = therapist.title
     ? escapeHtml(therapist.title)
     : escapeHtml(therapist.credentials || "");
@@ -456,7 +456,7 @@ export function renderDirectoryDetailsMarkup(options) {
     "</div>" +
     "</div>";
 
-  // Quick-answer pills (conditional — absent if all data missing)
+  // Quick-answer pills (conditional, absent if all data missing)
   var pills = Array.isArray(model.quickAnswerPills) ? model.quickAnswerPills : [];
   var pillsHtml = pills.length
     ? '<div class="dir-panel-pills" aria-label="Quick overview">' +
@@ -482,7 +482,7 @@ export function renderDirectoryDetailsMarkup(options) {
   var panelTrust = Array.isArray(model.panelTrustSignals) ? model.panelTrustSignals : [];
   var trustHtml = renderTrustSignals(panelTrust, "dir-panel-trust");
 
-  // About/bio — more vertical presence when it carries the panel alone
+  // About/bio, more vertical presence when it carries the panel alone
   var bioHtml = "";
   if (model.bio) {
     var isMinimal = !pillsHtml && !bipolarHtml && !trustHtml;
@@ -494,7 +494,7 @@ export function renderDirectoryDetailsMarkup(options) {
       "</p>";
   }
 
-  // Details grid (conditional — absent when no sections)
+  // Details grid (conditional, absent when no sections)
   var sections = Array.isArray(model.detailSections) ? model.detailSections : [];
   var detailsHtml = sections.length
     ? '<div class="dir-panel-details-grid">' +
@@ -663,7 +663,7 @@ function bshInsuranceHtml(plans, slug) {
       "</div>"
     );
   }
-  // 20+ plans — collapsed with live search
+  // 20+ plans, collapsed with live search
   return (
     '<div class="bsh-ins-collapsed-row" data-ins-collapsed="' +
     safeSlug +
@@ -784,7 +784,7 @@ export function renderBottomSheetMarkup(options) {
     '" aria-hidden="true"><path d="M4 2h8a1 1 0 0 1 1 1v10.5l-5-3-5 3V3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>' +
     "</button>";
 
-  // Close button (top bar, right) — reuses existing ID for focus management
+  // Close button (top bar, right), reuses existing ID for focus management
   var closeHtml =
     '<button type="button" class="bsh-topbar-btn" id="directoryDetailsClose" aria-label="Close">' +
     '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
@@ -837,7 +837,7 @@ export function renderBottomSheetMarkup(options) {
       "</div>";
   }
 
-  // Bipolar approach — the single most differentiating field for this directory
+  // Bipolar approach, the single most differentiating field for this directory
   var bipolarHtml = "";
   if (model.bipolarApproach) {
     bipolarHtml =
@@ -850,7 +850,7 @@ export function renderBottomSheetMarkup(options) {
       "</div>";
   }
 
-  // Specialties & Populations — "Bipolar disorder" always sorts first
+  // Specialties & Populations, "Bipolar disorder" always sorts first
   var specialties = (Array.isArray(therapist.specialties) ? therapist.specialties : [])
     .slice()
     .sort(function (a, b) {
@@ -901,7 +901,7 @@ export function renderBottomSheetMarkup(options) {
     bshInsuranceHtml(plans, slug) +
     "</div>";
 
-  // Outreach disclosure — collapsed by default; reveals draft message + phone script
+  // Outreach disclosure, collapsed by default; reveals draft message + phone script
   var outreachInner = renderOutreachPanelMarkup({
     therapist: therapist,
     contactStrategy: model.contactRoute
@@ -927,7 +927,7 @@ export function renderBottomSheetMarkup(options) {
       "</details>";
   }
 
-  // Actions — View full profile is the primary; the contact action is secondary
+  // Actions, View full profile is the primary; the contact action is secondary
   var profileHref = model.profileHref || "/therapists/" + encodeURIComponent(slug) + "/";
 
   var profileCta =

@@ -16,7 +16,7 @@
 //
 // TODO(matching-model): The matching model in assets/matching-model.js
 // hard-filters therapists where accepting_new_patients === false. That
-// is treated as a separate concern from Live status — a Live profile
+// is treated as a separate concern from Live status. A Live profile
 // can still be invisible in match results because of the hard filter,
 // and that is the next product decision to make. Live status here
 // intentionally does NOT consider acceptingNewPatients.
@@ -69,7 +69,7 @@ function findDuplicateBlockers(doc, context) {
     .toLowerCase();
 
   // dedupeOverrides on the therapist doc: an array of other therapist
-  // _ids that an admin has explicitly marked "not a duplicate" — for
+  // _ids that an admin has explicitly marked "not a duplicate". For
   // example, two clinicians at the same group practice sharing a single
   // info@ inbox. The override is symmetric: if either side declares it,
   // we suppress the warning. (The UI always writes both sides, but be
@@ -171,7 +171,7 @@ export function isProfileLive(therapist, context) {
     blockers.push(`Status is "${status || "unset"}" (must be "active")`);
   }
 
-  // Strict trust gate — only license_number remains a hard blocker.
+  // Strict trust gate: only license_number remains a hard blocker.
   // insurance_accepted and bipolarYearsExperience were both demoted to soft
   // signals (2026-04-30 and 2026-04-29 respectively); see STRONG_GATE_FIELDS.
   for (const field of STRONG_GATE_FIELDS) {

@@ -1,7 +1,7 @@
 // Build the weekly founder digest from a flat funnelEventLog. Reports
 // the patient match funnel (the demand-side path) plus the supply-side
 // signup, claim, and portal funnels, with conversion + drop-off
-// vs the prior 7-day window. Pure logic — no Sanity, no email send.
+// vs the prior 7-day window. Pure logic, no Sanity, no email send.
 //
 // Companion to weekly-digest-domain.mjs which is per-therapist. This
 // one is per-operator: a single email summarizing where the business

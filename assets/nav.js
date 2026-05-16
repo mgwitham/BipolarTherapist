@@ -26,7 +26,7 @@
     var storedResultsUrl = "";
     try {
       // sessionStorage is the original source (written by match.js), but it
-      // dies when the tab closes — leaving "Your matches" stranded the next
+      // dies when the tab closes, leaving "Your matches" stranded the next
       // day. Mirror into localStorage on read so the link survives tab
       // restarts. Reads fall back to localStorage when sessionStorage is empty.
       storedResultsUrl = window.sessionStorage.getItem(MATCH_RESULTS_URL_KEY) || "";
@@ -34,7 +34,7 @@
         try {
           window.localStorage.setItem(MATCH_RESULTS_URL_KEY, storedResultsUrl);
         } catch (_mirrorError) {
-          // localStorage full or unavailable — keep sessionStorage value.
+          // localStorage full or unavailable, keep sessionStorage value.
         }
       } else {
         try {
@@ -82,7 +82,7 @@
       desktopLink.dataset.matchNavManaged = hasMatchResults ? "results" : "start";
     }
 
-    // Mobile link — locate by title span content
+    // Mobile link, locate by title span content
     var mobileLinks = document.querySelectorAll(".public-mobile-nav-link");
     for (var i = 0; i < mobileLinks.length; i++) {
       var link = mobileLinks[i];
@@ -100,6 +100,6 @@
       }
     }
   } catch (_e) {
-    // localStorage unavailable — keep static defaults
+    // localStorage unavailable, keep static defaults
   }
 })();

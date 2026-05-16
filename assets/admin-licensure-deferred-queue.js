@@ -125,7 +125,7 @@ function formatDisplayDate(value) {
 
 // Controller registration. PR 2 of the admin.js refactor. Shares
 // data.licensureActivityFeed with the Licensure Activity + Queue
-// controllers — the store fires this only on overlapping path changes.
+// controllers, the store fires this only on overlapping path changes.
 const controller = {
   id: "deferredLicensureQueue",
   regionId: "deferredLicensureQueue",

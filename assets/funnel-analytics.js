@@ -126,7 +126,7 @@ export function trackFunnelEvent(type, payload) {
 // =============================================================
 // Server-side event forwarding for the admin funnel dashboard.
 // Events batch locally and POST to /api/review/analytics/events
-// every 2 seconds (or on page hide). Best-effort — if the post
+// every 2 seconds (or on page hide). Best-effort, if the post
 // fails, events still exist in localStorage + Vercel Analytics.
 // =============================================================
 

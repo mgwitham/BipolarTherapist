@@ -646,7 +646,7 @@ function initQuickClaim() {
         "Activation link sent.",
         "Check " +
           hint +
-          " for your one-time link. It expires in 30 minutes — open it on this device to finish claiming.",
+          " for your one-time link. It expires in 30 minutes, open it on this device to finish claiming.",
       );
       trackFunnelEvent("claim_link_sent", {
         therapist_slug: pickedResult.slug,
@@ -706,7 +706,7 @@ function initQuickClaim() {
       });
       gtagEvent("claim_resend_clicked", { therapist_slug: pickedResult && pickedResult.slug });
       if (link) {
-        link.textContent = "sent — check your inbox";
+        link.textContent = "sent, check your inbox";
         window.setTimeout(function () {
           link.removeAttribute("aria-disabled");
           link.textContent = "Resend now";

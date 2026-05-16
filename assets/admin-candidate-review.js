@@ -37,7 +37,7 @@ export function renderCandidatePublishPacket(packet, helpers) {
         case "Editorial review":
           return "Needs editorial review";
         case "Duplicate risk":
-          return "Possible duplicate — check before publishing";
+          return "Possible duplicate, check before publishing";
         default:
           return label;
       }
@@ -283,8 +283,8 @@ export function bindCandidateDecisionButtons(root, handlers) {
             "background:#fde8e8;color:#7a1a1a;font-weight:700;font-size:0.85rem;";
           status.textContent =
             decision === "publish"
-              ? "Could not publish — try again."
-              : "Something went wrong — try again.";
+              ? "Could not publish, try again."
+              : "Something went wrong, try again.";
         }
         button.disabled = false;
         button.textContent = prior;
