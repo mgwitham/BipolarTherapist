@@ -2617,62 +2617,12 @@ footer a {
     font-size: 0.95rem;
   }
 
-  /* Mobile nav: keep the inline horizontal bar visible (Option B from
-     2026-05-05 redesign — replaces the hamburger + card-grid menu).
-     Three essential links sit alongside the logo: Find a Therapist,
-     Get Matched / Your Matches, and For therapists. The card-grid
-     menu and hamburger button stay in markup but are hidden. */
-  .nav-links {
-    display: flex !important;
-    gap: 0.55rem;
-    flex: 1;
-    justify-content: flex-end;
-    align-items: center;
-    list-style: none;
-    padding: 0;
-    margin: 0;
-  }
-  .nav-links a,
-  .nav-links a.nav-link-current,
-  .nav-links a.nav-signin-link,
-  .nav-links a.nav-zone-switch,
-  .nav-links a.nav-shortlist {
-    font-size: 0.78rem !important;
-    padding: 0;
-    white-space: nowrap;
-  }
-
-  /* Items not essential to mobile nav. On a 375px viewport the logo +
-     2 patient links + zone-switch overflow, so we drop:
-     - .nav-crisis-item (crisis info still in page content / footer)
-     - the <li> wrapping .nav-shortlist (saved-list count)
-     - .nav-zone-switch-item (For therapists link — still in footer)
-     The :has() selector works in modern Safari/Chrome; fall back by
-     hiding the inner <a>. */
-  .nav-links .nav-crisis-item,
-  .nav-links .nav-zone-switch-item,
-  .nav-links li:has(.nav-shortlist) {
-    display: none !important;
-  }
-  .nav-links .nav-shortlist,
-  .nav-links .nav-zone-switch {
-    display: none !important;
-  }
-
-  .nav-hamburger {
-    display: none !important;
-  }
-  .public-mobile-nav {
-    display: none !important;
-  }
+  /* Mobile nav layout owned by assets/public-nav.css (2026-05-16 redesign).
+     This block intentionally no longer styles .nav-links / .nav-hamburger /
+     .public-mobile-nav — see crisis-ribbon + Menu sheet rules there. */
 
   .nav-cta {
     padding: 0.45rem 0.8rem;
-  }
-
-  .nav-zone-switch {
-    padding: 0.3rem 0.55rem !important;
-    font-size: 0.74rem !important;
   }
 
   .dir-header,

@@ -1287,68 +1287,9 @@ footer {
     min-height: auto;
     padding: 4rem 1.5rem 3rem;
   }
-  nav {
-    height: 56px;
-    padding: 0 1.25rem;
-  }
-  .nav-links {
-    display: none !important;
-  }
-  .nav-hamburger {
-    display: flex !important;
-  }
-  .public-mobile-nav.is-open {
-    display: flex;
-    flex-direction: column;
-    gap: 0.55rem;
-    position: fixed;
-    top: 56px;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: white;
-    z-index: 99;
-    overflow-y: auto;
-    padding: 1rem;
-  }
-  .public-mobile-nav-link {
-    display: grid;
-    gap: 0.12rem;
-    min-height: 60px;
-    padding: 0.72rem 0.74rem;
-    border-radius: 18px;
-    border: 1px solid rgba(26, 122, 143, 0.12);
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 248, 250, 0.96));
-    box-shadow: 0 12px 24px rgba(10, 45, 56, 0.08);
-    color: var(--slate);
-  }
-  .public-mobile-nav-link.is-current {
-    background: linear-gradient(180deg, rgba(14, 77, 95, 0.96), rgba(26, 122, 143, 0.94));
-    border-color: rgba(14, 77, 95, 0.2);
-    color: white;
-  }
-  .public-mobile-nav-link.is-current .public-mobile-nav-kicker,
-  .public-mobile-nav-link.is-current .public-mobile-nav-copy {
-    color: rgba(255, 255, 255, 0.78);
-  }
-  .public-mobile-nav-kicker {
-    font-size: 0.64rem;
-    font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-  .public-mobile-nav-title {
-    font-size: 0.82rem;
-    line-height: 1.25;
-    font-weight: 800;
-    color: inherit;
-  }
-  .public-mobile-nav-copy {
-    font-size: 0.72rem;
-    line-height: 1.4;
-    color: var(--slate);
-  }
+  /* Mobile nav layout owned by assets/public-nav.css (2026-05-16 redesign).
+     Old hamburger + card-grid sheet rules removed here to avoid fighting
+     the new crisis-ribbon + Menu sheet design. */
 }
 @media (prefers-reduced-motion: reduce) {
   *,
