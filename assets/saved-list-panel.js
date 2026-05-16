@@ -597,7 +597,7 @@ function bindShortlistTriggers() {
   document.addEventListener("click", function (event) {
     var trigger = event.target.closest("[data-shortlist-link]");
     if (!trigger) return;
-    // Plain Cmd/Ctrl-click should still navigate (open in new tab) — only
+    // Plain Cmd/Ctrl-click should still navigate (open in new tab), only
     // hijack a normal left-click without modifier keys.
     if (event.defaultPrevented) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;

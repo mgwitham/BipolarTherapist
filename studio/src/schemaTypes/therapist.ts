@@ -215,7 +215,7 @@ export const therapistType = defineType({
       of: [defineArrayMember({ type: "string" })],
       group: "practice",
       description:
-        "Other therapist _ids that an admin has marked 'not a duplicate of this one' — for example, two clinicians at the same group practice sharing one info@ inbox. The duplicate detector skips pairs in each other's override list.",
+        "Other therapist _ids that an admin has marked 'not a duplicate of this one'. For example, two clinicians at the same group practice sharing one info@ inbox. The duplicate detector skips pairs in each other's override list.",
     }),
     defineField({
       name: "claimedAt",
@@ -235,7 +235,7 @@ export const therapistType = defineType({
       type: "datetime",
       group: "practice",
       description:
-        "Timestamp of the therapist's first successful PATCH from the portal edit form. Sticky — never overwritten.",
+        "Timestamp of the therapist's first successful PATCH from the portal edit form. Sticky, never overwritten.",
     }),
     defineField({
       name: "portalLastSaveAt",
@@ -265,7 +265,7 @@ export const therapistType = defineType({
       type: "array",
       of: [{ type: "string" }],
       group: "practice",
-      description: "Field keys not yet completed — drives targeted profile-nudge emails.",
+      description: "Field keys not yet completed. Drives targeted profile-nudge emails.",
     }),
     defineField({
       name: "portalCompletenessUpdatedAt",

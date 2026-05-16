@@ -214,7 +214,7 @@ export function createAdminStore(initialState) {
             try {
               storage.setItem(entry.key, entry.serialize(self.get(entry.path)));
             } catch (_error) {
-              // Storage quota or disabled — keep the UI usable.
+              // Storage quota or disabled, keep the UI usable.
             }
           }, debounceMs);
           pendingTimers.set(entry.key, timer);

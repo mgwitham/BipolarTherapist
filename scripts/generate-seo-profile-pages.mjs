@@ -214,7 +214,7 @@ function buildFAQItems(therapist) {
   if (ins.length) {
     items.push({
       q: `What insurance does ${name} accept?`,
-      a: `${first} accepts ${ins.join(", ")}. Coverage varies by plan — confirm your benefits directly with ${first} or your carrier before your first appointment.`,
+      a: `${first} accepts ${ins.join(", ")}. Coverage varies by plan. Confirm your benefits directly with ${first} or your carrier before your first appointment.`,
     });
   } else {
     items.push({

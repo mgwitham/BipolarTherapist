@@ -72,7 +72,7 @@ export const sampleEngagementDigest = {
   changeFromPriorWeek: { profileViews: 4, contactClicks: 2 },
 };
 
-// Shape matches buildFounderFunnelDigest expectations — types align with
+// Shape matches buildFounderFunnelDigest expectations; types align with
 // the PATIENT_STEPS / SIGNUP_STEPS / CLAIM_STEPS / PORTAL_STEPS keys in
 // shared/founder-funnel-digest-domain.mjs. The digest aggregates by
 // type within a 7-day window before nowIso.
@@ -129,7 +129,7 @@ export const samplePortalContactForm = {
   therapistSlug: "jamie-rivera",
   licenseNumber: "109462",
   message:
-    "Hi — I just moved practices and need to update my street address and primary phone. Can you walk me through it?",
+    "Hi, I just moved practices and need to update my street address and primary phone. Can you walk me through it?",
 };
 
 // Sample fixture for the portal completeness nudge preview. Field keys
@@ -161,7 +161,7 @@ export const sampleLinks = {
   adminUrl: SAMPLE_PORTAL_BASE + "/admin.html",
 };
 
-// A minimal config snippet — the preview registry merges this with the live
+// A minimal config snippet; the preview registry merges this with the live
 // review config so capture-mode renders work even if RESEND_API_KEY is unset.
 // hasEmailConfig() is bypassed in capture mode.
 export function buildSampleEmailConfig(baseConfig) {

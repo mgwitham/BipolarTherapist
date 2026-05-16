@@ -4,7 +4,7 @@
  * Shared between the CLI prompt generator
  * (scripts/generate-discovery-prompt.mjs) and the admin panel
  * (assets/admin-sourcing-intelligence.js) so a discovery prompt generated
- * from either entry point has the same shape — same ROLE/MISSION
+ * from either entry point has the same shape: same ROLE/MISSION
  * (template), same ZIP-prioritization string, same exclusion block
  * format.
  *
@@ -101,22 +101,22 @@ export function buildExclusionBlock(clinicians) {
     })
     .sort();
   if (!rows.length) return "";
-  return `# ALREADY IN OUR DATABASE — DO NOT RE-SURFACE THESE
+  return `# ALREADY IN OUR DATABASE. DO NOT RE-SURFACE THESE
 
 The clinicians below are already in Bipolar Therapy Hub. Any row you
 emit for them will be rejected as a duplicate. Use this list as an
-EXCLUSION FILTER during research — if you find one of these names at
+EXCLUSION FILTER during research. If you find one of these names at
 the top of search results, skip and keep hunting for new specialists.
 
 This list is also a hint: if every top search result is on this list,
-the obvious well is dry. Go deeper — try narrower queries (specific
+the obvious well is dry. Go deeper, try narrower queries (specific
 modalities, subpopulations, non-SEO neighborhoods, academic
 affiliations), different license types (LCSW/LPCC if you've been
 finding MDs), or rotate to ZIPs you haven't hit yet.
 
 ${rows.join("\n")}
 
-End of exclusion list. The names above are OFF LIMITS — every row in
+End of exclusion list. The names above are OFF LIMITS. Every row in
 your output CSV must be a clinician whose name or license number does
 not appear above.
 `;
@@ -233,24 +233,24 @@ export function extractSearchQueriesFromAgentOutput(text) {
 
 /**
  * Render the "PRIOR QUERIES TO AVOID" block. The agent reads this and
- * is expected to vary its query patterns — running the exact same 8
+ * is expected to vary its query patterns. Running the exact same 8
  * queries twice on the same city hits the same SEO ceiling and surfaces
  * the same already-known clinicians.
  */
 export function buildPriorQueriesBlock(queries) {
   const list = Array.isArray(queries) ? queries.filter(Boolean) : [];
   if (!list.length) {
-    return `# PRIOR QUERIES — FIRST RUN FOR THIS CITY
+    return `# PRIOR QUERIES: FIRST RUN FOR THIS CITY
 
 (No prior runs found. Pick query patterns freely from the buckets above.)`;
   }
   const sorted = Array.from(new Set(list)).sort();
-  return `# PRIOR QUERIES — DO NOT REPEAT THESE EXACT PATTERNS
+  return `# PRIOR QUERIES: DO NOT REPEAT THESE EXACT PATTERNS
 
 Earlier runs for this city used the queries below. Repeating them
 hits the same Google rankings and re-surfaces clinicians we already
 have (or already rejected). Stay in the bucket structure but reach
-for variants — different modalities, different populations,
+for variants: different modalities, different populations,
 neighborhood-scoped, training-affiliation, etc.
 
 A query that overlaps in 2+ keywords with a prior query counts as a

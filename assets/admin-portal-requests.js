@@ -45,7 +45,7 @@ export function renderPortalRequestsQueuePanel(options) {
       var canMarkInReview = item.status !== "in_review";
       var canResolve = item.status !== "resolved";
       var priorityBadge = item.is_priority
-        ? '<span class="tag" style="background:#fde68a;color:#78350f;font-weight:700" title="Paid-tier therapist — same-day edit review">PRIORITY</span>'
+        ? '<span class="tag" style="background:#fde68a;color:#78350f;font-weight:700" title="Paid-tier therapist, same-day edit review">PRIORITY</span>'
         : "";
       return (
         '<article class="queue-card"' +

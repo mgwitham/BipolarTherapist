@@ -794,7 +794,7 @@ function describeFeaturedStatus(subscription) {
       return (
         "14-day free trial active." +
         (trialEnd ? " Trial ends " + trialEnd + "." : "") +
-        " You can cancel anytime before then — no charge until day 15. " +
+        " You can cancel anytime before then, no charge until day 15. " +
         "Use Manage subscription below to cancel in one click."
       );
     }
@@ -901,7 +901,7 @@ function renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail) 
 
 // When a subscription is flagged cancel_at_period_end, surface a
 // prominent top-of-portal banner so the user isn't surprised by a
-// sudden tier change on the end date. Idempotent — re-renders cleanly
+// sudden tier change on the end date. Idempotent, re-renders cleanly
 // if subscription state changes without leaving a duplicate element.
 function renderCancelScheduledBanner(subscription) {
   var existing = document.getElementById("portalCancelScheduledBanner");
@@ -954,7 +954,7 @@ function renderFeaturedCard(subscription) {
       '<button class="btn-primary" type="button" id="portalFeaturedUpgradeButton">Start 14-day free trial</button>';
   }
   if (hasCustomer) {
-    // Surface cancel intent front and center — this is the action users
+    // Surface cancel intent front and center, this is the action users
     // look for most urgently on a trial and it was buried under "Manage
     // billing" (sounded like a payment-method update, not a cancel path).
     var billingLabel =
@@ -1028,7 +1028,7 @@ async function handleFeaturedBillingClick(event) {
   }
 }
 
-// Portal analytics V0 — render five numbers summarizing this week's
+// Portal analytics V0, render five numbers summarizing this week's
 // engagement: profile views total, contact intents (CTA clicks), views
 // from match results, views from directory search, and a period label.
 // Numbers come from the therapistEngagementSummary Sanity document for
@@ -1036,7 +1036,7 @@ async function handleFeaturedBillingClick(event) {
 // and /engagement/cta-click endpoints.
 //
 // If there's no summary for the current month yet, render a gentle
-// empty state instead of zeroes — a new listing literally has no data,
+// empty state instead of zeroes, a new listing literally has no data,
 // and "0 views" in big type reads worse than "No activity yet."
 // Format an ISO-week period key (e.g. "2026-W16") for the analytics card.
 // Prefer "Week of Apr 13" when we have a periodStart datetime from the
@@ -1849,7 +1849,7 @@ async function loadAnalyticsIntoPortal(therapist) {
   try {
     // Fetch analytics + subscription in parallel; subscription drives the
     // free-vs-paid render split. Either failing independently shouldn't
-    // blow up the other — analytics is always shown; subscription just
+    // blow up the other, analytics is always shown; subscription just
     // toggles depth.
     const [analyticsResult, subscriptionResult] = await Promise.all([
       fetchPortalAnalytics().catch(function () {
@@ -1912,7 +1912,7 @@ async function loadSubscriptionIntoFeaturedCard() {
     if (body) {
       body.textContent = "Featured status is unavailable right now. Refresh to try again.";
     }
-    // If subscription fetch failed, err on the side of showing the upsell —
+    // If subscription fetch failed, err on the side of showing the upsell,
     // worst case a paid therapist sees a prompt they can dismiss.
     renderPortalWelcomeUpsell(null, therapistSlug, therapistEmail);
   }
@@ -1933,7 +1933,7 @@ function renderStripeReturnBanner() {
   var tone = "neutral";
   if (state === "success") {
     message =
-      "Trial active. You're live in the directory the moment you save a bio below — no admin review, no waiting.";
+      "Trial active. You're live in the directory the moment you save a bio below, no admin review, no waiting.";
     tone = "success";
   } else if (state === "cancel") {
     message = "Checkout canceled. No charge was made. You can try again anytime.";
@@ -1998,7 +1998,7 @@ function safeExternalUrl(value) {
 // 100-point system per the therapist-dashboard redesign spec.
 //
 // Base = 40 points: what's typically captured at signup (name + city +
-// credentials + specialties + format) — so a freshly claimed listing
+// credentials + specialties + format), so a freshly claimed listing
 // lands in the "Needs work · 50/100" range until the optional rows
 // start filling in.
 //
@@ -2018,7 +2018,7 @@ function safeExternalUrl(value) {
 //
 // Maximum: 40 + 60 = 100.
 function computeProfileScore(therapist) {
-  // Mirror of computeScore in portal-td-completeness.js — keep the two
+  // Mirror of computeScore in portal-td-completeness.js, keep the two
   // in sync so the header badge and the panel both display the same
   // number on every render.
   var t = therapist || {};
@@ -2194,7 +2194,7 @@ function renderPortal(therapist, options) {
   var reviewTiming = verifiedClaim ? buildPortalReviewTiming(relatedApplication) : null;
 
   // Upsell banner: only shown on the direct post-signup landing (entry=free).
-  // Skipped for returning visits — renderPortalWelcomeUpsell checks the
+  // Skipped for returning visits, renderPortalWelcomeUpsell checks the
   // per-slug dismiss state so it never re-appears after the therapist
   // closes it. For all other visits the banner stays empty per the
   // portal redesign decision (premature upsells hurt first impressions).
@@ -2250,7 +2250,7 @@ function renderPortal(therapist, options) {
       "</form>"
     : "";
 
-  // Zone 3 — Bottom row per spec Section 6: "This week" analytics card
+  // Zone 3, Bottom row per spec Section 6: "This week" analytics card
   // (left) + "Your plan" subscription card (right), equal-width.
   // Existing handlers paint these cards by ID:
   //   - #portalAnalyticsBody / #portalAnalyticsGrid (analytics fetcher)
@@ -2260,7 +2260,7 @@ function renderPortal(therapist, options) {
   // empty-state copy without any handler changes.
   var planZone = verifiedClaim
     ? '<section class="td-bottom-grid">' +
-      // "This week" — analytics card. Empty-state copy comes from the
+      // "This week", analytics card. Empty-state copy comes from the
       // spec; handlers replace #portalAnalyticsBody when real numbers
       // are available.
       '<article class="portal-card td-bottom-card" id="portalAnalyticsCard">' +
@@ -2272,7 +2272,7 @@ function renderPortal(therapist, options) {
       "</p>" +
       '<div id="portalAnalyticsGrid" hidden></div>' +
       "</article>" +
-      // "Your plan" — subscription card. Free-listing static copy
+      // "Your plan", subscription card. Free-listing static copy
       // until the subscription handler hydrates the active plan state.
       '<article class="portal-card td-bottom-card" id="portalFeaturedCard" ' +
       'data-therapist-slug="' +
@@ -2295,7 +2295,7 @@ function renderPortal(therapist, options) {
       "</section>"
     : "";
 
-  // Zone 4 — Review activity & coaching. Collapsed under one disclosure.
+  // Zone 4, Review activity & coaching. Collapsed under one disclosure.
   var hasReviewContent = Boolean(
     progress ||
     profileCoaching ||
@@ -2418,7 +2418,7 @@ function renderPortal(therapist, options) {
       "</div></details>"
     : "";
 
-  // Zone 5 — Help & account requests. Demoted behind one disclosure.
+  // Zone 5, Help & account requests. Demoted behind one disclosure.
   var helpZone =
     '<details class="portal-card portal-help-details"><summary><strong>Help &amp; account requests</strong><span class="portal-subtle" style="font-size:0.85rem;margin-left:0.5rem">Pause, remove, update, or ask a question</span></summary>' +
     '<p class="portal-subtle" style="margin:0.5rem 0 0.9rem">Claim, pause, removal, and profile-update requests route to the review team. Your edits above still publish directly; this form is for things the editor can\'t change.</p>' +
@@ -2455,7 +2455,7 @@ function renderPortal(therapist, options) {
   //          View public listing pill
   //   Row 2: sign out only (muted)
   //
-  // The accepting chip is intentionally compact — it's an operational
+  // The accepting chip is intentionally compact, it's an operational
   // control, not a status banner. The "Not live yet" onboarding state
   // lives separately above the completeness editor (renderNotLiveBar in
   // portal-td-completeness.js), which is the right place for it.
@@ -2532,9 +2532,9 @@ function renderPortal(therapist, options) {
 
   bindPortalPhotoUpload(therapist);
 
-  // Phase 1 — focused onboarding flow for clinicians who haven't yet
+  // Phase 1, focused onboarding flow for clinicians who haven't yet
   // satisfied the minimum go-live requirements (specialties + practice
-  // TD-B: Profile completeness — the unified editor. Replaces Phase 1
+  // TD-B: Profile completeness, the unified editor. Replaces Phase 1
   // and Phase 2 with a single accordion of every editable field. The
   // legacy long-form editor stays in the DOM for now but is hidden;
   // any field whose inline form hasn't been built yet (TD-C / TD-D
@@ -2598,7 +2598,7 @@ function renderPortal(therapist, options) {
     }
   });
 
-  // Editor-jump affordance — coaching / progress / review-zone deep
+  // Editor-jump affordance, coaching / progress / review-zone deep
   // links still emit "[data-portal-editor-jump]" anchors pointing at
   // #portalEditProfile. The legacy editor was removed in TF-C, so we
   // redirect those clicks to the new completeness panel and smooth-
@@ -2618,7 +2618,7 @@ function renderPortal(therapist, options) {
     // Still reveal the welcome-upsell banner on the unverified claim-token
     // state. The magic-link arrival is itself proof of ownership, so there's
     // no reason to hide the upgrade CTA behind the ceremonial "Claim this
-    // profile" button — especially when that button can get stuck on
+    // profile" button, especially when that button can get stuck on
     // replayed / used tokens and leave the user with no way forward.
     renderPortalWelcomeUpsell(null, therapist.slug || slug, therapist.email || "");
   }
@@ -2696,7 +2696,7 @@ function renderPortal(therapist, options) {
       try {
         await signOutTherapistSession();
       } catch (_error) {
-        // Ignore — we still want to clear locally and redirect.
+        // Ignore, we still want to clear locally and redirect.
       }
       clearTherapistSessionToken();
       var redirect = new URL(window.location.href);
@@ -2756,13 +2756,13 @@ function renderPortal(therapist, options) {
         return;
       }
     } catch (_devError) {
-      // API not running with ALLOW_DEV_LOGIN=true — fall through to normal flow.
+      // API not running with ALLOW_DEV_LOGIN=true, fall through to normal flow.
     }
   }
 
   if (token) {
     // Auto-accept on magic-link arrival. Email receipt is already proof
-    // of ownership — making the user click an additional "Claim this
+    // of ownership, making the user click an additional "Claim this
     // profile" button is ceremony, and created a failure mode where
     // replayed / used tokens dead-ended the user with no recovery.
     // The server's claim-accept is now idempotent for already-claimed
@@ -2773,7 +2773,7 @@ function renderPortal(therapist, options) {
     try {
       await acceptTherapistClaim(token);
     } catch (_acceptError) {
-      // Non-fatal at this stage — if the token is invalid/expired we'll
+      // Non-fatal at this stage, if the token is invalid/expired we'll
       // surface it below via claim-session; if it's the rare
       // not-yet-covered failure mode, the "Verify claim" fallback will
       // still render.
@@ -2820,7 +2820,7 @@ function renderPortal(therapist, options) {
           return;
         }
       } catch (_error) {
-        // Session token invalid / expired — fall through to lookup.
+        // Session token invalid / expired, fall through to lookup.
       }
     }
     renderLookupState();

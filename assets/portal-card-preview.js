@@ -30,7 +30,7 @@ import { escapeHtml } from "./escape-html.js";
 // Portal-specific specialty-pill renderer. Unlike the patient-facing
 // match card (which filters out generic terms like "Bipolar disorder"
 // and "Psychosis" so the listing reads less clinical), the portal
-// preview shows the clinician exactly what they selected — they need
+// preview shows the clinician exactly what they selected, they need
 // full transparency about what they've added to their listing.
 function renderPortalSpecialtyPills(specialties) {
   var list = Array.isArray(specialties) ? specialties.filter(Boolean) : [];
@@ -108,7 +108,7 @@ function getCtaLabel(state) {
 export function renderPortalCardPreview(state, options) {
   var s = state || {};
 
-  // Avatar — when no photo, the round-avatar primitive renders a colored
+  // Avatar, when no photo, the round-avatar primitive renders a colored
   // initials circle. That's already a reasonable placeholder, so we don't
   // need a separate empty-state for it.
   var avatarHtml =
@@ -133,18 +133,18 @@ export function renderPortalCardPreview(state, options) {
       : "") +
     "</h3>";
 
-  // Specialty pills (Zone 1) — placeholder when empty
+  // Specialty pills (Zone 1), placeholder when empty
   var pillsHtml = hasSpecialties(s)
     ? renderPortalSpecialtyPills(s.specialties)
     : renderPlaceholderPills();
 
-  // Voice cascade (Zone 2) — placeholder when no care_approach AND no
+  // Voice cascade (Zone 2), placeholder when no care_approach AND no
   // populations / languages / modalities to fall through to. We force
   // the placeholder when the user simply hasn't filled the voice yet,
   // since that's the spec'd portal behavior.
   var voiceHtml = hasCareApproach(s) ? renderVoiceCascade(s) : renderPlaceholderVoice();
 
-  // Info row — location / cost / availability
+  // Info row, location / cost / availability
   var infoParts = [];
 
   if (hasPracticeMode(s)) {
@@ -175,7 +175,7 @@ export function renderPortalCardPreview(state, options) {
       "</div>"
     : "";
 
-  // Actions — always render the spec'd CTA labels so the clinician can
+  // Actions, always render the spec'd CTA labels so the clinician can
   // see what patients will see. These are non-functional in the preview.
   var ctaLabel = getCtaLabel(s);
   var actionsHtml =

@@ -345,7 +345,7 @@ export async function handleRecoveryRoutes(context) {
           severity: "warn",
           code: "free_email_provider",
           message:
-            "Requested email is at a free provider (gmail/yahoo/etc.) — no domain anchor. Verify identity through another channel.",
+            "Requested email is at a free provider (gmail/yahoo/etc.), no domain anchor. Verify identity through another channel.",
         });
       }
       const ipLicenses = req.requesterIp ? ipCounts.get(req.requesterIp) : null;
@@ -368,7 +368,7 @@ export async function handleRecoveryRoutes(context) {
         flags.push({
           severity: "high",
           code: "license_not_active",
-          message: `DCA shows license status as "${anchor.licenseStatus}" (not active). Verify before approving — the listing may need to be unpublished instead.`,
+          message: `DCA shows license status as "${anchor.licenseStatus}" (not active). Verify before approving. The listing may need to be unpublished instead.`,
         });
       }
       if (anchor && !anchor.email && !anchor.website) {
@@ -376,7 +376,7 @@ export async function handleRecoveryRoutes(context) {
           severity: "warn",
           code: "no_anchors_available",
           message:
-            "No email, no website on the profile — only DCA address-of-record + phone (if any) are verification channels. Consider phone verification or postal code.",
+            "No email, no website on the profile. Only DCA address-of-record + phone (if any) are verification channels. Consider phone verification or postal code.",
         });
       }
       return { ...req, anchor: anchor || null, flags };
@@ -759,7 +759,7 @@ export async function handleRecoveryRoutes(context) {
         400,
         {
           error:
-            "Confirmation channel must be an address the requester did NOT provide — otherwise the requester could self-confirm. Source it from DCA, a practice website, or similar.",
+            "Confirmation channel must be an address the requester did NOT provide, otherwise the requester could self-confirm. Source it from DCA, a practice website, or similar.",
           reason: "channel_matches_requester",
         },
         origin,
@@ -1114,7 +1114,7 @@ export async function handleRecoveryRoutes(context) {
       {
         ok: true,
         outcome: "confirmed",
-        message: "Thanks — you're back in. Check your inbox for the sign-in link.",
+        message: "Thanks, you're back in. Check your inbox for the sign-in link.",
       },
       origin,
       config,

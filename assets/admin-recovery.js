@@ -74,14 +74,14 @@ function isColdTakeover(req) {
 }
 
 // Therapist-self-confirm UI block. Only rendered on cold-takeover
-// cards — stale-email recoveries already have a prior email anchor so
+// cards, stale-email recoveries already have a prior email anchor so
 // the admin can approve directly. Three states:
 //   1. Not yet sent → form to pick a confirmation channel
 //   2. Sent, pending therapist response → status line + "resend to
 //      different channel" affordance
 //   3. Responded → the response is already in the card's outcome copy,
 //      so nothing to render here; the card itself has moved state.
-// Verification anchors block — surfaces every signal admin can use to
+// Verification anchors block, surfaces every signal admin can use to
 // validate the request, pulled from the linked therapist profile and
 // embedded by the server in the request payload as `req.anchor`.
 // Designed for at-a-glance scanning so the reviewer doesn't need to
@@ -115,12 +115,12 @@ function renderAnchorsBlock(req) {
           : "") +
         dcaProfile,
     },
-    { label: "DCA address", html: dcaAddress ? escapeHtml(dcaAddress) : "—" },
+    { label: "DCA address", html: dcaAddress ? escapeHtml(dcaAddress) : "" },
     {
       label: "Phone",
       html: a.phone
         ? '<a href="tel:' + escapeHtml(a.phone) + '">' + escapeHtml(a.phone) + "</a>"
-        : "—",
+        : "",
     },
     {
       label: "Website",
@@ -130,9 +130,9 @@ function renderAnchorsBlock(req) {
           '" target="_blank" rel="noopener">' +
           escapeHtml(a.website.replace(/^https?:\/\//, "").replace(/\/$/, "")) +
           " ↗</a>"
-        : "—",
+        : "",
     },
-    { label: "Email on profile", html: escapeHtml(a.email || "—") },
+    { label: "Email on profile", html: escapeHtml(a.email || "") },
   ];
   if (a.providerNpi) {
     items.push({ label: "NPI", html: "<code>" + escapeHtml(a.providerNpi) + "</code>" });
@@ -182,7 +182,7 @@ function renderRequestCard(req) {
   const FREE_EMAIL = /@(gmail|yahoo|hotmail|outlook|icloud|aol|proton(mail)?|mail|ymail|gmx)\./i;
   const isFreeEmail = req.requestedEmail && FREE_EMAIL.test(req.requestedEmail);
 
-  // Header strip — the 4 things you scan in <10s before making a call:
+  // Header strip, the 4 things you scan in <10s before making a call:
   // who, what license, what email they want, how old + risk.
   const headerStrip =
     '<header class="rec-strip">' +
@@ -198,7 +198,7 @@ function renderRequestCard(req) {
       : "") +
     "</h3>" +
     '<p class="rec-strip-email">Requesting access as <strong>' +
-    escapeHtml(req.requestedEmail || "—") +
+    escapeHtml(req.requestedEmail || "") +
     "</strong>" +
     (isFreeEmail ? ' <span class="rec-pill rec-pill-warn">free email</span>' : "") +
     "</p>" +
@@ -223,10 +223,10 @@ function renderRequestCard(req) {
     '<h4 class="rec-block-title">Request</h4>' +
     '<dl class="rec-defs">' +
     "<dt>Reason</dt><dd>" +
-    escapeHtml(req.reason || "—") +
+    escapeHtml(req.reason || "") +
     "</dd>" +
     "<dt>Prior email</dt><dd>" +
-    escapeHtml(req.priorEmail || "—") +
+    escapeHtml(req.priorEmail || "") +
     "</dd>" +
     (req.requesterIp
       ? "<dt>Requester IP</dt><dd><code>" + escapeHtml(req.requesterIp) + "</code></dd>"
@@ -243,7 +243,7 @@ function renderRequestCard(req) {
     (nameMismatch ? ' <span class="rec-pill rec-pill-warn">differs from request</span>' : "") +
     "</dd>" +
     "<dt>Email on record</dt><dd>" +
-    escapeHtml(req.profileEmailHint || "—") +
+    escapeHtml(req.profileEmailHint || "") +
     "</dd>" +
     (req.profileClaimedEmail
       ? "<dt>Previously claimed by</dt><dd>" + escapeHtml(req.profileClaimedEmail) + "</dd>"
@@ -360,7 +360,7 @@ function renderRequestCard(req) {
       (req.licenseNumber ? " · " + escapeHtml(req.licenseNumber) : "") +
       "</span>" +
       '<span class="rec-row-email">' +
-      escapeHtml(req.requestedEmail || "—") +
+      escapeHtml(req.requestedEmail || "") +
       "</span>" +
       '<span class="rec-row-chevron" aria-hidden="true">▾</span>' +
       "</summary>";
@@ -407,7 +407,7 @@ function renderRequestCard(req) {
 function renderDashboard(container, requests) {
   const pending = requests.filter((r) => r.status === "pending");
   const approved = requests.filter((r) => r.status === "approved");
-  // Rejected + dismissed share a bucket — both are "didn't grant access"
+  // Rejected + dismissed share a bucket, both are "didn't grant access"
   // outcomes and the admin rarely needs to distinguish them at a glance.
   const closed = requests.filter((r) => r.status === "rejected" || r.status === "dismissed");
 
@@ -418,7 +418,7 @@ function renderDashboard(container, requests) {
       '<section class="admin-recovery-section">' +
       "<h3>" +
       escapeHtml(heading) +
-      " — " +
+      ", " +
       items.length +
       "</h3>" +
       (items.length
@@ -457,7 +457,7 @@ function setFeedback(requestId, tone, message) {
   node.hidden = false;
   node.setAttribute("data-tone", tone);
   node.textContent = message;
-  // Warnings/errors are the ones the admin needs to see immediately —
+  // Warnings/errors are the ones the admin needs to see immediately,
   // scroll into view so a blocked submit never looks like a silent click.
   if (tone === "warn" || tone === "error") {
     if (typeof node.scrollIntoView === "function") {

@@ -16,7 +16,7 @@
 //
 // The registry: subscribes once to the controller's declared storeSlices,
 // and re-renders the controller on any store change that overlaps. Render
-// must be idempotent — same store snapshot in, same DOM out.
+// must be idempotent, same store snapshot in, same DOM out.
 //
 // Adding a tab is `register(controller)` plus the controller module itself.
 // The old `renderXyz()` orchestration functions in admin.js shrink to

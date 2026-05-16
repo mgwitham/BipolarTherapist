@@ -1,7 +1,7 @@
 import { getDistanceMilesFromZipToTherapist } from "./zip-lookup.js";
 
 // In-person searches with a known ZIP should not surface therapists beyond
-// realistic commute range. Penalizing their score is not enough on its own —
+// realistic commute range. Penalizing their score is not enough on its own,
 // when no local supply exists, far-away listings would still rank top because
 // every entry shares the same penalty. Filtering out these entries lets the
 // empty-state (telehealth fallback) trigger as designed.
@@ -19,9 +19,9 @@ function getTherapistZipValue(therapist) {
 
 // Proximity bonus used for match-page ranking.
 // In-person uses the full agreed scale so nearby providers surface clearly.
-// "Any" format uses a half-strength signal — close providers get a nudge but
+// "Any" format uses a half-strength signal, close providers get a nudge but
 // telehealth-only providers aren't penalised for being across the county.
-// Telehealth format: always returns 0 — distance is irrelevant.
+// Telehealth format: always returns 0, distance is irrelevant.
 function getMatchProximityBonus(miles, isInPerson) {
   if (!Number.isFinite(miles)) return 0;
   if (isInPerson) {
@@ -30,7 +30,7 @@ function getMatchProximityBonus(miles, isInPerson) {
     if (miles < 30) return -8;
     return -20;
   }
-  // "Any" format — light proximity nudge only
+  // "Any" format, light proximity nudge only
   if (miles < 5) return 10;
   if (miles < 15) return 5;
   if (miles < 30) return -4;

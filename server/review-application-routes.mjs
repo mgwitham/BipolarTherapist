@@ -102,7 +102,7 @@ export async function handleApplicationRoutes(context) {
     // expects. Empty strings would fail schema validation; these get
     // scrubbed when buildTherapistDocument runs and are replaced by
     // the therapist's own content via the portal editor.
-    const STUB_VALUE = "Pending — completed after approval.";
+    const STUB_VALUE = "Pending, completed after approval.";
     const intakeBody = {
       name: name,
       email: email,

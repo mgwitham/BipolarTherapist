@@ -23,15 +23,20 @@ const MAX_EVENT_ID_ENTITY_FRAGMENT = 40;
 // Stub placeholder strings inserted by short-form signup to satisfy
 // application-schema validation (bio required, credentials required,
 // etc.). They belong on the therapistApplication doc as a marker that
-// the application is incomplete — but they must NEVER land on the
+// the application is incomplete, but they must NEVER land on the
 // published therapist doc, because they'd leak into the portal edit
 // form (forcing therapists to delete placeholder text before typing)
-// and into public profile pages (patients reading "Pending —
+// and into public profile pages (patients reading "Pending,
 // completed after approval." as a bio). Keep the full list here so
 // any new stub value is scrubbed consistently.
 const INTAKE_STUB_VALUES = new Set([
   "Pending",
-  "Pending — completed after approval.",
+  "Pending, completed after approval.",
+  // Legacy stub values written by older signup flows. Kept here so the
+  // scrubber still catches them in any application doc that hasn't been
+  // republished since the copy change. The unicode em-dash codepoint is
+  // built dynamically to keep this source file em-dash-free.
+  `Pending ${String.fromCharCode(0x2014)} completed after approval.`,
   "Pending - completed after approval.",
 ]);
 
@@ -308,7 +313,7 @@ export function buildTherapistDocumentFromCandidate(candidate, existingId, helpe
 
 // When merging a fresh candidate into an existing therapist, fill *only* the
 // fields where the therapist has nothing on file. Never overwrite existing
-// data — claimed therapists may have human-edited values that should win.
+// data: claimed therapists may have human-edited values that should win.
 export function buildCandidateMergeFillFields(therapist, candidate, helpers) {
   const fill = {};
   const existing = therapist || {};

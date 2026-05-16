@@ -692,7 +692,7 @@ export function renderApplicationsPanel(options) {
   });
 }
 
-// Controller registration. PR 5 of the admin.js refactor — the hot
+// Controller registration. PR 5 of the admin.js refactor, the hot
 // path. Same buildOptions(store) pattern as the confirmation tabs in
 // PR 4: a ~70-prop option bag (publish/approve/reject callbacks, data
 // getters, recommender helpers) lives in admin.js where the helpers

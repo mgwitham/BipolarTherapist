@@ -312,7 +312,7 @@ export async function signOutTherapistSession() {
       headers: getTherapistHeaders(),
     });
   } catch (_error) {
-    // Non-fatal — caller clears localStorage regardless.
+    // Non-fatal, caller clears localStorage regardless.
     return { ok: false };
   }
 }
@@ -493,7 +493,7 @@ export async function resendRecoverySignin(requestId) {
   });
 }
 
-// Account-recovery queue — therapist submits a request, admin reviews
+// Account-recovery queue, therapist submits a request, admin reviews
 // manually, therapist gets an approval/rejection email. Used when
 // they've lost access to the email on file AND can't domain-verify.
 export async function requestAccountRecovery(payload) {
@@ -540,7 +540,7 @@ export async function searchTherapistQuickClaim(query) {
   });
 }
 
-// Single-result lookup by slug — used for /claim?slug=X deep-links
+// Single-result lookup by slug, used for /claim?slug=X deep-links
 // so clicking a listing on /signup drops the therapist straight into
 // the confirm panel without another search.
 export async function lookupTherapistBySlug(slug) {
@@ -604,7 +604,7 @@ export async function fetchTherapistSubscription() {
   });
 }
 
-// Portal analytics V0 — returns the authenticated therapist's
+// Portal analytics V0, returns the authenticated therapist's
 // engagement summary for the current calendar month plus the prior
 // month. Server endpoint is read-only and requires a therapist session
 // token (getTherapistHeaders supplies it from localStorage).

@@ -8,7 +8,7 @@ import { getLicenseStateBoardInfo } from "./license-states.mjs";
 // licensureVerification.expirationWarningsSent so we don't double-send,
 // and so admin can see the trail in Sanity.
 //
-// Soft-fails on individual therapists — the cron should never bail out
+// Soft-fails on individual therapists; the cron should never bail out
 // the whole batch because one email send threw.
 //
 // CLI for ops:
@@ -56,18 +56,18 @@ function buildEmail(therapist, threshold, expirationDate, portalBaseUrl) {
   const portalLink = portalBaseUrl ? `${String(portalBaseUrl).replace(/\/+$/, "")}/portal` : "";
   const boardInfo = getLicenseStateBoardInfo(therapist.licenseState);
   const stateAbbr = boardInfo.abbreviation || therapist.licenseState || "your state";
-  const subject = `Your ${stateAbbr} license expires in ${threshold} days — renew before ${expirationDate}`;
+  const subject = `Your ${stateAbbr} license expires in ${threshold} days. Renew before ${expirationDate}`;
   const heading = `Your ${stateAbbr} license expires in ${threshold} days`;
   const greetingName = therapist.name ? therapist.name.split(/\s+/)[0] : "";
   const preheader = `Renew before ${expirationDate} or your listing pauses.`;
 
-  const bodyHtml = `<p style="margin:0 0 12px 0;">Your ${boardInfo.fullName} license on file with us expires on <strong>${expirationDate}</strong> — that's <strong>${threshold} days</strong> away.</p>
-<p style="margin:0 0 12px 0;">If you've already renewed with the state board, no action is needed — ${boardInfo.freshnessCheckNote} and your status will refresh automatically.</p>
+  const bodyHtml = `<p style="margin:0 0 12px 0;">Your ${boardInfo.fullName} license on file with us expires on <strong>${expirationDate}</strong>, which is <strong>${threshold} days</strong> away.</p>
+<p style="margin:0 0 12px 0;">If you've already renewed with the state board, no action is needed. ${boardInfo.freshnessCheckNote} and your status will refresh automatically.</p>
 <p style="margin:0 0 8px 0;">If you haven't renewed yet:</p>
 <ul style="margin:0 0 16px 1.1rem;padding:0;font-size:14px;line-height:1.55;">
   <li style="margin-bottom:6px;">${boardInfo.renewalInstruction}</li>
   <li style="margin-bottom:6px;">Once the state shows your license active, your directory listing stays live with no work on your end.</li>
-  <li style="margin-bottom:0;">If your license lapses, your listing automatically goes inactive until it's renewed — patients won't be matched to you in the meantime.</li>
+  <li style="margin-bottom:0;">If your license lapses, your listing automatically goes inactive until it's renewed, and patients won't be matched to you in the meantime.</li>
 </ul>`;
 
   const html = renderBrandedEmail({
@@ -82,8 +82,8 @@ function buildEmail(therapist, threshold, expirationDate, portalBaseUrl) {
     heading,
     greetingName,
     bodyText:
-      `Your ${boardInfo.fullName} license on file expires on ${expirationDate} — that's ${threshold} days away. ` +
-      `If you've already renewed, no action is needed — ${boardInfo.freshnessCheckNote} and your status will refresh automatically. ` +
+      `Your ${boardInfo.fullName} license on file expires on ${expirationDate}, which is ${threshold} days away. ` +
+      `If you've already renewed, no action is needed. ${boardInfo.freshnessCheckNote} and your status will refresh automatically. ` +
       `If you haven't renewed yet: ${boardInfo.renewalInstruction} Once the state shows your license active, your directory listing stays live. If your license lapses, your listing goes inactive until it's renewed.`,
     primaryCta: portalLink ? { label: "Manage my listing", url: portalLink } : null,
   });
@@ -110,7 +110,7 @@ export async function runLicenseExpirationWarnings({
   const portalBaseUrl = config && config.portalBaseUrl;
   const emailConfigured = hasEmailConfig(config);
   if (!emailConfigured && !dryRun) {
-    logFn("Email config missing — running as dry-run.");
+    logFn("Email config missing, running as dry-run.");
     dryRun = true;
   }
 

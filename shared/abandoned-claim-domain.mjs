@@ -59,12 +59,12 @@ export function buildAbandonedClaimAlert(record) {
   return {
     subject: `[ABANDONED] ${name} requested a claim link but didn't claim`,
     lines: [
-      `Name: ${record.name || "—"}`,
-      `Email: ${record.email || "—"}`,
-      `Slug: ${record.slug || "—"}`,
+      `Name: ${record.name || "(none)"}`,
+      `Email: ${record.email || "(none)"}`,
+      `Slug: ${record.slug || "(none)"}`,
       `Requested at: ${record.requestedAt}`,
       "",
-      "Consider a personal follow-up — they showed intent.",
+      "Consider a personal follow-up, they showed intent.",
     ],
   };
 }

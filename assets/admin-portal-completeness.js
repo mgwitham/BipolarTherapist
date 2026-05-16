@@ -71,10 +71,10 @@ function openNudgePreview(options) {
     .then(function (result) {
       const p = (result && result.preview) || {};
       const isBatch = slugs.length > 1;
-      const subjectLine = p.subject || "—";
+      const subjectLine = p.subject || "";
       const recipientLine = isBatch
         ? `<strong>Sending to ${slugs.length} therapists.</strong> Preview shown is for <em>${escapeHtml(p.name || previewSlug)}</em>. Each recipient gets their own personalized score and missing-fields list.`
-        : `To: <strong>${escapeHtml(p.to_email || "—")}</strong>`;
+        : `To: <strong>${escapeHtml(p.to_email || "")}</strong>`;
       bodyEl.innerHTML =
         '<div class="pc-preview-meta">' +
         '<div><span class="pc-preview-label">Subject</span><div class="pc-preview-subject">' +
@@ -202,7 +202,7 @@ export async function renderPortalCompletenessPanel() {
   // Bind filter-pill click handlers. Called from both the populated and
   // the empty-state branches of renderTable so a filter that drops the
   // count to zero doesn't strand the pills without click handlers
-  // (which was the "freeze" symptom — pills repainted but unresponsive).
+  // (which was the "freeze" symptom, pills repainted but unresponsive).
   function bindFilterHandlers() {
     root.querySelectorAll("[data-pc-filter]").forEach((btn) => {
       btn.addEventListener("click", function () {
@@ -244,7 +244,7 @@ export async function renderPortalCompletenessPanel() {
       return;
     }
 
-    // Aggregate counter strip — tells the admin at a glance how many
+    // Aggregate counter strip, tells the admin at a glance how many
     // nudges have ever shipped + how many today. Driven entirely off
     // the per-row counters, so no extra fetch.
     const totalNudges = rows.reduce((sum, r) => sum + (r.portalNudgeSentCount || 0), 0);
@@ -313,7 +313,7 @@ export async function renderPortalCompletenessPanel() {
       // as "0 times" which can imply data quality concern.
       const nudgeCount = Number(t.portalNudgeSentCount || 0);
       const lastAt = t.portalNudgeLastSentAt;
-      let lastNudgeHtml = '<span class="subtle">—</span>';
+      let lastNudgeHtml = '<span class="subtle">, </span>';
       let recentClass = "";
       if (lastAt) {
         const daysAgo = Math.max(

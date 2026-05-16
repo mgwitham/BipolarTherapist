@@ -42,7 +42,7 @@
     <link rel="stylesheet" href="assets/directory-bottom-sheet.css" />
     <link rel="stylesheet" href="assets/directory-redesign.css" />
     <link rel="stylesheet" href="assets/public-nav.css" />
-    <!-- JSON-LD structured data — populated by directory.js after render -->
+    <!-- JSON-LD structured data, populated by directory.js after render -->
     <script type="application/ld+json" id="dirJsonLd"></script>
   </head>
   <body class="dir-vb">
@@ -143,9 +143,9 @@
       </a>
     </div>
 
-    <!-- Compact page header — title + live result count. No hero, no
+    <!-- Compact page header, title + live result count. No hero, no
          subtitle. Old kicker/description elements live in JS as legacy
-         IDs (directoryHeroTitle / directoryHeroDescription) — kept as
+         IDs (directoryHeroTitle / directoryHeroDescription), kept as
          hidden mirrors so directory.js text updates don't throw. -->
     <header class="dir-header">
       <div class="dir-header-inner">
@@ -159,7 +159,7 @@
 
     <main class="dir-vb-main">
       <div class="dir-vb-canvas">
-        <!-- Filter bar — chip row on the left, sort on the right.
+        <!-- Filter bar, chip row on the left, sort on the right.
              Step 3 of directory redesign: 5 boolean toggle chips wire to
              Insurance and Gender chips open the existing modal for now
              (dedicated dropdowns ship with the drawer rework in step 6).
@@ -312,7 +312,7 @@
             </div>
           </div>
 
-          <!-- Active summary bar — populated by directory.js via #activeFilterChips,
+          <!-- Active summary bar, populated by directory.js via #activeFilterChips,
                which becomes a plain text rollup ("Filtering by: X · Y · Z") under
                the new design. Existing chip markup still renders here for backward
                compat until step 4 swaps it to the new active-summary format. -->
@@ -324,7 +324,7 @@
             </button>
           </div>
 
-          <!-- Hidden checkbox inputs — backing store for chip toggles -->
+          <!-- Hidden checkbox inputs, backing store for chip toggles -->
           <div class="dir-vb-hidden-inputs" aria-hidden="true">
             <input type="checkbox" id="accepting" />
             <input type="checkbox" id="telehealth" />
@@ -338,7 +338,7 @@
         </div>
 
         <!-- Active filter chips container kept for legacy JS writes (directory.js
-             still writes pill chips here). Hidden in the redesign — step 4 swaps
+             still writes pill chips here). Hidden in the redesign, step 4 swaps
              the active-summary render to the new plain-text .dir-filter-summary
              rollup. The clear-all button uses the new ID in .dir-filter-summary. -->
         <div class="dir-results-bar" hidden>
@@ -370,7 +370,7 @@
           <span class="dir-sparse-nudge-cta">Try guided match →</span>
         </a>
 
-        <!-- Recommendation zone — kept in DOM so JS references don't throw; content is empty -->
+        <!-- Recommendation zone, kept in DOM so JS references don't throw; content is empty -->
         <section id="directoryRecommendationZone" aria-hidden="true" hidden></section>
 
         <!-- Results grid -->
@@ -386,7 +386,7 @@
           </div>
         </div>
 
-        <!-- Load more — rendered by JS -->
+        <!-- Load more, rendered by JS -->
         <div class="dir-load-more-wrap" id="dirLoadMoreWrap"></div>
       </div>
     </main>
@@ -619,7 +619,7 @@
       </div>
     </div>
 
-    <!-- Side panel — replaces centered details modal; slides in from right -->
+    <!-- Side panel, replaces centered details modal; slides in from right -->
     <div class="dir-panel-scrim" id="directoryDetailsScrim" hidden></div>
     <div
       class="dir-panel"
@@ -630,11 +630,11 @@
       aria-hidden="true"
       hidden
     >
-      <!-- Drag pill — mobile only (hidden on desktop via CSS) -->
+      <!-- Drag pill, mobile only (hidden on desktop via CSS) -->
       <div class="dir-panel-drag-pill-wrap" aria-hidden="true">
         <div class="dir-panel-drag-pill"></div>
       </div>
-      <!-- Desktop panel head — hidden on mobile in favour of bsh-topbar -->
+      <!-- Desktop panel head, hidden on mobile in favour of bsh-topbar -->
       <div class="dir-panel-head">
         <span class="dir-panel-label" id="dirPanelHeading">Provider details</span>
         <button
@@ -649,7 +649,7 @@
       <div class="dir-panel-body" id="directoryDetailsBody"></div>
     </div>
 
-    <!-- Sidebar DOM stub — directory.js references this ID; keep hidden -->
+    <!-- Sidebar DOM stub, directory.js references this ID; keep hidden -->
     <button
       type="button"
       id="mobileFilterToggle"

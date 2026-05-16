@@ -1929,7 +1929,7 @@ function buildWeeklyDigestExport(context, options, mode) {
               return (
                 "  - " +
                 entry.name +
-                " — " +
+                ", " +
                 entry.label +
                 (entry.createdAt ? " (" + options.formatDate(entry.createdAt) + ")" : "")
               );
@@ -1943,7 +1943,7 @@ function buildWeeklyDigestExport(context, options, mode) {
               return (
                 "  - " +
                 entry.name +
-                " — " +
+                ", " +
                 entry.note +
                 (entry.reasonTag ? " [" + entry.reasonTag + "]" : "")
               );
@@ -1956,7 +1956,7 @@ function buildWeeklyDigestExport(context, options, mode) {
           return (
             "  - " +
             entry.name +
-            " — " +
+            ", " +
             entry.note +
             (entry.reasonTag ? " [" + entry.reasonTag + "]" : "") +
             (entry.ownerAction ? " Next owner action: " + entry.ownerAction : "") +
@@ -2339,7 +2339,7 @@ export function renderOpsInboxPanel(options) {
       options.escapeHtml(options.getCandidateReviewLaneLabel(item.review_lane)) +
       '</span></div><div class="ops-card-body">' +
       '<div class="ops-card-kpi"><div class="ops-card-kpi-label">Priority</div><div class="ops-card-kpi-value">' +
-      options.escapeHtml(item.review_priority == null ? "—" : item.review_priority + "/100") +
+      options.escapeHtml(item.review_priority == null ? "" : item.review_priority + "/100") +
       '</div></div><div class="ops-card-kpi"><div class="ops-card-kpi-label">Due</div><div class="ops-card-kpi-value">' +
       options.escapeHtml(
         item.next_review_due_at ? options.formatDate(item.next_review_due_at) : "Now",
@@ -3726,7 +3726,7 @@ function buildLicensureRefreshCommand(item) {
   return base;
 }
 
-// Controller registration. PR 6 of the admin.js refactor — the final
+// Controller registration. PR 6 of the admin.js refactor, the final
 // migration. This module is 3,727 lines and intentionally NOT being
 // split internally; the goal is to join the controller registry so
 // admin.js loses its lazy-load + option-bag wiring (~55 lines). Same

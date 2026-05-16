@@ -4,7 +4,7 @@
 //   - Signup + claim funnel with conversion + drop-off
 //   - Recent events stream (last 50)
 //
-// Pure client-side aggregation — the log is a flat event list, we
+// Pure client-side aggregation, the log is a flat event list, we
 // bucket here. No chart library, just DOM.
 
 import { proportionsAreSeparated, wilsonInterval } from "../shared/stats-domain.mjs";
@@ -30,7 +30,7 @@ const CLAIM_STEPS = [
   { key: "claim_trial_checkout_opened", label: "Opened Stripe" },
 ];
 
-// Removal funnel. Headline number is listing_removal_confirmed —
+// Removal funnel. Headline number is listing_removal_confirmed,
 // that's the only event fired server-side, so the count reflects
 // listings that actually went dark.
 const REMOVAL_STEPS = [
@@ -57,7 +57,7 @@ const PATIENT_STEPS = [
 
 // Portal edit-form funnel. Tracks the post-claim path a therapist
 // takes from "landed on portal" through "profile is match-ready."
-// This is the primary metric driver for the portal UX work — if
+// This is the primary metric driver for the portal UX work, if
 // fewer therapists reach "portal_readiness_crossed_65", the polish
 // isn't converting the way we expect.
 const PORTAL_STEPS = [
@@ -119,7 +119,7 @@ function buildFunnelRow(events, steps, window) {
 
 function formatPercentWithCi(successes, total, options) {
   options = options || {};
-  if (!total) return "—";
+  if (!total) return "";
   var ci = wilsonInterval(successes, total);
   var pct = Math.round((successes / total) * 100);
   // Below this floor, the confidence band is so wide that quoting a
@@ -140,7 +140,7 @@ function formatPercentWithCi(successes, total, options) {
   );
 }
 
-// Match conversion summary — the headline patient-side metric. Reads
+// Match conversion summary, the headline patient-side metric. Reads
 // match_session_outcome events emitted on pagehide and buckets by
 // outcome ("contacted" / "explored" / "bounced"). Also splits on
 // top_has_photo so we can see whether the photo signal correlates
@@ -264,7 +264,7 @@ function renderFunnelTable(title, rows) {
       .map(function (row, index) {
         const dropoffCell =
           index === 0
-            ? "—"
+            ? ""
             : row.dropoff > 0
               ? '<span class="admin-funnel-dropoff">-' + row.dropoff + "%</span>"
               : "0%";
@@ -342,7 +342,7 @@ function renderWaitlistByState(events) {
   var byState = {};
   signups.forEach(function (e) {
     var p = parsePayload(e.payload);
-    var state = (p && p.state) || "—";
+    var state = (p && p.state) || "";
     if (!byState[state]) byState[state] = { count: 0, recent: [] };
     byState[state].count += 1;
     if (byState[state].recent.length < 5) {
@@ -608,25 +608,25 @@ function renderDashboard(container, logData) {
     '<section class="admin-funnel-section"><h3>Outreach engagement</h3>' +
     renderOutreachEngagement(events) +
     "</section>" +
-    '<section class="admin-funnel-section"><h3>Patient match funnel — last 7 days</h3>' +
+    '<section class="admin-funnel-section"><h3>Patient match funnel, last 7 days</h3>' +
     renderFunnelTable("% shown relative to patients who started from home", patientRows) +
     "</section>" +
-    '<section class="admin-funnel-section"><h3>Signup funnel — last 7 days</h3>' +
+    '<section class="admin-funnel-section"><h3>Signup funnel, last 7 days</h3>' +
     renderFunnelTable("% shown relative to users who reached step 1", signupRows) +
     "</section>" +
-    '<section class="admin-funnel-section"><h3>Claim + trial funnel — last 7 days</h3>' +
+    '<section class="admin-funnel-section"><h3>Claim + trial funnel, last 7 days</h3>' +
     renderFunnelTable("% shown relative to users who reached step 1", claimRows) +
     "</section>" +
-    '<section class="admin-funnel-section"><h3>Removal funnel — last 7 days</h3>' +
+    '<section class="admin-funnel-section"><h3>Removal funnel, last 7 days</h3>' +
     renderFunnelTable("% shown relative to users who clicked the hero remove link", removalRows) +
     "</section>" +
-    '<section class="admin-funnel-section"><h3>Portal completion funnel — last 7 days</h3>' +
+    '<section class="admin-funnel-section"><h3>Portal completion funnel, last 7 days</h3>' +
     renderFunnelTable("% shown relative to therapists who opened the portal", portalRows) +
     "</section>" +
-    '<section class="admin-funnel-section"><h3>Match conversion — last 7 days</h3>' +
+    '<section class="admin-funnel-section"><h3>Match conversion, last 7 days</h3>' +
     renderMatchConversion(events) +
     "</section>" +
-    '<section class="admin-funnel-section"><h3>Shortlist quality — last 7 days</h3>' +
+    '<section class="admin-funnel-section"><h3>Shortlist quality, last 7 days</h3>' +
     renderShortlistQuality(events) +
     "</section>" +
     '<section class="admin-funnel-section"><h3>Out-of-state waitlist interest</h3>' +

@@ -59,7 +59,7 @@ async function reverifyCandidateAtPublish(candidate, config, verifyLicense) {
     return {
       block: true,
       body: {
-        error: `Cannot publish — DCA shows this candidate's CA license as "${status}" (no longer active in good standing). The license status changed since this candidate was ingested. Refresh the candidate or archive it.`,
+        error: `Cannot publish. DCA shows this candidate's CA license as "${status}" (no longer active in good standing). The license status changed since this candidate was ingested. Refresh the candidate or archive it.`,
         reason: "license_not_active_at_publish",
         dca_status: status,
       },
@@ -70,7 +70,7 @@ async function reverifyCandidateAtPublish(candidate, config, verifyLicense) {
       block: true,
       body: {
         error:
-          "Cannot publish — DCA now shows public disciplinary actions on this candidate's CA license. Review the discipline summary in the licensure record before deciding.",
+          "Cannot publish. DCA now shows public disciplinary actions on this candidate's CA license. Review the discipline summary in the licensure record before deciding.",
         reason: "license_has_discipline_at_publish",
       },
     };

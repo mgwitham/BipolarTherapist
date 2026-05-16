@@ -412,11 +412,11 @@ export async function handleStripeRoutes(context) {
         await sendFounderAlert(config, {
           subject: `[TRIAL] ${therapist?.name || therapistSlug} started a free trial`,
           lines: [
-            `Name: ${therapist?.name || "—"}`,
-            `Email: ${therapist?.email || "—"}`,
+            `Name: ${therapist?.name || "(none)"}`,
+            `Email: ${therapist?.email || "(none)"}`,
             `Slug: ${therapistSlug}`,
-            `Trial ends: ${merged.trialEndsAt || "—"}`,
-            `Plan: ${merged.tier || "—"} (${merged.interval || "—"})`,
+            `Trial ends: ${merged.trialEndsAt || "(none)"}`,
+            `Plan: ${merged.tier || "(none)"} (${merged.interval || "(none)"})`,
           ],
         });
       } catch (_error) {
@@ -437,10 +437,10 @@ export async function handleStripeRoutes(context) {
         await sendFounderAlert(config, {
           subject: `[PAID] ${therapist?.name || therapistSlug} converted from trial to paid`,
           lines: [
-            `Name: ${therapist?.name || "—"}`,
-            `Email: ${therapist?.email || "—"}`,
+            `Name: ${therapist?.name || "(none)"}`,
+            `Email: ${therapist?.email || "(none)"}`,
             `Slug: ${therapistSlug}`,
-            `Plan: ${merged.tier || "—"} (${merged.interval || "—"})`,
+            `Plan: ${merged.tier || "(none)"} (${merged.interval || "(none)"})`,
           ],
         });
       } catch (_error) {
@@ -468,11 +468,11 @@ export async function handleStripeRoutes(context) {
         await sendFounderAlert(config, {
           subject: `[CANCELED] ${therapist?.name || therapistSlug} canceled their subscription`,
           lines: [
-            `Name: ${therapist?.name || "—"}`,
-            `Email: ${therapist?.email || "—"}`,
+            `Name: ${therapist?.name || "(none)"}`,
+            `Email: ${therapist?.email || "(none)"}`,
             `Slug: ${therapistSlug}`,
             `Was on: ${priorPhase}`,
-            `Plan: ${merged.tier || existing?.tier || "—"}`,
+            `Plan: ${merged.tier || existing?.tier || "(none)"}`,
             canceledByUserNow
               ? "Stays active until period end."
               : "Subscription terminated immediately.",

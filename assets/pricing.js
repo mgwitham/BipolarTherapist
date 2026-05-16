@@ -473,7 +473,7 @@ async function fetchLiveTherapistCount() {
       therapistCountEl.textContent = rounded + "+";
     }
   } catch (_e) {
-    // silently fail — static fallback remains
+    // silently fail, static fallback remains
   }
 }
 

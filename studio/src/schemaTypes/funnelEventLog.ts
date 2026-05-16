@@ -34,7 +34,7 @@ export const funnelEventLogType = defineType({
       description:
         "Ring buffer of funnel events, capped at 1500. Oldest entries are truncated. " +
         "High-volume noise events (directory_card_impression, match_card_impression) are " +
-        "filtered at write time to keep conversion-funnel events from being squeezed out — " +
+        "filtered at write time to keep conversion-funnel events from being squeezed out: " +
         "those still increment totalAppended.",
       of: [
         defineArrayMember({

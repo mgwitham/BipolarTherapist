@@ -9,7 +9,7 @@ function readStoredView() {
       return stored;
     }
   } catch (_error) {
-    // sessionStorage unavailable — fall through to default
+    // sessionStorage unavailable, fall through to default
   }
   return DEFAULT_VIEW;
 }

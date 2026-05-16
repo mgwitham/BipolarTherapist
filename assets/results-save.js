@@ -1,6 +1,6 @@
 // Save / bookmark state for results.html cards.
 //
-// Backed by saved-list.js — the single source of truth shared with
+// Backed by saved-list.js, the single source of truth shared with
 // directory cards, the profile page Save button, and the nav badge.
 // Visual responsibilities here are just keeping the card's pressed
 // state + bookmark icon in sync with the canonical list.
@@ -63,7 +63,7 @@ subscribe(syncAllCards);
 
 syncAllCards(readList());
 
-// results.js renders cards asynchronously after fetch — re-sync once
+// results.js renders cards asynchronously after fetch, re-sync once
 // the cards land in the DOM so saved state shows on first paint.
 document.addEventListener("results:rendered", () => {
   syncAllCards(readList());

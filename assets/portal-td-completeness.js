@@ -1,4 +1,4 @@
-// TD-B: Profile completeness — the unified editor.
+// TD-B: Profile completeness, the unified editor.
 //
 // Replaces Phase 1 and Phase 2 with a single accordion of every editable
 // field, organised into four sections (Essential / Profile / Practice /
@@ -7,7 +7,7 @@
 // updates the patient preview in the right column.
 //
 // Score header lives at the top of the panel and stays in sync with the
-// TD-A header badge — both compute from the same inputs.
+// TD-A header badge, both compute from the same inputs.
 //
 // TD-B scope: shell + score + accordion + the 5 fields that already had
 // working forms in the prior Phase 2 (insurance, fees, modalities,
@@ -36,24 +36,24 @@ function safeExternalUrl(value) {
 
 // 100-point system. Every field in FIELD_REGISTRY carries a `pts` value;
 // weights sum to exactly 100 so the score only reaches 100 when all fields
-// are complete. computeScore() derives entirely from the registry —
+// are complete. computeScore() derives entirely from the registry,
 // badge display and scoring cannot drift apart.
 function computeScore(t) {
   if (!t) return 0;
-  // Computed after FIELD_REGISTRY is declared — see the bottom of this block.
+  // Computed after FIELD_REGISTRY is declared, see the bottom of this block.
   return _computeScoreFromRegistry(t);
 }
 
 // ─── Field completion predicates ─────────────────────────────────────
 
-// "Your card bio" — short bipolar-specific paragraph that powers the
+// "Your card bio", short bipolar-specific paragraph that powers the
 // patient match-card voice slot. Required, ≥50 chars to gate going-live.
-// NOT the same as t.bio (the long-form full profile body — see
+// NOT the same as t.bio (the long-form full profile body, see
 // isFullBioComplete below).
 function isCardBioComplete(t) {
   return Boolean(t && String(t.care_approach || "").trim().length >= 50);
 }
-// "Full bio" — long-form text shown on the public profile page. Optional,
+// "Full bio", long-form text shown on the public profile page. Optional,
 // no char minimum.
 function isFullBioComplete(t) {
   return Boolean(t && String(t.bio || "").trim());
@@ -136,7 +136,7 @@ var FIELD_REGISTRY = [
     title: "Your card bio",
     pts: PTS.card_bio,
     badge: "+9 pts · Required",
-    hint: "This is the first thing patients read — watch your listing come alive as you type",
+    hint: "This is the first thing patients read, watch your listing come alive as you type",
     isComplete: isCardBioComplete,
   },
   {
@@ -145,7 +145,7 @@ var FIELD_REGISTRY = [
     title: "Contact route",
     pts: PTS.contact,
     badge: "+7 pts · Required",
-    hint: "Required — patients cannot reach you without this",
+    hint: "Required, patients cannot reach you without this",
     isComplete: isContactRouteComplete,
   },
   {
@@ -163,7 +163,7 @@ var FIELD_REGISTRY = [
     title: "Name & credentials",
     pts: PTS.name,
     badge: "+4 pts",
-    hint: "Pre-populated from signup — edit any time.",
+    hint: "Pre-populated from signup, edit any time.",
     isComplete: isNameComplete,
   },
   {
@@ -172,13 +172,13 @@ var FIELD_REGISTRY = [
     title: "Location",
     pts: PTS.location,
     badge: "+4 pts",
-    hint: "Pre-populated from signup — edit any time.",
+    hint: "Pre-populated from signup, edit any time.",
     isComplete: isLocationComplete,
   },
   {
     // Years treating bipolar lives in "Your profile" rather than the
     // generic "Who you help" section because it surfaces directly on
-    // patient match cards and the public profile hero — it's a critical
+    // patient match cards and the public profile hero, it's a critical
     // signal for matching, not a back-of-house demographic field.
     key: "years",
     section: "profile",
@@ -221,7 +221,7 @@ var FIELD_REGISTRY = [
     title: "Languages",
     pts: PTS.languages,
     badge: "+2 pts",
-    hint: "Patients filter by language — bilingual therapists are in high demand",
+    hint: "Patients filter by language, bilingual therapists are in high demand",
     isComplete: isLanguagesComplete,
   },
   {
@@ -269,7 +269,7 @@ var FIELD_REGISTRY = [
     title: "Estimated wait time",
     pts: PTS.wait_time,
     badge: "+3 pts",
-    hint: "Helps patients plan — especially those in crisis",
+    hint: "Helps patients plan, especially those in crisis",
     isComplete: isWaitTimeComplete,
   },
   {
@@ -278,7 +278,7 @@ var FIELD_REGISTRY = [
     title: "First step expectation",
     pts: PTS.first_step,
     badge: "+4 pts",
-    hint: "What happens after a patient contacts you — reduces anxiety for new patients",
+    hint: "What happens after a patient contacts you, reduces anxiety for new patients",
     isComplete: isFirstStepComplete,
   },
   {
@@ -316,7 +316,7 @@ var FIELD_REGISTRY = [
     title: "Gender",
     pts: PTS.gender,
     badge: "+3 pts",
-    hint: "Patients often search by therapist gender — completing this improves your match rate",
+    hint: "Patients often search by therapist gender, completing this improves your match rate",
     isComplete: isGenderComplete,
   },
 ];
@@ -333,7 +333,7 @@ function _computeScoreFromRegistry(t) {
 }
 
 var SECTIONS = [
-  { key: "essential", title: "Essential — required to go live" },
+  { key: "essential", title: "Essential, required to go live" },
   { key: "profile", title: "Your profile" },
   { key: "practice", title: "Your practice" },
   { key: "audience", title: "Who you help" },
@@ -405,8 +405,8 @@ function renderProgressHeader(score, fieldsRemaining) {
       ? fieldsRemaining +
         " field" +
         (fieldsRemaining === 1 ? "" : "s") +
-        " remaining — each one increases your inquiry rate."
-      : "Profile complete — your listing is fully optimized.";
+        " remaining, each one increases your inquiry rate."
+      : "Profile complete, your listing is fully optimized.";
   var offset = ringOffset(score);
   var ringTone = getRingTone(score);
   return (
@@ -598,7 +598,7 @@ function renderSection(sectionKey, therapist) {
       '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" ' +
       'style="width:0.9em;height:0.9em;vertical-align:-0.1em;margin-right:0.3em" aria-hidden="true">' +
       '<polyline points="14 4 6 12 2 8"></polyline></svg>' +
-      "Essential — complete" +
+      "Essential, complete" +
       "</h3>"
     : '<h3 class="td-section-title">' + escapeHtml(section.title) + "</h3>";
   return (
@@ -623,7 +623,7 @@ function renderNotLiveBar(therapist) {
   if (isLive(therapist)) return "";
   return (
     '<div class="td-not-live-bar" id="tdcNotLive" role="status">' +
-    "<strong>Not live yet.</strong> Add a card bio and contact route to publish — " +
+    "<strong>Not live yet.</strong> Add a card bio and contact route to publish, " +
     "your listing goes live the moment both are saved." +
     "</div>"
   );
@@ -673,7 +673,7 @@ function renderPickerRow(options, selected, attr) {
     .join("");
 }
 
-// "Add other" pills — for fields that allow free-text entry beyond the
+// "Add other" pills, for fields that allow free-text entry beyond the
 // canonical option list. Renders any selected values that aren't in
 // `options` as already-selected pills sitting alongside the canonical
 // row, so a clinician's previously-saved custom plan / modality stays
@@ -741,7 +741,7 @@ function renderCardBioForm(t) {
     '<div class="td-form td-form-bio">' +
     '<label class="td-form-row">' +
     '<span class="td-form-label">Tell patients how you work with bipolar clients</span>' +
-    '<span class="td-form-sublabel">Shown on your directory card — 220 characters max.</span>' +
+    '<span class="td-form-sublabel">Shown on your directory card, 220 characters max.</span>' +
     '<textarea class="td-input td-textarea-bio" id="tdcCardBio" rows="4" placeholder="Describe your approach in a few sentences. What can a patient expect from working with you?">' +
     escapeHtml(cardBio) +
     "</textarea>" +
@@ -766,7 +766,7 @@ function renderFullBioForm(t) {
     '<div class="td-form td-form-bio">' +
     '<label class="td-form-row">' +
     '<span class="td-form-label">Long-form bio for your full public profile</span>' +
-    '<span class="td-form-sublabel">Shown on your full profile page — no character limit. Does not appear on your directory card.</span>' +
+    '<span class="td-form-sublabel">Shown on your full profile page, no character limit. Does not appear on your directory card.</span>' +
     '<textarea class="td-input td-textarea-bio td-textarea-full-bio" id="tdcFullBio" rows="6" placeholder="Tell patients more about your training, philosophy, and what working with you looks like over time.">' +
     escapeHtml(fullBio) +
     "</textarea>" +
@@ -864,7 +864,7 @@ function renderContactRouteForm(t) {
   return (
     '<div class="td-form td-form-route">' +
     '<p class="td-form-label">Pick how patients reach you first</p>' +
-    '<p class="td-form-sublabel">Your contact details are only used to route patient inquiries — we never share them beyond that.</p>' +
+    '<p class="td-form-sublabel">Your contact details are only used to route patient inquiries, we never share them beyond that.</p>' +
     '<div class="td-route-pills">' +
     pillsHtml +
     "</div>" +
@@ -929,7 +929,7 @@ function renderNameForm(t) {
     escapeHtml(String(t.credentials || "")) +
     '" placeholder="LMFT, PhD" />' +
     "</label>" +
-    '<p class="td-form-helper">Use the abbreviation patients see — full title lives on the profile page.</p>' +
+    '<p class="td-form-helper">Use the abbreviation patients see, full title lives on the profile page.</p>' +
     '<div class="td-form-actions">' +
     '<button type="button" class="td-save" data-tdc-save="name">Save</button>' +
     "</div>" +
@@ -960,7 +960,7 @@ function renderLocationForm(t) {
     "</label>" +
     '<p class="td-form-helper">' +
     "Used to show patients approximate distance from their search ZIP. " +
-    "We never display your raw ZIP or street address — only “~X mi” rounded to the nearest mile. " +
+    "We never display your raw ZIP or street address, only “~X mi” rounded to the nearest mile. " +
     "Leave blank if you'd rather not share, and we'll fall back to city-level distance." +
     "</p>" +
     '<div class="td-form-actions">' +
@@ -1021,7 +1021,7 @@ function renderFormatForm(t) {
     '<div class="td-pick-grid">' +
     renderPickerRow(FORMAT_OPTIONS, current, "tdc-format") +
     "</div>" +
-    // Telehealth states inline reveal — only visible when Telehealth is
+    // Telehealth states inline reveal, only visible when Telehealth is
     // among the selected formats. Click toggles. The pills mirror the
     // current state on render and sync via the Telehealth pill click
     // handler.
@@ -1182,7 +1182,7 @@ function renderWaitTimeForm(t) {
       );
     }).join("") +
     "</div>" +
-    '<p class="td-form-helper">Patients in crisis triage on this — be honest, not aspirational.</p>' +
+    '<p class="td-form-helper">Patients in crisis triage on this, be honest, not aspirational.</p>' +
     '<div class="td-form-actions"><button type="button" class="td-save" data-tdc-save="wait_time">Save</button></div>' +
     "</div>"
   );
@@ -1266,7 +1266,7 @@ function renderFormBody(field, therapist) {
 // ─── Public API ──────────────────────────────────────────────────────
 
 export function shouldShowCompleteness(therapist) {
-  // Always show for any verified clinician — the panel IS the editor.
+  // Always show for any verified clinician, the panel IS the editor.
   return Boolean(therapist);
 }
 
@@ -1322,8 +1322,8 @@ function triggerGoingLiveMoment(container, therapist, score) {
 
   var city = String(therapist.city || "").trim();
   var confirmMsg = city
-    ? "You're live — patients searching for bipolar informed care in " + city + " can find you now."
-    : "You're live — patients searching for bipolar informed care can find you now.";
+    ? "You're live, patients searching for bipolar informed care in " + city + " can find you now."
+    : "You're live, patients searching for bipolar informed care can find you now.";
 
   slot.innerHTML =
     '<div class="td-going-live-bar td-going-live-bar-celebrating" id="tdcGoingLiveBar" role="status">' +
@@ -1426,8 +1426,8 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           ? remaining +
             " field" +
             (remaining === 1 ? "" : "s") +
-            " remaining — each one increases your inquiry rate."
-          : "Profile complete — your listing is fully optimized.";
+            " remaining, each one increases your inquiry rate."
+          : "Profile complete, your listing is fully optimized.";
     }
 
     var band = getScoreBand(score);
@@ -1494,10 +1494,10 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" ' +
         'style="width:0.9em;height:0.9em;vertical-align:-0.1em;margin-right:0.3em" aria-hidden="true">' +
         '<polyline points="14 4 6 12 2 8"></polyline></svg>' +
-        "Essential — complete";
+        "Essential, complete";
     } else {
       h3.className = "td-section-title";
-      h3.textContent = "Essential — required to go live";
+      h3.textContent = "Essential, required to go live";
     }
   }
 
@@ -1537,7 +1537,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           var article = body.closest(".td-row");
           if (article) article.classList.add("is-open");
           bindFormHandlers(key, body);
-          // Save buttons are rendered dynamically into the body — bind them now.
+          // Save buttons are rendered dynamically into the body, bind them now.
           bindRowEvents();
         }
       });
@@ -1775,7 +1775,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
             cardBioCounter.className = "td-form-counter " + getCardBioCounterClass(v.length);
           }
           // Live-update the patient preview voice slot. This is a
-          // throwaway state update — the actual care_approach field
+          // throwaway state update, the actual care_approach field
           // only changes on save.
           var previewState = Object.assign({}, localTherapist, {
             care_approach: v,
@@ -1870,7 +1870,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         return String(label).toLowerCase() === value.toLowerCase();
       });
       if (existing) {
-        // Already there — flash the existing pill instead of duplicating.
+        // Already there, flash the existing pill instead of duplicating.
         var existingBtn = grid.querySelector("[data-" + attr + '="' + existing + '"]');
         if (existingBtn) {
           existingBtn.classList.add("td-pick-flash");
@@ -1987,7 +1987,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       var zipInputEl = bodyEl.querySelector("#tdcZip");
       var zipRaw = zipInputEl ? String(zipInputEl.value || "").trim() : "";
       // Normalize: strip non-digits, pad/trim to 5. Empty string means
-      // the clinician opted out — fallback city-centroid will run.
+      // the clinician opted out, fallback city-centroid will run.
       var zipDigits = zipRaw.replace(/\D+/g, "").slice(0, 5);
       if (!cityVal || !stateVal) {
         var locErr = bodyEl.querySelector(".td-form-error");
@@ -2067,7 +2067,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       var newScore = computeScore(localTherapist);
       refreshPreview();
 
-      // Preview pulse — signals the clinician that their save updated the card
+      // Preview pulse, signals the clinician that their save updated the card
       var previewPulseEl = container.querySelector("#tdcPreview");
       if (previewPulseEl) {
         previewPulseEl.classList.remove("tdc-preview-pulse");
@@ -2103,7 +2103,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       window.setTimeout(function () {
         refreshRow(key);
         if (key === "card_bio" || key === "contact") refreshEssentialSectionTitle();
-        // Row save flash — animate the row briefly after it re-renders
+        // Row save flash, animate the row briefly after it re-renders
         var flashRow = container.querySelector('[data-tdc-row="' + key + '"]');
         if (flashRow) {
           flashRow.classList.add("td-row-flash");

@@ -174,7 +174,7 @@ function buildSeoDescription(t) {
   const name = t.name || "Bipolar therapist";
   const creds = t.credentials ? ", " + t.credentials : "";
   const location = [t.city, t.state].filter(Boolean).join(", ") || "";
-  const parts = [name + creds + " — bipolar disorder specialist in " + location + "."];
+  const parts = [name + creds + ", bipolar disorder specialist in " + location + "."];
   if (t.accepting_new_patients) parts.push("Accepting new patients.");
   const formats = [];
   if (t.accepts_telehealth) formats.push("telehealth");
@@ -229,7 +229,7 @@ function buildFAQItems(t) {
         first +
         " accepts " +
         ins.join(", ") +
-        ". Coverage varies by plan — confirm your benefits directly with " +
+        ". Coverage varies by plan. Confirm your benefits directly with " +
         first +
         " or your carrier before your first appointment.",
     });
@@ -575,7 +575,7 @@ function buildPage(t) {
   const { linkTags, scriptTags } = getAssetTags();
   const nameWithCreds = t.credentials ? t.name + ", " + t.credentials : t.name;
   const location = [t.city, t.state].filter(Boolean).join(", ") || "";
-  const seoTitle = `${nameWithCreds} — Bipolar Therapist in ${location} | BipolarTherapyHub`;
+  const seoTitle = `${nameWithCreds}, Bipolar Therapist in ${location} | BipolarTherapyHub`;
   const seoDescription = buildSeoDescription(t);
   const canonicalUrl = `${ORIGIN}/therapists/${encodeURIComponent(t.slug)}/`;
   const ogImage = t.photo_url || `${ORIGIN}/og-image.png`;
@@ -605,11 +605,11 @@ function buildPage(t) {
     <meta property="og:type" content="profile" />
     <meta property="og:site_name" content="BipolarTherapyHub" />
     <meta property="og:url" content="${esc(canonicalUrl)}" />
-    <meta property="og:title" content="${esc(nameWithCreds + " — Bipolar Therapist in " + location)}" />
+    <meta property="og:title" content="${esc(nameWithCreds + ", Bipolar Therapist in " + location)}" />
     <meta property="og:description" content="${esc(seoDescription)}" />
     <meta property="og:image" content="${esc(ogImage)}" />
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="${esc(nameWithCreds + " — Bipolar Therapist in " + location)}" />
+    <meta name="twitter:title" content="${esc(nameWithCreds + ", Bipolar Therapist in " + location)}" />
     <meta name="twitter:description" content="${esc(seoDescription)}" />
     ${jsonLd}
     <link rel="preconnect" href="https://fonts.googleapis.com" />

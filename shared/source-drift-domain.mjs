@@ -4,7 +4,7 @@
 // without network or Sanity.
 //
 // Design philosophy: err on the side of flagging drift (false positives
-// are cheap — a human just re-reviews the card). Only return `drifted:
+// are cheap, a human just re-reviews the card). Only return `drifted:
 // false` when we have positive evidence that nothing tracked has changed.
 // Per the feedback_verification_strictness memory: strict by default.
 
@@ -70,7 +70,7 @@ export function nameAppearsInText(name, pageText) {
 }
 
 // Extract structured facts from a page. The point is not to extract
-// everything — it's to extract just enough to compare against what we
+// everything, it's to extract just enough to compare against what we
 // stored. Anything we can't confidently extract is simply not compared
 // (the absence of evidence is not flagged as drift).
 export function extractFactsFromHtml(html) {
@@ -127,7 +127,7 @@ export function extractFactsFromHtml(html) {
 export function computeContentDrift(therapist, facts) {
   const reasons = [];
 
-  // 1. Name presence — if the stored name isn't on the page, the source
+  // 1. Name presence: if the stored name isn't on the page, the source
   //    may have been repurposed, or the clinician replaced. Strong
   //    signal: flag immediately.
   if (therapist.name && !nameAppearsInText(therapist.name, facts.pageText)) {
@@ -139,7 +139,7 @@ export function computeContentDrift(therapist, facts) {
     reasons.push("page contains retirement or no-longer-practicing language");
   }
 
-  // 3. Accepting-new-clients language — if the site now says waitlist
+  // 3. Accepting-new-clients language: if the site now says waitlist
   //    only, that's material. We don't auto-update the stored wait time
   //    (the stored field may already reflect this); we just flag so a
   //    human can check.
@@ -147,7 +147,7 @@ export function computeContentDrift(therapist, facts) {
     reasons.push("page indicates waitlist or not accepting new clients");
   }
 
-  // 4. Phone drift — if the stored phone no longer appears anywhere on
+  // 4. Phone drift: if the stored phone no longer appears anywhere on
   //    the page and the page HAS phones listed, the clinician has
   //    changed numbers. If the page has NO phones, we can't judge
   //    (maybe they moved phone off the site), so don't flag.
@@ -159,7 +159,7 @@ export function computeContentDrift(therapist, facts) {
     }
   }
 
-  // 5. Email drift — same logic as phone.
+  // 5. Email drift: same logic as phone.
   const storedEmail = String(therapist.email || "")
     .toLowerCase()
     .trim();
@@ -167,7 +167,7 @@ export function computeContentDrift(therapist, facts) {
     reasons.push("stored email not found among emails on source page");
   }
 
-  // 6. Insurance carrier drift — for carriers we have stored AND which
+  // 6. Insurance carrier drift: for carriers we have stored AND which
   //    are distinctive enough to appear in page text, check presence.
   //    Skip "Self-Pay" (never appears as a "carrier" named on sites).
   const storedCarriers = Array.isArray(therapist.insuranceAccepted)

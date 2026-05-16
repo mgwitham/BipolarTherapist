@@ -16,7 +16,7 @@ const API = "/api/admin";
 const state = {
   therapists: [],
   // view: which tab is active. "outreach" = cold-outreach CRM (default),
-  // "live" = therapists who have claimed and are published — different
+  // "live" = therapists who have claimed and are published, different
   // segment, different future messaging, not part of the cold queue.
   view: "outreach",
   // includeDone: terminal statuses (claimed/paid/replied/bounced/opted_out)
@@ -34,7 +34,7 @@ const state = {
   // Insights expander (Subject Performance + Patient Signal) collapsed
   // by default so the page leads with the queue, not the analytics.
   insightsOpen: false,
-  // Bulk-select for batch email send. IDs only — the row objects live
+  // Bulk-select for batch email send. IDs only, the row objects live
   // in state.therapists. Cleared on tab switch or after a send.
   selected: new Set(),
   // Outreach-link click events from the funnel log, indexed by slug
@@ -60,7 +60,7 @@ const state = {
 // A therapist is "live" when they've claimed (either via outreach
 // status or the signup flow that stamps claimedAt) AND are actually
 // visible to patients (listingActive). Ingested-but-unclaimed records
-// don't count — Live is about people who chose to be on the platform.
+// don't count, Live is about people who chose to be on the platform.
 function isLive(t) {
   const status = t.outreach?.status;
   const claimed = ["claimed", "paid"].includes(status) || Boolean(t.claimedAt);
@@ -117,7 +117,7 @@ function getPTProfileUrl(t) {
 
 // Open a Google search scoped to psychologytoday.com so the user can
 // find a missing PT profile by name + license_state + city. No PT
-// requests come from us — the user clicks the result.
+// requests come from us, the user clicks the result.
 function getPTSearchUrl(t) {
   const parts = [t?.name, t?.city, t?.state || t?.licenseState, "psychology today"].filter(Boolean);
   const q = encodeURIComponent(parts.join(" "));
@@ -171,15 +171,15 @@ function isFollowUpDue(t) {
 // Open tracking went live when the Resend tracking subdomain was
 // verified (2026-05-15). Sends before this date were transmitted
 // without the open-tracking pixel, so even a real open today won't
-// fire the webhook — there's no signal to recover. Mark them
+// fire the webhook, there's no signal to recover. Mark them
 // "untracked" so the engagement trail doesn't render misleading
 // hollow dots for sends we'll never have data on.
 const OPEN_TRACKING_ENABLED_AT = "2026-05-15T00:00:00Z";
 
 // Classify an emailLog entry's open state for the engagement trail.
-// "opened"   — Resend webhook stamped openedAt
-// "unopened" — Resend-tracked send, no open yet
-// "untracked" — sent via contact form / PT, OR sent before open
+// "opened"  , Resend webhook stamped openedAt
+// "unopened", Resend-tracked send, no open yet
+// "untracked", sent via contact form / PT, OR sent before open
 //               tracking was enabled (no pixel embedded, blind by
 //               design). The trail renderer drops untracked entries.
 function openState(entry) {
@@ -207,7 +207,7 @@ function openedLatest(t) {
 }
 
 // Renders the open-trail for a therapist as a row of colored dots.
-// Only tracked sends (Resend direct) get a dot — form / PT sends are
+// Only tracked sends (Resend direct) get a dot, form / PT sends are
 // blind to open tracking so we drop them entirely. The Status pill
 // + Last contact column still communicate "we did reach out via PT,"
 // just without a misleading neutral dot on the engagement trail.
@@ -215,7 +215,7 @@ function engagementTrailHtml(t) {
   const log = Array.isArray(t.outreach?.emailLog) ? t.outreach.emailLog : [];
   const tracked = log.filter((e) => openState(e) !== "untracked");
   if (tracked.length === 0) {
-    return `<span style="color:#9ca3af;font-size:11px;">—</span>`;
+    return `<span style="color:#9ca3af;font-size:11px;">, </span>`;
   }
   const dots = tracked
     .map((e, i) => {
@@ -343,7 +343,7 @@ function applyLiveSort(list) {
   return sorted;
 }
 
-// Canonical status ordering — funnel progression rather than alpha.
+// Canonical status ordering, funnel progression rather than alpha.
 // "Not contacted" first, terminal/negative states last. Sort by index
 // in this list when the user picks the Status column.
 const STATUS_ORDER = [
@@ -396,7 +396,7 @@ function computeStats(list) {
     ["replied", "claimed", "paid"].includes(t.outreach?.status),
   ).length;
   const claimed = list.filter((t) => ["claimed", "paid"].includes(t.outreach?.status)).length;
-  // Reply rate is the meaningful early signal — claim rate stays low for
+  // Reply rate is the meaningful early signal, claim rate stays low for
   // a while even on healthy outreach. Bounced + opted_out are excluded
   // from the denominator so we measure response from people who actually
   // received the email.
@@ -887,7 +887,7 @@ function renderBulkActionBar() {
 // clipboard and open the PT page in a new tab so the user can paste
 // + submit the form manually (PT's CAPTCHA + ToS make full
 // automation a non-starter). After submit, "Mark sent" logs to the
-// therapist's emailLog via the existing log-contact-form endpoint —
+// therapist's emailLog via the existing log-contact-form endpoint,
 // so PT sends show up in Subject Performance and the status pill
 // flips to email_1_sent, same as Resend sends.
 function openPTOutreach() {
@@ -901,7 +901,7 @@ function openPTOutreach() {
   // mid-session by reopening the modal; cached in state.lastCampaign.
   const campaign = (
     window.prompt(
-      "Campaign tag (optional, lowercase letters/digits/dash/underscore — leave blank to skip):",
+      "Campaign tag (optional, lowercase letters/digits/dash/underscore, leave blank to skip):",
       state.lastCampaign || "",
     ) || ""
   ).trim();
@@ -1024,7 +1024,7 @@ function openPTOutreach() {
 // Find-on-PT helper. For each selected therapist without a PT URL on
 // file, opens a Google search scoped to psychologytoday.com so the
 // user can locate their profile. Once found, the user pastes the URL
-// into the therapist's Edit drawer (Source URL field) and saves —
+// into the therapist's Edit drawer (Source URL field) and saves,
 // next time they refresh the page, the therapist moves to the
 // Outreach-via-PT queue.
 function openFindOnPT() {
@@ -1117,9 +1117,9 @@ function lastSentAtForTemplate(t, template) {
 function openBatchComposer() {
   // Hard guard: refuse to open a second composer while a batch is in
   // flight. Today's incident (2026-05-15) happened because two batches
-  // ran concurrently — interleaved POSTs produced 30+ duplicate sends.
+  // ran concurrently, interleaved POSTs produced 30+ duplicate sends.
   if (state.batchInFlight) {
-    toast("A batch is already running — wait for it to finish.", "error");
+    toast("A batch is already running, wait for it to finish.", "error");
     return;
   }
 
@@ -1204,7 +1204,7 @@ function openBatchComposer() {
         .map((t) => {
           const when = lastSentAtForTemplate(t, template);
           const whenLabel = when ? new Date(when).toLocaleString() : "earlier";
-          return `<li style="font-size:12px;color:#7c2d12;">${esc(t.name || t.email || t._id)} <span style="color:#9a3412;font-weight:400;">— sent ${esc(whenLabel)}</span></li>`;
+          return `<li style="font-size:12px;color:#7c2d12;">${esc(t.name || t.email || t._id)} <span style="color:#9a3412;font-weight:400;">, sent ${esc(whenLabel)}</span></li>`;
         })
         .join("");
       const more =
@@ -1302,7 +1302,7 @@ function openBatchComposer() {
 //
 // `force` is set from the "include already-emailed anyway" checkbox in
 // the composer. When false, the server hard-rejects same-template
-// duplicates with 409 — we count those as `skipped` (not failed) so the
+// duplicates with 409, we count those as `skipped` (not failed) so the
 // final toast distinguishes "I couldn't send" from "I refused to send".
 async function sendBatch(recipients, template, subject, campaign, overlay, force) {
   const progressEl = overlay.querySelector("#batch-progress");
@@ -1348,7 +1348,7 @@ async function sendBatch(recipients, template, subject, campaign, overlay, force
       state.selected.delete(t._id);
     } else if (status === 409 && data?.error === "duplicate_send") {
       // Server refused because the same template is already in this
-      // therapist's emailLog. Treat as a skip — the desired no-op outcome.
+      // therapist's emailLog. Treat as a skip, the desired no-op outcome.
       skipped++;
       console.warn(
         `[sendBatch] skipped duplicate to ${t.name || t._id}: last sent at ${data.lastSentAt}`,
@@ -1383,7 +1383,7 @@ function statCard(label, value, color) {
   </div>`;
 }
 
-// Same shape as statCard but rendered as a button — used for the
+// Same shape as statCard but rendered as a button, used for the
 // Claimed stat that doubles as a jump to the Live tab.
 function statCardLink(id, label, value, color) {
   return `<button id="${id}" type="button" style="flex:1;min-width:80px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;padding:8px 12px;cursor:pointer;text-align:left;font:inherit;">
@@ -1434,7 +1434,7 @@ function subjectPerformanceHtml(rows) {
 
 function patientSignalCardsHtml(signal) {
   if (!signal) {
-    // Loading state — placeholder cards.
+    // Loading state, placeholder cards.
     return [
       statCard("Match requests", "…", "#9ca3af"),
       statCard("Profile views (7d)", "…", "#9ca3af"),
@@ -1518,7 +1518,7 @@ function refreshTable() {
       const hasEmail = Boolean((t.email || "").trim());
       const ptUrl = getPTProfileUrl(t);
       const isSelected = state.selected.has(t._id);
-      // Any row is selectable — bulk actions route by capability:
+      // Any row is selectable, bulk actions route by capability:
       // direct email needs t.email, PT outreach needs a PT URL, Find
       // on PT needs neither.
       const checkboxCell = `<input type="checkbox" class="row-select" data-id="${esc(t._id)}" data-no-row-click ${isSelected ? "checked" : ""} />`;
@@ -1648,7 +1648,7 @@ function handleHeaderSortClick(e) {
 }
 
 function handleTableClick(e) {
-  // Profile link is a real <a target="_blank"> — let the browser handle it
+  // Profile link is a real <a target="_blank">, let the browser handle it
   // and don't open the detail panel on top.
   if (e.target.closest("[data-no-row-click]")) return;
 
@@ -1697,7 +1697,7 @@ async function openOutreachEditDrawer(t) {
       full = { ...t, ...doc };
     }
   } catch {
-    // Network error — fall back to the slim record so the drawer at
+    // Network error, fall back to the slim record so the drawer at
     // least opens with whatever we have.
   }
   openTherapistEditDrawer(full, onDrawerSaved, {
@@ -1884,7 +1884,7 @@ function renderPanelContent(t) {
 // Default starting subject + body for each template. The composer
 // pre-fills these into editable inputs; the user edits before sending.
 // Template content lives in shared/outreach-templates.mjs (used by the
-// server too) — this just adapts the profileUrl to the placeholder the
+// server too), this just adapts the profileUrl to the placeholder the
 // admin sees when no URL is on file yet.
 function getTemplateDefaults(template, t) {
   return getOutreachTemplate(template, {
@@ -2347,7 +2347,7 @@ async function init() {
     // Fetch outreach-link clicks (outreach_profile_viewed funnel
     // events). Stored as a Map<slug, [viewedAt]> for fast per-slug
     // lookup when computing per-subject click rates. Tolerant of
-    // failure — Subject Performance falls back to 0 clicks shown.
+    // failure, Subject Performance falls back to 0 clicks shown.
     try {
       // Route lives in the review API dispatcher (one Vercel function,
       // many paths) to stay under the Hobby plan's function cap.

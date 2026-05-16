@@ -76,7 +76,7 @@ function recordProfileViewSafely(slug) {
       promise.catch(function () {});
     }
   } catch (_error) {
-    // Engagement pings are best-effort — never block page render.
+    // Engagement pings are best-effort, never block page render.
   }
 }
 
@@ -166,7 +166,7 @@ function safeExternalUrl(value) {
 // Per-therapist SEO: update/insert meta tags + Schema.org JSON-LD so
 // each /therapists/X/ has unique title, description, OG tags,
 // and structured data. Injected client-side after the therapist fetch
-// resolves — Google's crawler executes JS and picks these up.
+// resolves, Google's crawler executes JS and picks these up.
 function upsertMeta(attr, key, content) {
   if (!content) return;
   let node = document.head.querySelector(`meta[${attr}="${key}"]`);
@@ -194,7 +194,7 @@ function buildTherapistSeoDescription(t) {
   var credentials = t.credentials ? ", " + t.credentials : "";
   var location = [t.city, t.state].filter(Boolean).join(", ") || "California";
   var parts = [];
-  parts.push(name + credentials + " — bipolar disorder specialist in " + location + ".");
+  parts.push(name + credentials + ", bipolar disorder specialist in " + location + ".");
   if (t.accepting_new_patients) parts.push("Accepting new patients.");
   var formats = [];
   if (t.accepts_telehealth) formats.push("telehealth");
@@ -451,11 +451,11 @@ function applyTherapistSeo(t) {
   const name = t.name || "Therapist";
   const credentials = t.credentials ? `, ${t.credentials}` : "";
   const location = [t.city, t.state].filter(Boolean).join(", ") || "California";
-  const seoTitle = `${name}${credentials} — Bipolar Therapist in ${location}`;
+  const seoTitle = `${name}${credentials}, Bipolar Therapist in ${location}`;
   const seoDescription = buildTherapistSeoDescription(t);
   const canonicalUrl = buildTherapistProfileUrl(t.slug || "");
 
-  document.title = `${seoTitle} — BipolarTherapyHub`;
+  document.title = `${seoTitle}, BipolarTherapyHub`;
   upsertMeta("name", "description", seoDescription);
   upsertLinkRel("canonical", canonicalUrl);
 
@@ -473,7 +473,7 @@ function applyTherapistSeo(t) {
   upsertMeta("name", "twitter:title", seoTitle);
   upsertMeta("name", "twitter:description", seoDescription);
 
-  // JSON-LD structured data — remove previous instances, then inject one tag per schema
+  // JSON-LD structured data, remove previous instances, then inject one tag per schema
   try {
     ["therapist-jsonld", "therapist-jsonld-breadcrumb", "therapist-jsonld-faq"].forEach(
       function (id) {
@@ -545,7 +545,7 @@ function buildFAQItems(t) {
         first +
         " accepts " +
         insurance.join(", ") +
-        ". Coverage for therapy varies by plan and deductible — confirm your specific benefits directly with " +
+        ". Coverage for therapy varies by plan and deductible, confirm your specific benefits directly with " +
         first +
         " or your insurance carrier before your first appointment.",
     });
@@ -568,7 +568,7 @@ function buildFAQItems(t) {
       feeRange +
       "/session." +
       (sliding
-        ? " A sliding scale fee is available for qualifying clients — ask about it when you reach out."
+        ? " A sliding scale fee is available for qualifying clients, ask about it when you reach out."
         : "");
     items.push({ q: "How much does " + name + " charge per session?", a: feeAnswer });
   } else {
@@ -1673,7 +1673,7 @@ function renderProfile(t, therapistDirectory) {
   var routeOutcomePerformance = summarizeTherapistContactRouteOutcomes(t);
   var backupState = buildProfileBackupState(t, therapistDirectory || []);
   trackDirectoryProfileOpenQuality(t, readiness, freshness);
-  document.title = t.name + " — BipolarTherapyHub";
+  document.title = t.name + ", BipolarTherapyHub";
   applyTherapistSeo(t);
   document.getElementById("breadcrumbName").textContent = t.name;
   if (new URLSearchParams(window.location.search).get("ref") === "match") {
@@ -1706,7 +1706,7 @@ function renderProfile(t, therapistDirectory) {
 
   // In-page claim banner. Hidden by default in markup; only shown when
   // the viewer arrived from an outreach email (?ref=outreach), AND the
-  // profile isn't already claimed. Organic visitors don't see it — the
+  // profile isn't already claimed. Organic visitors don't see it, the
   // banner is targeted to the specific therapist we sent an email to,
   // not a general claim CTA on every profile.
   var claimBanner = document.getElementById("inPageClaimBanner");
@@ -2032,11 +2032,11 @@ function renderProfile(t, therapistDirectory) {
 
   // Short-form signup injects stub placeholders into the application
   // so schema validation passes. Those used to leak through to the
-  // published therapist doc and render to patients as "Pending —
+  // published therapist doc and render to patients as "Pending,
   // completed after approval." Treat them as empty.
   var INTAKE_STUBS = [
     "Pending",
-    "Pending — completed after approval.",
+    "Pending, completed after approval.",
     "Pending - completed after approval.",
   ];
   function stripIntakeStub(value) {
@@ -2046,7 +2046,7 @@ function renderProfile(t, therapistDirectory) {
   }
 
   // Strip scraped directory prefix: "Name, Credential, City, State, ZIP, Phone, actual bio"
-  // Anchors on the phone number — everything up through it is metadata, not bio copy.
+  // Anchors on the phone number, everything up through it is metadata, not bio copy.
   var SCRAPED_PREFIX_RE = /^.+,\s*\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4},?\s+/;
   function stripScrapedPrefix(value) {
     if (typeof value !== "string") return value;
@@ -2197,7 +2197,7 @@ function renderProfile(t, therapistDirectory) {
 
   // Step 7: Bio card. Truncates to ~280 chars with a Read more / Show less
   // toggle when longer. Renders nothing if there's no bio to show (per the
-  // graceful-empty-states rule — no "No bio yet" placeholder).
+  // graceful-empty-states rule, no "No bio yet" placeholder).
   var bioCardHtml = "";
   if (scrubbedBio && String(scrubbedBio).trim()) {
     var bioRaw = String(scrubbedBio).trim();
@@ -2215,7 +2215,7 @@ function renderProfile(t, therapistDirectory) {
       bioPreviewText = bioFullPlain.slice(0, 280);
       var lastSpace = bioPreviewText.lastIndexOf(" ");
       if (lastSpace > 200) bioPreviewText = bioPreviewText.slice(0, lastSpace);
-      bioPreviewText = bioPreviewText.replace(/[\s,;:.—–-]+$/, "") + "…";
+      bioPreviewText = bioPreviewText.replace(/[\s,;:.–-]+$/, "") + "…";
     }
     var bioFullHtml = bioParagraphs
       .map(function (p) {
@@ -2332,7 +2332,7 @@ function renderProfile(t, therapistDirectory) {
   if (langs.length) {
     practiceRows.push({ label: "Languages", value: langs.join(", ") });
   }
-  // Insurance — full width row, pills
+  // Insurance, full width row, pills
   var insuranceList = (Array.isArray(t.insurance_accepted) ? t.insurance_accepted : []).filter(
     Boolean,
   );
@@ -2549,7 +2549,7 @@ function renderProfile(t, therapistDirectory) {
   var sideHasBooking = Boolean(bookingUrl) && bookingUrl !== websiteUrl;
   var preferredContactRaw = String(t.preferred_contact_method || "").trim();
 
-  // Sidebar primary button — respects preferred_contact_method when the
+  // Sidebar primary button, respects preferred_contact_method when the
   // therapist set one (mirrors buildPreferredContactButton in the main
   // column). Falls back to the legacy phone-then-email ladder only when
   // no preference is set or the preferred channel's field is missing.
@@ -2594,7 +2594,7 @@ function renderProfile(t, therapistDirectory) {
         "'s website</a>"
       );
     }
-    // No preference set, or preferred channel's field is missing — fall
+    // No preference set, or preferred channel's field is missing, fall
     // back to phone-then-email so the button still does something useful.
     if (sideHasPhone) {
       return (
@@ -2623,7 +2623,7 @@ function renderProfile(t, therapistDirectory) {
   // Unified contact-method list. Each row shows an icon + a value,
   // with an inline (Preferred) tag on the row matching the therapist's
   // stated preference. Replaces the legacy separate "Preferred contact"
-  // box at the bottom — same information, less chrome.
+  // box at the bottom, same information, less chrome.
   var prefKey = preferredContactRaw.toLowerCase();
   var prefMap = {
     booking_url: "booking",
@@ -3049,7 +3049,7 @@ function renderProfile(t, therapistDirectory) {
     });
   // Sidebar Save toggle. Reads/writes through saved-list.js so the
   // button stays in sync with directory cards, results cards, and the
-  // nav badge — and updates live if the same user saves from another
+  // nav badge, and updates live if the same user saves from another
   // tab via the subscribe() callback.
   Array.prototype.slice
     .call(document.querySelectorAll("[data-profile-side-save]"))

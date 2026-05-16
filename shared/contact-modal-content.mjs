@@ -1,6 +1,6 @@
 // Content-building for the four-layout contact modal on the match
 // page. One layout per preferredContactMethod (booking / website /
-// phone / email). Pure functions — return HTML strings — so the
+// phone / email). Pure functions that return HTML strings, so the
 // layout selection is unit-testable without spinning up a DOM.
 //
 // Field shape: this module accepts therapist data in camelCase

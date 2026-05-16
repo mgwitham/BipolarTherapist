@@ -475,7 +475,7 @@ export function buildDirectoryDetailsViewModel(options) {
     return s !== "Accepting new patients" && !/^Near /.test(s) && s !== "Telehealth available";
   });
 
-  // Distance pill — uses search zip, never device location
+  // Distance pill, uses search zip, never device location
   var distancePill = "";
   var sortZip = String(filters.sortZip || "").trim();
   var providerZip = String(therapist.zip || "").trim();
@@ -516,7 +516,7 @@ export function buildDirectoryDetailsViewModel(options) {
     availabilityChips.push({ label: "Rx support", tone: "amber" });
   }
 
-  // Contact footnote — names what's on the full profile but not in the CTA button
+  // Contact footnote, names what's on the full profile but not in the CTA button
   var contactFootnote = "";
   var contactRoute = baseModel.contactRoute;
   var contactHref = String((contactRoute && contactRoute.href) || "");

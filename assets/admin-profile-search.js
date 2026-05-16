@@ -10,7 +10,7 @@
 // Hidden with a small kind suffix.
 //
 // Dedupe: when a candidate matches a therapist by license number OR by
-// email, the candidate is hidden from the search — the therapist is the
+// email, the candidate is hidden from the search, the therapist is the
 // source of truth. Exception: if a candidate matches a therapist by
 // email but their license numbers conflict, both are shown (the
 // ambiguous case lands in the Needs Attention queue once the user gets
@@ -46,7 +46,7 @@ function statusBadge(kind, isLive) {
       ? '<span class="ps-badge ps-badge--live">Live</span>'
       : '<span class="ps-badge ps-badge--hidden">Hidden</span>';
   }
-  // Candidates and applications can never be Live — they're not therapist
+  // Candidates and applications can never be Live, they're not therapist
   // documents. Show Hidden with a muted kind suffix so admins know which
   // collection the row came from without four different badge colors.
   const suffix =
@@ -83,13 +83,13 @@ function shouldHideCandidateAsDuplicate(candidate, dedupeIndex) {
   if (!lic && !em) return false;
 
   if (lic && dedupeIndex.byLicense.has(lic)) {
-    // Same license number on a therapist doc — the candidate is stale.
+    // Same license number on a therapist doc, the candidate is stale.
     return true;
   }
   if (em && dedupeIndex.byEmail.has(em)) {
     // Email matches a therapist. Hide the candidate UNLESS the candidate
     // has its own license that conflicts with the matched therapist's
-    // license — that's the ambiguous case (one Ken Howard candidate has
+    // license, that's the ambiguous case (one Ken Howard candidate has
     // a different license from the Ken Howard therapist record at this
     // email). Surface both rows so admin sees the conflict.
     const matched = dedupeIndex.byEmail.get(em);
@@ -155,7 +155,7 @@ export function initAdminProfileSearch({
 
       // Build the unconverted-candidate set once so isProfileLive can
       // include duplicate-against-candidate blockers when relevant. Mirrors
-      // the filter in admin-needs-attention.js — candidates marked as
+      // the filter in admin-needs-attention.js, candidates marked as
       // rejected_duplicate by the Resolve Duplicate workflow no longer
       // trigger the detector.
       const unconvertedCandidates = (getCandidates() || []).filter(function (c) {

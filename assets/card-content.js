@@ -1,7 +1,7 @@
 // Shared card content helpers used by the match results page (and, soon,
 // the directory). The four pieces here are the new card primitives: round
 // avatar, specialty pills, voice cascade, and a few format helpers. Keep
-// this module presentation-only — no DOM events, no fetches.
+// this module presentation-only, no DOM events, no fetches.
 
 import { escapeHtml } from "./escape-html.js";
 
@@ -82,7 +82,7 @@ export function renderRoundAvatar(therapist, sizeKey) {
 //     don't differentiate cards (bipolar disorder, bipolar I/II, mood).
 //   - Clinical-feeling labels: surfacing "Psychosis" on a marketing card
 //     reads as cold/diagnostic to patients, even when the clinician does
-//     treat it. The matching engine still uses these signals — only the
+//     treat it. The matching engine still uses these signals, only the
 //     card display drops them.
 var GENERIC_SPECIALTIES = {
   bipolar: true,
@@ -111,7 +111,7 @@ function getDisplaySpecialties(therapist) {
   });
 }
 
-// Zone 1 — specialty pills. Cap at 3 visible, "+N" overflow.
+// Zone 1, specialty pills. Cap at 3 visible, "+N" overflow.
 // All bipolar terms are stripped before this point; every pill uses neutral gray.
 export function renderSpecialtyPills(therapist) {
   var pills = getDisplaySpecialties(therapist);
@@ -135,9 +135,9 @@ function trimQuote(text, max) {
   return s.slice(0, max - 1).replace(/\s+\S*$/, "") + "…";
 }
 
-// Zone 2 — voice cascade. First non-empty wins. Pills already show
+// Zone 2, voice cascade. First non-empty wins. Pills already show
 // specialties, so skip the “filtered specialties” rung when pills are
-// rendered — falling through to populations / languages / fallback gives
+// rendered, falling through to populations / languages / fallback gives
 // the card a second, distinct line of signal.
 export function renderVoiceCascade(therapist) {
   var t = therapist || {};
@@ -173,7 +173,7 @@ export function renderVoiceCascade(therapist) {
     return '<p class="bth-voice">' + escapeHtml(mods.slice(0, 4).join(" · ")) + "</p>";
   }
 
-  // 5. Specialties beyond what fit on the pill row (rare — pills cap at 3)
+  // 5. Specialties beyond what fit on the pill row (rare, pills cap at 3)
   var specs = getDisplaySpecialties(t);
   if (specs.length > 3) {
     return '<p class="bth-voice">' + escapeHtml(specs.slice(3, 7).join(" · ")) + "</p>";
@@ -238,7 +238,7 @@ export function getLocationModalityLabel(therapist, options) {
   return withDistance;
 }
 
-// Cost — first non-null wins.
+// Cost, first non-null wins.
 export function getCostLabel(therapist) {
   var t = therapist || {};
   var ins = Array.isArray(t.insurance_accepted) ? t.insurance_accepted.filter(Boolean) : [];
@@ -258,7 +258,7 @@ export function getCostLabel(therapist) {
   return "";
 }
 
-// Availability — green / amber / red dot. Returns null when
+// Availability, green / amber / red dot. Returns null when
 // accepting_new_patients is null/undefined (slot is hidden entirely).
 export function getAvailabilityState(therapist) {
   var t = therapist || {};
@@ -291,7 +291,7 @@ export function renderAvailabilityBadge(therapist) {
   );
 }
 
-// Fee label for card slot 3 — fee + sliding scale only, no insurance mixing.
+// Fee label for card slot 3, fee + sliding scale only, no insurance mixing.
 export function getFeeLabel(therapist) {
   var t = therapist || {};
   var min = Number(t.session_fee_min);
@@ -308,7 +308,7 @@ export function getFeeLabel(therapist) {
   return "";
 }
 
-// Insurance label for card slot 5 — up to 3 names, then "+N more".
+// Insurance label for card slot 5, up to 3 names, then "+N more".
 export function getInsuranceLabel(therapist) {
   var t = therapist || {};
   var ins = Array.isArray(t.insurance_accepted) ? t.insurance_accepted.filter(Boolean) : [];
@@ -318,7 +318,7 @@ export function getInsuranceLabel(therapist) {
   return overflow > 0 ? visible.join(", ") + " +" + overflow + " more" : visible.join(", ");
 }
 
-// Location label for card slot 2 — spec format (no city/state, just modality + distance).
+// Location label for card slot 2, spec format (no city/state, just modality + distance).
 // options: { distanceMiles: number|null, teleSelected: boolean }
 export function getCardLocationLabel(therapist, options) {
   var t = therapist || {};

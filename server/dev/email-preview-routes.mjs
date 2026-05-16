@@ -1,7 +1,7 @@
 // Dev-only email preview routes. Mounted at /dev/emails on the local
 // review API (default http://localhost:8787). Returns 404 in production
 // regardless of how the request was routed, so accidental exposure is
-// bounded — the worst case is that the route exists but every response
+// bounded; the worst case is that the route exists but every response
 // is "Not found".
 //
 // Routes:
@@ -12,7 +12,7 @@
 //   POST /dev/emails/<id>/send-test       → fires the actual Resend send,
 //                                          honoring EMAIL_DEV_REDIRECT
 //
-// The picker is intentionally vanilla — no build step, no framework.
+// The picker is intentionally vanilla, no build step, no framework.
 // A static HTML shell with inline CSS and ~80 lines of JS that hits the
 // JSON endpoints. Works on mobile since the layout is single-column.
 
@@ -56,7 +56,7 @@ function escapeHtml(value) {
 }
 
 // ---------------------------------------------------------------------------
-// Rate limiting for test sends — 1 per template per 10 seconds.
+// Rate limiting for test sends: 1 per template per 10 seconds.
 // ---------------------------------------------------------------------------
 
 const sendCooldown = new Map();
@@ -228,7 +228,7 @@ async function renderDetailPage(templateId, config) {
   const preheaderHtml = preheader
     ? '<div class="preheader">' + escapeHtml(preheader) + "</div>"
     : '<div class="preheader placeholder">' +
-      "(no preheader — the inbox will show the first words of the body instead)" +
+      "(no preheader, the inbox will show the first words of the body instead)" +
       "</div>";
 
   const preheaderWarning =
@@ -329,7 +329,7 @@ async function renderDetailPage(templateId, config) {
     "      const j = await r.json().catch(function(){ return {}; });" +
     "      if (!r.ok) throw new Error(j.error || ('HTTP ' + r.status));" +
     "      const t = document.createElement('div');" +
-    "      t.className = 'toast'; t.textContent = 'Sent — Resend id: ' + (j.id || 'ok');" +
+    "      t.className = 'toast'; t.textContent = 'Sent. Resend id: ' + (j.id || 'ok');" +
     "      document.body.appendChild(t);" +
     "      setTimeout(function(){ t.remove(); btn.disabled = false; btn.textContent = " +
     JSON.stringify(sendButtonLabel) +
@@ -350,7 +350,7 @@ async function renderDetailPage(templateId, config) {
 }
 
 // ---------------------------------------------------------------------------
-// Route handler — entry point registered in review-handler.mjs
+// Route handler; entry point registered in review-handler.mjs
 // ---------------------------------------------------------------------------
 
 export async function handleEmailPreviewRoutes(context) {
@@ -364,7 +364,7 @@ export async function handleEmailPreviewRoutes(context) {
     return send404(response);
   }
 
-  // GET /dev/emails — picker
+  // GET /dev/emails: picker
   if (request.method === "GET" && (routePath === "/dev/emails" || routePath === "/dev/emails/")) {
     return sendHtml(response, 200, renderPickerPage(config));
   }
@@ -413,7 +413,7 @@ export async function handleEmailPreviewRoutes(context) {
     }
     if (isOnCooldown(id)) {
       return sendJsonLocal(response, 429, {
-        error: "Slow down — wait 10 seconds between test sends per template.",
+        error: "Slow down. Wait 10 seconds between test sends per template.",
       });
     }
     try {

@@ -378,7 +378,7 @@ export function createConfirmationWorkspace(options) {
             row.item.slug +
             ")" +
             (row.workflow.last_updated_at
-              ? " — confirmed in admin " + formatDate(row.workflow.last_updated_at)
+              ? ", confirmed in admin " + formatDate(row.workflow.last_updated_at)
               : "")
           );
         }),

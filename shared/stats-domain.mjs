@@ -4,7 +4,7 @@
 
 // Wilson 95% confidence interval for a binomial proportion. Returns
 // `{ center, lower, upper }` as fractions in [0, 1]. Use this whenever
-// you display a percentage from a small sample — it's the difference
+// you display a percentage from a small sample. It's the difference
 // between "30% contacted!" and "30% contacted, 95% CI 8–65%, only 4
 // sessions, this is noise."
 export function wilsonInterval(successes, total) {
@@ -25,7 +25,7 @@ export function wilsonInterval(successes, total) {
 }
 
 // Two-proportion non-overlap check. Returns true when the Wilson
-// intervals for (a / aTotal) and (b / bTotal) do not overlap — a
+// intervals for (a / aTotal) and (b / bTotal) do not overlap, a
 // conservative, easy-to-explain proxy for "this difference is real."
 // Both arms should have at least `minN` samples or the function returns
 // false (default 10).

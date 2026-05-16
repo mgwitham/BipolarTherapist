@@ -1,4 +1,4 @@
-// Focus Mode — keyboard-driven one-card-at-a-time review layered
+// Focus Mode, keyboard-driven one-card-at-a-time review layered
 // over an existing card list. Additive: list mode remains intact.
 //
 // Used by both the Triage (candidate) queue and the Signups (application)

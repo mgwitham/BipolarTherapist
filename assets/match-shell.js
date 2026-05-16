@@ -187,7 +187,7 @@ export function setMatchJourneyMode(mode, starterResultsMode) {
   }
   if (refs.refinements) {
     // In intake mode, close the advanced panel. In results mode, leave it as-is
-    // so the user controls it via "More filters" — don't auto-open.
+    // so the user controls it via "More filters", don't auto-open.
     if (mode !== "results") {
       refs.refinements.open = false;
       var moreBtn = document.getElementById("openAdvancedFiltersButton");

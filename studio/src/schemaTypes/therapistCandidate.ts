@@ -524,7 +524,7 @@ export const therapistCandidateType = defineType({
       name: "sourcingConfidence",
       title: "Sourcing confidence",
       description:
-        "Discovery-time confidence rating from the LLM sourcing pass. Use this to triage review order — low-confidence rows first.",
+        "Discovery-time confidence rating from the LLM sourcing pass. Use this to triage review order: low-confidence rows first.",
       type: "string",
       group: "review",
       options: {

@@ -102,7 +102,7 @@ function buildBipolarYearsBadgeHtml(therapist) {
 function buildMetaHtml(therapist, profile, opts) {
   const tele = profile && profile.care_format === "Telehealth";
   const userZip = profile ? String(profile.location_query || "") : "";
-  const distanceMiles = !tele && userZip && therapist.zip ? null : null; // TODO: zip distance is computed in match.js via getZipDistance — punt to a follow-up
+  const distanceMiles = !tele && userZip && therapist.zip ? null : null; // TODO: zip distance is computed in match.js via getZipDistance, punt to a follow-up
   const items = [];
   const loc = getCardLocationLabel(therapist, { distanceMiles, teleSelected: tele });
   if (loc) items.push({ html: escapeHtml(loc) });

@@ -2,7 +2,7 @@ import { countActiveFilters, readFilterStateFromControls } from "./directory-fil
 
 // Step 8: numbered pagination. Page size is fixed at 12 (2 cols x 6 rows
 // per the redesign spec). `currentPage` is 1-indexed. The legacy
-// `visibleCount` option still works for callers that haven't migrated —
+// `visibleCount` option still works for callers that haven't migrated,
 // when present, it overrides paging and acts as a hard slice cap
 // (existing load-more code paths and tests rely on this).
 export var DIRECTORY_PAGE_SIZE = 12;
@@ -16,7 +16,7 @@ export function buildDirectoryRenderState(options) {
   var totalPages = 1;
   var currentPage = 1;
   if (options.visibleCount && !options.currentPage) {
-    // Legacy load-more callers — keep working until they migrate to
+    // Legacy load-more callers, keep working until they migrate to
     // numbered pagination.
     pageItems = results.slice(0, options.visibleCount);
   } else {

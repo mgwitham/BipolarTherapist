@@ -166,7 +166,7 @@ async function notifyAdminOfWaitlist(config, sendEmail, { email, state }) {
   await sendEmail(config, {
     from: config.emailFrom,
     to: [config.notificationTo],
-    subject: `Waitlist signup: ${state} — ${email}`,
+    subject: `Waitlist signup: ${state}, ${email}`,
     html: `<h2>New out-of-state waitlist signup</h2>
 <p><strong>State:</strong> ${escapeHtml(state)}</p>
 <p><strong>Email:</strong> ${escapeHtml(email)}</p>

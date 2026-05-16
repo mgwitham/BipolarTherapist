@@ -1,5 +1,5 @@
 // Shared profile-edit drawer markup. Source of truth for the drawer's
-// DOM — both admin.html and outreach.html mount this at runtime so a
+// DOM, both admin.html and outreach.html mount this at runtime so a
 // profile edit on either surface uses the same form, validations, and
 // visual treatment. Binding logic lives in admin-candidate-edit.js.
 
@@ -120,7 +120,7 @@ const EDIT_DRAWER_HTML = `
           <div class="edit-field">
             <label for="editPreferredContactMethod">Preferred contact method</label>
             <select id="editPreferredContactMethod">
-              <option value="">— Not set —</option>
+              <option value="">Not set</option>
               <option value="email">Email</option>
               <option value="phone">Phone</option>
               <option value="website">Website</option>
@@ -307,7 +307,7 @@ const EDIT_DRAWER_HTML = `
 `;
 
 // Inject the drawer into the document body if not already present.
-// Idempotent — safe to call multiple times. Returns the drawer element.
+// Idempotent, safe to call multiple times. Returns the drawer element.
 export function mountEditDrawer() {
   let drawer = document.getElementById("candidateEditDrawer");
   if (drawer) return drawer;

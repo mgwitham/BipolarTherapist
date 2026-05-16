@@ -3,7 +3,7 @@
 // write through this module so behavior cannot drift again.
 //
 // Entry shape: { slug: string, priority: string, note: string }
-// Storage: localStorage[STORAGE_KEY] — JSON-encoded array of entries.
+// Storage: localStorage[STORAGE_KEY], JSON-encoded array of entries.
 
 import { trackFunnelEvent } from "./funnel-analytics.js";
 
@@ -267,7 +267,7 @@ export function migrateLegacyStore() {
   try {
     win.localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch (_removeError) {
-    // localStorage unavailable — best-effort, the next migration call is
+    // localStorage unavailable, best-effort, the next migration call is
     // still safe (writeList dedupes by slug).
   }
   return { migrated: migrated, skipped: skipped };

@@ -136,7 +136,7 @@ function markSavedState() {
   syncDirtyState();
 }
 
-// Read-only headshot indicator — admin can't upload (therapists do that
+// Read-only headshot indicator, admin can't upload (therapists do that
 // in the portal) but they need to know whether one is on file. Accepts
 // any of the shapes the loader might pass: snake_case `photo_url`,
 // camelCase `photoUrl`, or the raw Sanity asset object `photo.asset.url`.
@@ -173,7 +173,7 @@ function openDeleteConfirm() {
     '<div class="edit-confirm-title">Delete this therapist?</div>' +
     '<div class="edit-confirm-body">This removes <strong>' +
     escapeHtml(expected) +
-    "</strong> from the public directory and search. Sanity history, outreach log, and emails are preserved — reversible from Sanity Studio." +
+    "</strong> from the public directory and search. Sanity history, outreach log, and emails are preserved, reversible from Sanity Studio." +
     '<div style="margin-top:10px;">Type <strong>' +
     escapeHtml(expected) +
     "</strong> to confirm:</div>" +
@@ -228,7 +228,7 @@ async function performDelete() {
     return;
   }
   closeDeleteConfirm();
-  // Bypass the unsaved-changes prompt — the record is gone, there's
+  // Bypass the unsaved-changes prompt, the record is gone, there's
   // nothing left to save.
   _isDirty = false;
   closeCandidateEditDrawer();
@@ -302,7 +302,7 @@ function renderLivePanel() {
   badge.textContent = preview.isLive ? "Live" : "Hidden";
   badge.className = preview.isLive ? "ps-badge ps-badge--live" : "ps-badge ps-badge--hidden";
 
-  // Transition callout — only when the save would flip Live state.
+  // Transition callout, only when the save would flip Live state.
   if (transitionEl) {
     if (before.isLive && !preview.isLive) {
       transitionEl.textContent = "Saving will hide this profile from patients.";
@@ -317,7 +317,7 @@ function renderLivePanel() {
     }
   }
 
-  // One-line reason — only when something is blocking Live. We want the
+  // One-line reason, only when something is blocking Live. We want the
   // first realistic blocker (lifecycle / visibility / status / draft /
   // duplicate); license-number and other trust-gate checks are belt-and-
   // suspenders that never fire in practice for live therapist docs but
@@ -405,7 +405,7 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   setDangerZoneVisibility(false);
 
   setDrawerTitle("Edit candidate profile");
-  // Hide the therapist-only sections — Live status, lifecycle, audit log
+  // Hide the therapist-only sections, Live status, lifecycle, audit log
   // don't apply to candidate documents.
   setSectionVisibility(false);
 
@@ -647,7 +647,7 @@ export function bindCandidateEditDrawer() {
     closeBtn.addEventListener("click", closeCandidateEditDrawer);
   }
 
-  // Delete button — opens a type-to-confirm modal. Only meaningful for
+  // Delete button, opens a type-to-confirm modal. Only meaningful for
   // therapist mode with enableDelete=true; the button itself stays
   // hidden otherwise (see setDangerZoneVisibility).
   const deleteBtn = document.getElementById("editDeleteBtn");
@@ -698,7 +698,7 @@ export function bindCandidateEditDrawer() {
         if (needsReasonForSave(_initialTherapist, lifecycle, visibilityIntent)) {
           reason =
             window.prompt(
-              "This change will hide or pause the profile. Briefly note why (one line — stored in the audit log):",
+              "This change will hide or pause the profile. Briefly note why (one line, stored in the audit log):",
               "",
             ) || "";
           if (reason === null) {
@@ -849,7 +849,7 @@ export function bindCandidateEditDrawer() {
         statusEl.textContent =
           err && err.status === 409
             ? "Save blocked because this record changed elsewhere. Reload the latest version and try again."
-            : "Save failed — " + (err && err.message ? err.message : "try again");
+            : "Save failed, " + (err && err.message ? err.message : "try again");
         statusEl.className = "edit-save-status is-error";
       }
       trackFunnelEvent("admin_profile_save_failed", {

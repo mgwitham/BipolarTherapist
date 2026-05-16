@@ -1,16 +1,16 @@
 "use client";
 
 /**
- * Therapist Profile Page — Bipolar Therapy Hub
+ * Therapist Profile Page: Bipolar Therapy Hub
  * Next.js 14 App Router: save as app/therapists/[slug]/TherapistProfileClient.tsx
  *
  * Server wrapper: see therapist-page-server.tsx
  * The 'use client' directive means Next.js ignores the exported generateMetadata here.
  * Copy it into the server wrapper so metadata is rendered server-side (critical for SEO).
  *
- * tailwind.config.ts — add:
+ * tailwind.config.ts, add:
  *   extend: { fontFamily: { serif: ["'Lora'", "Georgia", "serif"] } }
- * layout.tsx <head> — add:
+ * layout.tsx <head>, add:
  *   <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet" />
  */
 
@@ -77,9 +77,9 @@ export const KIMBERLY_LASKOWSKI: TherapistProfile = {
   phone: "(415) 555-0182",
   websiteUrl: "https://kimberlylasmft.com",
   bio: [
-    "I specialize in working with adults living with bipolar disorder, helping them build a stable foundation for their lives and closest relationships. My clients often come to me feeling exhausted by the cycling highs and lows — searching for a therapist who genuinely understands the condition, not just its textbook definition.",
+    "I specialize in working with adults living with bipolar disorder, helping them build a stable foundation for their lives and closest relationships. My clients often come to me feeling exhausted by the cycling highs and lows, searching for a therapist who genuinely understands the condition, not just its textbook definition.",
     "My approach integrates Cognitive Behavioral Therapy (CBT), Psychoeducation, and mindfulness practices to help clients understand their mood cycles from the inside out. Together we work on building resilience, establishing sustainable routines, and navigating the relational and professional challenges that accompany a bipolar diagnosis.",
-    "I believe a bipolar diagnosis does not define a person — it is one part of a complex, meaningful life. My goal is to help you and your family develop practical tools while cultivating a deeper, more compassionate understanding of yourself.",
+    "I believe a bipolar diagnosis does not define a person. It is one part of a complex, meaningful life. My goal is to help you and your family develop practical tools while cultivating a deeper, more compassionate understanding of yourself.",
   ],
   specialties: [
     { label: "Bipolar Disorder", isPrimary: true },
@@ -1164,7 +1164,7 @@ function InsuranceSection({ insurance }: { insurance: string[] }) {
             ))}
           </div>
           <p className="mt-2 border-t border-gray-100 pt-2 text-xs text-gray-400">
-            Confirm coverage directly — benefits vary by plan and deductible.
+            Confirm coverage directly. Benefits vary by plan and deductible.
           </p>
         </>
       ) : (
@@ -1196,7 +1196,7 @@ My name is [Your name], and I'm reaching out because I'm looking for a therapist
 
 I came across your profile on Bipolar Therapy Hub and I'm interested in learning more about your availability and whether we might be a good fit.
 
-A bit about me: [brief description — e.g. diagnosis history, what you're hoping to work on].
+A bit about me: [brief description, e.g. diagnosis history, what you're hoping to work on].
 
 If you're accepting new patients, I'd love to schedule a brief consultation. Please let me know what works for you.
 
@@ -1345,7 +1345,7 @@ export function buildFAQItems(therapist: TherapistProfile): { q: string; a: stri
       q: `What insurance does ${fullName} accept?`,
       a:
         insurance.length > 0
-          ? `${firstName} accepts the following insurance plans: ${insurance.join(", ")}. Coverage for therapy varies by plan and deductible — confirm your specific benefits directly with ${firstName} or your insurance carrier before your first appointment.`
+          ? `${firstName} accepts the following insurance plans: ${insurance.join(", ")}. Coverage for therapy varies by plan and deductible. Confirm your specific benefits directly with ${firstName} or your insurance carrier before your first appointment.`
           : `Insurance information is not currently listed for ${firstName}. Contact them directly to ask about accepted plans and out-of-pocket rates.`,
     },
     {
@@ -1354,7 +1354,7 @@ export function buildFAQItems(therapist: TherapistProfile): { q: string; a: stri
         ? [
             `${firstName}'s session fee is $${sessionFee.min}–$${sessionFee.max}.`,
             sessionFee.slidingScale
-              ? `A sliding scale fee is available for qualifying clients — ask about it when you reach out.`
+              ? `A sliding scale fee is available for qualifying clients. Ask about it when you reach out.`
               : null,
             consultationFee === "free"
               ? `A free initial consultation is offered so you can discuss your needs before committing to ongoing sessions.`
@@ -1370,7 +1370,7 @@ export function buildFAQItems(therapist: TherapistProfile): { q: string; a: stri
         formats.includes("telehealth") && formats.includes("in-person")
           ? `Yes, ${firstName} offers both telehealth (secure video sessions) and in-person appointments at their ${therapist.location.city} office. You can discuss your preference when scheduling.`
           : formats.includes("telehealth")
-            ? `Yes, ${firstName} offers telehealth sessions — you can attend therapy from home via secure video, making it easier to fit appointments into your schedule.`
+            ? `Yes, ${firstName} offers telehealth sessions. You can attend therapy from home via secure video, making it easier to fit appointments into your schedule.`
             : `${firstName} currently offers in-person sessions in ${therapist.location.city}, ${therapist.location.state}.`,
     },
     {
@@ -1382,7 +1382,7 @@ export function buildFAQItems(therapist: TherapistProfile): { q: string; a: stri
       a: [
         `You can reach ${firstName} by ${contact || "the contact details on this page"}.`,
         consultationFee === "free"
-          ? `A free initial consultation is available — this is a good opportunity to share your diagnosis history, ask questions, and see whether you're a good fit before committing to ongoing sessions.`
+          ? `A free initial consultation is available. This is a good opportunity to share your diagnosis history, ask questions, and see whether you're a good fit before committing to ongoing sessions.`
           : `Many therapists offer a brief phone call before the first session so both parties can assess fit.`,
         `When you reach out, mention that you found their profile on Bipolar Therapy Hub and describe what you're hoping to work on.`,
       ].join(" "),
@@ -1882,9 +1882,9 @@ export function generateMetadata(_: { params: { slug: string } }): Metadata {
   const t = KIMBERLY_LASKOWSKI;
 
   const credStr = t.credentials.join(", ");
-  const title = `${t.name.display}, ${credStr} — Bipolar Therapist in ${t.location.city}, ${t.location.state} | Bipolar Therapy Hub`;
+  const title = `${t.name.display}, ${credStr}, Bipolar Therapist in ${t.location.city}, ${t.location.state} | Bipolar Therapy Hub`;
 
-  // Description: lead with specialist identity, then key logistics — ~155 chars
+  // Description: lead with specialist identity, then key logistics, ~155 chars
   const descParts: string[] = [
     `${t.name.display} is a bipolar disorder specialist and ${t.title.toLowerCase()} in ${t.location.city}, ${t.location.state}.`,
   ];
@@ -1974,7 +1974,7 @@ export default function TherapistPage(_: { params: { slug: string } }) {
   // ── Share ─────────────────────────────────────────────────────────────────
   const handleShare = async () => {
     const url = `https://www.bipolartherapyhub.com/therapists/${therapist.slug}/`;
-    const shareTitle = `${therapist.name.display} — Bipolar Therapist in ${therapist.location.city}`;
+    const shareTitle = `${therapist.name.display}, Bipolar Therapist in ${therapist.location.city}`;
     if (typeof navigator !== "undefined" && navigator.share) {
       try {
         await navigator.share({ title: shareTitle, url });

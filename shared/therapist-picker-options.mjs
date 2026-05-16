@@ -3,7 +3,7 @@
 // (e.g. fuzzy-matching user input against the canonical spelling)
 // read from the same source.
 //
-// Free-form "other" values stay allowed — therapists can type a
+// Free-form "other" values stay allowed, therapists can type a
 // plan/modality the list doesn't cover. These lists exist to give
 // them one-click access to the ~90% case and normalize spelling.
 
