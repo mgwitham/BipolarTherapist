@@ -41,6 +41,9 @@ jobs:
       - name: Check bundle budgets
         run: npm run check:bundle-budgets
 
+      - name: Check internal links
+        run: npm run check:internal-links
+
       - name: Build CMS
         run: npm run cms:build
 

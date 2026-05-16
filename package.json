@@ -94,7 +94,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "check:bundle-budgets": "node scripts/check-bundle-budgets.mjs",
-    "check": "npm run format:check && npm run lint && npm run build && npm run check:bundle-budgets && npm run cms:build",
+    "check:internal-links": "node scripts/check-internal-links.mjs",
+    "check": "npm run format:check && npm run lint && npm run build && npm run check:bundle-budgets && npm run check:internal-links && npm run cms:build",
     "prepare": "husky"
   },
   "lint-staged": {
