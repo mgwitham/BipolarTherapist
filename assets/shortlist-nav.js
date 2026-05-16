@@ -1,3 +1,4 @@
+import "./site-analytics.js";
 import { readList, subscribe } from "./saved-list.js";
 import { initSavedListPanel } from "./saved-list-panel.js";
 

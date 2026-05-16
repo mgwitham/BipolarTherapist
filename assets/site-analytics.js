@@ -31,12 +31,41 @@ function loadGoogleAnalytics() {
   window.gtag("config", measurementId);
 }
 
+// Path-gate: PostHog session recordings only run on patient-facing
+// pages. Therapist-facing surfaces (signup, claim, recover, remove,
+// portal, admin) handle therapist PII and aren't useful for patient
+// behavior research anyway. This lets every page safely import
+// site-analytics.js for GA without accidentally exposing therapist
+// flows to session replay.
+const PATIENT_PATH_PATTERNS = [
+  /^\/$/,
+  /^\/match(\b|\/)/,
+  /^\/results(\b|\/)/,
+  /^\/directory(\b|\/)/,
+  /^\/therapists?\//,
+  /^\/about(\b|\/)/,
+];
+
+function isPatientFacingPath() {
+  try {
+    const path = window.location.pathname || "/";
+    return PATIENT_PATH_PATTERNS.some(function (re) {
+      return re.test(path);
+    });
+  } catch (_err) {
+    return false;
+  }
+}
+
 // PostHog session recordings + autocapture. Lazy-loaded (dynamic import)
 // so the ~50KB SDK only ships to clients that have consent + a key set,
 // and never blocks initial render. No-op when VITE_POSTHOG_KEY is unset,
 // so this can ship before the PostHog project is created.
 function loadPostHog() {
   if (typeof window === "undefined" || hasAnalyticsOptOut()) {
+    return;
+  }
+  if (!isPatientFacingPath()) {
     return;
   }
   var key = "";

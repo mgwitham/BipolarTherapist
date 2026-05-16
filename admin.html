@@ -7040,21 +7040,6 @@
          are long because every workspace renders stacked on one surface;
          this gives a one-tap escape hatch. -->
     <button id="backToTopFab" type="button" aria-label="Back to top" title="Back to top">↑</button>
-    <script>
-      (function setupBackToTopFab() {
-        const fab = document.getElementById("backToTopFab");
-        if (!fab) return;
-        const THRESHOLD = 600;
-        function sync() {
-          const y = window.scrollY || window.pageYOffset || 0;
-          fab.classList.toggle("is-visible", y > THRESHOLD);
-        }
-        window.addEventListener("scroll", sync, { passive: true });
-        fab.addEventListener("click", function () {
-          window.scrollTo({ top: 0, behavior: "smooth" });
-        });
-        sync();
-      })();
-    </script>
+    <script type="module" src="assets/admin-back-to-top.js"></script>
   </body>
 </html>
