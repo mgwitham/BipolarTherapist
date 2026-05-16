@@ -8,7 +8,7 @@ const portalJs = readFileSync(
   "utf8",
 );
 const previewHtml = readFileSync(
-  fileURLToPath(new URL("../../paid-analytics-preview.html", import.meta.url)),
+  fileURLToPath(new URL("../fixtures/paid-analytics-preview.html", import.meta.url)),
   "utf8",
 );
 
