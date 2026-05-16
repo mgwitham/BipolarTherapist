@@ -31,8 +31,65 @@ function loadGoogleAnalytics() {
   window.gtag("config", measurementId);
 }
 
+// PostHog session recordings + autocapture. Lazy-loaded (dynamic import)
+// so the ~50KB SDK only ships to clients that have consent + a key set,
+// and never blocks initial render. No-op when VITE_POSTHOG_KEY is unset,
+// so this can ship before the PostHog project is created.
+function loadPostHog() {
+  if (typeof window === "undefined" || hasAnalyticsOptOut()) {
+    return;
+  }
+  var key = "";
+  var host = "https://us.i.posthog.com";
+  try {
+    if (import.meta.env) {
+      key = import.meta.env.VITE_POSTHOG_KEY || "";
+      host = import.meta.env.VITE_POSTHOG_HOST || host;
+    }
+  } catch (_err) {
+    return;
+  }
+  if (!key) return;
+
+  import("posthog-js")
+    .then(function (mod) {
+      var posthog = mod.default || mod;
+      posthog.init(key, {
+        api_host: host,
+        // Honor browser-level privacy signals at PostHog's layer too.
+        respect_dnt: true,
+        // Mask all input fields (zip, search queries, anything the
+        // user types). The page text is still recorded — we want to
+        // see what content the visitor saw, just not what they typed.
+        // Especially important on a mental-health site.
+        session_recording: {
+          maskAllInputs: true,
+          maskInputOptions: { password: true, email: true },
+        },
+        autocapture: true,
+        capture_pageview: true,
+        capture_pageleave: true,
+        persistence: "localStorage+cookie",
+        // Disable PostHog's own toolbar in prod — we don't need it
+        // and it would only confuse the founder during a live session.
+        disable_session_recording: false,
+        loaded: function () {
+          window.posthog = posthog;
+        },
+      });
+    })
+    .catch(function (err) {
+      console.warn("posthog: failed to load, continuing without it", err);
+    });
+}
+
+function loadAll() {
+  loadGoogleAnalytics();
+  loadPostHog();
+}
+
 if ("requestIdleCallback" in window) {
-  window.requestIdleCallback(loadGoogleAnalytics, { timeout: 3000 });
+  window.requestIdleCallback(loadAll, { timeout: 3000 });
 } else {
-  window.setTimeout(loadGoogleAnalytics, 1500);
+  window.setTimeout(loadAll, 1500);
 }

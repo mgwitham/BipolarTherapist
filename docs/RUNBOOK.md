@@ -46,14 +46,15 @@ Rollback is reversible — just promote a newer deployment after fixing forward.
 
 ## 3. Where logs live
 
-| System                 | Where                                                               | What to look for                                   |
-| ---------------------- | ------------------------------------------------------------------- | -------------------------------------------------- |
-| Site + API (Vercel)    | Vercel dashboard → BipolarTherapist → Logs (or `vercel logs <url>`) | Function errors, build failures, edge-cache misses |
-| Email send (Resend)    | resend.com/emails                                                   | Bounces, deliverability, message IDs from API logs |
-| Stripe events          | dashboard.stripe.com → Developers → Events                          | Failed webhooks, subscription state changes        |
-| Sanity content history | sanity.io/manage → BipolarTherapyHub → API → History                | Who edited what doc, when                          |
-| DCA license check      | Vercel function logs for `/api/review/application/create`           | "DCA verify failed" markers                        |
-| GitHub Actions (CI)    | github.com/.../actions                                              | Format / lint / build / test failures              |
+| System                      | Where                                                               | What to look for                                                    |
+| --------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| Site + API (Vercel)         | Vercel dashboard → BipolarTherapist → Logs (or `vercel logs <url>`) | Function errors, build failures, edge-cache misses                  |
+| Email send (Resend)         | resend.com/emails                                                   | Bounces, deliverability, message IDs from API logs                  |
+| Stripe events               | dashboard.stripe.com → Developers → Events                          | Failed webhooks, subscription state changes                         |
+| Sanity content history      | sanity.io/manage → BipolarTherapyHub → API → History                | Who edited what doc, when                                           |
+| DCA license check           | Vercel function logs for `/api/review/application/create`           | "DCA verify failed" markers                                         |
+| GitHub Actions (CI)         | github.com/.../actions                                              | Format / lint / build / test failures                               |
+| PostHog (patient analytics) | posthog.com → project → Web Analytics / Session Replay              | Where patients drop off in match flow; heatmaps; session recordings |
 
 API requests log a `requestId` (UUID) in their response error. To trace one end-to-end, grep Vercel function logs for the request ID.
 
@@ -76,6 +77,7 @@ All secrets live in Vercel project env vars (Settings → Environment Variables)
 | Cron auth             | regenerate locally                                                         | `CRON_SECRET`               |
 | Turnstile site key    | dash.cloudflare.com → Turnstile → site → rotate                            | `VITE_TURNSTILE_SITE_KEY`   |
 | Turnstile secret key  | dash.cloudflare.com → Turnstile → site → rotate                            | `TURNSTILE_SECRET_KEY`      |
+| PostHog project key   | posthog.com → Project Settings → Rotate API key                            | `VITE_POSTHOG_KEY`          |
 
 **Rotating session secret invalidates all active sessions.** Do it during low-traffic hours. Admin will need to log back in. Therapist portal users will need to re-authenticate.
 
