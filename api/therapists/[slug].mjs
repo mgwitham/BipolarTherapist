@@ -357,7 +357,7 @@ function buildJsonLd(t) {
       "@type": "BreadcrumbList",
       itemListElement: [
         { "@type": "ListItem", position: 1, name: "Home", item: ORIGIN + "/" },
-        { "@type": "ListItem", position: 2, name: "Directory", item: ORIGIN + "/directory.html" },
+        { "@type": "ListItem", position: 2, name: "Directory", item: ORIGIN + "/directory" },
         { "@type": "ListItem", position: 3, name: nameWithCreds, item: pageUrl },
       ],
     },
@@ -621,17 +621,17 @@ ${linkTags}
   </head>
   <body>
     <nav>
-      <a href="/index.html" class="nav-logo">
+      <a href="/" class="nav-logo">
         <span class="nav-name">BipolarTherapy<span>Hub</span></span>
       </a>
       <ul class="nav-links">
-        <li><a href="/directory.html" class="nav-link-current">Find a Therapist</a></li>
+        <li><a href="/directory" class="nav-link-current">Find a Therapist</a></li>
         <li>
-          <a href="/directory.html" class="nav-shortlist" data-shortlist-link
+          <a href="/directory" class="nav-shortlist" data-shortlist-link
             >List <span class="nav-shortlist-count" data-shortlist-count>0</span></a>
         </li>
         <li class="nav-zone-switch-item">
-          <a href="/signup.html" class="nav-zone-switch">For therapists →</a>
+          <a href="/signup" class="nav-zone-switch">For therapists →</a>
         </li>
       </ul>
     </nav>
@@ -712,7 +712,7 @@ export default async function handler(req, res) {
   const slug = req.query.slug;
 
   if (!slug || typeof slug !== "string") {
-    res.writeHead(302, { Location: "/directory.html" });
+    res.writeHead(302, { Location: "/directory" });
     res.end();
     return;
   }

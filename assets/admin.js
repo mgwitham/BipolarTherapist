@@ -1475,10 +1475,7 @@ function buildConfirmationApplyBrief(item, agenda, workflow, preferredPrimaryFie
     "",
     "Profile URL:",
     item && item.slug
-      ? new URL(
-          "therapist.html?slug=" + encodeURIComponent(item.slug),
-          window.location.href,
-        ).toString()
+      ? new URL("/therapists/" + encodeURIComponent(item.slug), window.location.href).toString()
       : "",
   ]
     .filter(Boolean)

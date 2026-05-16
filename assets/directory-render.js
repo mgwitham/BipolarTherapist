@@ -11,7 +11,7 @@ function buildTherapistProfileHref(slug, source) {
   }
   return cleanSlug
     ? "/therapists/" + encodeURIComponent(cleanSlug) + "/?" + params.toString()
-    : "therapist.html?slug=" + encodeURIComponent(cleanSlug);
+    : "/directory";
 }
 
 function getTherapistDisplayName(name) {

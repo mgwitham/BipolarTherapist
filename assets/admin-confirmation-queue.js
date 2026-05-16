@@ -249,7 +249,7 @@ export function renderConfirmationQueuePanel(options) {
           "</button>" +
           '<a class="btn-secondary btn-inline" href="' +
           options.escapeHtml(confirmationLink) +
-          '" target="_blank" rel="noopener">Open confirmation form</a><a class="btn-secondary btn-inline" href="therapist.html?slug=' +
+          '" target="_blank" rel="noopener">Open confirmation form</a><a class="btn-secondary btn-inline" href="/therapists/' +
           encodeURIComponent(item.slug) +
           '">Open profile</a></div>' +
           options.renderReviewEntityTaskHtml("therapist", item.id) +

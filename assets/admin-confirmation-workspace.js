@@ -332,7 +332,7 @@ export function createConfirmationWorkspace(options) {
       lines.push(
         "- Profile URL: " +
           new URL(
-            "therapist.html?slug=" + encodeURIComponent(row.item.slug),
+            "/therapists/" + encodeURIComponent(row.item.slug),
             window.location.href,
           ).toString(),
       );
@@ -978,7 +978,7 @@ export function createConfirmationWorkspace(options) {
       lines.push(
         "- Profile URL: " +
           new URL(
-            "therapist.html?slug=" + encodeURIComponent(row.item.slug),
+            "/therapists/" + encodeURIComponent(row.item.slug),
             window.location.href,
           ).toString(),
       );

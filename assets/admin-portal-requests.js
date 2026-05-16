@@ -91,7 +91,7 @@ export function renderPortalRequestsQueuePanel(options) {
           : "") +
         '<a class="btn-secondary" href="/portal?slug=' +
         encodeURIComponent(item.therapist_slug || "") +
-        '">Open portal</a><a class="btn-secondary" href="therapist.html?slug=' +
+        '">Open portal</a><a class="btn-secondary" href="/therapists/' +
         encodeURIComponent(item.therapist_slug || "") +
         '">View profile</a></div><div class="review-coach-status" data-portal-request-status-id="' +
         options.escapeHtml(item.id) +
