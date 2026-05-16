@@ -164,39 +164,245 @@ nav[aria-label="Main navigation"] .nav-hamburger[aria-expanded="true"] span:nth-
   transform: translateY(-8px) rotate(-45deg);
 }
 
-@media (max-width: 768px) {
+/* ============================================================
+   Tablet (641–768px): still keep the inline desktop nav, just
+   tighten padding. Mobile-specific layout starts at ≤640px.
+   ============================================================ */
+@media (max-width: 768px) and (min-width: 641px) {
   nav[aria-label="Main navigation"] {
     padding: 0 16px;
   }
-  nav[aria-label="Main navigation"] .nav-links {
-    display: none;
-  }
-  nav[aria-label="Main navigation"] .nav-hamburger {
-    display: flex;
-  }
+}
+
+/* ============================================================
+   Mobile redesign (2026-05-16).
+   - Crisis ribbon: thin sticky strip above nav, JS-injected
+   - Top bar: logo mark + Get Matched pill + Menu button
+   - Bottom sheet: full-screen list of secondary destinations
+   - Hide-on-scroll-down, reveal-on-scroll-up
+   - All tap targets ≥36px (44 with padding)
+   ============================================================ */
+
+.crisis-ribbon {
+  display: none;
 }
 
 .public-mobile-nav {
   display: none;
 }
 
-.public-mobile-nav.is-open {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  position: fixed;
-  top: 64px;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(12, 40, 48, 0.98);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  z-index: 99;
-  overflow-y: auto;
-  padding: 1rem;
+@media (max-width: 640px) {
+  /* --- Crisis ribbon: injected by nav.js into top of <body> --- */
+  .crisis-ribbon {
+    position: sticky;
+    top: 0;
+    z-index: 101;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 28px;
+    padding: 6px 12px;
+    background: #6e1b1b;
+    color: #fff;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 12.5px;
+    font-weight: 500;
+    text-align: center;
+    text-decoration: none;
+    line-height: 1.3;
+    box-sizing: border-box;
+    transition: transform 0.22s ease;
+    will-change: transform;
+  }
+  .crisis-ribbon:active {
+    background: #8a2424;
+  }
+  .crisis-ribbon::before {
+    content: "☎";
+    margin-right: 6px;
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  /* --- Top bar --- */
+  nav[aria-label="Main navigation"] {
+    position: sticky;
+    top: 0;
+    height: 56px;
+    padding: 0 12px;
+    gap: 8px;
+    transition: transform 0.22s ease;
+    will-change: transform;
+  }
+  body.has-crisis-ribbon nav[aria-label="Main navigation"] {
+    top: 28px;
+  }
+
+  /* Drop the wordmark on mobile — logo mark alone carries the brand. */
+  nav[aria-label="Main navigation"] .logo-wordmark {
+    display: none;
+  }
+
+  /* Collapse the inline desktop link list. Items live in the sheet now. */
+  nav[aria-label="Main navigation"] .nav-links {
+    display: none !important;
+  }
+
+  /* Promote #navBrowseLink ("Get Matched") into a pill on the right.
+     Position absolutely so it escapes its hidden <ul> wrapper. */
+  nav[aria-label="Main navigation"] .nav-links #navBrowseLink {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    right: 92px;
+    top: 50%;
+    transform: translateY(-50%);
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #2a9cb3, #1a7a8f);
+    color: #fff !important;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 13.5px !important;
+    font-weight: 600 !important;
+    line-height: 1;
+    text-decoration: none;
+    white-space: nowrap;
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.18) inset,
+      0 2px 6px rgba(0, 0, 0, 0.18);
+  }
+  /* Take the <ul> out of flex flow so the hamburger right-aligns naturally,
+     but keep it rendered as a positioning anchor for the absolute pill. */
+  nav[aria-label="Main navigation"] .nav-links:has(#navBrowseLink) {
+    display: block !important;
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    padding: 0;
+    margin: 0;
+    list-style: none;
+    width: auto;
+    height: auto;
+    overflow: visible;
+  }
+  nav[aria-label="Main navigation"] .nav-links li {
+    display: none !important;
+  }
+  nav[aria-label="Main navigation"] .nav-links li:has(#navBrowseLink) {
+    display: block !important;
+    pointer-events: auto;
+  }
+
+  /* --- Menu button (reuses .nav-hamburger). Hide the 3 bars,
+       render "Menu" via ::after. aria-label keeps SR users covered. --- */
+  nav[aria-label="Main navigation"] .nav-hamburger {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    color: #fff;
+    font-family: "DM Sans", system-ui, sans-serif;
+    font-size: 13.5px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+  }
+  nav[aria-label="Main navigation"] .nav-hamburger > span {
+    display: none;
+  }
+  nav[aria-label="Main navigation"] .nav-hamburger::after {
+    content: "Menu";
+  }
+  nav[aria-label="Main navigation"] .nav-hamburger[aria-expanded="true"]::after {
+    content: "Close";
+  }
+  nav[aria-label="Main navigation"] .nav-hamburger:active {
+    background: rgba(255, 255, 255, 0.16);
+  }
+
+  /* --- Hide-on-scroll: body.nav-collapsed slides ribbon + nav off-top --- */
+  body.nav-collapsed .crisis-ribbon {
+    transform: translateY(-100%);
+  }
+  body.nav-collapsed nav[aria-label="Main navigation"] {
+    transform: translateY(-100%);
+  }
+  body.has-crisis-ribbon.nav-collapsed nav[aria-label="Main navigation"] {
+    transform: translateY(calc(-100% - 28px));
+  }
+
+  /* --- Bottom sheet --- */
+  .public-mobile-nav.is-open {
+    display: flex !important;
+    flex-direction: column;
+    gap: 2px;
+    position: fixed;
+    top: 56px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: #0c2830;
+    z-index: 99;
+    overflow-y: auto;
+    padding: 12px 16px calc(24px + env(safe-area-inset-bottom, 0px));
+  }
+  body.has-crisis-ribbon .public-mobile-nav.is-open {
+    top: 84px;
+  }
+  .public-mobile-nav-link {
+    display: flex !important;
+    align-items: center;
+    min-height: 56px;
+    padding: 16px 12px !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+    box-shadow: none !important;
+    color: #fff !important;
+    text-decoration: none;
+    font-family: "DM Sans", system-ui, sans-serif;
+  }
+  .public-mobile-nav-link:active {
+    background: rgba(255, 255, 255, 0.05) !important;
+  }
+  .public-mobile-nav-link.is-current {
+    color: #6dbdd4;
+  }
+  /* Hide kicker + copy spans — sheet is a clean text list. */
+  .public-mobile-nav-link .public-mobile-nav-kicker,
+  .public-mobile-nav-link .public-mobile-nav-copy {
+    display: none !important;
+  }
+  .public-mobile-nav-link .public-mobile-nav-title {
+    display: inline !important;
+    font-size: 17px;
+    font-weight: 500;
+    color: inherit;
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+  }
+  /* Saved row hides when count is zero (JS toggles body.shortlist-empty).
+     Sheets variably use .mobile-shortlist-nav or .nav-shortlist on the link. */
+  body.shortlist-empty .public-mobile-nav-link.mobile-shortlist-nav,
+  body.shortlist-empty .public-mobile-nav-link.nav-shortlist {
+    display: none !important;
+  }
 }
 
+/* ============================================================
+   Desktop bottom-sheet baseline (kept for legacy markup). At ≥641px
+   the sheet stays hidden regardless of .is-open state.
+   ============================================================ */
 .public-mobile-nav-link {
   display: block;
   padding: 0.85rem 1rem;
@@ -206,15 +412,6 @@ nav[aria-label="Main navigation"] .nav-hamburger[aria-expanded="true"] span:nth-
   color: #fff;
   text-decoration: none;
   transition: background 0.15s;
-}
-
-.public-mobile-nav-link:hover {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.public-mobile-nav-link.is-current {
-  background: rgba(109, 189, 212, 0.16);
-  border-color: rgba(109, 189, 212, 0.36);
 }
 
 .public-mobile-nav-kicker {

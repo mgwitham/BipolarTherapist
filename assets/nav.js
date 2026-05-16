@@ -1,4 +1,86 @@
 (function () {
+  // Crisis ribbon: inject above nav on mobile if the page has a
+  // .nav-crisis-link (signals a patient-facing page). The inline link
+  // stays in markup as the no-JS fallback. The mobile CSS hides the
+  // inline link's parent <ul> anyway, so no visible duplication.
+  try {
+    var inlineCrisis = document.querySelector(".nav-crisis-link");
+    if (inlineCrisis && !document.querySelector(".crisis-ribbon")) {
+      var ribbon = document.createElement("a");
+      ribbon.className = "crisis-ribbon";
+      ribbon.href = "tel:988";
+      ribbon.setAttribute(
+        "aria-label",
+        "In crisis? Call or text the Suicide and Crisis Lifeline at 988",
+      );
+      ribbon.textContent = "In crisis? Call or text 988";
+      document.body.insertBefore(ribbon, document.body.firstChild);
+      document.body.classList.add("has-crisis-ribbon");
+    }
+  } catch (_ribbonError) {
+    // Non-fatal — page still works, inline crisis link remains.
+  }
+
+  // Hide-on-scroll-down, reveal-on-scroll-up. Mobile widths only.
+  try {
+    var mq = window.matchMedia("(max-width: 640px)");
+    var lastY = window.scrollY;
+    var ticking = false;
+    function updateNavCollapse() {
+      ticking = false;
+      if (!mq.matches) {
+        document.body.classList.remove("nav-collapsed");
+        return;
+      }
+      var y = window.scrollY;
+      var delta = y - lastY;
+      if (y < 24) {
+        document.body.classList.remove("nav-collapsed");
+      } else if (delta > 6) {
+        document.body.classList.add("nav-collapsed");
+      } else if (delta < -6) {
+        document.body.classList.remove("nav-collapsed");
+      }
+      lastY = y;
+    }
+    window.addEventListener(
+      "scroll",
+      function () {
+        if (!ticking) {
+          window.requestAnimationFrame(updateNavCollapse);
+          ticking = true;
+        }
+      },
+      { passive: true },
+    );
+  } catch (_scrollError) {
+    // Non-fatal.
+  }
+
+  // Saved-count gating: when the shortlist badge is hidden / shows 0,
+  // hide the sheet's Saved row too (otherwise it's noise on first visit).
+  try {
+    function refreshShortlistEmpty() {
+      var badge = document.querySelector(".nav-shortlist-count[data-shortlist-count]");
+      if (!badge) return;
+      var empty = badge.hasAttribute("hidden") || (badge.textContent || "0").trim() === "0";
+      document.body.classList.toggle("shortlist-empty", empty);
+    }
+    refreshShortlistEmpty();
+    var badge = document.querySelector(".nav-shortlist-count[data-shortlist-count]");
+    if (badge && "MutationObserver" in window) {
+      new window.MutationObserver(refreshShortlistEmpty).observe(badge, {
+        attributes: true,
+        attributeFilter: ["hidden"],
+        childList: true,
+        characterData: true,
+        subtree: true,
+      });
+    }
+  } catch (_savedError) {
+    // Non-fatal.
+  }
+
   var btn = document.querySelector(".nav-hamburger");
   var mobileNav = document.querySelector(".public-mobile-nav");
   if (btn && mobileNav) {
