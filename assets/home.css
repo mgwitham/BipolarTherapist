@@ -306,9 +306,8 @@ nav[aria-label="Main navigation"] {
 .public-mobile-nav-link {
   text-decoration: none;
 }
-.mobile-shortlist-nav:not(.is-filled) {
-  display: none;
-}
+/* Saved row stays visible in the mobile sheet even when empty so the
+   sheet never looks sparse. Count badge controls its own visibility. */
 .nav-hamburger {
   display: none;
   flex-direction: column;
