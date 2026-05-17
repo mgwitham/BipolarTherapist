@@ -1,0 +1,59 @@
+name: Sanity Backup Weekly
+
+# Weekly snapshot of the Sanity dataset, uploaded as a GitHub Actions
+# artifact (90-day retention on free tier). This is the only "lose it
+# and the business is gone" data store, so we capture it out-of-band
+# from Sanity's own history retention.
+
+on:
+  schedule:
+    # Mondays at 12:00 UTC (= 5am PT in PDT, 4am PT in PST).
+    # Off-peak to avoid contending with the daily ingestion workflow.
+    - cron: "0 12 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: sanity-backup-weekly
+  cancel-in-progress: false
+
+jobs:
+  export-dataset:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      SANITY_AUTH_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+
+    steps:
+      - name: Compute snapshot metadata
+        id: meta
+        run: |
+          STAMP=$(date -u +"%Y-%m-%d")
+          echo "stamp=$STAMP" >> "$GITHUB_OUTPUT"
+          echo "filename=sanity-${{ secrets.SANITY_DATASET }}-$STAMP.tar.gz" >> "$GITHUB_OUTPUT"
+
+      - name: Export dataset
+        run: |
+          npx --yes @sanity/cli@latest dataset export \
+            "${{ secrets.SANITY_DATASET }}" \
+            "${{ steps.meta.outputs.filename }}" \
+            --project "${{ secrets.SANITY_PROJECT_ID }}" \
+            --overwrite
+
+      - name: Report size
+        run: |
+          ls -lh "${{ steps.meta.outputs.filename }}"
+          {
+            echo "## Sanity backup ${{ steps.meta.outputs.stamp }}"
+            echo ""
+            echo "- Dataset: \`${{ secrets.SANITY_DATASET }}\`"
+            echo "- File: \`${{ steps.meta.outputs.filename }}\`"
+            echo "- Size: $(ls -lh "${{ steps.meta.outputs.filename }}" | awk '{print $5}')"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload snapshot artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sanity-backup-${{ steps.meta.outputs.stamp }}
+          path: ${{ steps.meta.outputs.filename }}
+          retention-days: 90
+          if-no-files-found: error
