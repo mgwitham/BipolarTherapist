@@ -2559,49 +2559,10 @@ footer a {
   }
 }
 
-.public-mobile-nav-link {
-  display: grid;
-  gap: 0.12rem;
-  min-height: 60px;
-  padding: 0.72rem 0.74rem;
-  border-radius: 18px;
-  border: 1px solid rgba(26, 122, 143, 0.12);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(242, 248, 250, 0.96));
-  box-shadow: 0 12px 24px rgba(14, 77, 95, 0.08);
-  color: var(--slate);
-}
-
-.public-mobile-nav-link.is-current {
-  background: linear-gradient(180deg, rgba(14, 77, 95, 0.96), rgba(26, 122, 143, 0.94));
-  border-color: rgba(14, 77, 95, 0.2);
-  color: var(--white);
-}
-
-.public-mobile-nav-link.is-current .public-mobile-nav-kicker,
-.public-mobile-nav-link.is-current .public-mobile-nav-copy {
-  color: rgba(255, 255, 255, 0.78);
-}
-
-.public-mobile-nav-kicker {
-  font-size: 0.64rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.public-mobile-nav-title {
-  font-size: 0.82rem;
-  line-height: 1.25;
-  font-weight: 800;
-  color: inherit;
-}
-
-.public-mobile-nav-copy {
-  font-size: 0.72rem;
-  line-height: 1.4;
-  color: var(--slate);
-}
+/* Legacy card-grid mobile sheet rules removed. Mobile sheet layout is
+   owned entirely by assets/public-nav.css (2026-05-16 redesign). These
+   rules previously fought the new design and on cached Safari renders
+   could make non-current sheet items unreadable. */
 
 @media (max-width: 640px) {
   body {
