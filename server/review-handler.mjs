@@ -1050,7 +1050,10 @@ export function createReviewApiHandler(configOverride, clientOverride) {
     }
 
     // Health check: cheap Sanity probe so uptime monitors get a real signal.
-    if (routePath === "/health" && request.method === "GET") {
+    // Accepts HEAD so UptimeRobot-style monitors (default HEAD) get the same
+    // status code without configuration; the Sanity probe still runs so a
+    // Sanity outage surfaces as 503 either way.
+    if (routePath === "/health" && (request.method === "GET" || request.method === "HEAD")) {
       const probeStart = Date.now();
       try {
         await client.fetch('*[_type == "therapist"][0]{_id}');
