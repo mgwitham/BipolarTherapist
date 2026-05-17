@@ -57,27 +57,18 @@
     // Non-fatal.
   }
 
-  // Saved-count gating: when the shortlist badge is hidden / shows 0,
-  // hide the sheet's Saved row too (otherwise it's noise on first visit).
+  // Append a small footer to the mobile sheet so it never reads as empty,
+  // and so the crisis 988 link is always one tap from inside the menu.
   try {
-    function refreshShortlistEmpty() {
-      var badge = document.querySelector(".nav-shortlist-count[data-shortlist-count]");
-      if (!badge) return;
-      var empty = badge.hasAttribute("hidden") || (badge.textContent || "0").trim() === "0";
-      document.body.classList.toggle("shortlist-empty", empty);
+    var sheet = document.querySelector(".public-mobile-nav");
+    if (sheet && !sheet.querySelector(".public-mobile-nav-footer")) {
+      var footer = document.createElement("div");
+      footer.className = "public-mobile-nav-footer";
+      footer.innerHTML =
+        'Need help now? <a href="tel:988" aria-label="Call or text 988">Call or text 988</a>';
+      sheet.appendChild(footer);
     }
-    refreshShortlistEmpty();
-    var badge = document.querySelector(".nav-shortlist-count[data-shortlist-count]");
-    if (badge && "MutationObserver" in window) {
-      new window.MutationObserver(refreshShortlistEmpty).observe(badge, {
-        attributes: true,
-        attributeFilter: ["hidden"],
-        childList: true,
-        characterData: true,
-        subtree: true,
-      });
-    }
-  } catch (_savedError) {
+  } catch (_footerError) {
     // Non-fatal.
   }
 
