@@ -36,7 +36,7 @@ jobs:
           npx --yes @sanity/cli@latest dataset export \
             "${{ secrets.SANITY_DATASET }}" \
             "${{ steps.meta.outputs.filename }}" \
-            --project "${{ secrets.SANITY_PROJECT_ID }}" \
+            --project-id "${{ secrets.SANITY_PROJECT_ID }}" \
             --overwrite
 
       - name: Report size
