@@ -227,13 +227,7 @@ nav[aria-label="Main navigation"] .nav-hamburger[aria-expanded="true"] span:nth-
   .crisis-ribbon:active {
     color: #fff;
   }
-  .crisis-ribbon::before {
-    content: "☎";
-    margin-right: 6px;
-    font-size: 11px;
-    line-height: 1;
-    color: #f0b66c;
-  }
+  /* No icon — keeps the ribbon as quiet chrome. */
 
   /* --- Top bar --- */
   nav[aria-label="Main navigation"] {
