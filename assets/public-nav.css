@@ -191,6 +191,12 @@ nav[aria-label="Main navigation"] .nav-hamburger[aria-expanded="true"] span:nth-
   display: none;
 }
 
+/* Shortlist count badge: stay hidden when [hidden] attribute is present,
+   regardless of any page-specific .nav-shortlist-count display rule. */
+.nav-shortlist-count[hidden] {
+  display: none !important;
+}
+
 @media (max-width: 640px) {
   /* --- Crisis ribbon: subtle chrome above the nav. Same dark family as
      the nav so it reads as part of the header, not a warning banner.
@@ -385,7 +391,8 @@ nav[aria-label="Main navigation"] .nav-hamburger[aria-expanded="true"] span:nth-
     background: rgba(255, 255, 255, 0.05) !important;
   }
   .public-mobile-nav-link.is-current {
-    color: #6dbdd4;
+    color: #6dbdd4 !important;
+    font-weight: 600;
   }
   /* Hide kicker + copy spans — sheet is a clean text list. */
   .public-mobile-nav-link .public-mobile-nav-kicker,
