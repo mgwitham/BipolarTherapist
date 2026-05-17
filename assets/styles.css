@@ -344,24 +344,11 @@ nav {
   display: none;
 }
 
-.public-mobile-nav.is-open {
-  display: flex;
-  flex-direction: column;
-  gap: 0.55rem;
-  position: fixed;
-  top: 56px;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: white;
-  z-index: 99;
-  overflow-y: auto;
-  padding: 1rem;
-}
-
-.public-mobile-nav-link {
-  text-decoration: none;
-}
+/* .public-mobile-nav.is-open and .public-mobile-nav-link sheet layout
+   live in assets/public-nav.css. Removed the legacy white-background
+   .is-open rule that was winning the cascade on prod (styles.css
+   loads after public-nav.css in the production bundle order) and
+   rendering the mobile sheet as a white surface. */
 
 .nav-hamburger {
   display: none;
