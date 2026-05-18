@@ -267,6 +267,32 @@ test("POST /analytics/events: filters impression noise out of ring buffer but co
   assert.equal(doc.totalAppended, 4);
 });
 
+test("POST /analytics/events: filters admin_* navigation events out of ring buffer but counts them in totalAppended", async () => {
+  const { client, state } = createMemoryClient();
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/analytics/events",
+    client,
+    body: {
+      events: [
+        { type: "admin_login_success" },
+        { type: "admin_profile_edit_opened" },
+        { type: "admin_review_view_loaded" },
+        { type: "match_contact_completed" },
+      ],
+    },
+  });
+  await handleAnalyticsRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.appended, 1);
+  assert.equal(response.payload.filtered, 3);
+
+  const doc = state.documents.get("funnelEventLog.singleton");
+  assert.equal(doc.events.length, 1);
+  assert.equal(doc.events[0].type, "match_contact_completed");
+  assert.equal(doc.totalAppended, 4);
+});
+
 test("POST /analytics/events: an all-noise batch still bumps totalAppended", async () => {
   const { client, state } = createMemoryClient({
     "funnelEventLog.singleton": {
