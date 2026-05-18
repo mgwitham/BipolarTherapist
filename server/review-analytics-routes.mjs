@@ -13,7 +13,7 @@
 // GET /analytics/events  — admin-only, returns current log contents.
 
 const SINGLETON_ID = "funnelEventLog.singleton";
-const MAX_EVENTS = 1500;
+const MAX_EVENTS = 3000;
 const MAX_PAYLOAD_BYTES = 1024;
 const MAX_EVENT_TYPE_LEN = 80;
 const MAX_BATCH_SIZE = 50;
@@ -27,8 +27,18 @@ const MAX_BATCH_SIZE = 50;
 // time so the ring buffer stays focused on intent + conversion.
 const FILTERED_NOISE_EVENTS = new Set(["directory_card_impression", "match_card_impression"]);
 
+// Admin/internal navigation events. The admin user generates a steady
+// stream of admin_login_*, admin_profile_edit_opened, admin_review_*,
+// etc. while running the business. None of the patient or therapist
+// dashboards consume these, so retaining them in the ring buffer just
+// crowds out actual conversion signal. Drop on append; still counted
+// in totalAppended.
+function isAdminNavigationEvent(type) {
+  return typeof type === "string" && type.startsWith("admin_");
+}
+
 function isNoiseEvent(type) {
-  return FILTERED_NOISE_EVENTS.has(type);
+  return FILTERED_NOISE_EVENTS.has(type) || isAdminNavigationEvent(type);
 }
 
 function safeString(value, max) {
