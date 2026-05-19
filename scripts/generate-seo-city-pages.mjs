@@ -457,19 +457,31 @@ function buildHeadTags(city, state, slug, providers) {
   ].join("\n    ");
 }
 
+// Static stylesheet that owns all city-page visuals. Lives in public/
+// so Vite copies it verbatim (no hashing) and we can reference a stable
+// path from the generated HTML. Loaded only on the city + hub pages so
+// it doesn't bloat the homepage / directory / match bundles.
+const CITY_STYLESHEET_LINK = '<link rel="stylesheet" href="/seo-city-pages.css" />';
+
+function injectStylesheet(html) {
+  return html.replace(/<\/head>/, "    " + CITY_STYLESHEET_LINK + "\n  </head>");
+}
+
 function injectSeo(template, city, state, slug, providers, cityContent) {
-  return template
-    .replace(/<title>[\s\S]*?<\/title>/, buildHeadTags(city, state, slug, providers))
-    .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
-    .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
-    .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
-    .replace(/<header class="dir-header">[\s\S]*?<\/header>/, "")
-    .replace(
-      /<main[^>]*>[\s\S]*?<\/main>/,
-      '<main class="seo-city-main">\n      ' +
-        buildFallbackBodyHtml(city, state, providers, cityContent) +
-        "\n    </main>",
-    );
+  return injectStylesheet(
+    template
+      .replace(/<title>[\s\S]*?<\/title>/, buildHeadTags(city, state, slug, providers))
+      .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
+      .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
+      .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
+      .replace(/<header class="dir-header">[\s\S]*?<\/header>/, "")
+      .replace(
+        /<main[^>]*>[\s\S]*?<\/main>/,
+        '<main class="seo-city-main">\n      ' +
+          buildFallbackBodyHtml(city, state, providers, cityContent) +
+          "\n    </main>",
+      ),
+  );
 }
 
 function loadCityContentMap() {
@@ -588,16 +600,18 @@ function buildHubBodyHtml(eligibleCities) {
 }
 
 function injectHubSeo(template, eligibleCities) {
-  return template
-    .replace(/<title>[\s\S]*?<\/title>/, buildHubHeadTags())
-    .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
-    .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
-    .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
-    .replace(/<header class="dir-header">[\s\S]*?<\/header>/, "")
-    .replace(
-      /<main[^>]*>[\s\S]*?<\/main>/,
-      '<main class="seo-city-main">\n      ' + buildHubBodyHtml(eligibleCities) + "\n    </main>",
-    );
+  return injectStylesheet(
+    template
+      .replace(/<title>[\s\S]*?<\/title>/, buildHubHeadTags())
+      .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
+      .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
+      .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
+      .replace(/<header class="dir-header">[\s\S]*?<\/header>/, "")
+      .replace(
+        /<main[^>]*>[\s\S]*?<\/main>/,
+        '<main class="seo-city-main">\n      ' + buildHubBodyHtml(eligibleCities) + "\n    </main>",
+      ),
+  );
 }
 
 // =============================================================

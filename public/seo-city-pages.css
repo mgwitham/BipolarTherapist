@@ -1,0 +1,551 @@
+/* ============================================================
+   SEO city pages (redesign 2026-05-18).
+
+   Page lives at /bipolar-therapists/[city]-ca/ and is templated
+   from directory.html. The fallback markup is what Google sees
+   pre-hydration and what casual visitors see; the SPA hydrates
+   on top of it. Matches the homepage hero/section rhythm so a
+   visitor moving between pages feels they are on the same site.
+
+   Surfaces:
+     .seo-city-fallback  per-city landing page
+     .seo-city-hub       /bipolar-therapists/ index
+   ============================================================ */
+
+.seo-city-main {
+  padding: 0;
+  margin: 0;
+  max-width: none;
+  width: 100%;
+}
+.seo-city-fallback,
+.seo-city-hub {
+  background: var(--cream);
+  color: var(--text-dark);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+.seo-city-fallback .city-section-inner,
+.seo-city-hub .city-section-inner {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 0 32px;
+}
+.seo-city-fallback .city-section-kicker,
+.seo-city-hub .city-section-kicker {
+  display: inline-block;
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--teal-600);
+  margin: 0 0 14px;
+}
+.seo-city-fallback .city-section-h2,
+.seo-city-hub .city-section-h2 {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(28px, 3.2vw, 40px);
+  line-height: 1.15;
+  letter-spacing: -0.015em;
+  color: var(--teal-900);
+  margin: 0 0 20px;
+}
+.seo-city-fallback .city-section-lede,
+.seo-city-hub .city-section-lede {
+  font-size: 17px;
+  line-height: 1.65;
+  color: var(--text-mid);
+  margin: 0 0 36px;
+  max-width: 640px;
+}
+
+/* ── HERO ─────────────────────────────────────────────────── */
+.seo-city-fallback .city-hero,
+.seo-city-hub .city-hero {
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(150deg, #0b2530 0%, #183f4f 40%, #1e5566 75%, #256070 100%);
+  background-size:
+    22px 22px,
+    100% 100%;
+  color: #fff;
+  padding: 96px 32px 88px;
+}
+.seo-city-fallback .city-hero-deco,
+.seo-city-hub .city-hero-deco {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.9;
+}
+.seo-city-fallback .city-hero-deco svg,
+.seo-city-hub .city-hero-deco svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.seo-city-fallback .city-hero-inner,
+.seo-city-hub .city-hero-inner {
+  position: relative;
+  z-index: 2;
+  max-width: 1080px;
+  margin: 0 auto;
+}
+.seo-city-fallback .city-hero-eyebrow,
+.seo-city-hub .city-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--teal-300);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: rgba(109, 189, 212, 0.12);
+  border: 1px solid rgba(109, 189, 212, 0.25);
+  padding: 6px 14px;
+  border-radius: 999px;
+  margin: 0 0 28px;
+}
+.seo-city-fallback .city-hero-eyebrow-dot,
+.seo-city-hub .city-hero-eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--teal-300);
+  box-shadow: 0 0 12px rgba(109, 189, 212, 0.6);
+}
+.seo-city-fallback .city-hero-h1,
+.seo-city-hub .city-hero-h1 {
+  font-family: var(--serif);
+  font-size: clamp(40px, 5.4vw, 64px);
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  font-weight: 400;
+  color: #fff;
+  margin: 0 0 24px;
+  max-width: 760px;
+}
+.seo-city-fallback .city-hero-h1 em,
+.seo-city-hub .city-hero-h1 em {
+  font-style: italic;
+  color: var(--teal-300);
+}
+.seo-city-fallback .city-hero-sub,
+.seo-city-hub .city-hero-sub {
+  font-size: 18px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0 0 32px;
+  max-width: 560px;
+  font-weight: 300;
+}
+.seo-city-fallback .city-hero-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 36px;
+}
+.seo-city-fallback .city-hero-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 6px 14px;
+  border-radius: 999px;
+}
+.seo-city-fallback .city-hero-pill svg {
+  color: var(--teal-300);
+  flex-shrink: 0;
+}
+.seo-city-fallback .city-hero-ctas,
+.seo-city-hub .city-hero-ctas {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px;
+}
+.seo-city-fallback .city-hero-cta-primary,
+.seo-city-hub .city-hero-cta-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--coral);
+  color: #fff;
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 15px;
+  padding: 14px 26px;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(232, 96, 60, 0.28);
+  transition:
+    background 0.2s,
+    transform 0.15s;
+}
+.seo-city-fallback .city-hero-cta-primary:hover,
+.seo-city-hub .city-hero-cta-primary:hover {
+  background: var(--coral-dark);
+  transform: translateY(-1px);
+}
+.seo-city-fallback .city-hero-cta-secondary,
+.seo-city-hub .city-hero-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--sans);
+  font-weight: 500;
+  font-size: 14.5px;
+  color: rgba(255, 255, 255, 0.85);
+  padding: 14px 22px;
+  border-radius: 999px;
+  text-decoration: none;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  transition:
+    border-color 0.2s,
+    color 0.2s;
+}
+.seo-city-fallback .city-hero-cta-secondary:hover,
+.seo-city-hub .city-hero-cta-secondary:hover {
+  border-color: rgba(255, 255, 255, 0.45);
+  color: #fff;
+}
+
+/* ── CONTEXT (cream) ──────────────────────────────────────── */
+.seo-city-fallback .city-context {
+  background: var(--cream);
+  padding: 80px 0;
+}
+.seo-city-fallback .city-context-blurb {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: clamp(20px, 2.1vw, 24px);
+  line-height: 1.5;
+  color: var(--text-dark);
+  max-width: 720px;
+  margin: 0;
+  letter-spacing: -0.005em;
+}
+
+/* ── PROVIDER GRID (white) ───────────────────────────────── */
+.seo-city-fallback .city-providers {
+  background: #fff;
+  padding: 80px 0;
+}
+.seo-city-fallback .city-provider-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+.seo-city-fallback .city-provider-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 22px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.seo-city-fallback .city-provider-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(52, 127, 150, 0.32);
+  box-shadow: 0 12px 32px rgba(12, 40, 48, 0.08);
+}
+.seo-city-fallback .city-provider-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--sans);
+  font-weight: 700;
+  font-size: 16px;
+  color: #fff;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+.seo-city-fallback .city-provider-avatar--tone-0 {
+  background: linear-gradient(135deg, #347f96, #1c4d5c);
+}
+.seo-city-fallback .city-provider-avatar--tone-1 {
+  background: linear-gradient(135deg, #e8603c, #c44e2c);
+}
+.seo-city-fallback .city-provider-avatar--tone-2 {
+  background: linear-gradient(135deg, #4a9db5, #26667a);
+}
+.seo-city-fallback .city-provider-avatar--tone-3 {
+  background: linear-gradient(135deg, #3aaa7a, #1f8060);
+}
+.seo-city-fallback .city-provider-avatar--tone-4 {
+  background: linear-gradient(135deg, #6dbdd4, #347f96);
+}
+.seo-city-fallback .city-provider-avatar--tone-5 {
+  background: linear-gradient(135deg, #1d3a4a, #143a46);
+}
+.seo-city-fallback .city-provider-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.seo-city-fallback .city-provider-name {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 15.5px;
+  color: var(--teal-900);
+  line-height: 1.3;
+  margin-bottom: 4px;
+}
+.seo-city-fallback .city-provider-creds {
+  font-weight: 500;
+  color: var(--text-mid);
+  margin-left: 6px;
+  font-size: 13.5px;
+}
+.seo-city-fallback .city-provider-role {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 10px;
+}
+.seo-city-fallback .city-provider-cta {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--teal-600);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: gap 0.2s;
+}
+.seo-city-fallback .city-provider-card:hover .city-provider-cta {
+  gap: 8px;
+}
+
+/* ── CRITERIA (cream) ────────────────────────────────────── */
+.seo-city-fallback .city-criteria {
+  background: var(--cream);
+  padding: 80px 0;
+}
+.seo-city-fallback .city-criteria-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 18px;
+}
+.seo-city-fallback .city-criteria-item {
+  display: flex;
+  gap: 24px;
+  padding: 26px 28px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  align-items: flex-start;
+}
+.seo-city-fallback .city-criteria-num {
+  font-family: var(--serif);
+  font-size: 30px;
+  line-height: 1;
+  color: var(--teal-400);
+  letter-spacing: -0.02em;
+  flex-shrink: 0;
+  width: 48px;
+}
+.seo-city-fallback .city-criteria-title {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 17px;
+  color: var(--teal-900);
+  margin: 0 0 6px;
+}
+.seo-city-fallback .city-criteria-text {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--text-mid);
+  margin: 0;
+}
+
+/* ── FAQ (white) ─────────────────────────────────────────── */
+.seo-city-fallback .city-faq {
+  background: #fff;
+  padding: 80px 0;
+}
+.seo-city-fallback .city-faq-list {
+  margin: 0;
+  display: grid;
+  gap: 16px;
+}
+.seo-city-fallback .city-faq-item {
+  padding: 24px 28px;
+  background: var(--cream);
+  border-radius: 14px;
+  border: 1px solid var(--border);
+}
+.seo-city-fallback .city-faq-q {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--teal-900);
+  margin: 0 0 8px;
+}
+.seo-city-fallback .city-faq-a {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--text-mid);
+  margin: 0;
+}
+
+/* ── CTA BAND (dark teal) ────────────────────────────────── */
+.seo-city-fallback .city-cta-band {
+  background:
+    radial-gradient(circle at 20% 30%, rgba(109, 189, 212, 0.18) 0%, transparent 60%),
+    linear-gradient(150deg, #0b2530 0%, #183f4f 50%, #1e5566 100%);
+  padding: 80px 32px;
+  text-align: center;
+}
+.seo-city-fallback .city-cta-band-inner {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.seo-city-fallback .city-cta-band-h2 {
+  font-family: var(--serif);
+  font-size: clamp(28px, 3.4vw, 42px);
+  line-height: 1.1;
+  letter-spacing: -0.015em;
+  font-weight: 400;
+  color: #fff;
+  margin: 0 0 16px;
+}
+.seo-city-fallback .city-cta-band-p {
+  font-size: 17px;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.78);
+  margin: 0 0 28px;
+  font-weight: 300;
+}
+.seo-city-fallback .city-cta-band-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--coral);
+  color: #fff;
+  font-weight: 600;
+  font-size: 15.5px;
+  padding: 15px 30px;
+  border-radius: 999px;
+  text-decoration: none;
+  box-shadow: 0 8px 24px rgba(232, 96, 60, 0.32);
+  transition:
+    background 0.2s,
+    transform 0.15s;
+}
+.seo-city-fallback .city-cta-band-button:hover {
+  background: var(--coral-dark);
+  transform: translateY(-1px);
+}
+
+/* ── HUB GRID (the /bipolar-therapists/ index page) ─────── */
+.seo-city-hub .city-hub-list {
+  background: var(--cream);
+  padding: 80px 0 120px;
+}
+.seo-city-hub .city-hub-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 14px;
+}
+.seo-city-hub .city-hub-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 20px 22px;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease;
+}
+.seo-city-hub .city-hub-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(52, 127, 150, 0.32);
+  box-shadow: 0 12px 32px rgba(12, 40, 48, 0.08);
+}
+.seo-city-hub .city-hub-card-name {
+  font-family: var(--sans);
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--teal-900);
+  margin-bottom: 2px;
+}
+.seo-city-hub .city-hub-card-meta {
+  font-size: 13px;
+  color: var(--text-light);
+}
+.seo-city-hub .city-hub-card-arrow {
+  font-size: 18px;
+  color: var(--teal-500);
+  transition: transform 0.2s;
+}
+.seo-city-hub .city-hub-card:hover .city-hub-card-arrow {
+  transform: translateX(3px);
+}
+
+/* ── RESPONSIVE ──────────────────────────────────────────── */
+@media (max-width: 720px) {
+  .seo-city-fallback .city-section-inner,
+  .seo-city-hub .city-section-inner {
+    padding: 0 20px;
+  }
+  .seo-city-fallback .city-hero,
+  .seo-city-hub .city-hero {
+    padding: 72px 20px 64px;
+  }
+  .seo-city-fallback .city-context,
+  .seo-city-fallback .city-providers,
+  .seo-city-fallback .city-criteria,
+  .seo-city-fallback .city-faq,
+  .seo-city-hub .city-hub-list {
+    padding: 56px 0;
+  }
+  .seo-city-fallback .city-cta-band {
+    padding: 56px 20px;
+  }
+  .seo-city-fallback .city-criteria-item {
+    padding: 22px 20px;
+    gap: 18px;
+  }
+  .seo-city-fallback .city-criteria-num {
+    font-size: 26px;
+    width: 36px;
+  }
+  .seo-city-fallback .city-hero-ctas,
+  .seo-city-hub .city-hero-ctas {
+    flex-direction: column;
+    align-items: stretch;
+    display: flex;
+    width: 100%;
+  }
+  .seo-city-fallback .city-hero-cta-primary,
+  .seo-city-fallback .city-hero-cta-secondary,
+  .seo-city-hub .city-hero-cta-primary,
+  .seo-city-hub .city-hero-cta-secondary {
+    justify-content: center;
+  }
+}
