@@ -1651,26 +1651,29 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       multi: true,
       title: "Treatment approach",
       caption: "Match any of",
+      // Chip `value` must match the exact strings stored on therapist
+      // documents in Sanity, since the filter does arrayAnyMatch with
+      // strict string equality. UI label can read more naturally.
       options: [
-        {
-          value: "Interpersonal and Social Rhythm Therapy (IPSRT)",
-          label: "IPSRT",
-        },
-        { value: "Family-Focused Therapy", label: "Family-Focused Therapy" },
+        { value: "IPSRT", label: "IPSRT" },
+        { value: "Family Therapy", label: "Family-Focused Therapy" },
         { value: "DBT", label: "DBT" },
         { value: "CBT", label: "CBT" },
-        { value: "Mindfulness-based", label: "Mindfulness-based" },
+        { value: "Mindfulness", label: "Mindfulness-based" },
       ],
     },
     population: {
       multi: true,
       title: "Population",
       caption: "Match any of",
+      // Same constraint as modality. Sanity values are title-cased
+      // ("Young Adults", "Older Adults") and lack the parenthetical
+      // age ranges; we keep the friendlier labels in the UI.
       options: [
         { value: "Adults", label: "Adults" },
-        { value: "Adolescents (13-17)", label: "Adolescents" },
-        { value: "Young adults (18-25)", label: "Young adults" },
-        { value: "Older adults (65+)", label: "Older adults" },
+        { value: "Adolescents", label: "Adolescents (13-17)" },
+        { value: "Young Adults", label: "Young adults (18-25)" },
+        { value: "Older Adults", label: "Older adults (65+)" },
         { value: "LGBTQ+", label: "LGBTQ+" },
       ],
     },
