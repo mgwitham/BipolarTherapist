@@ -2460,13 +2460,13 @@ footer a {
   font-size: 0.78rem;
 }
 /* Browse-by-city footer block, inline for the centered profile footer. */
-.footer-col-cities {
+.footer-cities-inline {
   margin: 1.25rem auto 0.75rem;
   max-width: 720px;
   text-align: center;
   font-size: 0.78rem;
 }
-.footer-col-cities h4 {
+.footer-cities-inline h4 {
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -2474,15 +2474,15 @@ footer a {
   color: rgba(255, 255, 255, 0.85);
   margin: 0 0 0.5rem;
 }
-.footer-col-cities a {
+.footer-cities-inline a {
   display: inline-block;
   margin: 0 0.4rem 0.25rem;
   color: rgba(255, 255, 255, 0.5);
 }
-.footer-col-cities a:hover {
+.footer-cities-inline a:hover {
   color: #fff;
 }
-.footer-col-cities .footer-city-all {
+.footer-cities-inline .footer-city-all {
   display: block;
   margin-top: 0.4rem;
   font-style: italic;

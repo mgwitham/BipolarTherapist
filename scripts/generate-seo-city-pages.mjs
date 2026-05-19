@@ -426,9 +426,9 @@ function injectHubSeo(template, eligibleCities) {
 // Pages that don't have the placeholder are skipped silently.
 // =============================================================
 
-function buildBrowseByCityFooterColumn(eligibleCities) {
-  const top = eligibleCities.slice(0, FOOTER_BROWSE_CITY_COUNT);
-  const links = top
+function buildBrowseByCityLinks(eligibleCities) {
+  return eligibleCities
+    .slice(0, FOOTER_BROWSE_CITY_COUNT)
     .map(function (bucket) {
       const slug = citySlug(bucket.city, bucket.state);
       return (
@@ -436,29 +436,68 @@ function buildBrowseByCityFooterColumn(eligibleCities) {
       );
     })
     .join("\n          ");
+}
+
+// Multi-column variant. Slots into index.html's .footer-top grid as a
+// fifth column. .footer-col gets block-stacked links from home.css.
+function buildBrowseByCityColumn(eligibleCities) {
   return (
     '<div class="footer-col footer-col-cities">\n' +
     "          <h4>Browse by City</h4>\n          " +
-    links +
+    buildBrowseByCityLinks(eligibleCities) +
     '\n          <a href="/bipolar-therapists/" class="footer-city-all">See all cities</a>\n        </div>'
   );
 }
 
-function injectFooterCityBlock(html, columnHtml) {
+// Inline variant for pages with a single-column centered footer
+// (directory, match, therapist, city pages). Styled by styles.css
+// (.footer-cities-inline) and therapist-page.css.
+function buildBrowseByCityInline(eligibleCities) {
+  return (
+    '<div class="footer-cities-inline">\n' +
+    "        <h4>Browse by City</h4>\n        " +
+    buildBrowseByCityLinks(eligibleCities) +
+    '\n        <a href="/bipolar-therapists/" class="footer-city-all">See all cities</a>\n      </div>'
+  );
+}
+
+// Pick the right variant by detecting whether the page uses the
+// multi-column home-style footer (has .footer-top) or a minimal
+// centered one.
+function pickFooterVariant(html, eligibleCities) {
+  if (html.includes('class="footer-top"')) {
+    return buildBrowseByCityColumn(eligibleCities);
+  }
+  return buildBrowseByCityInline(eligibleCities);
+}
+
+function injectFooterCityBlock(html, eligibleCities) {
   const placeholder = /<!--\s*BROWSE-BY-CITY-LIST\s*-->/;
   if (!placeholder.test(html)) return null;
-  return html.replace(placeholder, columnHtml);
+  return html.replace(placeholder, pickFooterVariant(html, eligibleCities));
+}
+
+function walkHtmlFiles(dir) {
+  const out = [];
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      // Skip Vite's hashed asset chunks; only HTML lives elsewhere.
+      if (entry.name === "assets") continue;
+      out.push(...walkHtmlFiles(full));
+    } else if (entry.isFile() && entry.name.endsWith(".html")) {
+      out.push(full);
+    }
+  }
+  return out;
 }
 
 function injectFooterIntoDistFiles(eligibleCities) {
-  const columnHtml = buildBrowseByCityFooterColumn(eligibleCities);
-  const distEntries = fs.readdirSync(DIST_DIR, { withFileTypes: true });
+  const htmlFiles = walkHtmlFiles(DIST_DIR);
   let touched = 0;
-  for (const entry of distEntries) {
-    if (!entry.isFile() || !entry.name.endsWith(".html")) continue;
-    const filePath = path.join(DIST_DIR, entry.name);
+  for (const filePath of htmlFiles) {
     const original = fs.readFileSync(filePath, "utf8");
-    const updated = injectFooterCityBlock(original, columnHtml);
+    const updated = injectFooterCityBlock(original, eligibleCities);
     if (updated && updated !== original) {
       fs.writeFileSync(filePath, updated, "utf8");
       touched += 1;
