@@ -106,7 +106,6 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     accepting: false,
     medication_management: false,
     responsive_contact: false,
-    recently_confirmed: false,
     sortBy: "stable_random",
     stableOrderMap: null,
     sortZip: "",
@@ -580,9 +579,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     if (filters.responsive_contact) {
       chips.push({ key: "responsive_contact", label: "Responsive contact" });
     }
-    if (filters.recently_confirmed) {
-      chips.push({ key: "recently_confirmed", label: "Recently confirmed" });
-    }
+    // recently_confirmed chip retired 2026-05-18; only 2/150 therapists
+    // had a recent confirmation timestamp so it trapped users.
     return chips;
   }
 
