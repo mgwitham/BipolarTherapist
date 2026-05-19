@@ -2416,7 +2416,13 @@ footer a {
   color: rgba(255, 255, 255, 0.65);
   text-decoration: none;
   font-size: 0.82rem;
+  font-weight: 400;
   transition: color 0.18s;
+}
+footer a:visited,
+footer a:hover,
+footer a:active {
+  font-weight: 400;
 }
 footer a:hover,
 footer a:active {
