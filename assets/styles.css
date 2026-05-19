@@ -2388,75 +2388,126 @@ nav {
 }
 
 footer {
-  background: var(--navy);
+  background: var(--teal-900);
   color: rgba(255, 255, 255, 0.7);
-  padding: 2rem 1.5rem;
+  padding: 48px 1.5rem 40px;
   text-align: center;
   margin-top: 3rem;
 }
 
 footer p {
-  font-size: 0.78rem;
+  font-size: 0.82rem;
+  line-height: 1.55;
   margin: 0;
 }
 
 .footer-brand {
   margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
 }
 
 .footer-brand strong {
-  color: white;
+  color: #fff;
+  font-weight: 600;
 }
 
 footer a {
-  color: rgba(255, 255, 255, 0.6);
+  color: rgba(255, 255, 255, 0.65);
   text-decoration: none;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
+  transition: color 0.18s;
+}
+footer a:hover,
+footer a:active {
+  color: #fff;
 }
 
 .footer-legal {
-  margin-top: 0.6rem;
-  opacity: 0.85;
+  margin-top: 0.9rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.01em;
 }
 .footer-legal a {
-  margin: 0 0.15rem;
-}
-.footer-legal a:hover {
-  color: white;
+  margin: 0 0.35rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
 }
 
-/* Browse-by-city footer block. Rendered inline on pages that use the
-   minimal centered footer (directory, therapist, match, city pages).
-   The homepage uses a different class (.footer-col footer-col-cities)
-   styled by home.css to slot into the multi-column grid; keeping the
-   two class names separate prevents the inline rules below from
-   overriding the home grid layout when both stylesheets load. */
+/* Browse-by-city block on minimal-footer pages (directory, therapist,
+   match, every city page). Two-column chip grid below 720px so the
+   12-city list stays compact, single line on wider viewports. */
 .footer-cities-inline {
-  margin: 1.25rem auto 0.75rem;
-  max-width: 720px;
+  margin: 1.5rem auto 0.5rem;
+  max-width: 640px;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
   text-align: center;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
 }
 .footer-cities-inline h4 {
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: rgba(255, 255, 255, 0.85);
-  margin: 0 0 0.5rem;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 0.85rem;
 }
 .footer-cities-inline a {
   display: inline-block;
-  margin: 0 0.4rem 0.25rem;
-  color: rgba(255, 255, 255, 0.6);
+  margin: 0 0.4rem 0.4rem;
+  padding: 4px 2px;
+  color: rgba(255, 255, 255, 0.65);
+  min-height: 28px;
+  line-height: 1.4;
 }
-.footer-cities-inline a:hover {
-  color: white;
+.footer-cities-inline a:hover,
+.footer-cities-inline a:active {
+  color: #fff;
 }
 .footer-cities-inline .footer-city-all {
   display: block;
-  margin-top: 0.4rem;
+  margin: 0.6rem auto 0;
   font-style: italic;
+  color: var(--teal-300, #6dbdd4);
+}
+.footer-cities-inline .footer-city-all:hover {
+  color: #fff;
+}
+
+@media (max-width: 720px) {
+  footer {
+    padding: 36px 20px 32px;
+  }
+  .footer-cities-inline {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 12px;
+    row-gap: 4px;
+  }
+  .footer-cities-inline h4 {
+    grid-column: 1 / -1;
+  }
+  .footer-cities-inline a {
+    margin: 0;
+    padding: 6px 4px;
+    font-size: 14px;
+  }
+  .footer-cities-inline .footer-city-all {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+  }
+  .footer-legal {
+    font-size: 0.78rem;
+    line-height: 1.65;
+  }
+  .footer-legal a {
+    display: inline-block;
+    margin: 4px 0.35rem;
+  }
 }
 
 @media (max-width: 860px) {
