@@ -2426,14 +2426,18 @@ footer a {
 }
 
 /* Browse-by-city footer block. Rendered inline on pages that use the
-   minimal centered footer (directory, therapist, match). */
-.footer-col-cities {
+   minimal centered footer (directory, therapist, match, city pages).
+   The homepage uses a different class (.footer-col footer-col-cities)
+   styled by home.css to slot into the multi-column grid; keeping the
+   two class names separate prevents the inline rules below from
+   overriding the home grid layout when both stylesheets load. */
+.footer-cities-inline {
   margin: 1.25rem auto 0.75rem;
   max-width: 720px;
   text-align: center;
   font-size: 0.78rem;
 }
-.footer-col-cities h4 {
+.footer-cities-inline h4 {
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -2441,15 +2445,15 @@ footer a {
   color: rgba(255, 255, 255, 0.85);
   margin: 0 0 0.5rem;
 }
-.footer-col-cities a {
+.footer-cities-inline a {
   display: inline-block;
   margin: 0 0.4rem 0.25rem;
   color: rgba(255, 255, 255, 0.6);
 }
-.footer-col-cities a:hover {
+.footer-cities-inline a:hover {
   color: white;
 }
-.footer-col-cities .footer-city-all {
+.footer-cities-inline .footer-city-all {
   display: block;
   margin-top: 0.4rem;
   font-style: italic;
