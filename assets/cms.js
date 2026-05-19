@@ -364,6 +364,7 @@ function normalizeDirectoryTherapist(doc) {
     session_fee_max: doc.sessionFeeMax || doc.session_fee_max || null,
     sliding_scale:
       doc.slidingScale !== undefined ? Boolean(doc.slidingScale) : Boolean(doc.sliding_scale),
+    gender: doc.gender || "",
     listing_active:
       doc.listingActive !== undefined ? doc.listingActive !== false : doc.listing_active !== false,
     status: doc.status || "active",

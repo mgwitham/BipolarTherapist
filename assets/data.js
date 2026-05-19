@@ -11,6 +11,7 @@ export const THERAPISTS = [
     name: "Dr. Sarah Chen",
     credentials: "MD, DFAPA",
     title: "Psychiatrist",
+    gender: "female",
     bio: "Board-certified psychiatrist specializing in bipolar spectrum disorders with over 12 years of experience. Dr. Chen takes an integrative approach combining evidence-based medication management with psychoeducation to help patients achieve lasting stability.",
     bio_preview:
       "Board-certified psychiatrist specializing in bipolar spectrum disorders with over 12 years of experience. Dr. Chen takes an integrative approach combining evidence-based medication management with psychoeducation to help patients achieve lasting stability.",
@@ -64,6 +65,7 @@ export const THERAPISTS = [
     name: "Michael Torres",
     credentials: "LCSW",
     title: "Licensed Clinical Social Worker",
+    gender: "male",
     bio: "Specializing in bipolar disorder therapy with a focus on Cognitive Behavioral Therapy (CBT) and Interpersonal and Social Rhythm Therapy (IPSRT). Michael helps clients build structured routines and coping strategies to manage mood episodes.",
     bio_preview:
       "Specializing in bipolar disorder therapy with a focus on Cognitive Behavioral Therapy (CBT) and Interpersonal and Social Rhythm Therapy (IPSRT). Michael helps clients build structured routines and coping strategies to manage mood episodes.",
@@ -113,6 +115,7 @@ export const THERAPISTS = [
     name: "Dr. Amara Osei",
     credentials: "PhD",
     title: "Clinical Psychologist",
+    gender: "female",
     bio: "Dr. Osei is a clinical psychologist with deep expertise in bipolar disorder across the lifespan. Her practice integrates DBT, mindfulness, and family therapy approaches. She has published research on early intervention in bipolar I and works closely with patients to create personalized stability plans.",
     bio_preview:
       "Dr. Osei is a clinical psychologist with deep expertise in bipolar disorder across the lifespan. Her practice integrates DBT, mindfulness, and family therapy approaches. She has published research on early intervention in bipolar I and works closely with patients to create personalized stability plans.",
@@ -167,6 +170,7 @@ export const THERAPISTS = [
     name: "Rachel Kim",
     credentials: "LMFT",
     title: "Marriage & Family Therapist",
+    gender: "female",
     bio: "Specializing in the relational impact of bipolar disorder, Rachel works with individuals, couples, and families navigating the unique challenges of living with bipolar. Her strengths-based approach helps clients build resilient relationships and effective support systems.",
     bio_preview:
       "Specializing in the relational impact of bipolar disorder, Rachel works with individuals, couples, and families navigating the unique challenges of living with bipolar. Her strengths-based approach helps clients build resilient relationships and effective support systems.",
@@ -221,6 +225,7 @@ export const THERAPISTS = [
     name: "Priya Nair",
     credentials: "LPC",
     title: "Licensed Professional Counselor",
+    gender: "female",
     bio: "Priya brings a culturally sensitive lens to bipolar disorder treatment, with expertise in serving South Asian and minority communities. She uses ACT (Acceptance and Commitment Therapy) alongside psychoeducation to help clients navigate stigma, family dynamics, and mood management.",
     bio_preview:
       "Priya brings a culturally sensitive lens to bipolar disorder treatment, with expertise in serving South Asian and minority communities. She uses ACT (Acceptance and Commitment Therapy) alongside psychoeducation to help clients navigate stigma, family dynamics, and mood management.",
@@ -270,6 +275,7 @@ export const THERAPISTS = [
     name: "Dr. James Whitfield",
     credentials: "DO",
     title: "Psychiatrist",
+    gender: "male",
     bio: "Dr. Whitfield combines pharmacological expertise with a genuine interest in his patients' overall wellbeing. He focuses on finding medication regimens that allow patients to thrive while minimizing side effects. Special interest in treatment-resistant bipolar and rapid cycling.",
     bio_preview:
       "Dr. Whitfield combines pharmacological expertise with a genuine interest in his patients' overall wellbeing. He focuses on finding medication regimens that allow patients to thrive while minimizing side effects. Special interest in treatment-resistant bipolar and rapid cycling.",
