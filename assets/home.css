@@ -1256,19 +1256,92 @@ footer {
   .cta-band {
     padding: 64px 20px;
   }
+  /* Mobile footer redesign.
+     One column, full width. Each section gets breathing room and a
+     subtle hairline divider. Brand description sits below the
+     wordmark. City links collapse into a two-column chip grid so we
+     don't end up with a 12-row tower. Crisis line elevated below a
+     stronger separator. */
   footer {
-    padding: 48px 20px 80px;
+    padding: 40px 20px calc(96px + env(safe-area-inset-bottom, 0px));
   }
   .footer-top {
-    grid-template-columns: 1fr 1fr;
-    gap: 32px;
+    grid-template-columns: 1fr;
+    gap: 0;
+    margin-bottom: 32px;
   }
+  .footer-top > * {
+    padding: 24px 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .footer-top > *:first-child {
+    padding-top: 8px;
+    border-top: 0;
+  }
+  .footer-wordmark {
+    font-size: 17px;
+  }
+  .footer-brand-desc {
+    max-width: none;
+    margin-top: 10px;
+    font-size: 13.5px;
+    color: rgba(255, 255, 255, 0.55);
+  }
+  .footer-col h4 {
+    margin-bottom: 14px;
+    color: rgba(255, 255, 255, 0.95);
+  }
+  .footer-col a {
+    font-size: 14.5px;
+    margin-bottom: 12px;
+    min-height: 24px;
+    color: rgba(255, 255, 255, 0.62);
+  }
+  /* Two-column chip grid for city links so 12 cities stay compact. */
   .footer-col-cities {
-    grid-column: span 2;
+    display: grid;
+    grid-column: auto;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 16px;
+    row-gap: 0;
+  }
+  .footer-col-cities > h4 {
+    grid-column: 1 / -1;
+  }
+  .footer-col-cities .footer-city-all {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    font-size: 13px;
+    color: var(--teal-300);
+  }
+  .footer-col-cities .footer-city-all:hover,
+  .footer-col-cities .footer-city-all:active {
+    color: #fff;
   }
   .footer-bottom {
     flex-direction: column;
-    gap: 16px;
+    align-items: center;
+    text-align: center;
+    gap: 14px;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .footer-legal {
+    font-size: 12px;
+    line-height: 1.7;
+    color: rgba(255, 255, 255, 0.4);
+    max-width: 420px;
+  }
+  .footer-crisis {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.65);
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 14px;
+    border-radius: 999px;
+  }
+  .footer-crisis strong {
+    color: var(--coral);
   }
   .mobile-sticky-cta {
     display: block;
