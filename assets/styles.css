@@ -2425,6 +2425,94 @@ footer a {
   color: white;
 }
 
+/* Browse-by-city footer block. Rendered inline on pages that use the
+   minimal centered footer (directory, therapist, match). */
+.footer-col-cities {
+  margin: 1.25rem auto 0.75rem;
+  max-width: 720px;
+  text-align: center;
+  font-size: 0.78rem;
+}
+.footer-col-cities h4 {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.85);
+  margin: 0 0 0.5rem;
+}
+.footer-col-cities a {
+  display: inline-block;
+  margin: 0 0.4rem 0.25rem;
+  color: rgba(255, 255, 255, 0.6);
+}
+.footer-col-cities a:hover {
+  color: white;
+}
+.footer-col-cities .footer-city-all {
+  display: block;
+  margin-top: 0.4rem;
+  font-style: italic;
+}
+
+/* SEO city-page additions: context blurb, criteria, FAQ, hub grid. */
+.seo-city-fallback .city-context,
+.seo-city-fallback .city-criteria,
+.seo-city-fallback .city-faq {
+  max-width: 760px;
+  margin: 2.5rem auto 0;
+  padding: 0 1rem;
+}
+.seo-city-fallback .city-context h2,
+.seo-city-fallback .city-criteria h2,
+.seo-city-fallback .city-faq h2 {
+  font-size: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+.seo-city-fallback .city-criteria ul {
+  padding-left: 1.2rem;
+  line-height: 1.6;
+}
+.seo-city-fallback .city-criteria li {
+  margin-bottom: 0.5rem;
+}
+.seo-city-fallback .city-faq dl {
+  margin: 0;
+}
+.seo-city-fallback .city-faq dt {
+  font-weight: 600;
+  margin-top: 1rem;
+}
+.seo-city-fallback .city-faq dd {
+  margin: 0.3rem 0 0;
+  line-height: 1.55;
+}
+.seo-city-hub {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2rem 1rem 3rem;
+}
+.seo-city-hub h1 {
+  margin-bottom: 0.5rem;
+}
+.seo-city-hub .city-hub-grid {
+  list-style: none;
+  padding: 0;
+  margin: 1rem 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 0.5rem 1.5rem;
+}
+.seo-city-hub .city-hub-item a {
+  display: block;
+  padding: 0.4rem 0;
+  text-decoration: none;
+}
+.seo-city-hub .city-hub-item span {
+  opacity: 0.7;
+  font-size: 0.85em;
+}
+
 @media (max-width: 860px) {
   .layout,
   .profile-grid {
