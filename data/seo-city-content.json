@@ -1,0 +1,39 @@
+{
+  "_comment": "Per-city blurbs for the SEO city pages. Keys are city-state slugs (e.g. 'los-angeles-ca'). Each entry overrides parts of the generic city-page template. Cities not listed here use the generic fallback.",
+  "los-angeles-ca": {
+    "context": "Los Angeles has two of California's largest academic mood disorder programs (UCLA Semel Institute and Cedars-Sinai) plus a dense community network of bipolar-trained therapists and psychiatrists. Many clinicians here coordinate therapy and medication management as a team, which matters more for bipolar than for most other conditions."
+  },
+  "san-diego-ca": {
+    "context": "San Diego has a deep bench of bipolar-trained clinicians, anchored by UC San Diego's mood disorder program and the VA San Diego Healthcare System. Telehealth coverage from San Diego specialists also reaches Imperial County and northern Baja border communities."
+  },
+  "san-francisco-ca": {
+    "context": "San Francisco's bipolar specialist supply is shaped by UCSF Langley Porter Psychiatric Institute and a long-established private-practice community. Many clinicians here have research backgrounds and stay current with the latest mood-stabilizer protocols."
+  },
+  "sacramento-ca": {
+    "context": "Sacramento is the bipolar care hub for the Central Valley, with UC Davis Health anchoring training and specialty referrals. Wait times here are usually shorter than the Bay Area and LA, which matters when you need care sooner rather than later."
+  },
+  "san-jose-ca": {
+    "context": "San Jose and the broader South Bay draw from Stanford's mood disorder program and a strong network of bilingual clinicians serving the area's large Vietnamese, Chinese, and Spanish-speaking communities. Insurance coverage is generally strong because most tech employers carry comprehensive mental health benefits."
+  },
+  "oakland-ca": {
+    "context": "Oakland's bipolar care landscape leans toward integrated and community-based mental health, with strong ties to Kaiser Permanente Oakland and a robust sliding-scale therapy community. Many therapists here have specific training in working with bipolar across race, gender, and class lines."
+  },
+  "long-beach-ca": {
+    "context": "Long Beach offers a quieter, more affordable alternative to LA proper, with strong telehealth coverage from Los Angeles specialists. The local VA Long Beach Healthcare System also runs evidence-based bipolar programs for veterans."
+  },
+  "anaheim-ca": {
+    "context": "Anaheim and the broader Orange County corridor have a growing roster of bipolar-trained therapists. UC Irvine's psychiatry program feeds local clinical training, and many providers here coordinate with OC's larger psychiatric hospital network."
+  },
+  "berkeley-ca": {
+    "context": "Berkeley's therapist community has strong roots in UC Berkeley's clinical training programs and a long tradition of psychodynamic, somatic, and integrative therapy approaches. Many bipolar specialists here work with both medication coordination and psychotherapy."
+  },
+  "irvine-ca": {
+    "context": "Irvine is a major Orange County hub for bipolar care, anchored by UC Irvine Health's mood disorder program. Many local clinicians offer telehealth across Southern California and accept the main commercial insurance plans."
+  },
+  "fresno-ca": {
+    "context": "Fresno is the largest mental health access point for the southern San Joaquin Valley. Bipolar-specialty care here is rarer than in coastal metros, so telehealth from Bay Area or LA clinicians is often the fastest path to a true specialist."
+  },
+  "riverside-ca": {
+    "context": "Riverside's bipolar care community has grown alongside the Inland Empire's population. Wait times can be shorter than LA or OC, and telehealth from clinicians across Southern California expands access."
+  }
+}

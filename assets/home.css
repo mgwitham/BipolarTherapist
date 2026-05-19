@@ -1138,9 +1138,19 @@ footer {
   max-width: 1160px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
+  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
   gap: 48px;
   margin-bottom: 48px;
+}
+.footer-col-cities .footer-city-all {
+  display: block;
+  margin-top: 4px;
+  font-size: 12.5px;
+  font-style: italic;
+  color: rgba(255, 255, 255, 0.6);
+}
+.footer-col-cities .footer-city-all:hover {
+  color: rgba(255, 255, 255, 0.9);
 }
 .footer-brand-desc {
   font-size: 13px;
@@ -1252,6 +1262,9 @@ footer {
   .footer-top {
     grid-template-columns: 1fr 1fr;
     gap: 32px;
+  }
+  .footer-col-cities {
+    grid-column: span 2;
   }
   .footer-bottom {
     flex-direction: column;
