@@ -30,7 +30,12 @@ export var FILTER_BOOLEAN_KEYS = [
   "sliding_scale",
   "medication_management",
   "responsive_contact",
-  "recently_confirmed",
+  // recently_confirmed retired 2026-05-18: only 2/150 therapists carry
+  // a recent confirmation timestamp, so the filter narrowed to ~2
+  // results and trapped users. The filter logic remains in
+  // directory-logic.js as a no-op when filterState.recently_confirmed
+  // is falsy. Re-add this entry to restore the filter once more
+  // confirmation timestamps are recorded.
 ];
 
 export var ACTIVE_FILTER_KEYS = FILTER_VALUE_KEYS.filter(function (key) {
