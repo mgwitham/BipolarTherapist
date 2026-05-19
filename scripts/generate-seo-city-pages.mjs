@@ -155,24 +155,107 @@ function buildJsonLd(city, state, slug, providers) {
   ];
 }
 
-function buildProviderListHtml(providers) {
+// Two-letter initials from a name. Skips credentials in parens, prefers
+// first + last initial. Used for the small avatar tile on provider cards.
+function getInitials(name) {
+  const parts = String(name || "")
+    .replace(/\(.*?\)/g, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+// Stable tone index 0-5 from a string so providers consistently get the
+// same avatar color across rebuilds. Mirrors the .profile-hero-avatar
+// tone palette in therapist-page.css.
+function toneForName(name) {
+  let hash = 0;
+  const str = String(name || "");
+  for (let i = 0; i < str.length; i += 1) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) % 6;
+}
+
+function buildProviderCardsHtml(providers) {
   return providers
     .map(function (p) {
-      const name = escapeHtml((p.name || "") + (p.credentials ? ", " + p.credentials : ""));
-      const role = p.title ? '<p class="provider-role">' + escapeHtml(p.title) + "</p>" : "";
+      const fullName = String(p.name || "").trim();
+      const credentials = String(p.credentials || "").trim();
+      const role = String(p.title || "").trim();
+      const initials = getInitials(fullName);
+      const tone = toneForName(fullName);
       const href = "/therapists/" + encodeURIComponent(String(p.slug || "").trim()) + "/";
       return (
-        '<li class="city-provider">' +
-        '<a href="' +
+        '<a class="city-provider-card" href="' +
         escapeAttribute(href) +
-        '"><strong>' +
-        name +
-        "</strong></a>" +
-        role +
-        "</li>"
+        '">' +
+        '<div class="city-provider-avatar city-provider-avatar--tone-' +
+        tone +
+        '" aria-hidden="true">' +
+        escapeHtml(initials) +
+        "</div>" +
+        '<div class="city-provider-body">' +
+        '<div class="city-provider-name">' +
+        escapeHtml(fullName) +
+        (credentials
+          ? '<span class="city-provider-creds">' + escapeHtml(credentials) + "</span>"
+          : "") +
+        "</div>" +
+        (role ? '<div class="city-provider-role">' + escapeHtml(role) + "</div>" : "") +
+        '<div class="city-provider-cta">View profile <span aria-hidden="true">&rarr;</span></div>' +
+        "</div>" +
+        "</a>"
       );
     })
     .join("");
+}
+
+function buildCityHeroHtml(city, state, providers) {
+  const count = providers.length;
+  const countLabel = count === 1 ? "1 verified specialist" : count + " verified specialists";
+  return (
+    '<section class="city-hero">' +
+    '<div class="city-hero-deco" aria-hidden="true">' +
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice">' +
+    '<defs><radialGradient id="cityHeroGlow" cx="20%" cy="30%" r="60%">' +
+    '<stop offset="0%" stop-color="#6dbdd4" stop-opacity="0.18"/>' +
+    '<stop offset="100%" stop-color="#0b2530" stop-opacity="0"/>' +
+    "</radialGradient></defs>" +
+    '<rect width="1200" height="400" fill="url(#cityHeroGlow)"/>' +
+    "</svg>" +
+    "</div>" +
+    '<div class="city-hero-inner">' +
+    '<p class="city-hero-eyebrow"><span class="city-hero-eyebrow-dot" aria-hidden="true"></span>Bipolar-informed care &middot; California</p>' +
+    '<h1 class="city-hero-h1">' +
+    "Find a <em>bipolar specialist</em><br/>in " +
+    escapeHtml(city) +
+    ", " +
+    escapeHtml(state) +
+    "</h1>" +
+    '<p class="city-hero-sub">' +
+    countLabel +
+    " in " +
+    escapeHtml(city) +
+    " with documented bipolar care experience. License-verified. No paid rankings. No generalists." +
+    "</p>" +
+    '<div class="city-hero-pills">' +
+    '<span class="city-hero-pill"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm3.6 5.4-4.3 4.3a.8.8 0 0 1-1.1 0L4 8.5a.8.8 0 0 1 1.1-1.1l1.6 1.6 3.7-3.7a.8.8 0 1 1 1.2 1.1Z"/></svg>License verified</span>' +
+    '<span class="city-hero-pill"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm3.6 5.4-4.3 4.3a.8.8 0 0 1-1.1 0L4 8.5a.8.8 0 0 1 1.1-1.1l1.6 1.6 3.7-3.7a.8.8 0 1 1 1.2 1.1Z"/></svg>Bipolar specialists only</span>' +
+    '<span class="city-hero-pill"><svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path fill="currentColor" d="M8 1a7 7 0 1 0 0 14A7 7 0 0 0 8 1Zm3.6 5.4-4.3 4.3a.8.8 0 0 1-1.1 0L4 8.5a.8.8 0 0 1 1.1-1.1l1.6 1.6 3.7-3.7a.8.8 0 1 1 1.2 1.1Z"/></svg>Free for patients</span>' +
+    "</div>" +
+    '<div class="city-hero-ctas">' +
+    '<a class="city-hero-cta-primary" href="/match">Get a personalized match <span aria-hidden="true">&rarr;</span></a>' +
+    '<a class="city-hero-cta-secondary" href="#cityProviders">Browse all ' +
+    count +
+    ' <span aria-hidden="true">&darr;</span></a>' +
+    "</div>" +
+    "</div>" +
+    "</section>"
+  );
 }
 
 function buildCityContextHtml(city, state, cityContent) {
@@ -183,34 +266,96 @@ function buildCityContextHtml(city, state, cityContent) {
   const blurb = (cityContent && cityContent.context) || fallback;
   return (
     '<section class="city-context">' +
-    "<h2>What makes bipolar care different in " +
+    '<div class="city-section-inner">' +
+    '<p class="city-section-kicker">Why this city</p>' +
+    '<h2 class="city-section-h2">What makes bipolar care different in ' +
     escapeHtml(city) +
     "</h2>" +
-    "<p>" +
+    '<p class="city-context-blurb">' +
     escapeHtml(blurb) +
     "</p>" +
+    "</div>" +
+    "</section>"
+  );
+}
+
+function buildCityProvidersHtml(city, providers) {
+  return (
+    '<section class="city-providers" id="cityProviders">' +
+    '<div class="city-section-inner">' +
+    '<p class="city-section-kicker">Verified specialists</p>' +
+    '<h2 class="city-section-h2">' +
+    providers.length +
+    " clinicians in " +
+    escapeHtml(city) +
+    "</h2>" +
+    '<p class="city-section-lede">Each profile lists training, modalities, insurance, and years of bipolar-specific experience. Tap any card for the full profile.</p>' +
+    '<div class="city-provider-grid">' +
+    buildProviderCardsHtml(providers) +
+    "</div>" +
+    "</div>" +
     "</section>"
   );
 }
 
 function buildWhatToLookForHtml(city) {
+  const items = [
+    {
+      title: "Bipolar listed explicitly",
+      body: 'Look for "bipolar disorder" in their specialties, not just "mood disorders" or "depression." The distinction matters more than it sounds.',
+    },
+    {
+      title: "Bipolar I vs Bipolar II fluency",
+      body: "A specialist should be comfortable explaining how each diagnosis shapes the treatment plan, not just collapse them into one category.",
+    },
+    {
+      title: "Coordinates with a prescriber",
+      body: "Most bipolar care involves both therapy and medication. Ask whether the clinician routinely communicates with the psychiatrist or NP managing your meds.",
+    },
+    {
+      title: "Knows mood-stabilizer side effects",
+      body: "Lithium, lamotrigine, valproate, and the major antipsychotics each have their own profile. A good therapist recognizes when something is off and flags it.",
+    },
+    {
+      title: "Trained in a bipolar-specific modality",
+      body: "IPSRT, family-focused therapy, or DBT adapted for bipolar are evidence-based for mood disorders. Generic CBT is fine, but specificity matters.",
+    },
+  ];
   return (
     '<section class="city-criteria">' +
-    "<h2>What to look for in a " +
+    '<div class="city-section-inner">' +
+    '<p class="city-section-kicker">How to choose</p>' +
+    '<h2 class="city-section-h2">What to look for in a ' +
     escapeHtml(city) +
     " bipolar specialist</h2>" +
-    "<ul>" +
-    '<li><strong>Bipolar listed explicitly in their specialties</strong>, not just "mood disorders" or "depression." The distinction matters.</li>' +
-    "<li><strong>Comfort with the bipolar I and bipolar II distinction</strong>, and how each shapes the treatment plan.</li>" +
-    "<li><strong>Willingness to coordinate with a prescriber</strong>, since most bipolar care involves both therapy and medication management.</li>" +
-    "<li><strong>Familiarity with mood-stabilizer side effects</strong>, so they can recognize when something is off and flag it.</li>" +
-    "<li><strong>Experience with bipolar-specific therapy modalities</strong> like IPSRT, family-focused therapy, or DBT adapted for bipolar.</li>" +
-    "</ul>" +
+    '<ol class="city-criteria-list">' +
+    items
+      .map(function (item, idx) {
+        const n = String(idx + 1).padStart(2, "0");
+        return (
+          '<li class="city-criteria-item">' +
+          '<div class="city-criteria-num" aria-hidden="true">' +
+          n +
+          "</div>" +
+          '<div class="city-criteria-body">' +
+          '<h3 class="city-criteria-title">' +
+          escapeHtml(item.title) +
+          "</h3>" +
+          '<p class="city-criteria-text">' +
+          escapeHtml(item.body) +
+          "</p>" +
+          "</div>" +
+          "</li>"
+        );
+      })
+      .join("") +
+    "</ol>" +
+    "</div>" +
     "</section>"
   );
 }
 
-function buildCityFaqHtml(city, state) {
+function buildCityFaqHtml(city) {
   const items = [
     {
       q: "Do I need a psychiatrist or a therapist for bipolar?",
@@ -238,16 +383,18 @@ function buildCityFaqHtml(city, state) {
   ];
   return (
     '<section class="city-faq" itemscope itemtype="https://schema.org/FAQPage">' +
-    "<h2>Frequently asked questions</h2>" +
-    "<dl>" +
+    '<div class="city-section-inner">' +
+    '<p class="city-section-kicker">Common questions</p>' +
+    '<h2 class="city-section-h2">Frequently asked</h2>' +
+    '<dl class="city-faq-list">' +
     items
       .map(function (item) {
         return (
-          '<div itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">' +
-          '<dt itemprop="name">' +
+          '<div class="city-faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">' +
+          '<dt class="city-faq-q" itemprop="name">' +
           escapeHtml(item.q) +
           "</dt>" +
-          '<dd itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">' +
+          '<dd class="city-faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">' +
           '<span itemprop="text">' +
           escapeHtml(item.a) +
           "</span>" +
@@ -257,6 +404,21 @@ function buildCityFaqHtml(city, state) {
       })
       .join("") +
     "</dl>" +
+    "</div>" +
+    "</section>"
+  );
+}
+
+function buildCityCtaBandHtml(city) {
+  return (
+    '<section class="city-cta-band">' +
+    '<div class="city-cta-band-inner">' +
+    '<h2 class="city-cta-band-h2">Want a personalized shortlist?</h2>' +
+    '<p class="city-cta-band-p">Answer six quick questions and we will narrow the ' +
+    escapeHtml(city) +
+    " list down to the best three for your situation.</p>" +
+    '<a class="city-cta-band-button" href="/match">Get matched <span aria-hidden="true">&rarr;</span></a>' +
+    "</div>" +
     "</section>"
   );
 }
@@ -264,25 +426,12 @@ function buildCityFaqHtml(city, state) {
 function buildFallbackBodyHtml(city, state, providers, cityContent) {
   return (
     '<div class="seo-city-fallback" data-static-seo-city>' +
-    '<section class="city-hero">' +
-    '<p class="section-kicker">Bipolar-informed care</p>' +
-    "<h1>Bipolar Therapists in " +
-    escapeHtml(city) +
-    ", " +
-    escapeHtml(state) +
-    "</h1>" +
-    "<p>Every clinician below is California-licensed, has been verified for bipolar-specific practice, and lists evidence of treating bipolar disorder. Pick a name to read their profile, or use the match flow to get a personalized shortlist.</p>" +
-    '<p><a class="cta-link" href="/match">Get a personalized match</a></p>' +
-    "</section>" +
-    '<section class="city-providers"><h2>Verified specialists in ' +
-    escapeHtml(city) +
-    "</h2>" +
-    '<ol class="city-provider-list">' +
-    buildProviderListHtml(providers) +
-    "</ol></section>" +
+    buildCityHeroHtml(city, state, providers) +
     buildCityContextHtml(city, state, cityContent) +
+    buildCityProvidersHtml(city, providers) +
     buildWhatToLookForHtml(city) +
-    buildCityFaqHtml(city, state) +
+    buildCityFaqHtml(city) +
+    buildCityCtaBandHtml(city) +
     "</div>"
   );
 }
@@ -308,18 +457,31 @@ function buildHeadTags(city, state, slug, providers) {
   ].join("\n    ");
 }
 
+// Static stylesheet that owns all city-page visuals. Lives in public/
+// so Vite copies it verbatim (no hashing) and we can reference a stable
+// path from the generated HTML. Loaded only on the city + hub pages so
+// it doesn't bloat the homepage / directory / match bundles.
+const CITY_STYLESHEET_LINK = '<link rel="stylesheet" href="/seo-city-pages.css" />';
+
+function injectStylesheet(html) {
+  return html.replace(/<\/head>/, "    " + CITY_STYLESHEET_LINK + "\n  </head>");
+}
+
 function injectSeo(template, city, state, slug, providers, cityContent) {
-  return template
-    .replace(/<title>[\s\S]*?<\/title>/, buildHeadTags(city, state, slug, providers))
-    .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
-    .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
-    .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
-    .replace(
-      /<main[^>]*>[\s\S]*?<\/main>/,
-      "<main>\n      " +
-        buildFallbackBodyHtml(city, state, providers, cityContent) +
-        "\n    </main>",
-    );
+  return injectStylesheet(
+    template
+      .replace(/<title>[\s\S]*?<\/title>/, buildHeadTags(city, state, slug, providers))
+      .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
+      .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
+      .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
+      .replace(/<header class="dir-header">[\s\S]*?<\/header>/, "")
+      .replace(
+        /<main[^>]*>[\s\S]*?<\/main>/,
+        '<main class="seo-city-main">\n      ' +
+          buildFallbackBodyHtml(city, state, providers, cityContent) +
+          "\n    </main>",
+      ),
+  );
 }
 
 function loadCityContentMap() {
@@ -365,6 +527,9 @@ function buildHubHeadTags() {
 }
 
 function buildHubBodyHtml(eligibleCities) {
+  const totalProviders = eligibleCities.reduce(function (sum, c) {
+    return sum + c.providers.length;
+  }, 0);
   const items = eligibleCities
     .slice()
     .sort(function (a, b) {
@@ -373,49 +538,80 @@ function buildHubBodyHtml(eligibleCities) {
     .map(function (bucket) {
       const slug = citySlug(bucket.city, bucket.state);
       const count = bucket.providers.length;
+      const label = count === 1 ? "1 specialist" : count + " specialists";
       return (
-        '<li class="city-hub-item"><a href="' +
+        '<a class="city-hub-card" href="' +
         escapeAttribute(buildCityPath(slug)) +
-        '"><strong>' +
+        '">' +
+        '<div class="city-hub-card-body">' +
+        '<div class="city-hub-card-name">' +
         escapeHtml(bucket.city) +
-        "</strong>, " +
-        escapeHtml(bucket.state) +
-        " <span>(" +
-        count +
-        ")</span></a></li>"
+        "</div>" +
+        '<div class="city-hub-card-meta">' +
+        label +
+        "</div>" +
+        "</div>" +
+        '<div class="city-hub-card-arrow" aria-hidden="true">&rarr;</div>' +
+        "</a>"
       );
     })
     .join("");
   return (
     '<div class="seo-city-hub" data-static-seo-city-hub>' +
-    '<section class="city-hub-hero">' +
-    '<p class="section-kicker">Bipolar-informed care</p>' +
-    "<h1>Find a bipolar therapist by city</h1>" +
-    "<p>Each city below has at least " +
-    MIN_PROVIDERS +
-    " license-verified bipolar specialists. Pick a city to see the full list, or use the match flow if you'd rather get a personalized shortlist.</p>" +
-    '<p><a class="cta-link" href="/match">Get a personalized match</a></p>' +
+    '<section class="city-hero">' +
+    '<div class="city-hero-deco" aria-hidden="true">' +
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 400" preserveAspectRatio="xMidYMid slice">' +
+    '<defs><radialGradient id="hubHeroGlow" cx="20%" cy="30%" r="60%">' +
+    '<stop offset="0%" stop-color="#6dbdd4" stop-opacity="0.18"/>' +
+    '<stop offset="100%" stop-color="#0b2530" stop-opacity="0"/>' +
+    "</radialGradient></defs>" +
+    '<rect width="1200" height="400" fill="url(#hubHeroGlow)"/>' +
+    "</svg>" +
+    "</div>" +
+    '<div class="city-hero-inner">' +
+    '<p class="city-hero-eyebrow"><span class="city-hero-eyebrow-dot" aria-hidden="true"></span>Bipolar-informed care &middot; California</p>' +
+    '<h1 class="city-hero-h1">Find a <em>bipolar therapist</em><br/>by city</h1>' +
+    '<p class="city-hero-sub">' +
+    totalProviders +
+    " license-verified specialists across " +
+    eligibleCities.length +
+    " California cities. Pick your city, or get matched in two minutes." +
+    "</p>" +
+    '<div class="city-hero-ctas">' +
+    '<a class="city-hero-cta-primary" href="/match">Get a personalized match <span aria-hidden="true">&rarr;</span></a>' +
+    '<a class="city-hero-cta-secondary" href="#cityHubGrid">Browse cities <span aria-hidden="true">&darr;</span></a>' +
+    "</div>" +
+    "</div>" +
     "</section>" +
-    '<section class="city-hub-list">' +
-    "<h2>California cities with bipolar specialists</h2>" +
-    '<ul class="city-hub-grid">' +
+    '<section class="city-hub-list" id="cityHubGrid">' +
+    '<div class="city-section-inner">' +
+    '<p class="city-section-kicker">Browse by city</p>' +
+    '<h2 class="city-section-h2">California cities with bipolar specialists</h2>' +
+    '<p class="city-section-lede">Each city below has at least ' +
+    MIN_PROVIDERS +
+    " license-verified bipolar specialists.</p>" +
+    '<div class="city-hub-grid">' +
     items +
-    "</ul>" +
+    "</div>" +
+    "</div>" +
     "</section>" +
     "</div>"
   );
 }
 
 function injectHubSeo(template, eligibleCities) {
-  return template
-    .replace(/<title>[\s\S]*?<\/title>/, buildHubHeadTags())
-    .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
-    .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
-    .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
-    .replace(
-      /<main[^>]*>[\s\S]*?<\/main>/,
-      "<main>\n      " + buildHubBodyHtml(eligibleCities) + "\n    </main>",
-    );
+  return injectStylesheet(
+    template
+      .replace(/<title>[\s\S]*?<\/title>/, buildHubHeadTags())
+      .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
+      .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
+      .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
+      .replace(/<header class="dir-header">[\s\S]*?<\/header>/, "")
+      .replace(
+        /<main[^>]*>[\s\S]*?<\/main>/,
+        '<main class="seo-city-main">\n      ' + buildHubBodyHtml(eligibleCities) + "\n    </main>",
+      ),
+  );
 }
 
 // =============================================================
