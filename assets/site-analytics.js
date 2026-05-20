@@ -1,5 +1,55 @@
 var measurementId = "G-Q22R5G7VB5";
 
+// Query params that carry patient search context or single-use tokens.
+// The match flow passes the ZIP and care type as URL query params
+// (/match?location_query=90019&care_intent=Therapy), so the raw URL
+// must never reach an analytics property or session recording. We
+// redact the *values* (keeping the key so funnels still see "a ZIP was
+// entered") before any URL leaves the page.
+var SENSITIVE_QUERY_PARAMS = [
+  "location_query",
+  "care_intent",
+  "zip",
+  "token",
+  "claim_token",
+  "dev_login",
+  "shortlist",
+];
+
+function redactSensitiveUrl(rawUrl) {
+  if (typeof rawUrl !== "string" || !rawUrl) {
+    return rawUrl;
+  }
+  var queryIndex = rawUrl.indexOf("?");
+  if (queryIndex < 0) {
+    return rawUrl;
+  }
+  try {
+    var base = rawUrl.slice(0, queryIndex);
+    var rest = rawUrl.slice(queryIndex + 1);
+    var hashIndex = rest.indexOf("#");
+    var query = hashIndex < 0 ? rest : rest.slice(0, hashIndex);
+    var hash = hashIndex < 0 ? "" : rest.slice(hashIndex);
+    var params = new URLSearchParams(query);
+    var changed = false;
+    SENSITIVE_QUERY_PARAMS.forEach(function (key) {
+      if (params.has(key)) {
+        params.set(key, "redacted");
+        changed = true;
+      }
+    });
+    if (!changed) {
+      return rawUrl;
+    }
+    var nextQuery = params.toString();
+    return base + (nextQuery ? "?" + nextQuery : "") + hash;
+  } catch (_err) {
+    // If parsing fails, drop the query string entirely rather than risk
+    // leaking it.
+    return rawUrl.slice(0, queryIndex);
+  }
+}
+
 function hasAnalyticsOptOut() {
   if (typeof navigator === "undefined") {
     return true;
@@ -35,9 +85,14 @@ function loadGoogleAnalytics() {
   // advertising" and require a Do Not Sell or Share opt-out link.
   // Turning it off keeps us aligned with the site's "we don't sell or
   // share" posture and lets us drop doubleclick from the CSP.
+  //
+  // page_location is overridden with a redacted URL so the patient ZIP
+  // and care type (passed as query params on /match) never enter GA's
+  // page_location dimension.
   window.gtag("config", measurementId, {
     allow_google_signals: false,
     allow_ad_personalization_signals: false,
+    page_location: redactSensitiveUrl(window.location.href),
   });
 }
 
@@ -97,6 +152,25 @@ function loadPostHog() {
         api_host: host,
         // Honor browser-level privacy signals at PostHog's layer too.
         respect_dnt: true,
+        // Redact patient search context (ZIP, care type) and single-use
+        // tokens from any URL-bearing property before the event is sent.
+        // maskAllInputs below covers typed fields in the replay DOM;
+        // this covers $current_url / $referrer in pageview + autocapture
+        // events, which is where the /match query string would otherwise
+        // land. $pathname has no query string so it's left alone.
+        sanitize_properties: function (properties) {
+          if (!properties || typeof properties !== "object") {
+            return properties;
+          }
+          ["$current_url", "$referrer", "$initial_current_url", "$initial_referrer"].forEach(
+            function (prop) {
+              if (typeof properties[prop] === "string") {
+                properties[prop] = redactSensitiveUrl(properties[prop]);
+              }
+            },
+          );
+          return properties;
+        },
         // Mask all input fields (zip, search queries, anything the
         // user types). The page text is still recorded — we want to
         // see what content the visitor saw, just not what they typed.
