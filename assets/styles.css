@@ -16,7 +16,7 @@
   --sans: "DM Sans", system-ui, sans-serif;
   --text-dark: #17323b;
   --text-mid: #3a5b65;
-  --text-light: #6b8c96;
+  --text-light: #5d7a84;
   --border: rgba(52, 127, 150, 0.15);
 
   --teal: #1a7a8f;
@@ -2432,7 +2432,7 @@ footer a:active {
 .footer-legal {
   margin-top: 0.9rem;
   font-size: 0.78rem;
-  color: rgba(255, 255, 255, 0.45);
+  color: rgba(255, 255, 255, 0.55);
   letter-spacing: 0.01em;
 }
 .footer-legal a {
