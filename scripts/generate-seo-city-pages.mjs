@@ -414,9 +414,9 @@ function buildCityCtaBandHtml(city) {
     '<section class="city-cta-band">' +
     '<div class="city-cta-band-inner">' +
     '<h2 class="city-cta-band-h2">Want a personalized shortlist?</h2>' +
-    '<p class="city-cta-band-p">Answer six quick questions and we will narrow the ' +
+    '<p class="city-cta-band-p">Skip the exhausting search. Two questions and we\'ll shortlist the ' +
     escapeHtml(city) +
-    " list down to the best three for your situation.</p>" +
+    " specialists who fit you.</p>" +
     '<a class="city-cta-band-button" href="/match">Get matched <span aria-hidden="true">&rarr;</span></a>' +
     "</div>" +
     "</section>"
