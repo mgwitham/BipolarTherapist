@@ -131,12 +131,26 @@ export function getReviewApiConfig() {
     turnstileSecretKey: process.env.TURNSTILE_SECRET_KEY || rootEnv.TURNSTILE_SECRET_KEY || "",
     // Upstash Redis credentials for rate-limit persistence across
     // Vercel cold starts. When unset, rate limiters fall back to an
-    // in-process Map (resets per cold start). Activate by provisioning
-    // Upstash (Vercel Marketplace integration or upstash.com direct)
-    // and setting both env vars in Vercel. No code change needed.
-    upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL || rootEnv.UPSTASH_REDIS_REST_URL || "",
+    // in-process Map (resets per cold start).
+    //
+    // The Vercel Marketplace Upstash / Vercel KV integration injects the
+    // same REST credentials under KV_REST_API_URL / KV_REST_API_TOKEN
+    // (both are Upstash-REST-compatible and accepted by @upstash/redis).
+    // We accept either naming so provisioning via the Vercel integration
+    // "just works" without renaming env vars. Prefer the explicit
+    // UPSTASH_* names when both are present.
+    upstashRedisRestUrl:
+      process.env.UPSTASH_REDIS_REST_URL ||
+      process.env.KV_REST_API_URL ||
+      rootEnv.UPSTASH_REDIS_REST_URL ||
+      rootEnv.KV_REST_API_URL ||
+      "",
     upstashRedisRestToken:
-      process.env.UPSTASH_REDIS_REST_TOKEN || rootEnv.UPSTASH_REDIS_REST_TOKEN || "",
+      process.env.UPSTASH_REDIS_REST_TOKEN ||
+      process.env.KV_REST_API_TOKEN ||
+      rootEnv.UPSTASH_REDIS_REST_TOKEN ||
+      rootEnv.KV_REST_API_TOKEN ||
+      "",
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || rootEnv.STRIPE_SECRET_KEY || "",
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || rootEnv.STRIPE_WEBHOOK_SECRET || "",
     stripeFeaturedPriceId:
