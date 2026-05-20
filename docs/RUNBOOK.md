@@ -148,8 +148,76 @@ Free plan: 10k docs. Memory snapshot 2026-04-16 was 709 docs — plenty of room.
 
 ---
 
-## 8. Known follow-ups
+## 8. Data backup & restore
+
+Sanity is the only "lose it and the business is gone" store. Backups are
+**out-of-band** from Sanity's own history retention.
+
+**Backups (automated):** the `Sanity Backup Weekly` GitHub Action
+(`.github/workflows/sanity-backup-weekly.yml`) runs Mondays 12:00 UTC and
+on `workflow_dispatch`. It runs `sanity dataset export production` and
+uploads the `.tar.gz` as a workflow artifact with 90-day retention. So at
+any time you have ~12 weekly snapshots. Each snapshot is a standard Sanity
+export: `data.ndjson` (all docs) + `assets.json` + `images/` + `files/`.
+
+**To grab the latest backup:**
+
+```sh
+RUNID=$(gh run list --workflow="sanity-backup-weekly.yml" --limit 1 --json databaseId --jq '.[0].databaseId')
+gh run download "$RUNID" --dir ./restore
+# tarball lands at ./restore/sanity-backup-YYYY-MM-DD/sanity-production-YYYY-MM-DD.tar.gz
+```
+
+**To verify a backup is complete (no live writes needed):**
+
+```sh
+tar -xzf <tarball> -C ./restore
+# count docs by type:
+cat ./restore/*/data.ndjson | node -e 'let n=0,t={};require("readline").createInterface({input:process.stdin}).on("line",l=>{if(!l.trim())return;const d=JSON.parse(l);t[d._type]=(t[d._type]||0)+1;n++}).on("close",()=>{console.log("total",n);console.log(t)})'
+```
+
+Expect ~150+ `therapist`, plus `matchRequest`, `providerFieldObservation`,
+`therapistPublishEvent`, etc. Validated 2026-05-18: 2306 docs,
+core-entity counts matched live prod.
+
+**To restore (disaster recovery):**
+
+> ⚠️ Restore writes documents. NEVER import directly over `production`
+> unless production is already lost. Always restore to a fresh dataset
+> first, verify, then decide.
+
+```sh
+# 1. Auth with a token that has DEPLOY/admin rights (the doc-write
+#    SANITY_API_TOKEN is NOT enough to create datasets — see caveat).
+export SANITY_AUTH_TOKEN="<deploy-scoped token, or run: npx sanity login>"
+
+# 2. Create a staging dataset and import into it
+npx sanity@latest dataset create restore-check --project-id krpjkbwn --visibility private
+npx sanity@latest dataset import <tarball> restore-check --project-id krpjkbwn
+
+# 3. Verify doc counts / spot-check a few therapists in the Studio
+#    pointed at the restore-check dataset.
+
+# 4. Only if production is truly lost: import over it with --replace
+#    npx sanity@latest dataset import <tarball> production --project-id krpjkbwn --replace
+
+# 5. Clean up the staging dataset
+npx sanity@latest dataset delete restore-check --project-id krpjkbwn
+```
+
+**Caveat (verify before you rely on this):** as of 2026-05-18 the
+download + extraction + structural validation steps above are tested and
+pass. The live `dataset import` step is NOT yet end-to-end tested because
+the available `SANITY_API_TOKEN` is document-write only and cannot create
+datasets (management-API 401). To make restore fully drill-tested, create
+a **deploy-scoped token** (Sanity → project → API → Tokens → "Deploy
+studio" / Editor+ with management rights) and run steps 2–3 + 5 against a
+throwaway dataset once. Budget 30 min.
+
+---
+
+## 9. Known follow-ups
 
 - `assets/*.js` still has legacy `.html` URL patterns in places (Stripe return paths in `pricing.js` / `portal.js` / `signup-new-listing.js`; in-app admin anchors in `admin-ops-inbox.js`; `history.replaceState` to `match.html` in `match.js:6136`). The `check:internal-links` script intentionally only scans root HTML files for now. Cleaning the JS side needs a focused PR with a Stripe Checkout round-trip test.
-- Rate limiting now supports a shared Upstash Redis store. Falls back to in-process Map when `UPSTASH_REDIS_REST_URL` / `UPSTASH_REDIS_REST_TOKEN` are unset. To activate: Vercel Marketplace → Storage → Upstash → create a free-tier database; the integration auto-sets both env vars on the project. Redeploy. Fail-open on Redis errors so an Upstash outage never blocks real users.
+- Rate limiting uses a shared Upstash Redis store, active in prod as of 2026-05-18. Config accepts either the explicit `UPSTASH_REDIS_REST_URL` / `_TOKEN` names or the `KV_REST_API_URL` / `KV_REST_API_TOKEN` names that the Vercel Upstash/KV integration injects (see `review-config.mjs`). Falls back to an in-process Map (resets per cold start) only when none are set. Fail-open on Redis errors so an Upstash outage never blocks real users. Verified persisting across processes 2026-05-18.
 - Tighten enforcing CSP to remove `'unsafe-inline'` from `script-src`. Requires extracting inline scripts and likely a nonce strategy.
