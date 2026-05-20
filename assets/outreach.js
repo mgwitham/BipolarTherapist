@@ -293,7 +293,15 @@ function applyFilters() {
     // Hide terminal statuses by default so claimed/paid/replied/bounced
     // therapists don't clutter the working queue. Explicit status pick
     // overrides the gate so "filter to Claimed" still works.
-    if (!includeDone && !status && TERMINAL_STATUSES.has(s)) return false;
+    //
+    // A therapist who claimed via the portal/signup flow gets claimedAt
+    // stamped on the doc, but that flow does NOT rewrite outreach.status
+    // (it can stay "email_1_sent"). So claimedAt is the source of truth
+    // for "they're in now" — mirror the Live-tab definition (isLive) and
+    // treat any claimedAt as terminal here, or claimed therapists keep
+    // showing in the cold queue after they've already joined.
+    const hasClaimed = Boolean(t.claimedAt) || t.claimStatus === "claimed";
+    if (!includeDone && !status && (TERMINAL_STATUSES.has(s) || hasClaimed)) return false;
     if (status && s !== status) return false;
     if (stateF && t.state !== stateF) return false;
     if (followUpDue && !isFollowUpDue(t)) return false;
@@ -1499,7 +1507,6 @@ function refreshTable() {
     .map((t) => {
       const s = t.outreach?.status || "not_contacted";
       const last = t.outreach?.lastContactedAt;
-      const dueBg = isFollowUpDue(t) ? "background:#fffbeb;" : "";
       const channel = t.email ? "email" : getContactFormUrl(t) ? "form" : "";
       const sendLabel = !channel
         ? ""
@@ -1527,7 +1534,7 @@ function refreshTable() {
         : ptUrl
           ? `<span style="display:inline-block;padding:1px 7px;border-radius:8px;font-size:10px;font-weight:600;background:#ede9fe;color:#5b21b6;border:1px solid #c4b5fd;">PT</span>`
           : "-";
-      return `<tr data-id="${esc(t._id)}" style="cursor:pointer;${dueBg}">
+      return `<tr data-id="${esc(t._id)}" style="cursor:pointer;">
       <td style="padding:11px 14px;width:32px;" data-no-row-click>${checkboxCell}</td>
       <td style="padding:11px 14px;font-weight:500;">${esc(t.name || "-")}</td>
       <td style="padding:11px 14px;color:#6b7280;">${emailCellInner}</td>
