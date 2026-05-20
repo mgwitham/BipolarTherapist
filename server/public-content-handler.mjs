@@ -573,10 +573,54 @@ async function fetchDirectoryContent(client) {
     }`),
   ]);
   return {
-    therapists,
+    therapists: therapists.map(leanDirectoryTherapist),
     directoryPage: normalizeDirectoryPage(result && result.directoryPage),
     siteSettings: normalizeSiteSettings(result && result.siteSettings),
   };
+}
+
+// The /directory endpoint ships every active therapist to the client up
+// front (the SPA filters + paginates client-side). The full public
+// projection is ~440KB of JSON for ~150 therapists, dominated by long
+// free-text fields the directory never renders in full. Trim to a
+// directory-shaped record so the patient's mobile download stays small.
+//
+//   - bio: pure dead weight here. The card/quick-view description uses
+//     care_approach || bio_preview (see directory-view-model.js); bio is
+//     only the last fallback and bio_preview already duplicates it.
+//   - field_review_states: internal editorial metadata, never rendered.
+//   - care_approach / bio_preview: the quick-view shows a description and
+//     the card pulls a one-sentence "voice quote", so keep a generous
+//     preview but drop the long tail. Full text still ships on the
+//     per-therapist profile endpoint (/api/public/therapists/:slug).
+//
+// The /api/public/therapists and /api/public/therapists/:slug endpoints
+// are intentionally left full — the match flow and profile page need it.
+const DIRECTORY_DESCRIPTION_PREVIEW_CHARS = 300;
+
+function previewText(value) {
+  const text = typeof value === "string" ? value : "";
+  if (text.length <= DIRECTORY_DESCRIPTION_PREVIEW_CHARS) {
+    return text;
+  }
+  // Cut at the last word boundary before the limit so we don't slice a
+  // word in half, then add an ellipsis.
+  const sliced = text.slice(0, DIRECTORY_DESCRIPTION_PREVIEW_CHARS);
+  const lastSpace = sliced.lastIndexOf(" ");
+  return (lastSpace > 0 ? sliced.slice(0, lastSpace) : sliced).trimEnd() + "…";
+}
+
+function leanDirectoryTherapist(therapist) {
+  if (!therapist || typeof therapist !== "object") {
+    return therapist;
+  }
+  const lean = { ...therapist };
+  delete lean.bio;
+  delete lean.field_review_states;
+  delete lean.dedupe_overrides;
+  lean.care_approach = previewText(therapist.care_approach);
+  lean.bio_preview = previewText(therapist.bio_preview);
+  return lean;
 }
 
 async function fetchSiteSettings(client) {
