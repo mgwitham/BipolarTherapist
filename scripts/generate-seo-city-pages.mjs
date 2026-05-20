@@ -470,7 +470,7 @@ function injectStylesheet(html) {
 function injectSeo(template, city, state, slug, providers, cityContent) {
   return injectStylesheet(
     template
-      .replace(/<title>[\s\S]*?<\/title>/, buildHeadTags(city, state, slug, providers))
+      .replace(/<title[^>]*>[\s\S]*?<\/title>/, buildHeadTags(city, state, slug, providers))
       .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
       .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
       .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
@@ -602,7 +602,7 @@ function buildHubBodyHtml(eligibleCities) {
 function injectHubSeo(template, eligibleCities) {
   return injectStylesheet(
     template
-      .replace(/<title>[\s\S]*?<\/title>/, buildHubHeadTags())
+      .replace(/<title[^>]*>[\s\S]*?<\/title>/, buildHubHeadTags())
       .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
       .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
       .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
