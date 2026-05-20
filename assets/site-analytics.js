@@ -28,7 +28,17 @@ function loadGoogleAnalytics() {
   document.head.appendChild(script);
 
   window.gtag("js", new Date());
-  window.gtag("config", measurementId);
+  // Disable Google Signals + ad-personalization so GA collects only
+  // first-party measurement data and never shares it with Google's
+  // advertising graph (the stats.g.doubleclick.net beacon). Under CCPA
+  // that beacon would count as "sharing for cross-context behavioral
+  // advertising" and require a Do Not Sell or Share opt-out link.
+  // Turning it off keeps us aligned with the site's "we don't sell or
+  // share" posture and lets us drop doubleclick from the CSP.
+  window.gtag("config", measurementId, {
+    allow_google_signals: false,
+    allow_ad_personalization_signals: false,
+  });
 }
 
 // Path-gate: PostHog session recordings only run on patient-facing
