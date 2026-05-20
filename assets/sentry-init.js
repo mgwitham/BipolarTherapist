@@ -6,7 +6,16 @@
 // Sentry access could then impersonate the therapist until the token
 // expires. Scrubbing here covers any URL string flowing through the SDK
 // regardless of which page or code path produced it.
-const SENSITIVE_URL_PARAMS = ["token", "claim_token", "dev_login"];
+const SENSITIVE_URL_PARAMS = [
+  "token",
+  "claim_token",
+  "dev_login",
+  // Patient search context from the match flow. A JS error on /match
+  // would otherwise ship the ZIP + care type to Sentry in the event URL.
+  "location_query",
+  "care_intent",
+  "zip",
+];
 
 function scrubUrl(value) {
   if (typeof value !== "string" || !value) return value;
