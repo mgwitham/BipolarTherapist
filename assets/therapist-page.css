@@ -3969,7 +3969,7 @@ img.bth-avatar {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  background: #e8603c;
+  background: var(--coral, #c94a2a);
   color: #fff;
   border: none;
   border-radius: 10px;

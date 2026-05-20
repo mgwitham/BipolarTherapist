@@ -8,8 +8,13 @@
   --teal-300: #6dbdd4;
   --teal-100: #d6eff6;
   --teal-50: #ebf7fb;
-  --coral: #e8603c;
-  --coral-dark: #c44e2c;
+  /* Coral darkened from #e8603c (3.4:1 white-on-coral, failed WCAG AA)
+     to #c94a2a (4.67:1) — the lightest coral that clears AA in both
+     directions, so white-on-coral CTA buttons and coral-on-white links
+     both pass. Hover goes a notch darker. Matters for the primary
+     "Find care" CTA on a site serving people in crisis. */
+  --coral: #c94a2a;
+  --coral-dark: #b8431f;
   --coral-light: #fbe9e3;
   --cream: #f7f4ef;
   --serif: "DM Serif Display", Georgia, serif;
