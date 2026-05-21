@@ -1720,7 +1720,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
   align-items: center;
   font-size: 0.8rem;
   font-weight: 500;
-  color: #6b8290;
+  color: #5a727f;
   text-decoration: none;
   white-space: nowrap;
   padding: 0.3rem 0;
@@ -1766,7 +1766,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
 }
 .result-loc {
   font-size: 0.76rem;
-  color: #6b8290;
+  color: #5a727f;
   margin-top: 0.1rem;
 }
 .result-reason {
@@ -1821,7 +1821,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
 }
 .result-contact-note {
   font-size: 0.81rem;
-  color: #6b8290;
+  color: #5a727f;
   line-height: 1.5;
   margin-bottom: 0.65rem;
   padding: 0.55rem 0.75rem;
@@ -1881,7 +1881,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
 }
 .result-backup-note {
   font-size: 0.78rem;
-  color: #6b8290;
+  color: #5a727f;
   margin-top: 0.1rem;
 }
 .result-backup-note strong {
@@ -1905,7 +1905,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: #6b8290;
+  color: #5a727f;
   padding: 0 0.2rem 0.25rem;
 }
 .result-card {
@@ -7269,7 +7269,7 @@ img.bth-avatar {
   background: none;
   border: none;
   font-size: 0.85rem;
-  color: #6b8290;
+  color: #5a727f;
   text-decoration: underline;
   text-underline-offset: 2px;
   cursor: pointer;
@@ -7337,7 +7337,7 @@ img.bth-avatar {
   background: none;
   border: none;
   font-size: 1.1rem;
-  color: #6b8290;
+  color: #5a727f;
   cursor: pointer;
   line-height: 1;
   padding: 0.2rem;
@@ -7744,7 +7744,7 @@ img.bth-avatar {
   background: none;
   border: none;
   font-size: 0.8rem;
-  color: #6b8290;
+  color: #5a727f;
   cursor: pointer;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -7868,7 +7868,7 @@ img.bth-avatar {
   font-family: "Inter", sans-serif;
   font-size: 0.82rem;
   font-weight: 500;
-  color: #6b8290;
+  color: #5a727f;
 }
 .mx-sl-hero-sub {
   font-size: 0.88rem;
@@ -7879,7 +7879,7 @@ img.bth-avatar {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b8290;
+  color: #5a727f;
   margin-top: 0.4rem;
 }
 .mx-sl-hero-reasons {
@@ -7933,7 +7933,7 @@ img.bth-avatar {
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b8290;
+  color: #5a727f;
   margin-bottom: 0.35rem;
 }
 .mx-sl-section-sub {
@@ -7974,7 +7974,7 @@ img.bth-avatar {
   font-size: 0.7rem;
   font-weight: 700;
   letter-spacing: 0.06em;
-  color: #6b8290;
+  color: #5a727f;
   background: #f1f6f8;
   padding: 0.15rem 0.5rem;
   border-radius: 999px;
@@ -7990,7 +7990,7 @@ img.bth-avatar {
   font-family: "Inter", sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
-  color: #6b8290;
+  color: #5a727f;
 }
 .mx-sl-card-sub {
   font-size: 0.84rem;
@@ -8007,7 +8007,7 @@ img.bth-avatar {
 }
 .mx-sl-card-meta {
   font-size: 0.8rem;
-  color: #6b8290;
+  color: #5a727f;
   margin-top: 0.1rem;
 }
 .mx-sl-card-cta {
@@ -8053,7 +8053,7 @@ img.bth-avatar {
 }
 .mx-sl-diff-label-cell {
   font-weight: 600;
-  color: #6b8290;
+  color: #5a727f;
   background: #fafcfd;
   font-size: 0.8rem;
 }
