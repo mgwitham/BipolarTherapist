@@ -785,27 +785,8 @@
       }
 
       /* Footer */
-      .site-mini-footer {
-        max-width: 720px;
-        margin: 2.5rem auto 0;
-        padding: 1.25rem 1.5rem 2rem;
-        border-top: 1px solid var(--border);
-        text-align: center;
-        color: var(--muted);
-        font-size: 0.82rem;
-      }
-      .site-mini-footer a {
-        color: var(--muted);
-        text-decoration: none;
-        margin: 0 0.4rem;
-      }
-      .site-mini-footer a:hover {
-        color: var(--teal-dark);
-      }
       .site-mini-footer-removal {
-        display: block;
         margin-top: 0.6rem;
-        font-size: 0.82rem;
       }
 
       @media (max-width: 720px) {
@@ -1101,13 +1082,15 @@
       </details>
     </section>
 
-    <footer class="site-mini-footer">
-      <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
-      <a href="mailto:support@bipolartherapyhub.com">Contact</a>
-      <span class="site-mini-footer-removal">
-        Want to remove your listing instead?
-        <a href="/remove">→</a>
-      </span>
+    <footer>
+      <p class="footer-brand"><strong>BipolarTherapyHub</strong></p>
+      <p class="footer-legal">
+        <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
+        <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+      </p>
+      <p class="site-mini-footer-removal">
+        Want to remove your listing instead? <a href="/remove">→</a>
+      </p>
     </footer>
 
     <script type="module" src="assets/signup-quick-claim.js"></script>
