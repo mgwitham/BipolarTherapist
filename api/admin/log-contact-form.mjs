@@ -7,11 +7,13 @@
 import { createClient } from "@sanity/client";
 import { verifyAdminSession } from "../_adminAuth.mjs";
 
-const VALID_TEMPLATES = new Set(["email_1", "follow_up"]);
+const VALID_TEMPLATES = new Set(["email_1", "follow_up", "profile_gap", "reassurance"]);
 
 const TEMPLATE_LABELS = {
   email_1: { subject: "[FORM: Initial outreach]", nextStatus: "email_1_sent" },
   follow_up: { subject: "[FORM: Follow-up]", nextStatus: "followed_up" },
+  profile_gap: { subject: "[FORM: Profile gap]", nextStatus: "profile_gap_sent" },
+  reassurance: { subject: "[FORM: Reassurance]", nextStatus: "reassurance_sent" },
 };
 
 function getSanityClient() {
