@@ -66,9 +66,7 @@ import {
 } from "./review-api.js";
 import {
   getDataFreshnessSummary,
-  getTherapistConfirmationAgenda,
   getTherapistMatchReadiness,
-  getTherapistMerchandisingQuality,
   getTherapistReviewCoaching,
 } from "./matching-model.js";
 import {
@@ -79,7 +77,6 @@ import {
   summarizeDirectoryProfileOpenQuality,
   summarizeExperimentDecisions,
   summarizeExperimentPerformance,
-  summarizeFunnelEvents,
   summarizeProfileContactExperimentDecision,
   summarizeProfileContactOutcomeValidation,
   summarizeProfileContactSignals,
@@ -87,10 +84,8 @@ import {
   summarizePatientJourney,
   trackFunnelEvent,
 } from "./funnel-analytics.js";
-import { getNextBestAdminActions } from "./admin-priority-actions.js";
 import * as adminReviewActivity from "./admin-review-activity.js";
 import { createAdminWorkflowNavigator } from "./admin-workflow-navigation.js";
-import { createAdminDashboardCardBuilders } from "./admin-dashboard-cards.js";
 import { getSourceReferenceMeta } from "./admin-source-reference.js";
 import {
   createAdminRuntimeState,
@@ -106,7 +101,6 @@ import { mountEditDrawer } from "./edit-drawer-shell.js";
 import { initAdminProfileSearch } from "./admin-profile-search.js";
 import { bindResolveDuplicate, openResolveDuplicate } from "./admin-duplicate-resolve.js";
 import { normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
-import { renderExecutiveCommandDeck, renderAdminWorkflowGuidance } from "./admin-stats-deck.js";
 import {
   formatFieldLabel,
   getFieldTrustValue,
@@ -251,26 +245,10 @@ let commandPaletteOpen = false;
 let commandPaletteQuery = "";
 let commandPaletteActiveIndex = 0;
 const adminLazyModuleCache = new Map();
-const CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
 const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 const REVIEW_ACTIVITY_SAVED_VIEWS_KEY = "bth_review_activity_saved_views_v1";
 const COMMAND_PALETTE_RECENTS_KEY = "bth_admin_command_palette_recents_v1";
 const COMMAND_PALETTE_FAVORITES_KEY = "bth_admin_command_palette_favorites_v1";
-const REQUEST_STATUS_OPTIONS = ["new", "triaging", "in_progress", "waiting_on_user", "resolved"];
-const THERAPIST_FOLLOW_UP_OPTIONS = [
-  "unreviewed",
-  "good_candidate",
-  "suggest_contact",
-  "needs_review",
-  "not_a_fit",
-];
-const CONFIRMATION_STATUS_OPTIONS = [
-  "not_started",
-  "sent",
-  "waiting_on_therapist",
-  "confirmed",
-  "applied",
-];
 let applicationFilters = {
   q: "",
   status: "",
@@ -378,7 +356,6 @@ const applyWorkflowFocusMode = workflowNavigator.applyWorkflowFocusMode;
 const spotlightSection = workflowNavigator.spotlightSection;
 const clearWorkflowFocusMode = workflowNavigator.clearWorkflowFocusMode;
 const clearWorkflowHandoffs = workflowNavigator.clearWorkflowHandoffs;
-const focusAdminWorkflowTarget = workflowNavigator.focusAdminWorkflowTarget;
 const handleWorkflowPrimaryActionClick = workflowNavigator.handleWorkflowPrimaryActionClick;
 const scrollToElementWithOffset = workflowNavigator.scrollToElementWithOffset;
 const syncWorkflowFocusFromHash = workflowNavigator.syncWorkflowFocusFromHash;
@@ -881,48 +858,6 @@ function applyAdminRuntimeState(nextState) {
   }
 }
 
-function renderFallbackStats() {
-  var statsRoot = document.getElementById("adminStats");
-  if (!statsRoot || authRequired) {
-    return;
-  }
-  var fallbackCards = [
-    buildOperatorGuideCard({
-      kicker: "Add Supply",
-      title: "Add New Listings",
-      copy: "Work newly discovered listings into the system so good supply does not sit unreviewed.",
-      steps: [
-        "Open the new-listings lane and inspect the original source.",
-        "Decide whether the listing is publishable, needs confirmation, or is a duplicate.",
-      ],
-      done: "The listing is moved into the right next state.",
-      actionLabel: "Open new-listings overview",
-      directActionLabel: "Start with first listing",
-      targetId: "candidateQueuePanel",
-      focusTargetId: "candidateQueueStartHere",
-      targetSummary: "Add New Listings -> first listing row",
-    }),
-    buildOperatorGuideCard({
-      kicker: "Review Supply",
-      title: "Review Applications",
-      copy: "Review therapist-submitted applications so strong profiles can turn into live listings fast.",
-      steps: [
-        "Open the applications lane and start with the oldest or strongest pending item.",
-        "Publish strong submissions and delete weak ones so the queue leaves limbo quickly.",
-      ],
-      done: "The application has a clear decision.",
-      actionLabel: "Open applications overview",
-      directActionLabel: "Start with top application",
-      targetId: "applicationsPanel",
-      focusTargetId: "applicationReviewStartHere",
-      targetSummary: "Review Applications -> top pending application",
-    }),
-  ];
-  statsRoot.innerHTML =
-    '<div class="mini-status" style="margin-bottom:1rem"><strong>Admin note:</strong> Showing the resilient workflow launcher while the full dashboard reloads.</div>' +
-    wrapStatsGroup("Start Here", fallbackCards, "ops-grid");
-}
-
 const adminLazyModuleLoaders = import.meta.glob([
   "./admin-candidate-queue.js",
   "./admin-application-review.js",
@@ -1153,10 +1088,6 @@ function formatLocationLine(record) {
 function formatDate(value) {
   return new Date(value).toLocaleString();
 }
-
-const { buildOperatorGuideCard, wrapStatsGroup } = createAdminDashboardCardBuilders({
-  escapeHtml: escapeHtml,
-});
 
 function buildConfirmationLink(slug) {
   return new URL("claim.html?confirm=" + encodeURIComponent(slug), window.location.href).toString();
@@ -1628,16 +1559,6 @@ function buildFieldReviewControls(item) {
   );
 }
 
-function readConciergeRequests() {
-  try {
-    return normalizeConciergeRequests(
-      JSON.parse(window.localStorage.getItem(CONCIERGE_REQUESTS_KEY) || "[]"),
-    );
-  } catch (_error) {
-    return [];
-  }
-}
-
 function readOutreachOutcomes() {
   try {
     return JSON.parse(window.localStorage.getItem(OUTREACH_OUTCOMES_KEY) || "[]");
@@ -1646,151 +1567,12 @@ function readOutreachOutcomes() {
   }
 }
 
-// Confirmation-queue read helpers retained for the stats deck after the
-// in-Admin confirmation/outreach workspace was removed. These compute the
-// counts the executive command deck and next-best-actions surface still show.
-const CONFIRMATION_QUEUE_KEY = "bth_confirmation_queue_v1";
-
-function readConfirmationQueueState() {
-  try {
-    return JSON.parse(window.localStorage.getItem(CONFIRMATION_QUEUE_KEY) || "{}");
-  } catch (_error) {
-    return {};
-  }
-}
-
-function getConfirmationQueueEntry(slug) {
-  var all = readConfirmationQueueState();
-  var entry = all && slug ? all[slug] : null;
-  return {
-    status:
-      entry && CONFIRMATION_STATUS_OPTIONS.includes(entry.status) ? entry.status : "not_started",
-    last_sent_at: entry && entry.last_sent_at ? entry.last_sent_at : "",
-    last_updated_at: entry && entry.last_updated_at ? entry.last_updated_at : "",
-    confirmation_applied_at:
-      entry && entry.confirmation_applied_at ? entry.confirmation_applied_at : "",
-  };
-}
-
-function getPublishedTherapistConfirmationQueue() {
-  var therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
-  return therapists
-    .map(function (item) {
-      var workflow = getConfirmationQueueEntry(item.slug);
-      return {
-        item: {
-          ...item,
-          confirmation_applied_at: workflow.confirmation_applied_at,
-        },
-        agenda: getTherapistConfirmationAgenda(item),
-        workflow: workflow,
-      };
-    })
-    .filter(function (entry) {
-      return entry.agenda.needs_confirmation;
-    })
-    .sort(function (a, b) {
-      var statusWeight = {
-        not_started: 0,
-        sent: 1,
-        waiting_on_therapist: 2,
-        confirmed: 3,
-        applied: 4,
-      };
-      var statusDiff =
-        (statusWeight[a.workflow.status] || 9) - (statusWeight[b.workflow.status] || 9);
-      if (statusDiff) {
-        return statusDiff;
-      }
-      var weight = { high: 0, medium: 1, low: 2 };
-      var priorityDiff = (weight[a.agenda.priority] || 9) - (weight[b.agenda.priority] || 9);
-      if (priorityDiff) {
-        return priorityDiff;
-      }
-      return b.agenda.unknown_fields.length - a.agenda.unknown_fields.length;
-    });
-}
-
-function getPublishedTherapistImportBlockerQueue() {
-  var blockerFields = [
-    "license_number",
-    "insurance_accepted",
-    "estimated_wait_time",
-    "bipolar_years_experience",
-  ];
-  return getPublishedTherapistConfirmationQueue()
-    .map(function (entry) {
-      var blockerUnknownFields = (entry.agenda.unknown_fields || []).filter(function (field) {
-        return blockerFields.includes(field);
-      });
-      return {
-        ...entry,
-        blocker_unknown_fields: blockerUnknownFields,
-      };
-    })
-    .filter(function (entry) {
-      return entry.blocker_unknown_fields.length > 0;
-    })
-    .sort(function (a, b) {
-      var blockerDiff = b.blocker_unknown_fields.length - a.blocker_unknown_fields.length;
-      if (blockerDiff) {
-        return blockerDiff;
-      }
-      var statusWeight = {
-        not_started: 0,
-        sent: 1,
-        waiting_on_therapist: 2,
-        confirmed: 3,
-        applied: 4,
-      };
-      var statusDiff =
-        (statusWeight[a.workflow.status] || 9) - (statusWeight[b.workflow.status] || 9);
-      if (statusDiff) {
-        return statusDiff;
-      }
-      return a.item.name.localeCompare(b.item.name);
-    });
-}
-
 function csvEscape(value) {
   var stringValue = String(value || "");
   if (/[",\n\r]/.test(stringValue)) {
     return '"' + stringValue.replace(/"/g, '""') + '"';
   }
   return stringValue;
-}
-
-function normalizeConciergeRequests(value) {
-  return (Array.isArray(value) ? value : []).map(function (request) {
-    var shortlist = Array.isArray(request && request.shortlist) ? request.shortlist : [];
-    return {
-      created_at: request && request.created_at ? request.created_at : new Date().toISOString(),
-      share_link: request && request.share_link ? request.share_link : "",
-      request_summary: request && request.request_summary ? request.request_summary : "",
-      requester_name: request && request.requester_name ? request.requester_name : "",
-      follow_up_preference:
-        request && request.follow_up_preference ? request.follow_up_preference : "",
-      help_topic: request && request.help_topic ? request.help_topic : "",
-      request_note: request && request.request_note ? request.request_note : "",
-      request_status:
-        request && REQUEST_STATUS_OPTIONS.includes(request.request_status)
-          ? request.request_status
-          : "new",
-      shortlist: shortlist.map(function (item) {
-        return {
-          slug: item && item.slug ? item.slug : "",
-          name: item && item.name ? item.name : "Unknown therapist",
-          priority: item && item.priority ? item.priority : "",
-          note: item && item.note ? item.note : "",
-          outreach: item && item.outreach ? item.outreach : "",
-          follow_up_status:
-            item && THERAPIST_FOLLOW_UP_OPTIONS.includes(item.follow_up_status)
-              ? item.follow_up_status
-              : "unreviewed",
-        };
-      }),
-    };
-  });
 }
 
 function formatStatusLabel(value) {
@@ -2879,551 +2661,6 @@ function updateHeroStatus(context) {
   heroStatus.textContent = parts.join(" · ");
 }
 
-function updateNavCounts(counts) {
-  var mapping = {
-    navCountReview: counts.review,
-  };
-  Object.keys(mapping).forEach(function (id) {
-    var node = document.getElementById(id);
-    if (!node) return;
-    var value = Number(mapping[id]) || 0;
-    node.textContent = value > 0 ? String(value) : "";
-  });
-}
-
-function escapeAdminHtml(value) {
-  return escapeHtml(value || "");
-}
-
-function buildTodayRailAction(action, tone, fallback) {
-  if (!action) {
-    return (
-      '<div class="admin-action-card"><strong>' +
-      escapeAdminHtml((fallback && fallback.title) || "Clear for now") +
-      "</strong><p>" +
-      escapeAdminHtml(
-        (fallback && fallback.copy) ||
-          "There is no urgent action at the moment. Enter a queue when you are ready for the next review block.",
-      ) +
-      "</p></div>"
-    );
-  }
-  return (
-    '<button class="admin-action-card" type="button" data-admin-scroll-target="' +
-    escapeAdminHtml(action.targetId || "") +
-    '">' +
-    '<span class="admin-tier-pill is-' +
-    escapeAdminHtml(tone || "recommended") +
-    '">' +
-    escapeAdminHtml((tone || "recommended").replace("_", " ")) +
-    "</span>" +
-    "<strong>" +
-    escapeAdminHtml(action.headline || action.lane || "Next action") +
-    "</strong><p>" +
-    escapeAdminHtml(action.copy || "") +
-    "</p></button>"
-  );
-}
-
-function buildTodayQuickAction(title, copy, targetId) {
-  return (
-    '<button class="admin-quick-action" type="button" data-admin-scroll-target="' +
-    escapeAdminHtml(targetId || "") +
-    '"><strong>' +
-    escapeAdminHtml(title) +
-    '</strong><p class="admin-quick-actions-copy">' +
-    escapeAdminHtml(copy) +
-    "</p></button>"
-  );
-}
-
-function buildQueueIndexCard(queue) {
-  return (
-    '<article class="queue-index-card' +
-    (queue.count > 0 ? "" : " is-empty") +
-    '" role="button" tabindex="0" data-admin-scroll-target="' +
-    escapeAdminHtml(queue.targetId || "") +
-    '">' +
-    '<div class="queue-index-card-top"><div class="queue-index-card-label">' +
-    escapeAdminHtml(queue.label) +
-    '</div><div class="queue-index-card-count">' +
-    escapeAdminHtml(String(queue.count || 0)) +
-    "</div></div>" +
-    '<div class="queue-index-card-copy">' +
-    escapeAdminHtml(queue.copy || "") +
-    "</div>" +
-    '<span class="queue-index-card-action" aria-hidden="true">' +
-    escapeAdminHtml(queue.actionLabel || "Open queue") +
-    "</span></article>"
-  );
-}
-
-function renderWorkQueueIndex(config) {
-  var summaryNode = document.getElementById("workQueuesSummary");
-  var gridNode = document.getElementById("workQueuesIndex");
-  if (!summaryNode || !gridNode) return;
-
-  var queues = (config && config.queues) || [];
-  var activeQueues = queues.filter(function (queue) {
-    return Number(queue.count) > 0;
-  }).length;
-  var totalItems = queues.reduce(function (sum, queue) {
-    return sum + (Number(queue.count) || 0);
-  }, 0);
-
-  summaryNode.innerHTML =
-    "<strong>" +
-    escapeAdminHtml(
-      String(activeQueues) +
-        " active " +
-        (activeQueues === 1 ? "queue" : "queues") +
-        " • " +
-        String(totalItems) +
-        " total backlog items",
-    ) +
-    "</strong><span>" +
-    escapeAdminHtml(
-      "This replaces the old mystery badge. Each card below shows the exact bucket behind the count and opens directly into that lane.",
-    ) +
-    "</span>";
-
-  gridNode.innerHTML = queues.map(buildQueueIndexCard).join("");
-}
-
-function updateSignupsPill(pendingCount) {
-  var pill = document.getElementById("adminSignupsPill");
-  var countNode = document.getElementById("adminSignupsPillCount");
-  if (!pill || !countNode) return;
-  var count = Number(pendingCount) || 0;
-  countNode.textContent = String(count);
-  pill.classList.toggle("is-active", count > 0);
-  pill.classList.toggle("is-empty", count === 0);
-  pill.setAttribute(
-    "title",
-    count > 0
-      ? count +
-          " therapist" +
-          (count === 1 ? "" : "s") +
-          " submitted a signup and is waiting on review"
-      : "No live signups pending. This updates when a therapist submits through the signup form.",
-  );
-}
-
-var sopNotesCollapsed = false;
-function collapseRegionSopNotes() {
-  if (sopNotesCollapsed) return;
-  var sopNotes = document.querySelectorAll(".sop-note");
-  if (!sopNotes.length) return;
-  sopNotes.forEach(function (note, index) {
-    if (note.dataset.playbookWired === "1") return;
-    note.dataset.playbookWired = "1";
-    note.classList.add("is-collapsed");
-    var toggle = document.createElement("button");
-    toggle.type = "button";
-    toggle.className = "region-playbook-toggle";
-    toggle.setAttribute("aria-expanded", "false");
-    var panelId = "regionPlaybookPanel" + index;
-    note.id = panelId;
-    toggle.setAttribute("aria-controls", panelId);
-    toggle.innerHTML =
-      'Operator playbook <span class="region-playbook-toggle-caret" aria-hidden="true">▾</span>';
-    toggle.addEventListener("click", function () {
-      var isOpen = note.classList.toggle("is-collapsed") === false;
-      toggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
-    });
-    note.parentNode.insertBefore(toggle, note);
-  });
-  sopNotesCollapsed = true;
-}
-
-function renderStats() {
-  var statsRoot = document.getElementById("adminStats");
-  if (!statsRoot) {
-    return;
-  }
-  if (authRequired) {
-    statsRoot.innerHTML = "";
-    renderExecutiveCommandDeck({ authRequired: authRequired });
-    renderAdminWorkflowGuidance({ authRequired: authRequired });
-    return;
-  }
-  try {
-    const therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
-    const applications = dataMode === "sanity" ? remoteApplications : getApplications();
-    const conciergeRequests = readConciergeRequests();
-    const portalRequests = dataMode === "sanity" ? remotePortalRequests : [];
-    const outreachOutcomes = readOutreachOutcomes();
-    const funnelSummary = summarizeFunnelEvents(readFunnelEvents());
-    const matchReadyCount = therapists.filter(function (item) {
-      return getTherapistMatchReadiness(item).score >= 85;
-    }).length;
-    const openConciergeCount = conciergeRequests.filter(function (item) {
-      return item.request_status !== "resolved";
-    }).length;
-    const openPortalRequestCount = portalRequests.filter(function (item) {
-      return item.status !== "resolved";
-    }).length;
-    const heardBackCount = outreachOutcomes.filter(function (item) {
-      return item.outcome === "heard_back";
-    }).length;
-    const bookedConsultCount = outreachOutcomes.filter(function (item) {
-      return item.outcome === "booked_consult";
-    }).length;
-    const profilesNeedingRefresh = therapists.filter(function (item) {
-      return (
-        getDataFreshnessSummary(item).status !== "fresh" ||
-        getTherapistFieldTrustAttentionCount(item)
-      );
-    }).length;
-    const profilesNeedingConfirmation = therapists.filter(function (item) {
-      return getTherapistConfirmationAgenda(item).needs_confirmation;
-    }).length;
-    const strictImportBlockers = getPublishedTherapistImportBlockerQueue();
-    const strictImportBlockerCount = strictImportBlockers.length;
-    const confirmationQueue = getPublishedTherapistConfirmationQueue();
-    const confirmationQueueState = readConfirmationQueueState();
-    const awaitingConfirmationCount = Object.keys(confirmationQueueState).filter(function (slug) {
-      var entry = confirmationQueueState[slug];
-      return entry && (entry.status === "sent" || entry.status === "waiting_on_therapist");
-    }).length;
-    const pendingApplicationsCount = applications.filter(function (item) {
-      return item.status === "pending";
-    }).length;
-    updateSignupsPill(pendingApplicationsCount);
-    const candidateQueueItems = dataMode === "sanity" ? remoteCandidates : [];
-    const candidateReviewCount = candidateQueueItems.filter(function (item) {
-      return (
-        item.review_status !== "published" &&
-        item.review_status !== "archived" &&
-        item.review_status !== "needs_review"
-      );
-    }).length;
-    const candidateParkedReviewCount = candidateQueueItems.filter(function (item) {
-      return item.review_status === "needs_review";
-    }).length;
-    const candidateReadyCount = candidateQueueItems.filter(function (item) {
-      return item.review_status === "ready_to_publish";
-    }).length;
-    const candidateDuplicateCount = candidateQueueItems.filter(function (item) {
-      return (
-        item.dedupe_status === "definite_duplicate" ||
-        item.dedupe_status === "possible_duplicate" ||
-        item.dedupe_status === "unreviewed"
-      );
-    }).length;
-    const candidateConfirmationCount = candidateQueueItems.filter(function (item) {
-      return item.review_status === "needs_confirmation";
-    }).length;
-    const reviewingApplicationsCount = applications.filter(function (item) {
-      return item.status === "reviewing";
-    }).length;
-    const claimFollowUpCount = applications.filter(function (item) {
-      return getClaimFollowUpUrgency(item).level === "due_now";
-    }).length;
-    const publishReadyApplicationsCount = applications.filter(function (item) {
-      return reviewModels.getApplicationReviewSnapshot(item).focus === "publish_ready";
-    }).length;
-    const readyToApplyCount = confirmationQueue.filter(function (entry) {
-      var status = entry && entry.workflow ? entry.workflow.status : "not_started";
-      return status === "confirmed";
-    }).length;
-    const listingPromotionCount = therapists.filter(function (item) {
-      return (
-        getTherapistMatchReadiness(item).score >= 90 &&
-        getTherapistMerchandisingQuality(item).score >= 85 &&
-        getDataFreshnessSummary(item).status !== "aging" &&
-        !getTherapistConfirmationAgenda(item).needs_confirmation &&
-        getTherapistFieldTrustAttentionCount(item) === 0
-      );
-    }).length;
-    let nextBestActions = [];
-    try {
-      nextBestActions = getNextBestAdminActions({
-        applications: applications,
-        getClaimActionQueue: getClaimActionQueue,
-        getDataFreshnessSummary: getDataFreshnessSummary,
-        getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
-        getPublishedTherapistImportBlockerQueue: getPublishedTherapistImportBlockerQueue,
-        getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
-        getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
-        getTherapistMatchReadiness: getTherapistMatchReadiness,
-        getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
-        therapists: therapists,
-      });
-    } catch (error) {
-      console.error("Admin next-best actions failed to render:", error);
-      nextBestActions = [];
-    }
-    renderExecutiveCommandDeck({
-      candidateReviewCount: candidateReviewCount,
-      funnelSummary: funnelSummary,
-      heardBackCount: heardBackCount,
-      listingPromotionCount: listingPromotionCount,
-      matchReadyCount: matchReadyCount,
-      openConciergeCount: openConciergeCount,
-      openPortalRequestCount: openPortalRequestCount,
-      pendingApplicationsCount: pendingApplicationsCount,
-      profilesNeedingConfirmation: profilesNeedingConfirmation,
-      profilesNeedingRefresh: profilesNeedingRefresh,
-      strictImportBlockerCount: strictImportBlockerCount,
-      bookedConsultCount: bookedConsultCount,
-    });
-    renderAdminWorkflowGuidance({
-      candidateConfirmationCount: candidateConfirmationCount,
-      candidateDuplicateCount: candidateDuplicateCount,
-      candidateReadyCount: candidateReadyCount,
-      candidateReviewCount: candidateReviewCount,
-      claimFollowUpCount: claimFollowUpCount,
-      openConciergeCount: openConciergeCount,
-      openPortalRequestCount: openPortalRequestCount,
-      pendingApplicationsCount: pendingApplicationsCount,
-      profilesNeedingRefresh: profilesNeedingRefresh,
-      publishReadyApplicationsCount: publishReadyApplicationsCount,
-      reviewingApplicationsCount: reviewingApplicationsCount,
-      strictImportBlockerCount: strictImportBlockerCount,
-    });
-
-    var topActions = nextBestActions.slice(0, 3);
-    var blockers = [
-      { count: claimFollowUpCount, label: "claim follow-up due" },
-      { count: openPortalRequestCount, label: "portal requests waiting" },
-    ].filter(function (item) {
-      return item.count > 0;
-    });
-    var queueIndex = [
-      {
-        label: "New candidates",
-        count: candidateReviewCount,
-        targetId: "candidateQueuePanel",
-        copy: "Fresh scraped profiles waiting for triage decisions.",
-      },
-      {
-        label: "Therapist signups",
-        count: pendingApplicationsCount,
-        targetId: "applicationsPanel",
-        copy: "Submitted signup profiles waiting for Publish or Delete decisions.",
-      },
-      {
-        label: "On hold",
-        count: candidateParkedReviewCount,
-        targetId: "reviewRegion",
-        copy: "Parked candidate reviews that still need a deliberate next pass.",
-      },
-      {
-        label: "Inbox",
-        count: openConciergeCount + openPortalRequestCount,
-        targetId: "requestsRegion",
-        copy: "Operator requests, concierge issues, and portal asks waiting on response.",
-      },
-      {
-        label: "Needs confirmation",
-        count: profilesNeedingConfirmation,
-        targetId: "confirmationQueueSection",
-        copy: "Published listings that need therapist confirmation work started.",
-      },
-      {
-        label: "Awaiting confirmation",
-        count: awaitingConfirmationCount,
-        targetId: "confirmationQueueSection",
-        copy: "Confirmation requests already sent and waiting on therapist reply.",
-      },
-      {
-        label: "Ready to apply",
-        count: readyToApplyCount,
-        targetId: "confirmationQueueSection",
-        copy: "Confirmed updates that are ready to be applied to live listings.",
-      },
-      {
-        label: "Live listing maintenance",
-        count: profilesNeedingRefresh,
-        targetId: "publishedListingsSection",
-        copy: "Published profiles with freshness drift or trust fields that need attention.",
-      },
-      {
-        label: "Import blockers",
-        count: strictImportBlockerCount,
-        targetId: "licensureQueueSection",
-        copy: "Trust-critical listing blockers that can slow safe publishing and maintenance.",
-      },
-    ];
-
-    document.getElementById("adminStats").innerHTML =
-      '<div class="admin-today-grid">' +
-      '<section class="admin-today-rail admin-today-rail--urgent"><div class="admin-today-rail-header"><div><div class="admin-now-title">Attention now</div><h3 class="admin-today-rail-title">First and second best actions</h3></div><span class="admin-tier-pill is-urgent">' +
-      escapeAdminHtml(topActions.length ? "Needs action" : "Clear") +
-      '</span></div><div class="admin-action-stack">' +
-      buildTodayRailAction(topActions[0], "urgent", {
-        title: "No urgent work waiting",
-        copy: "Use Queues to choose the next deliberate review block or open Reports for analysis.",
-      }) +
-      buildTodayRailAction(topActions[1], "recommended", {
-        title: "No second-priority action",
-        copy: "Once the top task is clear, move into the next queue with the strongest leverage.",
-      }) +
-      "</div></section>" +
-      '<section class="admin-today-rail"><div class="admin-today-rail-header"><div><div class="admin-now-title">Top blockers</div><h3 class="admin-today-rail-title">What can slow the operation today</h3></div><span class="admin-tier-pill is-' +
-      escapeAdminHtml(blockers.length ? "recommended" : "informational") +
-      '">' +
-      escapeAdminHtml(blockers.length ? "Recommended" : "Informational") +
-      "</span></div>" +
-      (blockers.length
-        ? '<ul class="admin-action-list">' +
-          blockers
-            .map(function (item) {
-              return (
-                "<li><strong>" +
-                escapeAdminHtml(String(item.count)) +
-                "</strong> " +
-                escapeAdminHtml(item.label) +
-                "</li>"
-              );
-            })
-            .join("") +
-          "</ul>"
-        : '<p class="admin-metric-summary">No active blockers are stacked up right now. The operation looks clear for the next focused queue session.</p>') +
-      "</section>" +
-      '<section class="admin-today-rail"><div class="admin-today-rail-header"><div><div class="admin-now-title">Quick actions</div><h3 class="admin-today-rail-title">Enter the right queue without browsing the whole admin</h3></div><span class="admin-tier-pill is-recommended">Recommended</span></div><div class="admin-quick-actions">' +
-      buildTodayQuickAction(
-        "Open new candidates",
-        candidateReviewCount
-          ? candidateReviewCount + " waiting for triage."
-          : "Queue is clear. Spot-check or return later.",
-        "candidateQueuePanel",
-      ) +
-      buildTodayQuickAction(
-        "Open therapist signups",
-        pendingApplicationsCount
-          ? pendingApplicationsCount + " pending signups need decisions."
-          : "No pending signups right now.",
-        "applicationsPanel",
-      ) +
-      buildTodayQuickAction(
-        "Open inbox",
-        openConciergeCount + openPortalRequestCount
-          ? "Requests and operator issues are waiting here."
-          : "Inbox is clear right now.",
-        "requestsRegion",
-      ) +
-      buildTodayQuickAction(
-        "Open reports",
-        "Move to analysis mode for exports, funnel trends, and activity.",
-        "intelligenceRegion",
-      ) +
-      "</div></section>" +
-      '<section class="admin-today-rail"><div class="admin-today-rail-header"><div><div class="admin-now-title">At a glance</div><h3 class="admin-today-rail-title">Orientation metrics</h3></div><span class="admin-tier-pill is-informational">Informational</span></div><div class="admin-today-metrics">' +
-      [
-        { value: candidateReviewCount, label: "New candidates" },
-        {
-          value: pendingApplicationsCount + openConciergeCount + openPortalRequestCount,
-          label: "Requests and signups",
-        },
-        { value: reviewingApplicationsCount + claimFollowUpCount, label: "Active reviews" },
-        { value: publishReadyApplicationsCount, label: "Ready to publish" },
-      ]
-        .map(function (metric) {
-          return (
-            '<div class="admin-today-metric"><p class="admin-today-metric-value">' +
-            escapeAdminHtml(String(metric.value)) +
-            '</p><p class="admin-today-metric-label">' +
-            escapeAdminHtml(metric.label) +
-            "</p></div>"
-          );
-        })
-        .join("") +
-      "</div></section></div>";
-
-    var statsContainer = document.getElementById("adminStats");
-    if (statsContainer) {
-      statsContainer.style.display = "";
-    }
-
-    updateHeroStatus({
-      pendingApplicationsCount: pendingApplicationsCount,
-      candidateReviewCount: candidateReviewCount,
-      publishReadyApplicationsCount: publishReadyApplicationsCount,
-      needsFixesCount: applications.filter(function (item) {
-        return reviewModels.getApplicationReviewSnapshot(item).focus === "needs_changes";
-      }).length,
-    });
-    // When there are newly-discovered listings, auto-render the
-    // candidate queue panel so a fresh ingestion is visible without
-    // requiring the user to navigate to it. The panel is hidden by
-    // default in the HTML to keep the workspace quiet on a clean queue.
-    if (candidateReviewCount > 0) {
-      var candidatePanelEl = document.getElementById("candidateQueuePanel");
-      if (candidatePanelEl) {
-        candidatePanelEl.style.display = "";
-        candidatePanelEl.removeAttribute("hidden");
-      }
-      renderCandidateQueue();
-    }
-    updateNavCounts({
-      review: pendingApplicationsCount,
-    });
-    renderWorkQueueIndex({
-      queues: queueIndex,
-    });
-    collapseRegionSopNotes();
-
-    document.querySelectorAll("[data-admin-scroll-target]").forEach(function (button) {
-      button.addEventListener("click", function (event) {
-        event.preventDefault();
-        var targetId = button.getAttribute("data-admin-scroll-target");
-        var applicationStatus = button.getAttribute("data-admin-application-status");
-        var portalRequestStatus = button.getAttribute("data-admin-portal-request-status");
-        var focusSelector = button.getAttribute("data-admin-focus-selector");
-        var focusTargetId = button.getAttribute("data-admin-focus-target-id");
-        var workflowTitle = button.getAttribute("data-admin-workflow-title");
-        var workflowDestination = button.getAttribute("data-admin-workflow-destination");
-        var workflowFirstStep = button.getAttribute("data-admin-workflow-first-step");
-        var workflowNextStep = button.getAttribute("data-admin-workflow-next-step");
-        var workflowDone = button.getAttribute("data-admin-workflow-done");
-        var workflowPrimaryActionLabel = button.getAttribute(
-          "data-admin-workflow-primary-action-label",
-        );
-        var workflowPrimaryActionTargetId = button.getAttribute(
-          "data-admin-workflow-primary-target-id",
-        );
-        if (applicationStatus !== null) {
-          applicationFilters.status = applicationStatus || "";
-          var applicationStatusFilter = document.getElementById("applicationStatusFilter");
-          if (applicationStatusFilter) {
-            applicationStatusFilter.value = applicationFilters.status;
-          }
-          renderApplications();
-        }
-        if (portalRequestStatus !== null) {
-          portalRequestFilters.status = portalRequestStatus || "";
-          var portalRequestStatusFilter = document.getElementById("portalRequestStatusFilter");
-          if (portalRequestStatusFilter) {
-            portalRequestStatusFilter.value = portalRequestFilters.status;
-          }
-          renderPortalRequestsQueue();
-        }
-        var target = targetId ? document.getElementById(targetId) : null;
-        if (target) {
-          focusAdminWorkflowTarget({
-            sectionTarget: target,
-            focusTargetId: focusTargetId,
-            focusSelector: focusSelector,
-            workflowTitle: workflowTitle,
-            workflowDestination: workflowDestination,
-            workflowFirstStep: workflowFirstStep,
-            workflowNextStep: workflowNextStep,
-            workflowDone: workflowDone,
-            workflowPrimaryActionLabel: workflowPrimaryActionLabel,
-            workflowPrimaryActionTargetId: workflowPrimaryActionTargetId,
-          });
-        }
-      });
-    });
-  } catch (error) {
-    console.error("Admin stats failed to render:", error);
-    statsRoot.innerHTML =
-      '<div class="empty">The admin dashboard hit a rendering issue. Refresh the page to retry.</div>';
-  }
-}
-
 function inferCoverageRole(item) {
   const title = String(item.title || "").toLowerCase();
   const credentials = String(item.credentials || "").toLowerCase();
@@ -3803,7 +3040,6 @@ function renderPortalRequestsQueue() {
       setRemotePortalRequests: function (nextRequests) {
         remotePortalRequests = nextRequests;
       },
-      renderStats: renderStats,
       renderPortalRequestsQueue: renderPortalRequestsQueue,
       setPortalRequestActionStatus: setPortalRequestActionStatus,
     });
@@ -3835,13 +3071,6 @@ function renderAll() {
       portalRequests: remotePortalRequests,
     });
   });
-  renderAdminSection("stats", renderStats);
-  if (!authRequired) {
-    var statsRoot = document.getElementById("adminStats");
-    if (statsRoot && !statsRoot.innerHTML.trim()) {
-      renderFallbackStats();
-    }
-  }
   renderAdminSection("ingestion scorecard", renderIngestionScorecard);
   renderAdminSection("coverage intelligence", renderCoverageIntelligence);
   renderAdminSection("funnel insights", renderFunnelInsights);
@@ -3871,10 +3100,6 @@ function setAuthUiState() {
     app.style.display = "none";
     if (quickNav) {
       quickNav.style.display = "none";
-    }
-    const todayRegionHidden = document.getElementById("todayRegion");
-    if (todayRegionHidden) {
-      todayRegionHidden.style.display = "none";
     }
     const navLogout = document.getElementById("navLogout");
     if (navLogout) navLogout.style.display = "none";
@@ -3907,10 +3132,6 @@ function setAuthUiState() {
   }
   if (quickNav) {
     quickNav.style.display = "";
-  }
-  const todayRegion = document.getElementById("todayRegion");
-  if (todayRegion) {
-    todayRegion.style.display = "";
   }
   syncAdminQuickNavFromViewport();
   const navLogout = document.getElementById("navLogout");
@@ -4655,5 +3876,4 @@ loadData().catch(function (error) {
       String((error && error.message) || error || "unknown-error"),
     );
   }
-  renderFallbackStats();
 });
