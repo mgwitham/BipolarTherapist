@@ -865,6 +865,7 @@ const adminLazyModuleLoaders = import.meta.glob([
   "./admin-licensure-activity.js",
   "./admin-needs-attention.js",
   "./admin-funnel-insights.js",
+  "./admin-unmet-demand.js",
 ]);
 
 function loadAdminLazyModule(path) {
@@ -881,7 +882,11 @@ function getAdminPrefetchModulesForTarget(targetId) {
     candidateQueuePanel: ["./admin-candidate-queue.js"],
     applicationsPanel: ["./admin-application-review.js"],
     requestsRegion: ["./admin-portal-requests.js"],
-    intelligenceRegion: ["./admin-sourcing-intelligence.js", "./admin-ingestion-scorecard.js"],
+    intelligenceRegion: [
+      "./admin-sourcing-intelligence.js",
+      "./admin-ingestion-scorecard.js",
+      "./admin-unmet-demand.js",
+    ],
   };
   return map[targetId] || [];
 }
@@ -2695,6 +2700,12 @@ function renderCoverageIntelligence() {
   });
 }
 
+function renderUnmetDemand() {
+  withLazyAdminModule("./admin-unmet-demand.js", function (module) {
+    module.renderUnmetDemandPanel();
+  });
+}
+
 function renderIngestionScorecard() {
   var latestAutomationRun = ingestionAutomationHistory.length
     ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
@@ -3064,6 +3075,7 @@ function renderAll() {
   });
   renderAdminSection("ingestion scorecard", renderIngestionScorecard);
   renderAdminSection("coverage intelligence", renderCoverageIntelligence);
+  renderAdminSection("unmet demand", renderUnmetDemand);
   renderAdminSection("funnel insights", renderFunnelInsights);
   renderAdminSection("needs attention", renderNeedsAttention);
   renderAdminSection("licensure activity", renderLicensureActivity);
