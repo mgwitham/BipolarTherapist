@@ -273,25 +273,6 @@
         font-weight: 500;
       }
 
-      /* ---- FOOTER ---- */
-      footer.site-mini-footer {
-        max-width: 720px;
-        margin: 0 auto;
-        padding: 1.5rem 1.5rem 2rem;
-        border-top: 1px solid var(--border);
-        color: var(--muted);
-        font-size: 0.85rem;
-        text-align: center;
-      }
-      footer.site-mini-footer a {
-        color: var(--muted);
-        text-decoration: none;
-        margin: 0 0.4rem;
-      }
-      footer.site-mini-footer a:hover {
-        color: var(--teal-dark);
-      }
-
       /* ---- RESPONSIVE ---- */
       @media (max-width: 640px) {
         .about-hero {
@@ -464,9 +445,16 @@
       </div>
     </main>
 
-    <footer class="site-mini-footer">
-      <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
-      <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+    <footer>
+      <p class="footer-brand"><strong>BipolarTherapyHub</strong></p>
+      <p id="footerTagline">
+        Every therapist here is verified for bipolar expertise.
+        <a href="/directory">Browse the directory →</a>
+      </p>
+      <p class="footer-legal">
+        <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
+        <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+      </p>
     </footer>
     <script type="module" src="assets/shortlist-nav.js"></script>
     <script type="module" src="assets/nav.js"></script>
