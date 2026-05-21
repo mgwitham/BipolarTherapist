@@ -1,4 +1,5 @@
 import { log } from "./logger.mjs";
+import { summarizeUnmetDemand } from "../shared/unmet-demand-domain.mjs";
 
 // Patient-side signal aggregator for the outreach CRM. Returns rolled-up
 // counts of match requests, profile views, and CTA clicks so the
@@ -29,6 +30,14 @@ const QUERY = `{
   "matchReturnedLast30d": count(*[_type == "matchRequest" && _createdAt >= $threshold30d && resultCount > 0])
 }`;
 
+// Zero-result match requests (patients we could not serve) over the last 30
+// days, projected to the criteria we aggregate into a sourcing-priority list.
+// resultCount === 0 is the instrumented "served nobody" signal; legacy
+// requests without resultCount are excluded.
+const UNMET_QUERY = `*[_type == "matchRequest" && _createdAt >= $threshold30d && resultCount == 0]{
+  careIntent, careFormat, insurancePreference, urgency, bipolarFocus
+}`;
+
 function trendDirection(current, previous) {
   // Treat any movement on a near-zero base as "flat" — small absolute
   // numbers are noisy. Only call growth/decline when the change is
@@ -43,7 +52,7 @@ function trendDirection(current, previous) {
 
 export async function handlePatientSignalRoutes(context) {
   const { client, config, request, response, routePath, deps } = context;
-  if (routePath !== "/admin/patient-signal") return false;
+  if (routePath !== "/admin/patient-signal" && routePath !== "/admin/unmet-demand") return false;
 
   if (request.method !== "GET") {
     response.writeHead(405, { "Content-Type": "application/json" });
@@ -65,6 +74,24 @@ export async function handlePatientSignalRoutes(context) {
     threshold14d: new Date(now - 14 * day).toISOString(),
     threshold30d: new Date(now - 30 * day).toISOString(),
   };
+
+  if (routePath === "/admin/unmet-demand") {
+    let rows;
+    try {
+      rows = await client.fetch(UNMET_QUERY, { threshold30d: params.threshold30d });
+    } catch (err) {
+      log.error("unmet-demand fetch error", { err: err?.message || String(err) });
+      response.writeHead(500, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ error: "Failed to compute unmet demand" }));
+      return true;
+    }
+    const summary = summarizeUnmetDemand(Array.isArray(rows) ? rows : []);
+    response.writeHead(200, { "Content-Type": "application/json", "Cache-Control": "no-store" });
+    response.end(
+      JSON.stringify({ ...summary, windowDays: 30, generatedAt: new Date().toISOString() }),
+    );
+    return true;
+  }
 
   let raw;
   try {
