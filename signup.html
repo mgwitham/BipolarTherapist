@@ -855,7 +855,7 @@
       .signup-faq {
         max-width: 780px;
         margin: 4rem auto 0;
-        padding: 0 1.5rem;
+        padding: 0 1.5rem 4rem;
         content-visibility: auto;
         contain-intrinsic-size: 0 380px;
       }
@@ -906,10 +906,6 @@
       .signup-faq-item p {
         padding: 0 1.25rem 1.15rem;
         color: var(--slate);
-      }
-
-      .signup-bottom-spacer {
-        height: 4rem;
       }
       /* =========================
          Boards lockup (left col)
@@ -1273,11 +1269,13 @@
           <div class="signup-hero-copy">
             <span class="signup-hero-eyebrow">For California clinicians</span>
             <h1>Get found by Californians searching for <em>bipolar informed care</em>.</h1>
-            <a class="signup-hero-about-link" href="/about">Learn why we built this →</a>
             <p class="signup-hero-sub">
               Four short fields. Instant California license check. Most clinicians finish in under
               two minutes.
             </p>
+            <a class="signup-hero-about-link" href="/about"
+              >Learn why we built this <span aria-hidden="true">→</span></a
+            >
             <div class="signup-boards-lockup">
               <span class="signup-boards-label">Verified against</span>
               <div class="signup-boards-list">
@@ -1319,7 +1317,7 @@
                 <div class="signup-form-branch">
                   Already have a listing?
                   <a href="/portal" class="signup-form-branch-claim" id="signupHeaderClaimLink"
-                    >Sign in →</a
+                    >Sign in <span aria-hidden="true">→</span></a
                   >
                 </div>
               </div>
@@ -1405,10 +1403,12 @@
                   </p>
                   <p class="new-listing-dup-nudge-body" id="newListingDupNudgeBody"></p>
                   <a href="/claim" class="new-listing-dup-nudge-cta" id="newListingDupNudgeCta"
-                    >Claim your profile →</a
+                    >Claim your profile <span aria-hidden="true">→</span></a
                   >
                 </div>
-                <button type="submit" class="new-listing-submit">Create my free listing →</button>
+                <button type="submit" class="new-listing-submit">
+                  Create my free listing <span aria-hidden="true">→</span>
+                </button>
                 <p class="new-listing-privacy">
                   License verified instantly · No credit card to list · Your details are used only
                   for your listing. <a href="/pricing">See pricing</a> ·
@@ -1451,7 +1451,7 @@
                     >Already have a listing on BipolarTherapyHub? Claim it to edit instead.</span
                   >
                   <a class="new-listing-recovery-cta" id="newListingRecoveryCta" href="/claim"
-                    >Claim an existing listing →</a
+                    >Claim an existing listing <span aria-hidden="true">→</span></a
                   >
                 </div>
                 <div class="new-listing-duplicate-card" id="newListingDuplicateCard" hidden>
@@ -1461,7 +1461,7 @@
                     to start managing your listing for free.
                   </p>
                   <a class="new-listing-duplicate-cta" id="newListingDuplicateCta" href="/claim"
-                    >Claim my listing →</a
+                    >Claim my listing <span aria-hidden="true">→</span></a
                   >
                   <p class="new-listing-duplicate-note">
                     Not you?
@@ -1533,7 +1533,9 @@
           No. The basic listing is free forever. You can optionally start a 14-day free trial for
           analytics, a longer bio, and profile-edit tools, $19 per month after trial, cancel
           anytime. Paid tier has no effect on how your listing ranks.
-          <a href="/pricing" style="color: var(--teal)">See full pricing →</a>
+          <a href="/pricing" style="color: var(--teal)"
+            >See full pricing <span aria-hidden="true">→</span></a
+          >
         </p>
       </details>
       <details class="signup-faq-item">
@@ -1552,8 +1554,6 @@
         </p>
       </details>
     </section>
-
-    <div class="signup-bottom-spacer"></div>
 
     <footer>
       <p class="footer-brand"><strong>BipolarTherapyHub</strong></p>
