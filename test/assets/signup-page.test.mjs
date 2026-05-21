@@ -13,7 +13,7 @@ const signupJs = readFileSync(
 );
 
 test("signup page: public form still leads with the short verified listing flow", () => {
-  assert.match(signupHtml, /Get listed in two minutes/);
+  assert.match(signupHtml, /Create your free listing/);
   assert.match(signupHtml, /No credit card to list/);
   assert.match(signupHtml, /id="newListingForm"/);
   assert.match(signupHtml, /name="license_number"/);
