@@ -37,14 +37,26 @@ test("admin page: home is the default visible admin workflow", function () {
   assert.match(html, /id="candidateQueuePanel" style="display: none" hidden/);
 });
 
-test("admin page: unrelated workflows are hidden from the default experience", function () {
+test("admin page: dead ops workflows are removed and portal requests are actionable", function () {
   const html = read("admin.html");
 
-  assert.match(html, /id="workQueuesRegion"[\s\S]*data-view-group="hidden"[\s\S]*hidden/);
-  assert.match(html, /id="liveListingsRegion"[\s\S]*data-view-group="hidden"[\s\S]*hidden/);
+  // Dead hidden subsystems were deleted from the DOM: the work-queues
+  // landing, the live-listings sidebar (published listings + licensure
+  // lanes), and the in-admin confirmation/outreach + ops-inbox surface.
+  assert.doesNotMatch(html, /id="workQueuesRegion"/);
+  assert.doesNotMatch(html, /id="liveListingsRegion"/);
+  assert.doesNotMatch(html, /id="confirmationRegion"/);
+  assert.doesNotMatch(html, /id="requestsRegion"/);
+  assert.doesNotMatch(html, /id="opsInboxPanel"/);
+
+  // The "On hold" review queue stays parked but hidden.
   assert.match(html, /id="reviewRegion"[\s\S]*data-view-group="hidden"[\s\S]*hidden/);
-  assert.match(html, /id="requestsRegion"[\s\S]*data-view-group="hidden"[\s\S]*hidden/);
+
+  // Account recovery + portal requests are surfaced under the Portal tab so
+  // incoming therapist requests are actionable rather than stranded.
   assert.match(html, /id="recoveryRegion"[\s\S]*data-view-group="portal"/);
+  assert.match(html, /id="portalRequestsRegion"[\s\S]*data-view-group="portal"/);
+  assert.match(html, /id="portalRequestsQueue"/);
 });
 
 test("admin page: review filters are intentionally minimal", function () {
@@ -109,10 +121,14 @@ test("admin page: shared delayed-hover tooltips still exist for active admin act
   assert.match(tooltipJs, /const HOVER_DELAY_MS = 450/);
 });
 
-test("confirmation and outreach supporting modules remain available but not primary", function () {
+test("confirmation and outreach supporting modules exist but are off the admin page", function () {
   const html = read("admin.html");
   const importBlockerJs = read("assets/admin-import-blocker-sprint.js");
 
+  // The supporting modules still ship in the bundle (full removal is a
+  // scoped follow-up), but the in-admin confirmation/outreach surface has
+  // been removed from the page, superseded by the standalone Outreach CRM.
   assert.match(importBlockerJs, /Email therapist/);
-  assert.match(html, /id="liveListingsRegion"[\s\S]*hidden/);
+  assert.doesNotMatch(html, /id="confirmationRegion"/);
+  assert.doesNotMatch(html, /id="liveListingsRegion"/);
 });

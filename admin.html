@@ -6099,318 +6099,6 @@
       <div id="adminApp" class="admin-stack" style="display: none">
         <div id="profileSearchWidget" class="ps-widget-root"></div>
         <div class="grid" style="grid-template-columns: 1fr">
-          <section class="admin-mode-shell" id="workQueuesRegion" data-view-group="hidden" hidden>
-            <p class="admin-mode-kicker">Queues</p>
-            <h2 class="admin-mode-title">
-              Choose a queue with clear counts and enter it on purpose
-            </h2>
-            <p class="admin-mode-copy">
-              This view breaks the backlog into named lanes so the badge is inspectable. Pick a
-              queue, make a run of decisions, then come back to Today when you need a fresh priority
-              call.
-            </p>
-            <div id="workQueuesSummary" class="admin-mode-summary"></div>
-            <nav class="admin-mode-links" aria-label="Work queue shortcuts">
-              <a href="#candidateQueuePanel">New candidates</a>
-              <a href="#applicationsPanel">Therapist signups</a>
-              <a href="#reviewRegion">On hold</a>
-              <a href="#requestsRegion">Inbox</a>
-            </nav>
-            <div id="workQueuesIndex" class="queue-index-grid"></div>
-          </section>
-          <aside
-            class="admin-region sidebar-panel"
-            id="liveListingsRegion"
-            data-view-group="hidden"
-            hidden
-          >
-            <header class="admin-live-header">
-              <h2 class="admin-live-title">Live listings</h2>
-              <p class="admin-live-subtitle">Keep published profiles trustworthy and current.</p>
-              <nav class="admin-live-chips" aria-label="Live sections">
-                <a href="#publishedListingsSection">All listings</a>
-                <a href="#needsAttentionSection" id="needsAttentionNavLink">
-                  Needs attention
-                  <span
-                    class="needs-attention-count"
-                    id="needsAttentionCount"
-                    aria-label="profiles needing attention"
-                    hidden
-                    >0</span
-                  >
-                </a>
-                <a href="#licensureQueueSection">Licensure</a>
-                <a href="#licensureSprintSection">Sprint</a>
-                <a href="#deferredLicensureQueueSection">Deferred</a>
-              </nav>
-            </header>
-            <section class="admin-region-shell workflow-section" id="publishedListingsSection">
-              <h2>All listings</h2>
-              <p class="panel-intro">
-                Every published therapist. <strong>Feature</strong> the ones ready to spotlight, or
-                leave stable listings alone.
-              </p>
-              <div id="publishedListings"></div>
-            </section>
-            <details class="admin-collapsible-group" open>
-              <summary>
-                <div class="admin-collapsible-meta">
-                  <div class="admin-collapsible-kicker">Reference Lane</div>
-                  <div class="admin-collapsible-title">Licensure maintenance</div>
-                  <div class="admin-collapsible-copy">
-                    Primary-source refresh work that supports trust, but usually should not distract
-                    from the main live-listing lanes.
-                  </div>
-                </div>
-                <div class="admin-collapsible-icon">+</div>
-              </summary>
-              <div class="admin-collapsible-body">
-                <div class="workflow-section" id="licensureQueueSection">
-                  <h2>Licensure</h2>
-                  <div class="subtle" id="licensureQueueCount" style="margin-bottom: 0.8rem"></div>
-                  <div id="licensureQueue"></div>
-                </div>
-                <div class="workflow-section" id="licensureSprintSection">
-                  <h2>Sprint</h2>
-                  <div id="licensureSprint"></div>
-                </div>
-                <div class="workflow-section" id="deferredLicensureQueueSection">
-                  <h2>Deferred</h2>
-                  <p class="subtle" style="margin-top: 0">
-                    Snoozed licensure work with the date it will return to the active queue.
-                  </p>
-                  <div
-                    class="subtle"
-                    id="deferredLicensureQueueCount"
-                    style="margin-bottom: 0.8rem"
-                  ></div>
-                  <div id="deferredLicensureQueue"></div>
-                </div>
-              </div>
-            </details>
-            <section class="admin-region-shell workflow-section" id="confirmationRegion">
-              <header class="admin-live-header">
-                <h2 class="admin-live-title">Awaiting therapist reply</h2>
-                <p class="admin-live-subtitle">
-                  Listings with missing details. Send outreach, track responses, apply answers back
-                  to the live profile.
-                </p>
-                <nav class="admin-live-chips" aria-label="Confirmation sections">
-                  <a href="#importBlockerSprintSection">Missing details</a>
-                  <a href="#californiaPriorityConfirmationWaveSection">California priority</a>
-                  <a href="#confirmationSprintSection">Send outreach</a>
-                  <a href="#confirmationQueueSection">Reply tracker</a>
-                </nav>
-              </header>
-              <div class="workflow-section" id="importBlockerSprintSection" style="margin-top: 0">
-                <h2>Missing details</h2>
-                <p class="panel-intro">
-                  Email therapists for the missing profile details that still keep a live listing
-                  from being fully trusted.
-                </p>
-                <div class="sop-note" hidden>
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Purpose</div>
-                    <div class="sop-note-copy">
-                      Fix the highest-value missing details that keep a listing from being fully
-                      trusted and ready for live use.
-                    </div>
-                  </div>
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Use This When</div>
-                    <div class="sop-note-copy">
-                      A listing is missing trust-critical information like license, insurance, wait
-                      time, or bipolar experience.
-                    </div>
-                  </div>
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Done Means</div>
-                    <div class="sop-note-copy">
-                      The missing detail is verified, moved into confirmation follow-up, or left
-                      with a clear next step recorded.
-                    </div>
-                  </div>
-                  <details class="playbook">
-                    <summary>Operator Playbook</summary>
-                    <div class="playbook-body">
-                      <div class="playbook-section">
-                        <div class="playbook-label">Good First Move</div>
-                        <div class="playbook-copy">
-                          Pick the listing with the fewest unresolved missing details and verify
-                          them one by one. This lane is about making listings trustworthy, not
-                          polishing every detail.
-                        </div>
-                      </div>
-                      <div class="playbook-section">
-                        <div class="playbook-label">Strong Decision Example</div>
-                        <div class="playbook-copy">
-                          If you can verify license and operating details from a strong source, fix
-                          the missing detail. If the missing field requires therapist input, move it
-                          to confirmation with a note on exactly what still needs an answer.
-                        </div>
-                      </div>
-                      <div class="playbook-section">
-                        <div class="playbook-label">Avoid</div>
-                        <div class="playbook-copy">
-                          Do not leave a missing detail unresolved without a next step. Every
-                          listing here should end in verified, moved to confirmation, or
-                          deliberately deferred.
-                        </div>
-                      </div>
-                    </div>
-                  </details>
-                </div>
-                <div id="importBlockerSprint"></div>
-              </div>
-              <div
-                class="workflow-section"
-                id="californiaPriorityConfirmationWaveSection"
-                style="margin-top: 1.2rem"
-              >
-                <h2>California Priority Wave</h2>
-                <div id="californiaPriorityConfirmationWave"></div>
-              </div>
-              <div
-                class="workflow-section"
-                id="confirmationSprintSection"
-                style="margin-top: 1.2rem"
-              >
-                <h2>Send outreach</h2>
-                <p class="panel-intro">
-                  The next small batch of therapists to email. Work top-to-bottom, update each row's
-                  status, and stop once every profile has a clear next step.
-                </p>
-                <div class="sop-note" hidden>
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Purpose</div>
-                    <div class="sop-note-copy">
-                      Work the next small batch of therapist confirmation outreach without scanning
-                      the entire queue.
-                    </div>
-                  </div>
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Use This When</div>
-                    <div class="sop-note-copy">
-                      You want a focused outreach packet to send, follow up on, or advance toward
-                      confirmed status.
-                    </div>
-                  </div>
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Done Means</div>
-                    <div class="sop-note-copy">
-                      Each sprint profile has moved from not started to sent, waiting, confirmed, or
-                      applied.
-                    </div>
-                  </div>
-                  <details class="playbook">
-                    <summary>Operator Playbook</summary>
-                    <div class="playbook-body">
-                      <div class="playbook-section">
-                        <div class="playbook-label">Good First Move</div>
-                        <div class="playbook-copy">
-                          Treat this as a small outbound packet. Work the batch top to bottom,
-                          update the state on each profile, and stop once every row has a clear next
-                          status.
-                        </div>
-                      </div>
-                      <div class="playbook-section">
-                        <div class="playbook-label">Strong Decision Example</div>
-                        <div class="playbook-copy">
-                          If you have enough information to send outreach, send it and mark the
-                          profile as sent. If a reply already came back, capture the answers and
-                          advance it to confirmed or applied instead of re-sending.
-                        </div>
-                      </div>
-                      <div class="playbook-section">
-                        <div class="playbook-label">Avoid</div>
-                        <div class="playbook-copy">
-                          Do not use the sprint like a passive reading list. Every profile in the
-                          batch should leave the session in a different and more useful state.
-                        </div>
-                      </div>
-                    </div>
-                  </details>
-                </div>
-                <div id="confirmationSprint"></div>
-              </div>
-              <div
-                class="workflow-section"
-                id="confirmationQueueSection"
-                style="margin-top: 1.2rem"
-              >
-                <h2>Reply tracker</h2>
-                <p class="panel-intro">
-                  Track therapist responses. Filter by status, apply confirmed values back to the
-                  live profile, keep waiting rows honest.
-                </p>
-                <div class="sop-note" hidden>
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Purpose</div>
-                    <div class="sop-note-copy">
-                      Confirm missing listing details and carry each listing through reply, review,
-                      and applied updates.
-                    </div>
-                  </div>
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Use This When</div>
-                    <div class="sop-note-copy">
-                      You need to track reply status, save therapist-confirmed values, or mark live
-                      updates as applied.
-                    </div>
-                  </div>
-                  <div class="sop-note-row">
-                    <div class="sop-note-label">Done Means</div>
-                    <div class="sop-note-copy">
-                      The listing is either waiting on therapist reply, fully confirmed, or already
-                      applied back into live data.
-                    </div>
-                  </div>
-                  <details class="playbook">
-                    <summary>Operator Playbook</summary>
-                    <div class="playbook-body">
-                      <div class="playbook-section">
-                        <div class="playbook-label">Good First Move</div>
-                        <div class="playbook-copy">
-                          Filter by status, then work one state at a time. Not-started rows need
-                          outreach, waiting rows need follow-up judgment, and confirmed rows need
-                          values applied back into the live profile.
-                        </div>
-                      </div>
-                      <div class="playbook-section">
-                        <div class="playbook-label">Strong Decision Example</div>
-                        <div class="playbook-copy">
-                          If a therapist replied with specific answers, save the confirmed values
-                          and mark what was applied. If there is no response yet, keep the profile
-                          in a waiting state rather than pretending the data is settled.
-                        </div>
-                      </div>
-                      <div class="playbook-section">
-                        <div class="playbook-label">Avoid</div>
-                        <div class="playbook-copy">
-                          Do not mark confirmation work as done just because outreach was sent. The
-                          work is only complete when the status accurately reflects what happened
-                          next.
-                        </div>
-                      </div>
-                    </div>
-                  </details>
-                </div>
-                <div class="toolbar" style="margin-bottom: 0.8rem">
-                  <select id="confirmationQueueStatusFilter">
-                    <option value="">All statuses</option>
-                    <option value="not_started">Not started</option>
-                    <option value="sent">Sent</option>
-                    <option value="waiting_on_therapist">Waiting on therapist</option>
-                    <option value="confirmed">Confirmed</option>
-                    <option value="applied">Applied</option>
-                  </select>
-                  <div class="subtle" id="confirmationQueueCount"></div>
-                </div>
-                <div id="confirmationQueue"></div>
-              </div>
-            </section>
-          </aside>
-
           <main class="admin-region">
             <section class="admin-region-shell" id="homeRegion" data-view-group="home">
               <header class="admin-live-header">
@@ -6695,40 +6383,30 @@
                 </div>
               </div>
             </section>
-            <section class="admin-region-shell" id="requestsRegion" data-view-group="hidden" hidden>
+            <section
+              class="admin-region-shell"
+              id="portalRequestsRegion"
+              data-view-group="portal"
+              style="margin-top: 1.5rem"
+            >
               <header class="admin-live-header">
-                <h2 class="admin-live-title">Inbox</h2>
+                <h2 class="admin-live-title">Portal requests</h2>
                 <p class="admin-live-subtitle">
-                  Ops actions and therapist-portal requests. Resolve or route each item.
+                  Claim-profile, pause-listing, removal, and profile-update requests from the
+                  therapist portal. Resolve or route each item.
                 </p>
-                <nav class="admin-live-chips" aria-label="Request sections">
-                  <a href="#opsInboxPanel">Ops inbox</a>
-                  <a href="#portalRequestsPanel">Portal requests</a>
-                </nav>
               </header>
-              <div class="admin-region-grid two-column">
-                <div class="panel" id="opsInboxPanel" style="margin-bottom: 1rem">
-                  <h2>Ops inbox</h2>
-                  <div id="opsInboxGuidance"></div>
-                  <div id="opsInbox"></div>
+              <div class="panel" id="portalRequestsPanel" style="padding: 1.5rem">
+                <div class="toolbar" style="margin-bottom: 0.8rem">
+                  <select id="portalRequestStatusFilter">
+                    <option value="">All request statuses</option>
+                    <option value="open">Open</option>
+                    <option value="in_review">In review</option>
+                    <option value="resolved">Resolved</option>
+                  </select>
+                  <div class="subtle" id="portalRequestCount"></div>
                 </div>
-                <div class="panel" id="portalRequestsPanel" style="margin-bottom: 1rem">
-                  <h2>Portal requests</h2>
-                  <p class="subtle" style="margin-top: 0">
-                    Claim-profile, pause-listing, removal, and profile-update requests from the
-                    therapist portal.
-                  </p>
-                  <div class="toolbar" style="margin-bottom: 0.8rem">
-                    <select id="portalRequestStatusFilter">
-                      <option value="">All request statuses</option>
-                      <option value="open">Open</option>
-                      <option value="in_review">In review</option>
-                      <option value="resolved">Resolved</option>
-                    </select>
-                    <div class="subtle" id="portalRequestCount"></div>
-                  </div>
-                  <div id="portalRequestsQueue"></div>
-                </div>
+                <div id="portalRequestsQueue"></div>
               </div>
             </section>
             <section class="admin-mode-shell" id="reportsModeShell" data-view-group="reports">
