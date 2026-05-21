@@ -166,14 +166,16 @@ export function createListingsWorkspace(options) {
 
   function renderListings() {
     var runtimeState = getRuntimeState();
+    var blankRoot = document.getElementById("publishedListings");
     if (runtimeState.authRequired) {
-      document.getElementById("publishedListings").innerHTML = "";
+      if (blankRoot) blankRoot.innerHTML = "";
       return;
     }
 
     var therapists =
       runtimeState.dataMode === "sanity" ? runtimeState.publishedTherapists : getTherapists();
     var root = document.getElementById("publishedListings");
+    if (!root) return;
     var listingRows = getListingRows(therapists);
     var rankingRiskTotals = {
       aging_data: 0,
