@@ -196,6 +196,9 @@ function showDupNudge(match, typedName) {
   body.textContent = conflictPrefix + "matches this license number." + locationSuffix + emailHint;
   cta.setAttribute("href", "/claim?slug=" + encodeURIComponent(match.slug));
   gtagEvent("signup_duplicate_detected", { triggering_field: "license" });
+  // Only one duplicate affordance at a time: drop the submit-time strip/card.
+  hideRecovery();
+  hideDuplicateCard();
   box.hidden = false;
 }
 
@@ -318,6 +321,10 @@ function showRecovery(licenseValue) {
 function hideRecovery() {
   const box = document.getElementById("newListingRecovery");
   if (box) box.hidden = true;
+}
+function hideDuplicateCard() {
+  const card = document.getElementById("newListingDuplicateCard");
+  if (card) card.hidden = true;
 }
 
 async function submitIntake(form, status) {
@@ -459,6 +466,8 @@ async function submitIntake(form, status) {
         if (nameEl) nameEl.textContent = data.duplicate_name || "your profile";
         if (ctaEl) ctaEl.href = target;
         if (card) {
+          hideDupNudge();
+          hideRecovery();
           card.hidden = false;
           card.scrollIntoView({ behavior: "smooth", block: "nearest" });
         }
@@ -468,6 +477,7 @@ async function submitIntake(form, status) {
         (data && data.error) ||
         "A record for this therapist already exists. Try the claim flow instead.";
       setStatus(status, msg, "error");
+      hideDupNudge();
       showRecovery(licenseNumber);
       return;
     }
