@@ -121,7 +121,6 @@ export function renderPortalRequestsQueuePanel(options) {
             return item.id === requestId ? updated : item;
           }),
         );
-        options.renderStats();
         options.renderPortalRequestsQueue();
       } catch (_error) {
         options.setPortalRequestActionStatus(
