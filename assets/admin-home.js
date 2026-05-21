@@ -95,6 +95,89 @@ function renderRevenue(metrics) {
   );
 }
 
+// ─── Patient demand funnel card ───────────────────────────────────
+// Server-aggregated demand, the real funnel (vs. the local-only Reports
+// journey panel). Match requests → % that returned a provider (the
+// zero-result leak) → profile views (per match) → % of viewers who
+// clicked contact. Views/clicks include non-match traffic, so they read
+// as volumes + ratios, not strict per-session conversions.
+
+async function fetchPatientSignal() {
+  try {
+    const r = await fetch(`${REVIEW_API}/admin/patient-signal`, {
+      credentials: "same-origin",
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!r.ok) return null;
+    return await r.json().catch(() => null);
+  } catch {
+    return null;
+  }
+}
+
+function pctOf(numerator, denominator) {
+  return denominator > 0 ? Math.round((Number(numerator) / Number(denominator)) * 100) : null;
+}
+
+function renderDemandCard(signal) {
+  const statusEl = document.getElementById("adminHomeDemandStatus");
+  const bodyEl = document.getElementById("adminHomeDemandBody");
+  if (!bodyEl) return;
+
+  if (!signal) {
+    if (statusEl) statusEl.textContent = "";
+    bodyEl.innerHTML = '<p class="admin-home-card-empty">Patient demand signal unavailable.</p>';
+    return;
+  }
+
+  const mr = signal.matchRequests || {};
+  const views = signal.profileViews || {};
+  const clicks = signal.ctaClicks || {};
+  const res = signal.matchResults || {};
+  const trend = mr.trend7dVsPrev7d || "flat";
+  const trendLabel =
+    trend === "growing" ? "↑ growing" : trend === "declining" ? "↓ declining" : "→ flat";
+
+  if (statusEl) statusEl.textContent = (mr.last7d || 0) + " match req (7d)";
+
+  const returnedRate = pctOf(res.returned7d, res.scored7d);
+  const contactRate = pctOf(clicks.last7d, views.last7d);
+  const viewsPerMatch = mr.last7d > 0 ? (Number(views.last7d || 0) / mr.last7d).toFixed(1) : null;
+
+  const sub = (text) =>
+    text ? ` <span style="font-size:11px;color:#9ca3af;font-weight:400;">${esc(text)}</span>` : "";
+
+  const rows = [
+    { label: "Match requests (7d)", value: String(mr.last7d || 0), subText: trendLabel },
+    {
+      label: "Returned a provider",
+      value: returnedRate == null ? "—" : returnedRate + "%",
+      subText: res.scored7d ? `${res.returned7d} of ${res.scored7d}` : "collecting (newly tracked)",
+      warn: returnedRate != null && returnedRate < 80,
+    },
+    {
+      label: "Profile views (7d)",
+      value: String(views.last7d || 0),
+      subText: viewsPerMatch ? `${viewsPerMatch} per match` : "",
+    },
+    {
+      label: "Clicked contact",
+      value: contactRate == null ? "—" : contactRate + "%",
+      subText: views.last7d ? `${clicks.last7d} of ${views.last7d} views` : "",
+    },
+  ];
+
+  bodyEl.innerHTML = `<dl class="admin-home-metric-grid">${rows
+    .map(
+      (r) =>
+        `<div class="admin-home-metric${r.warn ? " is-warn" : ""}"><dt>${esc(
+          r.label,
+        )}</dt><dd>${esc(r.value)}${sub(r.subText)}</dd></div>`,
+    )
+    .join("")}</dl>`;
+}
+
 // ─── Today's Queue card ───────────────────────────────────────────
 
 function countOpenPortalRequests(portalRequests) {
@@ -263,9 +346,14 @@ export async function renderAdminHome(stateUpdate) {
   // Queue card renders synchronously from the already-loaded admin state.
   renderQueueCard();
 
-  // Revenue + replies fetch in parallel.
-  const [metrics, open] = await Promise.all([fetchStripeMetrics(), fetchOutreachAwaitingReply()]);
+  // Revenue + demand + replies fetch in parallel.
+  const [metrics, signal, open] = await Promise.all([
+    fetchStripeMetrics(),
+    fetchPatientSignal(),
+    fetchOutreachAwaitingReply(),
+  ]);
   renderRevenue(metrics);
+  renderDemandCard(signal);
   renderRepliesCard(open);
 
   // Schedule the reply refresh (idempotent, clear any prior timer).
