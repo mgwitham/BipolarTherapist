@@ -14,7 +14,6 @@ const INTAKE_ENDPOINT = "/api/review/applications/intake";
 const FREE_PATH_ENDPOINT = "/api/review/applications/free-path-selected";
 const LICENSE_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/search";
 const EMAIL_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/lookup-by-email";
-const MAX_PHOTO_BYTES = 4 * 1024 * 1024;
 
 // Client-side rate limit: max 3 submission attempts per 10-minute window.
 // This is a first-layer defense only. Server-side rate limiting is the
@@ -44,7 +43,6 @@ function checkSubmitRateLimit() {
     return true;
   }
 }
-const ALLOWED_PHOTO_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 // ==========================================================================
 // Analytics (gtag) events fired from this module and when they fire:
@@ -67,11 +65,6 @@ function gtagEvent(name, params) {
   }
 }
 
-// Module-scoped state for the optional headshot. Set by the file-input
-// change handler; read by submitIntake into the JSON payload. Cleared on
-// successful upload so a back-button retry doesn't double-attach.
-let pendingPhoto = null;
-
 function parseZip(raw) {
   const match = String(raw || "").match(/\d{5}/);
   return match ? match[0] : "";
@@ -79,6 +72,26 @@ function parseZip(raw) {
 
 function isValidEmail(raw) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(raw || "").trim());
+}
+
+// Per-field error display for inline validation. Marks the input invalid
+// (red border + aria-invalid for assistive tech) and writes the message
+// into the field's error span. clearFieldError reverses both.
+function setFieldError(input, errId, message) {
+  if (input) {
+    input.classList.add("is-invalid");
+    input.setAttribute("aria-invalid", "true");
+  }
+  const errEl = document.getElementById(errId);
+  if (errEl) errEl.textContent = message || "";
+}
+function clearFieldError(input, errId) {
+  if (input) {
+    input.classList.remove("is-invalid");
+    input.removeAttribute("aria-invalid");
+  }
+  const errEl = document.getElementById(errId);
+  if (errEl) errEl.textContent = "";
 }
 
 // Matches the server's normalizeLicenseForMatch: drop non-alnum, strip
@@ -320,14 +333,30 @@ async function submitIntake(form, status) {
 
   if (!fullName || !email || !licenseNumber || !zipRaw) {
     setStatus(status, "Fill in all four fields above before submitting.", "error");
+    const firstEmpty = !fullName
+      ? form.elements.full_name
+      : !email
+        ? form.elements.email
+        : !licenseNumber
+          ? form.elements.license_number
+          : form.elements.zip;
+    if (firstEmpty && firstEmpty.focus) firstEmpty.focus();
     return;
   }
   if (!isValidEmail(email)) {
     setStatus(status, "Enter a valid email address for your welcome link.", "error");
+    setFieldError(
+      form.elements.email,
+      "err_email",
+      "That email doesn't look right. Check for typos.",
+    );
+    form.elements.email.focus();
     return;
   }
   if (!zip) {
     setStatus(status, "Enter a valid 5-digit ZIP code for your practice.", "error");
+    setFieldError(form.elements.zip, "err_zip", "Enter a 5-digit ZIP code.");
+    form.elements.zip.focus();
     return;
   }
 
@@ -356,14 +385,6 @@ async function submitIntake(form, status) {
     turnstile_token:
       turnstileHandle && turnstileHandle.getToken ? turnstileHandle.getToken() : null,
   };
-  if (pendingPhoto && pendingPhoto.dataUrl) {
-    payload.photo_upload_base64 = pendingPhoto.dataUrl;
-    payload.photo_filename = pendingPhoto.filename || "headshot";
-    trackFunnelEvent("signup_new_listing_photo_attached", {
-      bytes: pendingPhoto.bytes || 0,
-      mime: pendingPhoto.mime || "",
-    });
-  }
 
   const submit = form.querySelector('button[type="submit"]');
   const priorLabel = submit ? submit.textContent : "";
@@ -606,102 +627,11 @@ async function proceedFree(form, formStatus, intakeData, email) {
   }, 250);
 }
 
-function readFileAsDataUrl(file) {
-  return new Promise(function (resolve, reject) {
-    const reader = new FileReader();
-    reader.onload = function () {
-      resolve(String(reader.result || ""));
-    };
-    reader.onerror = function () {
-      reject(reader.error || new Error("Could not read the file."));
-    };
-    reader.readAsDataURL(file);
-  });
-}
-
-function bindPhotoControl() {
-  const input = document.getElementById("newListingPhotoInput");
-  const preview = document.getElementById("newListingPhotoPreview");
-  const statusNode = document.getElementById("newListingPhotoStatus");
-  const clearBtn = document.getElementById("newListingPhotoClear");
-  const btnLabel = document.getElementById("newListingPhotoBtnLabel");
-  if (!input || !preview || !statusNode || !clearBtn || !btnLabel) return;
-
-  function renderPlaceholder() {
-    const span = document.createElement("span");
-    span.className = "new-listing-photo-placeholder";
-    span.textContent = "📷";
-    preview.replaceChildren(span);
-  }
-
-  function setStatusLine(message, tone) {
-    statusNode.textContent = message || "";
-    statusNode.classList.remove("is-error", "is-success");
-    if (tone === "error") statusNode.classList.add("is-error");
-    if (tone === "success") statusNode.classList.add("is-success");
-  }
-
-  function reset() {
-    pendingPhoto = null;
-    input.value = "";
-    renderPlaceholder();
-    btnLabel.textContent = "Choose photo";
-    clearBtn.hidden = true;
-    setStatusLine("", null);
-  }
-
-  clearBtn.addEventListener("click", function () {
-    reset();
-    trackFunnelEvent("signup_new_listing_photo_cleared", {});
-  });
-
-  input.addEventListener("change", async function () {
-    const file = input.files && input.files[0];
-    if (!file) {
-      reset();
-      return;
-    }
-    if (!ALLOWED_PHOTO_MIMES.has(file.type)) {
-      setStatusLine("Photo must be a JPG, PNG, or WebP.", "error");
-      input.value = "";
-      return;
-    }
-    if (file.size > MAX_PHOTO_BYTES) {
-      setStatusLine("Photo is over 4 MB. Try a smaller image.", "error");
-      input.value = "";
-      return;
-    }
-    let dataUrl;
-    try {
-      dataUrl = await readFileAsDataUrl(file);
-    } catch (_error) {
-      setStatusLine("Couldn't read that file. Try another.", "error");
-      input.value = "";
-      return;
-    }
-    pendingPhoto = {
-      dataUrl: dataUrl,
-      filename: file.name || "headshot",
-      bytes: file.size,
-      mime: file.type,
-    };
-    const img = document.createElement("img");
-    img.src = dataUrl;
-    img.alt = "";
-    img.className = "new-listing-photo-img";
-    preview.replaceChildren(img);
-    btnLabel.textContent = "Replace photo";
-    clearBtn.hidden = false;
-    setStatusLine("Looks great. We'll attach it to your listing.", "success");
-  });
-}
-
 function bindIntakeForm() {
   const form = document.getElementById("newListingForm");
   if (!form) return;
   trackFunnelEvent("signup_page_viewed", {});
   gtagEvent("signup_page_viewed");
-  bindPhotoControl();
   const status = document.getElementById("newListingStatus");
   const submit = form.querySelector('button[type="submit"]');
   const turnstileContainer = document.createElement("div");
@@ -887,6 +817,36 @@ function bindIntakeForm() {
     zipInput.addEventListener("focus", function () {
       // Warm the table on first focus so the lookup is instant when they finish.
       loadZipTable();
+    });
+  }
+
+  // Inline format validation: surface email/ZIP errors on blur instead of
+  // only after a full submit round-trip, and clear them as the user fixes
+  // the field. The submit-time checks in submitIntake stay as the backstop.
+  if (emailInput) {
+    emailInput.addEventListener("blur", function () {
+      const val = emailInput.value.trim();
+      if (val && !isValidEmail(val.toLowerCase())) {
+        setFieldError(emailInput, "err_email", "That email doesn't look right. Check for typos.");
+      } else {
+        clearFieldError(emailInput, "err_email");
+      }
+    });
+    emailInput.addEventListener("input", function () {
+      clearFieldError(emailInput, "err_email");
+    });
+  }
+  if (zipInput) {
+    zipInput.addEventListener("blur", function () {
+      const val = zipInput.value.trim();
+      if (val && !val.match(/^\d{5}$/)) {
+        setFieldError(zipInput, "err_zip", "Enter a 5-digit ZIP code.");
+      } else {
+        clearFieldError(zipInput, "err_zip");
+      }
+    });
+    zipInput.addEventListener("input", function () {
+      clearFieldError(zipInput, "err_zip");
     });
   }
 
