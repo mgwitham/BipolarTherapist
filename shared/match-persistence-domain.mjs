@@ -321,6 +321,10 @@ export function normalizePortableMatchRequest(input) {
     request_summary: normalizeText(input.requestSummary || input.request_summary),
     source_surface: normalizeText(input.sourceSurface || input.source_surface) || "match_flow",
     created_at: normalizeText(input.createdAt || input.created_at) || new Date().toISOString(),
+    result_count:
+      input.resultCount === undefined && input.result_count === undefined
+        ? null
+        : Number(input.resultCount ?? input.result_count) || 0,
   };
 }
 
@@ -389,6 +393,7 @@ export function buildMatchRequestDocument(input) {
     createdAt: record.created_at,
     requestSummary: record.request_summary,
     sourceSurface: record.source_surface,
+    resultCount: record.result_count == null ? undefined : record.result_count,
   };
 }
 

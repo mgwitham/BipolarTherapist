@@ -4301,6 +4301,7 @@ function persistMatchRequest(profile, entries) {
     cultural_preferences:
       profile && profile.cultural_preferences ? profile.cultural_preferences : "",
     top_slug: entries && entries[0] && entries[0].therapist ? entries[0].therapist.slug : "",
+    result_count: Array.isArray(entries) ? entries.length : 0,
   }).catch(function () {
     persistedJourneyId = persistedJourneyId || currentJourneyId;
   });

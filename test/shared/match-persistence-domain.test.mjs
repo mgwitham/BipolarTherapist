@@ -131,6 +131,22 @@ test("buildMatchRequestDocument preserves short request_ids as-is", function () 
   assert.equal(document._id, "match-request-journey-124");
 });
 
+test("buildMatchRequestDocument records resultCount for the zero-result demand signal", function () {
+  // A zero-result match must persist resultCount: 0 (not omit it), so the
+  // patient-signal aggregate can distinguish "served zero providers" from
+  // "never instrumented".
+  const zero = buildMatchRequestDocument({ request_id: "r-zero", resultCount: 0 });
+  assert.equal(zero.resultCount, 0);
+
+  const served = buildMatchRequestDocument({ request_id: "r-served", result_count: 5 });
+  assert.equal(served.resultCount, 5);
+
+  // Un-instrumented requests (no count supplied) leave resultCount undefined
+  // so they drop out of the GROQ defined(resultCount) denominator.
+  const legacy = buildMatchRequestDocument({ request_id: "r-legacy", care_intent: "Therapy" });
+  assert.equal(legacy.resultCount, undefined);
+});
+
 test("buildMatchOutcomeDocument caps _id under Sanity's 128-char limit for long outcome_ids", function () {
   const longOutcomeId =
     "outcome-1776380164868-ca-dr-keith-valone-pasadena-ca-dr-daniel-kaushansky-los-angeles-ca-aubri-gomez-los-angeles-ca-heidi-jackson-santa-monica-ca-kandice-timmons-beverly-hills-ca";

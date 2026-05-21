@@ -250,6 +250,14 @@ export const matchRequestType = defineType({
         ],
       },
     }),
+    defineField({
+      name: "resultCount",
+      title: "Result count",
+      description:
+        "Number of providers this match returned. 0 = a zero-result match (demand we could not serve). Recorded from 2026-05 onward.",
+      type: "number",
+      group: "meta",
+    }),
   ],
   preview: {
     select: {

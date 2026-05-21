@@ -6091,6 +6091,24 @@
                   </footer>
                 </section>
 
+                <!-- Patient demand funnel -->
+                <section
+                  class="admin-home-card"
+                  id="adminHomeDemand"
+                  aria-labelledby="adminHomeDemandTitle"
+                >
+                  <header class="admin-home-card-head">
+                    <h3 class="admin-home-card-title" id="adminHomeDemandTitle">Patient demand</h3>
+                    <span class="admin-home-card-status" id="adminHomeDemandStatus"></span>
+                  </header>
+                  <div class="admin-home-card-body" id="adminHomeDemandBody">
+                    <p class="admin-home-card-loading">Loading…</p>
+                  </div>
+                  <footer class="admin-home-card-foot">
+                    <a class="admin-home-card-link" href="#reports">Funnel detail in Reports →</a>
+                  </footer>
+                </section>
+
                 <!-- Today's Queue -->
                 <section
                   class="admin-home-card"
@@ -6409,10 +6427,14 @@
                   <div id="coverageIntelligence"></div>
                 </div>
                 <div class="panel" id="funnelAnalyticsPanel" style="margin-bottom: 1rem">
-                  <h2>Funnel Analytics</h2>
+                  <h2>
+                    Funnel Analytics
+                    <span style="font-weight: 400; color: #b45309">· this device only</span>
+                  </h2>
                   <p class="subtle" style="margin-top: 0">
-                    Local-only event tracking for the key moments in browse, match, shortlist, and
-                    outreach.
+                    Events from <strong>your current browser only</strong> — not aggregated across
+                    patients. Useful for debugging the match flow, not for reading real demand. For
+                    aggregate patient demand, see the <strong>Patient demand</strong> card on Home.
                   </p>
                   <div id="funnelInsights"></div>
                 </div>

@@ -22,7 +22,11 @@ const QUERY = `{
   "viewsLast7d": math::sum(*[_type == "therapistEngagementSummary" && periodStart >= $threshold7d].profileViewsTotal),
   "viewsLast30d": math::sum(*[_type == "therapistEngagementSummary" && periodStart >= $threshold30d].profileViewsTotal),
   "clicksLast7d": math::sum(*[_type == "therapistEngagementSummary" && periodStart >= $threshold7d].ctaClicksTotal),
-  "clicksLast30d": math::sum(*[_type == "therapistEngagementSummary" && periodStart >= $threshold30d].ctaClicksTotal)
+  "clicksLast30d": math::sum(*[_type == "therapistEngagementSummary" && periodStart >= $threshold30d].ctaClicksTotal),
+  "matchScoredLast7d": count(*[_type == "matchRequest" && _createdAt >= $threshold7d && defined(resultCount)]),
+  "matchReturnedLast7d": count(*[_type == "matchRequest" && _createdAt >= $threshold7d && resultCount > 0]),
+  "matchScoredLast30d": count(*[_type == "matchRequest" && _createdAt >= $threshold30d && defined(resultCount)]),
+  "matchReturnedLast30d": count(*[_type == "matchRequest" && _createdAt >= $threshold30d && resultCount > 0])
 }`;
 
 function trendDirection(current, previous) {
@@ -89,6 +93,17 @@ export async function handlePatientSignalRoutes(context) {
     ctaClicks: {
       last7d: Number(raw?.clicksLast7d) || 0,
       last30d: Number(raw?.clicksLast30d) || 0,
+    },
+    // Match result coverage. "scored" = match requests that recorded a
+    // resultCount (instrumented from 2026-05 onward); "returned" = those
+    // that surfaced >=1 provider. scored - returned = zero-result matches
+    // (demand we could not serve). Older requests lack resultCount and are
+    // excluded from scored so the rate isn't diluted by un-instrumented data.
+    matchResults: {
+      scored7d: Number(raw?.matchScoredLast7d) || 0,
+      returned7d: Number(raw?.matchReturnedLast7d) || 0,
+      scored30d: Number(raw?.matchScoredLast30d) || 0,
+      returned30d: Number(raw?.matchReturnedLast30d) || 0,
     },
     generatedAt: new Date().toISOString(),
   };
