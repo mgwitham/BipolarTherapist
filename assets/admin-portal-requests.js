@@ -12,14 +12,15 @@ export function renderPortalRequestsQueuePanel(options) {
   }
 
   const requests = options.dataMode === "sanity" ? options.remotePortalRequests : [];
+  const statusFilter = options.portalRequestFilters.status || "";
   const filtered = requests.filter(function (item) {
-    if (
-      options.portalRequestFilters.status &&
-      item.status !== options.portalRequestFilters.status
-    ) {
-      return false;
-    }
-    return true;
+    const status = item.status || "open";
+    // Default view ("Needs action") hides resolved requests so the queue
+    // shows only what still needs a decision. "all" shows everything; an
+    // explicit status does an exact match.
+    if (statusFilter === "") return status !== "resolved";
+    if (statusFilter === "all") return true;
+    return status === statusFilter;
   });
 
   countEl.textContent =
@@ -36,7 +37,10 @@ export function renderPortalRequestsQueuePanel(options) {
   }
 
   if (!filtered.length) {
-    root.innerHTML = '<div class="empty">No portal requests match the current filter.</div>';
+    root.innerHTML =
+      statusFilter === ""
+        ? '<div class="empty">All caught up — no portal requests need action. Choose “All statuses” to see resolved ones.</div>'
+        : '<div class="empty">No portal requests match the current filter.</div>';
     return;
   }
 
@@ -121,7 +125,6 @@ export function renderPortalRequestsQueuePanel(options) {
             return item.id === requestId ? updated : item;
           }),
         );
-        options.renderStats();
         options.renderPortalRequestsQueue();
       } catch (_error) {
         options.setPortalRequestActionStatus(
