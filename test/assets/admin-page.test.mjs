@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { readFileSync } from "node:fs";
+import { readFileSync, existsSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -121,14 +121,42 @@ test("admin page: shared delayed-hover tooltips still exist for active admin act
   assert.match(tooltipJs, /const HOVER_DELAY_MS = 450/);
 });
 
-test("confirmation and outreach supporting modules exist but are off the admin page", function () {
+test("dead confirmation/outreach/ops/listings modules are removed from the bundle", function () {
   const html = read("admin.html");
-  const importBlockerJs = read("assets/admin-import-blocker-sprint.js");
+  const adminJs = read("assets/admin.js");
 
-  // The supporting modules still ship in the bundle (full removal is a
-  // scoped follow-up), but the in-admin confirmation/outreach surface has
-  // been removed from the page, superseded by the standalone Outreach CRM.
-  assert.match(importBlockerJs, /Email therapist/);
+  // These subsystems were removed entirely (superseded by the standalone
+  // Outreach CRM, the Home tab, and the Reports activity log). The files
+  // must be gone and admin.js must no longer reference them.
+  const deadModules = [
+    "admin-ops-inbox.js",
+    "admin-confirmation-workspace.js",
+    "admin-confirmation-queue.js",
+    "admin-confirmation-sprint.js",
+    "admin-import-blocker-sprint.js",
+    "admin-concierge-queue.js",
+    "admin-listings-workspace.js",
+    "admin-licensure-queue.js",
+    "admin-licensure-sprint.js",
+    "admin-licensure-deferred-queue.js",
+  ];
+  for (const moduleFile of deadModules) {
+    assert.equal(
+      existsSync(path.join(repoRoot, "assets", moduleFile)),
+      false,
+      `${moduleFile} should be deleted`,
+    );
+    assert.equal(
+      adminJs.includes(moduleFile),
+      false,
+      `admin.js should not reference ${moduleFile}`,
+    );
+  }
+
+  // The in-admin confirmation/outreach surface is gone from the page.
   assert.doesNotMatch(html, /id="confirmationRegion"/);
   assert.doesNotMatch(html, /id="liveListingsRegion"/);
+
+  // Licensure ACTIVITY (read-only Reports panel) survives.
+  assert.match(html, /id="licensureActivity"/);
 });

@@ -15,13 +15,8 @@ import { renderAdminHome } from "./admin-home.js";
 import { createAdminStore } from "./admin-store.js";
 import { createControllerRegistry } from "./admin-controller-registry.js";
 import licensureActivityController from "./admin-licensure-activity.js";
-import licensureQueueController from "./admin-licensure-queue.js";
-import deferredLicensureQueueController from "./admin-licensure-deferred-queue.js";
 import reviewActivityController from "./admin-review-activity.js";
-import confirmationQueueController from "./admin-confirmation-queue.js";
-import confirmationSprintController from "./admin-confirmation-sprint.js";
 import applicationsController from "./admin-application-review.js";
-import opsInboxController from "./admin-ops-inbox.js";
 
 async function fetchMatchedTherapistForCandidate(candidate) {
   if (!candidate) return null;
@@ -50,7 +45,6 @@ import {
   checkReviewApiHealth,
   decideTherapistCandidate,
   decideLicensureOps,
-  decideTherapistOps,
   fetchAdminTherapistById,
   fetchAdminTherapistBySlug,
   exportReviewEvents,
@@ -71,13 +65,10 @@ import {
   sendPortalCompletenessNudges,
 } from "./review-api.js";
 import {
-  buildTherapistFieldConfirmationPrompt,
   getDataFreshnessSummary,
-  getEditoriallyVerifiedOperationalCount,
   getTherapistConfirmationAgenda,
   getTherapistMatchReadiness,
   getTherapistMerchandisingQuality,
-  getRecentConfirmationSummary,
   getTherapistReviewCoaching,
 } from "./matching-model.js";
 import {
@@ -96,19 +87,11 @@ import {
   summarizePatientJourney,
   trackFunnelEvent,
 } from "./funnel-analytics.js";
-import { createConfirmationWorkspace } from "./admin-confirmation-workspace.js";
-import { createListingsWorkspace } from "./admin-listings-workspace.js";
 import { getNextBestAdminActions } from "./admin-priority-actions.js";
 import * as adminReviewActivity from "./admin-review-activity.js";
 import { createAdminWorkflowNavigator } from "./admin-workflow-navigation.js";
 import { createAdminDashboardCardBuilders } from "./admin-dashboard-cards.js";
-import { createAdminRouteHealthActions } from "./admin-route-health-actions.js";
 import { getSourceReferenceMeta } from "./admin-source-reference.js";
-import {
-  getRouteHealthWarnings,
-  isBookingRouteHealthy,
-  isWebsiteRouteHealthy,
-} from "./route-health.js";
 import {
   createAdminRuntimeState,
   createRemoteAuthRequiredState,
@@ -132,15 +115,8 @@ import {
   getFieldTrustChipClass,
   getTherapistFieldTrustSummary,
   getTherapistFieldTrustAttentionCount,
-  getTherapistTrustRecommendation,
-  renderFieldTrustChips,
 } from "./admin-field-trust.js";
-import {
-  analyzeConciergePatterns,
-  analyzeOutreachOutcomes,
-  analyzeOutreachJourneys,
-  analyzePivotTiming,
-} from "./admin-outreach-analysis.js";
+import { analyzeOutreachOutcomes } from "./admin-outreach-analysis.js";
 
 if (typeof document !== "undefined" && document.documentElement) {
   document.documentElement.setAttribute("data-admin-boot", "script-loaded");
@@ -229,20 +205,12 @@ const adminRegistry = createControllerRegistry({
     formatDate: formatDate,
     renderReviewActivitySavedViews: renderReviewActivitySavedViews,
     renderReviewActivitySavedViewMeta: renderReviewActivitySavedViewMeta,
-    buildConfirmationQueueOptions: buildConfirmationQueueOptions,
-    buildConfirmationSprintOptions: buildConfirmationSprintOptions,
     buildApplicationsOptions: buildApplicationsOptions,
-    buildOpsInboxOptions: buildOpsInboxOptions,
   },
 });
 adminRegistry.register(licensureActivityController);
-adminRegistry.register(licensureQueueController);
-adminRegistry.register(deferredLicensureQueueController);
 adminRegistry.register(reviewActivityController);
-adminRegistry.register(confirmationQueueController);
-adminRegistry.register(confirmationSprintController);
 adminRegistry.register(applicationsController);
-adminRegistry.register(opsInboxController);
 
 // Mirror the persisted filter into the legacy `let reviewActivityFilter`
 // so non-controller code that reads it (deep-link builder, savedViews
@@ -266,15 +234,11 @@ let ingestionAutomationHistory = [];
 let licensureRefreshQueue = [];
 let deferredLicensureQueue = [];
 let licensureActivityFeed = [];
-let profileConversionFreshnessQueue = [];
 let authRequired = false;
 let authErrorVisible = false;
 let reviewActivityFilter = "";
 let reviewActivitySavedViewId = "";
 let adminWorkflowUrlParamsApplied = false;
-let conciergeFilters = {
-  status: "",
-};
 let portalRequestFilters = {
   status: "",
 };
@@ -364,133 +328,6 @@ const reviewModels = createAdminReviewModels({
   isConfirmationRefreshApplication: isConfirmationRefreshApplication,
   normalizeListValue: normalizeListValue,
 });
-const confirmationWorkspace = createConfirmationWorkspace({
-  buildConfirmationApplyBrief: buildConfirmationApplyBrief,
-  buildImportBlockerRequestMessage: buildImportBlockerRequestMessage,
-  buildImportBlockerRequestSubject: buildImportBlockerRequestSubject,
-  buildOrderedConfirmationRequestMessage: buildOrderedConfirmationRequestMessage,
-  buildTherapistFieldConfirmationPrompt: buildTherapistFieldConfirmationPrompt,
-  californiaPriorityConfirmationMeta: {
-    "maya-smolarek-pasadena-ca": {
-      first_action:
-        "Ask for Dr. Maya Smolarek by name and confirm whether Pasadena or California telehealth is the right intake path first.",
-      follow_up_rule:
-        "If front-desk staff cannot confirm on the call, ask for the best email or callback path and follow up within 2 business days.",
-      follow_up_business_days: 2,
-    },
-    "dr-stacia-mills-pasadena-ca": {
-      first_action:
-        "Lead with the free mini-consultation framing and keep the ask tight: bipolar-years first, wait time second.",
-      follow_up_rule:
-        "If there is no reply, follow up once after 4 business days and then leave the fields unchanged until confirmed.",
-      follow_up_business_days: 4,
-    },
-    "dr-sylvia-cartwright-la-jolla-ca": {
-      first_action:
-        "Use the online scheduling or contact path and position this as a brief profile-accuracy confirmation for California telehealth patients.",
-      follow_up_rule:
-        "If there is no response through the website path, try one phone follow-up during listed office hours before pausing.",
-      follow_up_business_days: 2,
-    },
-    "dr-je-ko-los-angeles-ca": {
-      first_action:
-        "Lead with whether the inquiry is for Westwood in-person care or California telepsychiatry, then keep the ask tight: bipolar-years first, timing second.",
-      follow_up_rule:
-        "If there is no response through the website path, follow up once by phone during listed office hours before pausing.",
-      follow_up_business_days: 2,
-    },
-    "dr-daniel-kaushansky-los-angeles-ca": {
-      first_action:
-        "Lead with the free bipolar therapy consultation framing and keep the ask focused on bipolar-years first, then timing and insurance stance if available.",
-      follow_up_rule:
-        "If there is no reply, follow up once by email or phone within 3 business days and then leave the fields unchanged until confirmed.",
-      follow_up_business_days: 3,
-    },
-  },
-  californiaPriorityConfirmationSlugs: [
-    "maya-smolarek-pasadena-ca",
-    "dr-stacia-mills-pasadena-ca",
-    "dr-sylvia-cartwright-la-jolla-ca",
-    "dr-je-ko-los-angeles-ca",
-    "dr-daniel-kaushansky-los-angeles-ca",
-  ],
-  confirmationQueueKey: "bth_confirmation_queue_v1",
-  confirmationResponseFields: [
-    "bipolarYearsExperience",
-    "estimatedWaitTime",
-    "insuranceAccepted",
-    "yearsExperience",
-    "telehealthStates",
-    "sessionFeeMin",
-    "sessionFeeMax",
-    "slidingScale",
-  ],
-  confirmationResponseItemFieldMap: {
-    bipolarYearsExperience: ["bipolarYearsExperience", "bipolar_years_experience"],
-    estimatedWaitTime: ["estimatedWaitTime", "estimated_wait_time"],
-    insuranceAccepted: ["insuranceAccepted", "insurance_accepted"],
-    yearsExperience: ["yearsExperience", "years_experience"],
-    telehealthStates: ["telehealthStates", "telehealth_states"],
-    sessionFeeMin: ["sessionFeeMin", "session_fee_min"],
-    sessionFeeMax: ["sessionFeeMax", "session_fee_max"],
-    slidingScale: ["slidingScale", "sliding_scale"],
-  },
-  confirmationResponseValuesKey: "bth_confirmation_response_values_v1",
-  confirmationStatusOptions: CONFIRMATION_STATUS_OPTIONS,
-  copyText: copyText,
-  escapeHtml: escapeHtml,
-  formatDate: formatDate,
-  formatFieldLabel: formatFieldLabel,
-  formatStatusLabel: formatStatusLabel,
-  getPreferredFieldOrder: getPreferredFieldOrder,
-  getRuntimeState: function () {
-    return {
-      authRequired: authRequired,
-      dataMode: dataMode,
-      publishedTherapists: publishedTherapists,
-    };
-  },
-  getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
-  getTherapists: getTherapists,
-  renderConfirmationQueue: function () {
-    renderConfirmationQueue();
-  },
-  renderConfirmationSprint: function () {
-    renderConfirmationSprint();
-  },
-  renderImportBlockerSprint: function () {
-    renderImportBlockerSprint();
-  },
-  renderStats: function () {
-    renderStats();
-  },
-});
-const listingsWorkspace = createListingsWorkspace({
-  escapeHtml: escapeHtml,
-  formatDate: formatDate,
-  getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
-  getDataFreshnessSummary: getDataFreshnessSummary,
-  getEditoriallyVerifiedOperationalCount: getEditoriallyVerifiedOperationalCount,
-  getRecentConfirmationSummary: getRecentConfirmationSummary,
-  getRuntimeState: function () {
-    return {
-      authRequired: authRequired,
-      dataMode: dataMode,
-      publishedTherapists: publishedTherapists,
-    };
-  },
-  getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
-  getTherapistMatchReadiness: getTherapistMatchReadiness,
-  getTherapistMerchandisingQuality: getTherapistMerchandisingQuality,
-  getRouteHealthWarnings: getRouteHealthWarnings,
-  getRouteHealthActionItems: function (record) {
-    return getRouteHealthActionItems(record);
-  },
-  queueRouteHealthFollowUp: function (therapistId, actionKey) {
-    return queueRouteHealthFollowUp(therapistId, actionKey);
-  },
-  getTherapists: getTherapists,
-});
 // localStorage hydration handled by adminStore.attachLocalStorage above.
 // URL ?reviewActivityLane= still wins over a persisted value, so check it
 // after attach and overwrite. The store subscription above keeps the
@@ -516,18 +353,6 @@ function ensureWorkflowSectionRendered(sectionId) {
       break;
     case "applicationsPanel":
       renderApplications();
-      break;
-    case "importBlockerSprintSection":
-      renderImportBlockerSprint();
-      break;
-    case "confirmationQueueSection":
-      renderConfirmationQueue();
-      break;
-    case "confirmationSprintSection":
-      renderConfirmationSprint();
-      break;
-    case "publishedListingsSection":
-      renderListings();
       break;
     default:
       break;
@@ -1050,9 +875,6 @@ function applyAdminRuntimeState(nextState) {
     // Other (still-unmigrated) tabs read the local `let` directly.
     adminStore.set("data.licensureActivityFeed", nextState.licensureActivityFeed || []);
   }
-  if (Object.prototype.hasOwnProperty.call(nextState, "profileConversionFreshnessQueue")) {
-    profileConversionFreshnessQueue = nextState.profileConversionFreshnessQueue;
-  }
   if (Object.prototype.hasOwnProperty.call(nextState, "authRequired")) {
     authRequired = nextState.authRequired;
     adminStore.set("authRequired", nextState.authRequired === true);
@@ -1104,17 +926,9 @@ function renderFallbackStats() {
 const adminLazyModuleLoaders = import.meta.glob([
   "./admin-candidate-queue.js",
   "./admin-application-review.js",
-  "./admin-ops-inbox.js",
-  "./admin-concierge-queue.js",
   "./admin-portal-requests.js",
-  "./admin-confirmation-queue.js",
-  "./admin-confirmation-sprint.js",
-  "./admin-import-blocker-sprint.js",
   "./admin-sourcing-intelligence.js",
   "./admin-ingestion-scorecard.js",
-  "./admin-licensure-queue.js",
-  "./admin-licensure-sprint.js",
-  "./admin-licensure-deferred-queue.js",
   "./admin-licensure-activity.js",
   "./admin-needs-attention.js",
   "./admin-portal-completeness.js",
@@ -1134,16 +948,7 @@ function getAdminPrefetchModulesForTarget(targetId) {
     supplyReviewRegion: ["./admin-candidate-queue.js", "./admin-application-review.js"],
     candidateQueuePanel: ["./admin-candidate-queue.js"],
     applicationsPanel: ["./admin-application-review.js"],
-    requestsRegion: [
-      "./admin-ops-inbox.js",
-      "./admin-concierge-queue.js",
-      "./admin-portal-requests.js",
-    ],
-    confirmationRegion: [
-      "./admin-import-blocker-sprint.js",
-      "./admin-confirmation-sprint.js",
-      "./admin-confirmation-queue.js",
-    ],
+    requestsRegion: ["./admin-portal-requests.js"],
     intelligenceRegion: ["./admin-sourcing-intelligence.js", "./admin-ingestion-scorecard.js"],
   };
   return map[targetId] || [];
@@ -1156,12 +961,7 @@ function prefetchAdminModulesForTarget(targetId) {
 }
 
 function warmAdminLikelyNextModules() {
-  [
-    "./admin-candidate-queue.js",
-    "./admin-application-review.js",
-    "./admin-ops-inbox.js",
-    "./admin-confirmation-queue.js",
-  ].forEach(function (path) {
+  ["./admin-candidate-queue.js", "./admin-application-review.js"].forEach(function (path) {
     loadAdminLazyModule(path);
   });
 }
@@ -1358,169 +1158,8 @@ const { buildOperatorGuideCard, wrapStatsGroup } = createAdminDashboardCardBuild
   escapeHtml: escapeHtml,
 });
 
-const { getRouteHealthActionItems, queueRouteHealthFollowUp } = createAdminRouteHealthActions({
-  isWebsiteRouteHealthy: isWebsiteRouteHealthy,
-  isBookingRouteHealthy: isBookingRouteHealthy,
-  getTherapistById: function (therapistId) {
-    return (dataMode === "sanity" ? publishedTherapists : getTherapists()).find(function (item) {
-      return String(item && item.id) === String(therapistId);
-    });
-  },
-  reviewerWorkspace: reviewerWorkspace,
-  renderListings: function () {
-    renderListings();
-  },
-});
-
-function buildConfirmationChecklist(item, agenda, preferredPrimaryField) {
-  var orderedFields = getPreferredFieldOrder(
-    (agenda && agenda.unknown_fields) || [],
-    preferredPrimaryField,
-  );
-  var primaryAskField = orderedFields[0] || "";
-  var addOnAskFields = orderedFields.slice(1);
-  return [
-    "BipolarTherapyHub profile confirmation checklist",
-    "",
-    "Therapist: " + (item && item.name ? item.name : "Unknown therapist"),
-    item && item.slug ? "Slug: " + item.slug : "",
-    "Priority: " + formatStatusLabel(agenda.priority),
-    "Needs confirmation: " +
-      ((agenda && agenda.unknown_fields) || [])
-        .map(function (field) {
-          return formatFieldLabel(field);
-        })
-        .join(", "),
-    primaryAskField ? "Primary ask: " + formatFieldLabel(primaryAskField) : "",
-    addOnAskFields.length
-      ? "Add-on asks: " +
-        addOnAskFields
-          .map(function (field) {
-            return formatFieldLabel(field);
-          })
-          .join(", ")
-      : "",
-    orderedFields.length
-      ? "Ordered ask flow: " +
-        orderedFields
-          .map(function (field) {
-            return formatFieldLabel(field);
-          })
-          .join(" -> ")
-      : "",
-    "",
-    "Exact asks:",
-    orderedFields
-      .map(function (field) {
-        return getImportBlockerPromptMap()[field];
-      })
-      .filter(Boolean)
-      .map(function (ask, index) {
-        return index + 1 + ". " + ask;
-      })
-      .join("\n"),
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
-function buildConfirmationApplyBrief(item, agenda, workflow, preferredPrimaryField) {
-  var orderedFields = getPreferredFieldOrder(
-    (agenda && agenda.unknown_fields) || [],
-    preferredPrimaryField,
-  );
-  var primaryAskField = orderedFields[0] || "";
-  var addOnAskFields = orderedFields.slice(1);
-  return [
-    "BipolarTherapyHub live profile update brief",
-    "",
-    "Therapist: " + (item && item.name ? item.name : "Unknown therapist"),
-    item && item.slug ? "Slug: " + item.slug : "",
-    "Current confirmation status: " +
-      formatStatusLabel((workflow && workflow.status) || "not_started"),
-    workflow && workflow.last_updated_at
-      ? "Last confirmed state update: " + formatDate(workflow.last_updated_at)
-      : "",
-    primaryAskField ? "Primary confirmed ask: " + formatFieldLabel(primaryAskField) : "",
-    addOnAskFields.length
-      ? "Secondary asks: " +
-        addOnAskFields
-          .map(function (field) {
-            return formatFieldLabel(field);
-          })
-          .join(", ")
-      : "",
-    orderedFields.length
-      ? "Ordered apply flow: " +
-        orderedFields
-          .map(function (field) {
-            return formatFieldLabel(field);
-          })
-          .join(" -> ")
-      : "",
-    "",
-    "Fields ready to apply or re-check:",
-    (orderedFields.length
-      ? orderedFields.map(function (field) {
-          return "- " + formatFieldLabel(field);
-        })
-      : ["- No specific fields flagged."]
-    ).join("\n"),
-    "",
-    "Apply steps:",
-    "1. Review the therapist response or confirmation submission.",
-    "2. Update the live profile fields that were confirmed.",
-    "3. Tighten field review states where editorial verification is now appropriate.",
-    "4. Re-run any needed trust or freshness review after the update.",
-    "",
-    "Profile URL:",
-    item && item.slug
-      ? new URL("/therapists/" + encodeURIComponent(item.slug), window.location.href).toString()
-      : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
-}
-
-function buildConfirmationApplySummary(rows, heading) {
-  return confirmationWorkspace.buildConfirmationApplySummary(rows, heading);
-}
-
-function buildConfirmationApplyOperatorChecklist(rows, heading) {
-  return confirmationWorkspace.buildConfirmationApplyOperatorChecklist(rows, heading);
-}
-
-function buildConfirmationApplyPreviewHtml(item, slug, primaryAskField, addOnAskFields) {
-  return confirmationWorkspace.buildConfirmationApplyPreviewHtml(
-    item,
-    slug,
-    primaryAskField,
-    addOnAskFields,
-  );
-}
-
-function buildConfirmationResponseCaptureHtml(slug, primaryAskField, addOnAskFields) {
-  return confirmationWorkspace.buildConfirmationResponseCaptureHtml(
-    slug,
-    primaryAskField,
-    addOnAskFields,
-  );
-}
-
-function buildConfirmationApplyCsvRows(rows) {
-  return confirmationWorkspace.buildConfirmationApplyCsvRows(rows);
-}
-
-function buildConfirmationApplyCsv(rows) {
-  return confirmationWorkspace.buildConfirmationApplyCsv(rows);
-}
-
 function buildConfirmationLink(slug) {
-  return confirmationWorkspace.buildConfirmationLink(slug);
-}
-
-function setConfirmationActionStatus(root, id, message) {
-  confirmationWorkspace.setConfirmationActionStatus(root, id, message);
+  return new URL("claim.html?confirm=" + encodeURIComponent(slug), window.location.href).toString();
 }
 
 function setPortalRequestActionStatus(root, id, message) {
@@ -1528,10 +1167,6 @@ function setPortalRequestActionStatus(root, id, message) {
   if (status) {
     status.textContent = message;
   }
-}
-
-function bindConfirmationResponseCapture(root) {
-  confirmationWorkspace.bindConfirmationResponseCapture(root);
 }
 
 function isConfirmationRefreshApplication(item) {
@@ -2003,14 +1638,6 @@ function readConciergeRequests() {
   }
 }
 
-function writeConciergeRequests(value) {
-  try {
-    window.localStorage.setItem(CONCIERGE_REQUESTS_KEY, JSON.stringify(value));
-  } catch (_error) {
-    return;
-  }
-}
-
 function readOutreachOutcomes() {
   try {
     return JSON.parse(window.localStorage.getItem(OUTREACH_OUTCOMES_KEY) || "[]");
@@ -2019,1139 +1646,110 @@ function readOutreachOutcomes() {
   }
 }
 
+// Confirmation-queue read helpers retained for the stats deck after the
+// in-Admin confirmation/outreach workspace was removed. These compute the
+// counts the executive command deck and next-best-actions surface still show.
+const CONFIRMATION_QUEUE_KEY = "bth_confirmation_queue_v1";
+
 function readConfirmationQueueState() {
-  return confirmationWorkspace.readConfirmationQueueState();
+  try {
+    return JSON.parse(window.localStorage.getItem(CONFIRMATION_QUEUE_KEY) || "{}");
+  } catch (_error) {
+    return {};
+  }
 }
 
 function getConfirmationQueueEntry(slug) {
-  return confirmationWorkspace.getConfirmationQueueEntry(slug);
-}
-
-function updateConfirmationQueueEntry(slug, updates) {
-  confirmationWorkspace.updateConfirmationQueueEntry(slug, updates);
+  var all = readConfirmationQueueState();
+  var entry = all && slug ? all[slug] : null;
+  return {
+    status:
+      entry && CONFIRMATION_STATUS_OPTIONS.includes(entry.status) ? entry.status : "not_started",
+    last_sent_at: entry && entry.last_sent_at ? entry.last_sent_at : "",
+    last_updated_at: entry && entry.last_updated_at ? entry.last_updated_at : "",
+    confirmation_applied_at:
+      entry && entry.confirmation_applied_at ? entry.confirmation_applied_at : "",
+  };
 }
 
 function getPublishedTherapistConfirmationQueue() {
-  return confirmationWorkspace.getPublishedTherapistConfirmationQueue();
-}
-
-function getConfirmationQueueFilter() {
-  return confirmationWorkspace.getConfirmationQueueFilter();
-}
-
-function setConfirmationQueueFilter(value) {
-  confirmationWorkspace.setConfirmationQueueFilter(value);
-}
-
-function renderCaliforniaPriorityConfirmationWave() {
-  confirmationWorkspace.renderCaliforniaPriorityConfirmationWave();
-}
-
-function getConfirmationResultLabel(status) {
-  return confirmationWorkspace.getConfirmationResultLabel(status);
-}
-
-function getConfirmationLastActionNote(workflow) {
-  return confirmationWorkspace.getConfirmationLastActionNote(workflow);
-}
-
-function getConfirmationGraceWindowNote(item) {
-  return confirmationWorkspace.getConfirmationGraceWindowNote(item);
-}
-
-function getConfirmationTarget(item) {
-  return confirmationWorkspace.getConfirmationTarget(item);
-}
-
-function getImportBlockerFieldBuckets(fields) {
-  return confirmationWorkspace.getImportBlockerFieldBuckets(fields);
-}
-
-function getPreferredFieldOrder(fields, preferredPrimaryField) {
-  var ordered = (Array.isArray(fields) ? fields : []).slice();
-  if (!preferredPrimaryField) {
-    return ordered;
-  }
-  return ordered.sort(function (a, b) {
-    if (a === preferredPrimaryField && b !== preferredPrimaryField) {
-      return -1;
-    }
-    if (b === preferredPrimaryField && a !== preferredPrimaryField) {
-      return 1;
-    }
-    return 0;
-  });
-}
-
-function buildImportBlockerRequestSubject(item, fields, preferredPrimaryField) {
-  var name = item && item.name ? item.name : "this profile";
-  var orderedFields = getPreferredFieldOrder(fields, preferredPrimaryField);
-  var labels = orderedFields.slice(0, 2).map(formatFieldLabel).join(" and ");
-  return labels
-    ? "Quick import-blocker confirmation for " + name + " (" + labels + ")"
-    : "Quick import-blocker confirmation for " + name;
-}
-
-function buildImportBlockerRequestMessage(item, fields, preferredPrimaryField) {
-  var orderedFields = getPreferredFieldOrder(fields, preferredPrimaryField);
-  return buildTherapistFieldConfirmationPrompt(item, orderedFields, {
-    intro:
-      "We are clearing the final strict import blockers on your BipolarTherapyHub profile so the highest-trust operational details stay accurate.",
-    close:
-      "Once you confirm these specific details, we can clear this blocker and keep the live profile trustable.\n\nThank you,\nBipolarTherapyHub",
-  });
+  var therapists = dataMode === "sanity" ? publishedTherapists : getTherapists();
+  return therapists
+    .map(function (item) {
+      var workflow = getConfirmationQueueEntry(item.slug);
+      return {
+        item: {
+          ...item,
+          confirmation_applied_at: workflow.confirmation_applied_at,
+        },
+        agenda: getTherapistConfirmationAgenda(item),
+        workflow: workflow,
+      };
+    })
+    .filter(function (entry) {
+      return entry.agenda.needs_confirmation;
+    })
+    .sort(function (a, b) {
+      var statusWeight = {
+        not_started: 0,
+        sent: 1,
+        waiting_on_therapist: 2,
+        confirmed: 3,
+        applied: 4,
+      };
+      var statusDiff =
+        (statusWeight[a.workflow.status] || 9) - (statusWeight[b.workflow.status] || 9);
+      if (statusDiff) {
+        return statusDiff;
+      }
+      var weight = { high: 0, medium: 1, low: 2 };
+      var priorityDiff = (weight[a.agenda.priority] || 9) - (weight[b.agenda.priority] || 9);
+      if (priorityDiff) {
+        return priorityDiff;
+      }
+      return b.agenda.unknown_fields.length - a.agenda.unknown_fields.length;
+    });
 }
 
 function getPublishedTherapistImportBlockerQueue() {
-  return confirmationWorkspace.getPublishedTherapistImportBlockerQueue();
-}
-
-function getImportBlockerSprintRows(limit) {
-  return confirmationWorkspace.getImportBlockerSprintRows(limit);
-}
-
-function getImportBlockerSprintSummary(rows) {
-  return confirmationWorkspace.getImportBlockerSprintSummary(rows);
-}
-
-function getImportBlockerSprintBottleneck(rows) {
-  return confirmationWorkspace.getImportBlockerSprintBottleneck(rows);
-}
-
-function getImportBlockerSprintWaveShape(rows) {
-  return confirmationWorkspace.getImportBlockerSprintWaveShape(rows);
-}
-
-function getImportBlockerSprintFieldPattern(rows) {
-  return confirmationWorkspace.getImportBlockerSprintFieldPattern(rows);
-}
-
-function getImportBlockerPromptMap() {
-  return confirmationWorkspace.getImportBlockerPromptMap();
-}
-
-function getImportBlockerSprintSharedAskDetails(rows) {
-  return confirmationWorkspace.getImportBlockerSprintSharedAskDetails(rows);
-}
-
-function getImportBlockerSprintSharedAsk(rows) {
-  return confirmationWorkspace.getImportBlockerSprintSharedAsk(rows);
-}
-
-function getImportBlockerSprintSharedAskText(rows) {
-  return confirmationWorkspace.getImportBlockerSprintSharedAskText(rows);
-}
-
-function getImportBlockerSprintSharedAskStatus(rows) {
-  return confirmationWorkspace.getImportBlockerSprintSharedAskStatus(rows);
-}
-
-function getImportBlockerSprintSharedAskImpact(rows) {
-  return confirmationWorkspace.getImportBlockerSprintSharedAskImpact(rows);
-}
-
-function getConfirmationSprintThemeDetails(rows) {
-  if (!rows.length) {
-    return null;
-  }
-
-  var counts = {};
-  rows.forEach(function (row) {
-    String(row.warnings || "")
-      .split("|")
-      .map(function (field) {
-        return field.trim();
-      })
-      .filter(Boolean)
-      .forEach(function (field) {
-        counts[field] = (counts[field] || 0) + 1;
+  var blockerFields = [
+    "license_number",
+    "insurance_accepted",
+    "estimated_wait_time",
+    "bipolar_years_experience",
+  ];
+  return getPublishedTherapistConfirmationQueue()
+    .map(function (entry) {
+      var blockerUnknownFields = (entry.agenda.unknown_fields || []).filter(function (field) {
+        return blockerFields.includes(field);
       });
-  });
-
-  var topField = Object.keys(counts).sort(function (a, b) {
-    var countDiff = counts[b] - counts[a];
-    if (countDiff) {
-      return countDiff;
-    }
-    return a.localeCompare(b);
-  })[0];
-
-  if (!topField) {
-    return null;
-  }
-
-  return {
-    field: topField,
-    count: counts[topField] || 0,
-  };
-}
-
-function getConfirmationSprintThemeSummary(rows) {
-  var details = getConfirmationSprintThemeDetails(rows);
-  if (!details) {
-    return "";
-  }
-
-  return (
-    "Top confirmation sprint theme: " +
-    formatFieldLabel(details.field) +
-    " (" +
-    details.count +
-    " of " +
-    rows.length +
-    " sprint profiles)."
-  );
-}
-
-function getPrimaryAskHeaderLine(field) {
-  if (!field) {
-    return "";
-  }
-  return "Primary ask right now: " + formatFieldLabel(field) + ".";
-}
-
-function getBlockerConfirmationThemeBridge(blockerRows, confirmationRows) {
-  var blockerSharedAsk = getImportBlockerSprintSharedAskDetails(blockerRows);
-  var confirmationTheme = getConfirmationSprintThemeDetails(confirmationRows);
-  if (!blockerSharedAsk || !confirmationTheme) {
-    return "";
-  }
-
-  if (blockerSharedAsk.field === confirmationTheme.field) {
-    return "Bridge: this same ask is also the top confirmation sprint theme, so clearing it strengthens both queues at once.";
-  }
-
-  return (
-    "Bridge: the blocker sprint is led by " +
-    formatFieldLabel(blockerSharedAsk.field) +
-    ", while the confirmation sprint is led by " +
-    formatFieldLabel(confirmationTheme.field) +
-    "."
-  );
-}
-
-function getOverlappingAskDetails(blockerRows, confirmationRows) {
-  var blockerSharedAsk = getImportBlockerSprintSharedAskDetails(blockerRows);
-  var confirmationTheme = getConfirmationSprintThemeDetails(confirmationRows);
-  if (
-    !blockerSharedAsk ||
-    !confirmationTheme ||
-    blockerSharedAsk.field !== confirmationTheme.field
-  ) {
-    return null;
-  }
-
-  var matchingBlockerRows = blockerRows.filter(function (row) {
-    return String(row.blocker_fields || "")
-      .split("|")
-      .map(function (field) {
-        return field.trim();
-      })
-      .filter(Boolean)
-      .includes(blockerSharedAsk.field);
-  });
-
-  var matchingConfirmationRows = confirmationRows.filter(function (row) {
-    return String(row.warnings || "")
-      .split("|")
-      .map(function (field) {
-        return field.trim();
-      })
-      .filter(Boolean)
-      .includes(blockerSharedAsk.field);
-  });
-
-  return {
-    field: blockerSharedAsk.field,
-    ask: blockerSharedAsk.ask,
-    blocker_count: matchingBlockerRows.length,
-    confirmation_count: matchingConfirmationRows.length,
-    blocker_rows: matchingBlockerRows,
-    confirmation_rows: matchingConfirmationRows,
-  };
-}
-
-function getOverlappingAskExtraAsks(row, key, sharedField) {
-  var promptMap = getImportBlockerPromptMap();
-  return String(row[key] || "")
-    .split("|")
-    .map(function (field) {
-      return field.trim();
-    })
-    .filter(Boolean)
-    .filter(function (field) {
-      return field !== sharedField;
-    })
-    .map(function (field) {
-      return promptMap[field];
-    })
-    .filter(Boolean);
-}
-
-function getImportBlockerSprintSharedAskNextMove(rows) {
-  return confirmationWorkspace.getImportBlockerSprintSharedAskNextMove(rows);
-}
-
-function getImportBlockerLeverageNote(rows, fields) {
-  var details = getImportBlockerSprintSharedAskDetails(rows);
-  if (!details || details.count <= 1) {
-    return "";
-  }
-  var fieldList = Array.isArray(fields) ? fields : [];
-  if (!fieldList.includes(details.field)) {
-    return "";
-  }
-  return (
-    "Leverage note: this same ask applies to " +
-    details.count +
-    " of the top " +
-    rows.length +
-    " strict-gate blockers right now."
-  );
-}
-
-function buildImportBlockerSharedAskPacket(rows) {
-  var details = getImportBlockerSprintSharedAskDetails(rows);
-  if (!details) {
-    return "";
-  }
-
-  var matchingRows = rows.filter(function (row) {
-    return String(row.blocker_fields || "")
-      .split("|")
-      .map(function (field) {
-        return field.trim();
-      })
-      .filter(Boolean)
-      .includes(details.field);
-  });
-
-  if (!matchingRows.length) {
-    return "";
-  }
-
-  var lines = [
-    "# Shared Ask Packet",
-    "",
-    "Top strict-gate blockers currently sharing the same highest-leverage question.",
-    "",
-    getImportBlockerSprintSharedAsk(rows),
-    getImportBlockerSprintSharedAskNextMove(rows),
-    getImportBlockerSprintSharedAskStatus(rows),
-    getImportBlockerSprintSharedAskImpact(rows),
-    "",
-  ];
-
-  matchingRows.forEach(function (row) {
-    lines.push("## " + row.priority_rank + ". " + row.name);
-    lines.push("");
-    lines.push("- Status: " + row.status);
-    lines.push("- Channel: " + (row.recommended_channel || "manual review"));
-    lines.push("- Blocking fields: " + row.blocker_fields);
-    lines.push("- Contact target: " + row.contact_target);
-    lines.push("- Send action: " + (row.send_action || "manual review"));
-    lines.push("- Primary ask: " + formatFieldLabel(details.field));
-    var sharedExtraAsks = getOverlappingAskExtraAsks(row, "blocker_fields", details.field);
-    if (sharedExtraAsks.length) {
-      lines.push("- Add-on asks: " + sharedExtraAsks.join(" "));
-    }
-    lines.push("- Subject: " + (row.request_subject || ""));
-    lines.push("");
-    lines.push("Shared ask:");
-    lines.push("");
-    lines.push("```text");
-    lines.push(details.ask);
-    lines.push("```");
-    lines.push("");
-    lines.push("Confirmation form:");
-    lines.push(buildConfirmationLink(row.slug));
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-function buildOverlappingAskPacket(blockerRows, confirmationRows) {
-  var overlap = getOverlappingAskDetails(blockerRows, confirmationRows);
-  if (!overlap) {
-    return "";
-  }
-
-  var unifiedRowsBySlug = {};
-  overlap.blocker_rows.forEach(function (row) {
-    var existing = unifiedRowsBySlug[row.slug] || {
-      slug: row.slug,
-      name: row.name,
-      lanes: [],
-      recommended_channel: row.recommended_channel || "",
-      contact_target: row.contact_target || "",
-      send_action: row.send_action || "",
-      request_subject: row.request_subject || "",
-      extraAsks: [],
-    };
-    existing.lanes.push("blocker");
-    existing.extraAsks = existing.extraAsks.concat(
-      getOverlappingAskExtraAsks(row, "blocker_fields", overlap.field),
-    );
-    unifiedRowsBySlug[row.slug] = existing;
-  });
-  overlap.confirmation_rows.forEach(function (row) {
-    var existing = unifiedRowsBySlug[row.slug] || {
-      slug: row.slug,
-      name: row.name,
-      lanes: [],
-      recommended_channel: row.recommended_channel || "",
-      contact_target: row.contact_target || "",
-      send_action: row.send_action || "",
-      request_subject: row.request_subject || "",
-      extraAsks: [],
-    };
-    existing.lanes.push("confirmation");
-    existing.extraAsks = existing.extraAsks.concat(
-      getOverlappingAskExtraAsks(row, "warnings", overlap.field),
-    );
-    unifiedRowsBySlug[row.slug] = existing;
-  });
-  var unifiedRows = Object.keys(unifiedRowsBySlug).map(function (slug) {
-    var row = unifiedRowsBySlug[slug];
-    return {
-      ...row,
-      lanes: Array.from(new Set(row.lanes)),
-      extraAsks: Array.from(new Set(row.extraAsks)),
-    };
-  });
-  var channelMixSummary = getOutreachChannelMixSummary(unifiedRows);
-  var channelNextMoveSummary = getOutreachChannelNextMoveSummary(unifiedRows);
-
-  var lines = [
-    "# Overlapping Ask Packet",
-    "",
-    "This ask is currently shared by the top strict-gate blocker wave and the top confirmation sprint theme.",
-    "",
-    "Shared ask: " + overlap.ask,
-    "Overlap impact: " +
-      overlap.blocker_count +
-      " blocker profile" +
-      (overlap.blocker_count === 1 ? "" : "s") +
-      " and " +
-      overlap.confirmation_count +
-      " confirmation sprint profile" +
-      (overlap.confirmation_count === 1 ? "" : "s") +
-      " are aligned on this same question.",
-    channelMixSummary ? channelMixSummary : "",
-    channelNextMoveSummary ? channelNextMoveSummary : "",
-    "",
-    "## Unified Outreach Wave",
-    "",
-  ];
-
-  unifiedRows.forEach(function (row) {
-    lines.push("### " + row.name);
-    lines.push("");
-    lines.push("- Lanes: " + row.lanes.join(" + "));
-    lines.push("- Channel: " + (row.recommended_channel || "manual review"));
-    lines.push("- Target: " + (row.contact_target || "manual review"));
-    lines.push("- Send action: " + (row.send_action || "manual review"));
-    lines.push("- Primary ask: " + formatFieldLabel(overlap.field));
-    if (row.extraAsks.length) {
-      lines.push("- Add-on asks: " + row.extraAsks.join(" "));
-    }
-    lines.push("- Subject: " + (row.request_subject || "N/A"));
-    lines.push("");
-  });
-
-  lines.push("", "Shared ask:", "", "```text", overlap.ask, "```", "");
-
-  return lines.join("\n");
-}
-
-function buildTopOutreachWavePacket(blockerRows, confirmationRows, limit) {
-  var overlap = getOverlappingAskDetails(blockerRows, confirmationRows);
-  if (!overlap) {
-    return "";
-  }
-  var unifiedRows = getTopOutreachWaveRows(blockerRows, confirmationRows, limit || 3);
-  var channelMixSummary = getOutreachChannelMixSummary(unifiedRows);
-  var channelNextMoveSummary = getOutreachChannelNextMoveSummary(unifiedRows);
-
-  var lines = [
-    "# Top Outreach Wave",
-    "",
-    "Top " + unifiedRows.length + " unified outreach targets for the current shared ask wave.",
-    "",
-    "Primary ask right now: " + formatFieldLabel(overlap.field) + ".",
-    channelMixSummary ? channelMixSummary : "",
-    channelNextMoveSummary ? channelNextMoveSummary : "",
-    "",
-  ];
-
-  unifiedRows.forEach(function (row, index) {
-    lines.push("## " + (index + 1) + ". " + row.name);
-    lines.push("");
-    lines.push("- Coverage: " + row.lanes.join("|"));
-    lines.push("- Channel: " + (row.recommended_channel || "manual review"));
-    lines.push("- Target: " + (row.contact_target || "manual review"));
-    lines.push("- Send action: " + (row.send_action || "manual review"));
-    lines.push("- Primary ask: " + formatFieldLabel(overlap.field));
-    if (row.extraAsks.length) {
-      lines.push("- Add-on asks: " + row.extraAsks.join(" "));
-    }
-    lines.push("- Subject: " + (row.request_subject || "N/A"));
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-function getTopOutreachWaveRows(blockerRows, confirmationRows, limit) {
-  var overlap = getOverlappingAskDetails(blockerRows, confirmationRows);
-  if (!overlap) {
-    return [];
-  }
-
-  var unifiedRowsBySlug = {};
-  overlap.blocker_rows.forEach(function (row) {
-    var existing = unifiedRowsBySlug[row.slug] || {
-      slug: row.slug,
-      name: row.name,
-      lanes: [],
-      recommended_channel: row.recommended_channel || "",
-      contact_target: row.contact_target || "",
-      send_action: row.send_action || "",
-      request_subject: row.request_subject || "",
-      extraAsks: [],
-    };
-    existing.lanes.push("blocker");
-    existing.extraAsks = existing.extraAsks.concat(
-      getOverlappingAskExtraAsks(row, "blocker_fields", overlap.field),
-    );
-    unifiedRowsBySlug[row.slug] = existing;
-  });
-  overlap.confirmation_rows.forEach(function (row) {
-    var existing = unifiedRowsBySlug[row.slug] || {
-      slug: row.slug,
-      name: row.name,
-      lanes: [],
-      recommended_channel: row.recommended_channel || "",
-      contact_target: row.contact_target || "",
-      send_action: row.send_action || "",
-      request_subject: row.request_subject || "",
-      extraAsks: [],
-    };
-    existing.lanes.push("confirmation");
-    existing.extraAsks = existing.extraAsks.concat(
-      getOverlappingAskExtraAsks(row, "warnings", overlap.field),
-    );
-    unifiedRowsBySlug[row.slug] = existing;
-  });
-
-  return Object.keys(unifiedRowsBySlug)
-    .map(function (slug) {
-      var row = unifiedRowsBySlug[slug];
       return {
-        ...row,
-        lanes: Array.from(new Set(row.lanes)),
-        extraAsks: Array.from(new Set(row.extraAsks)),
+        ...entry,
+        blocker_unknown_fields: blockerUnknownFields,
       };
     })
-    .slice(0, limit || 3);
-}
-
-function getOutreachChannelMixSummary(rows) {
-  var normalizedRows = Array.isArray(rows) ? rows : [];
-  if (!normalizedRows.length) {
-    return "";
-  }
-
-  var counts = {
-    email: 0,
-    phone: 0,
-    website: 0,
-    manual_review: 0,
-  };
-
-  normalizedRows.forEach(function (row) {
-    var channel = String((row && row.recommended_channel) || "manual_review")
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "_");
-
-    if (!Object.prototype.hasOwnProperty.call(counts, channel)) {
-      counts.manual_review += 1;
-      return;
-    }
-
-    counts[channel] += 1;
-  });
-
-  var orderedChannels = ["email", "phone", "website", "manual_review"];
-  var parts = orderedChannels
-    .filter(function (channel) {
-      return counts[channel] > 0;
+    .filter(function (entry) {
+      return entry.blocker_unknown_fields.length > 0;
     })
-    .map(function (channel) {
-      return counts[channel] + " " + formatFieldLabel(channel).toLowerCase().replace("_", " ");
+    .sort(function (a, b) {
+      var blockerDiff = b.blocker_unknown_fields.length - a.blocker_unknown_fields.length;
+      if (blockerDiff) {
+        return blockerDiff;
+      }
+      var statusWeight = {
+        not_started: 0,
+        sent: 1,
+        waiting_on_therapist: 2,
+        confirmed: 3,
+        applied: 4,
+      };
+      var statusDiff =
+        (statusWeight[a.workflow.status] || 9) - (statusWeight[b.workflow.status] || 9);
+      if (statusDiff) {
+        return statusDiff;
+      }
+      return a.item.name.localeCompare(b.item.name);
     });
-
-  return parts.length ? "Channel mix right now: " + parts.join(" · ") + "." : "";
-}
-
-function getOutreachChannelNextMoveSummary(rows) {
-  var normalizedRows = Array.isArray(rows) ? rows : [];
-  if (!normalizedRows.length) {
-    return "";
-  }
-
-  var counts = {
-    email: 0,
-    phone: 0,
-    website: 0,
-    manual_review: 0,
-  };
-
-  normalizedRows.forEach(function (row) {
-    var channel = String((row && row.recommended_channel) || "manual_review")
-      .trim()
-      .toLowerCase()
-      .replace(/\s+/g, "_");
-
-    if (!Object.prototype.hasOwnProperty.call(counts, channel)) {
-      counts.manual_review += 1;
-      return;
-    }
-
-    counts[channel] += 1;
-  });
-
-  var dominantChannel = Object.keys(counts).sort(function (a, b) {
-    var countDiff = counts[b] - counts[a];
-    if (countDiff) {
-      return countDiff;
-    }
-    return a.localeCompare(b);
-  })[0];
-
-  if (!dominantChannel || !counts[dominantChannel]) {
-    return "";
-  }
-
-  if (counts[dominantChannel] === normalizedRows.length) {
-    if (dominantChannel === "email") {
-      return "Best outreach move right now: this wave is all email, so send the top requests directly first.";
-    }
-    if (dominantChannel === "phone") {
-      return "Best outreach move right now: this wave is all phone-first, so call the top offices first.";
-    }
-    if (dominantChannel === "website") {
-      return "Best outreach move right now: this wave is all website-first, so work the contact forms first.";
-    }
-    return "Best outreach move right now: this wave still needs manual channel review before sending.";
-  }
-
-  return "Best outreach move right now: this is a mixed-channel wave, so follow the top packet in priority order instead of batching by one channel.";
-}
-
-function buildImportBlockerSprintMarkdown(rows) {
-  var lines = [
-    "# Import Blocker Sprint",
-    "",
-    "Top strict safe-import blockers from the current live admin queue.",
-    "",
-  ];
-
-  rows.forEach(function (row) {
-    lines.push("## " + row.priority_rank + ". " + row.name);
-    lines.push("");
-    lines.push("- Status: " + row.status);
-    lines.push("- Result: " + row.result);
-    lines.push("- Blocking fields: " + row.blocker_fields);
-    lines.push("- Source-first fields: " + (row.source_first_fields || "None"));
-    lines.push("- Therapist-confirmation fields: " + (row.therapist_confirmation_fields || "None"));
-    lines.push("- Source path status: " + (row.source_path_status || "Unknown"));
-    lines.push("- Contact target: " + row.contact_target);
-    lines.push("- Why this matters: " + row.why_it_matters);
-    lines.push("- Next move: " + row.next_best_move);
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-function buildImportBlockerSprintCsv(rows) {
-  var headers = [
-    "priority_rank",
-    "name",
-    "slug",
-    "status",
-    "result",
-    "blocker_count",
-    "blocker_fields",
-    "source_first_fields",
-    "therapist_confirmation_fields",
-    "source_path_status",
-    "contact_target",
-    "why_it_matters",
-    "request_subject",
-    "request_message",
-    "next_best_move",
-  ];
-  var lines = [headers.join(",")];
-
-  rows.forEach(function (row) {
-    var values = headers.map(function (header) {
-      return row[header] || "";
-    });
-    lines.push(
-      values
-        .map(function (value) {
-          var stringValue = String(value);
-          return /[",\n\r]/.test(stringValue)
-            ? '"' + stringValue.replace(/"/g, '""') + '"'
-            : stringValue;
-        })
-        .join(","),
-    );
-  });
-
-  return lines.join("\n");
-}
-
-function buildImportBlockerPacket(rows) {
-  var lines = [
-    "# Top Import Blocker Packet",
-    "",
-    "Send-ready strict-gate blocker requests for the current top wave.",
-    "",
-  ];
-
-  var sharedAsk = getImportBlockerSprintSharedAsk(rows);
-  if (sharedAsk) {
-    lines.push(sharedAsk);
-    lines.push("");
-  }
-
-  rows.forEach(function (row) {
-    lines.push("## " + row.priority_rank + ". " + row.name);
-    lines.push("");
-    lines.push("- Blocking fields: " + row.blocker_fields);
-    lines.push("- Source path status: " + (row.source_path_status || "Unknown"));
-    lines.push("- Contact target: " + row.contact_target);
-    lines.push("- Why this matters: " + row.why_it_matters);
-    lines.push("- Next move: " + row.next_best_move);
-    lines.push("- Subject: " + (row.request_subject || ""));
-    var leverageNote = getImportBlockerLeverageNote(
-      rows,
-      String(row.blocker_fields || "")
-        .split("|")
-        .map(function (field) {
-          return field.trim();
-        })
-        .filter(Boolean),
-    );
-    if (leverageNote) {
-      lines.push("- " + leverageNote);
-    }
-    lines.push("");
-    lines.push("```text");
-    lines.push(row.request_message || "");
-    lines.push("```");
-    lines.push("");
-    lines.push("Confirmation form:");
-    lines.push(buildConfirmationLink(row.slug));
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-function getConfirmationSprintRows(limit) {
-  var queue = getPublishedTherapistConfirmationQueue();
-  var activeRows = queue.filter(function (entry) {
-    return entry.workflow.status !== "applied";
-  });
-  var prioritizedRows = activeRows.length ? activeRows : queue;
-  var selectedEntries = prioritizedRows.slice(0, limit || 5);
-  var fieldCounts = {};
-  selectedEntries.forEach(function (entry) {
-    (entry.agenda.unknown_fields || []).forEach(function (field) {
-      fieldCounts[field] = (fieldCounts[field] || 0) + 1;
-    });
-  });
-  var preferredPrimaryField = Object.keys(fieldCounts).sort(function (a, b) {
-    var countDiff = fieldCounts[b] - fieldCounts[a];
-    if (countDiff) {
-      return countDiff;
-    }
-    return a.localeCompare(b);
-  })[0];
-
-  return selectedEntries.map(function (entry, index) {
-    var item = entry.item;
-    var workflow = entry.workflow || getConfirmationQueueEntry(item.slug);
-    var warningFields = (entry.agenda.unknown_fields || []).slice();
-    var orderedWarningFields = getPreferredFieldOrder(warningFields, preferredPrimaryField);
-    var primaryAskField = orderedWarningFields[0] || "";
-    var addOnAskFields = orderedWarningFields.slice(1);
-    return {
-      priority_rank: index + 1,
-      name: item.name,
-      slug: item.slug,
-      status: formatStatusLabel(workflow.status),
-      result: getConfirmationResultLabel(workflow.status),
-      recommended_channel: item.preferred_contact_method || "manual_review",
-      contact_target: getConfirmationTarget(item),
-      why_it_matters: entry.agenda.summary,
-      next_best_move: entry.agenda.needs_confirmation
-        ? "Confirm " + orderedWarningFields.slice(0, 3).map(formatFieldLabel).join(", ")
-        : "No next move needed",
-      warnings: warningFields.join("|"),
-      primary_ask_field: primaryAskField,
-      add_on_ask_fields: addOnAskFields.join("|"),
-      send_action:
-        item.preferred_contact_method === "email"
-          ? "Send a direct email request."
-          : item.preferred_contact_method === "phone"
-            ? "Call the office and use the request as a verbal or voicemail script."
-            : "Use the website contact or scheduling path first.",
-      request_subject: "Quick profile confirmation for " + item.name + " on BipolarTherapyHub",
-      request_message: buildTherapistFieldConfirmationPrompt(item, orderedWarningFields),
-    };
-  });
-}
-
-function buildConfirmationSprintMarkdown(rows) {
-  var lines = [
-    "# Confirmation Sprint",
-    "",
-    "Top confirmation tasks from the current live admin queue.",
-    "",
-  ];
-
-  rows.forEach(function (row) {
-    lines.push("## " + row.priority_rank + ". " + row.name);
-    lines.push("");
-    lines.push("- Status: " + row.status);
-    lines.push("- Result: " + row.result);
-    lines.push("- Channel: " + row.recommended_channel);
-    lines.push("- Target: " + row.contact_target);
-    lines.push("- Why this matters: " + row.why_it_matters);
-    lines.push("- Next move: " + row.next_best_move);
-    lines.push("- Missing fields: " + row.warnings);
-    if (row.primary_ask_field) {
-      lines.push("- Primary ask: " + row.primary_ask_field);
-    }
-    if (row.add_on_ask_fields) {
-      lines.push("- Add-on asks: " + row.add_on_ask_fields);
-    }
-    lines.push("");
-    lines.push("```text");
-    lines.push(row.request_message);
-    lines.push("```");
-    lines.push("");
-  });
-
-  return lines.join("\n");
-}
-
-function buildConfirmationSprintCsv(rows) {
-  var headers = [
-    "priority_rank",
-    "name",
-    "slug",
-    "status",
-    "result",
-    "recommended_channel",
-    "contact_target",
-    "why_it_matters",
-    "next_best_move",
-    "warnings",
-    "primary_ask_field",
-    "add_on_ask_fields",
-    "send_action",
-    "request_subject",
-    "request_message",
-  ];
-  var lines = [headers.join(",")];
-
-  rows.forEach(function (row) {
-    lines.push(
-      headers
-        .map(function (header) {
-          return csvEscape(row[header] || "");
-        })
-        .join(","),
-    );
-  });
-
-  return lines.join("\n");
-}
-
-function getConfirmationQueuePrimaryField(entries) {
-  var counts = {};
-  (Array.isArray(entries) ? entries : []).forEach(function (entry) {
-    (entry.agenda?.unknown_fields || []).forEach(function (field) {
-      counts[field] = (counts[field] || 0) + 1;
-    });
-  });
-
-  return Object.keys(counts).sort(function (a, b) {
-    var countDiff = counts[b] - counts[a];
-    if (countDiff) {
-      return countDiff;
-    }
-    return a.localeCompare(b);
-  })[0];
-}
-
-function buildOrderedConfirmationRequestMessage(item, unknownFields, preferredPrimaryField) {
-  return buildTherapistFieldConfirmationPrompt(
-    item,
-    getPreferredFieldOrder(unknownFields || [], preferredPrimaryField),
-  );
-}
-
-function getConfirmationSprintHealthSummary(rows) {
-  var counts = {
-    not_started: 0,
-    sent: 0,
-    waiting_on_therapist: 0,
-    confirmed: 0,
-    applied: 0,
-  };
-
-  (rows || []).forEach(function (row) {
-    var status = String((row && row.status) || "")
-      .toLowerCase()
-      .replace(/\s+/g, "_");
-    if (Object.prototype.hasOwnProperty.call(counts, status)) {
-      counts[status] += 1;
-    }
-  });
-
-  var parts = [];
-  if (counts.not_started) {
-    parts.push(counts.not_started + " not started");
-  }
-  if (counts.sent) {
-    parts.push(counts.sent + " sent");
-  }
-  if (counts.waiting_on_therapist) {
-    parts.push(counts.waiting_on_therapist + " awaiting therapist reply");
-  }
-  if (counts.confirmed) {
-    parts.push(counts.confirmed + " confirmed");
-  }
-  if (counts.applied) {
-    parts.push(counts.applied + " applied");
-  }
-
-  return parts.length
-    ? "Current sprint health: " + parts.join(" · ") + "."
-    : "Current sprint health: no active confirmation work.";
-}
-
-function getConfirmationSprintBottleneckSummary(rows) {
-  var counts = {
-    not_started: 0,
-    sent: 0,
-    waiting_on_therapist: 0,
-    confirmed: 0,
-    applied: 0,
-  };
-
-  (rows || []).forEach(function (row) {
-    var status = String((row && row.status) || "")
-      .toLowerCase()
-      .replace(/\s+/g, "_");
-    if (Object.prototype.hasOwnProperty.call(counts, status)) {
-      counts[status] += 1;
-    }
-  });
-
-  if (
-    counts.not_started >=
-    Math.max(counts.sent, counts.waiting_on_therapist, counts.confirmed, counts.applied)
-  ) {
-    return "Next bottleneck: this wave is still mostly blocked on initial outreach getting started.";
-  }
-  if (
-    counts.waiting_on_therapist >=
-    Math.max(counts.not_started, counts.sent, counts.confirmed, counts.applied)
-  ) {
-    return "Next bottleneck: the main blocker is waiting on therapist replies before profile updates can land.";
-  }
-  if (
-    counts.sent >=
-    Math.max(counts.not_started, counts.waiting_on_therapist, counts.confirmed, counts.applied)
-  ) {
-    return "Next bottleneck: requests are in flight, so the highest-value work is following up and moving more profiles into reply state.";
-  }
-  if (counts.confirmed > 0) {
-    return "Next bottleneck: some confirmations are ready, so the highest-value work is applying those answers back to live profiles.";
-  }
-  if (counts.applied > 0) {
-    return "Next bottleneck: some confirmation work is already applied, so the next leverage is refreshing trust signals and continuing the next outreach wave.";
-  }
-  return "Next bottleneck: no active blocker yet.";
-}
-
-function getConfirmationSprintRecommendation(rows) {
-  var byStatus = {
-    not_started: [],
-    sent: [],
-    waiting_on_therapist: [],
-    confirmed: [],
-    applied: [],
-  };
-
-  (rows || []).forEach(function (row) {
-    var status = String((row && row.status) || "")
-      .toLowerCase()
-      .replace(/\s+/g, "_");
-    if (Object.prototype.hasOwnProperty.call(byStatus, status)) {
-      byStatus[status].push(row);
-    }
-  });
-
-  if (byStatus.not_started.length) {
-    return {
-      label: "Start outreach now",
-      note: "Best next move: send the highest-priority unsent therapist request.",
-      mode: "copy_request",
-      slug: byStatus.not_started[0].slug,
-    };
-  }
-
-  if (byStatus.waiting_on_therapist.length) {
-    return {
-      label: "Follow up on replies",
-      note: "Best next move: review the waiting profiles and move any therapist replies forward.",
-      mode: "scroll",
-      targetId: "confirmationQueue",
-    };
-  }
-
-  if (byStatus.sent.length) {
-    return {
-      label: "Review in-flight requests",
-      note: "Best next move: move sent requests into waiting or confirmed as responses arrive.",
-      mode: "scroll",
-      targetId: "confirmationQueue",
-    };
-  }
-
-  if (byStatus.confirmed.length) {
-    return {
-      label: "Apply confirmed updates",
-      note: "Best next move: process the confirmed therapist answers and update the live listings.",
-      mode: "copy_apply_brief",
-      slug: byStatus.confirmed[0].slug,
-    };
-  }
-
-  if (byStatus.applied.length) {
-    return {
-      label: "Continue next outreach wave",
-      note: "Best next move: move from already-applied profiles back into the next highest-priority confirmations.",
-      mode: "scroll",
-      targetId: "confirmationQueue",
-    };
-  }
-
-  return {
-    label: "Review confirmation queue",
-    note: "Best next move: inspect the full queue for the next trust update.",
-    mode: "scroll",
-    targetId: "confirmationQueue",
-  };
-}
-
-function applyOverlapRecommendationContext(recommendation, blockerRows, confirmationRows) {
-  var overlap = getOverlappingAskDetails(blockerRows, confirmationRows);
-  if (!overlap || !recommendation) {
-    return recommendation;
-  }
-
-  var next = {
-    ...recommendation,
-  };
-
-  if (next.mode === "copy_request" || next.mode === "scroll") {
-    next.note =
-      "Best next move: work the shared ask wave first, since " +
-      formatFieldLabel(overlap.field) +
-      " is currently driving both the strict-gate blockers and the confirmation sprint.";
-  } else if (next.mode === "copy_apply_brief") {
-    next.note =
-      "Best next move: apply the shared ask answers first, since " +
-      formatFieldLabel(overlap.field) +
-      " is currently driving both the strict-gate blockers and the confirmation sprint.";
-  }
-
-  return next;
-}
-
-function getImportBlockerRecommendationNote(blockerRows, confirmationRows) {
-  var overlap = getOverlappingAskDetails(blockerRows, confirmationRows);
-  if (overlap) {
-    return (
-      "Best next move: work the shared ask wave first, since " +
-      formatFieldLabel(overlap.field) +
-      " is currently driving both the strict-gate blockers and the confirmation sprint."
-    );
-  }
-
-  return getImportBlockerSprintSharedAskNextMove(blockerRows);
-}
-
-function getConfirmationSprintMiniLanes(rows) {
-  var waiting = [];
-  var confirmed = [];
-  var applied = [];
-
-  (rows || []).forEach(function (row) {
-    var status = String((row && row.status) || "")
-      .toLowerCase()
-      .replace(/\s+/g, "_");
-    if (status === "waiting_on_therapist") {
-      waiting.push(row);
-    } else if (status === "confirmed") {
-      confirmed.push(row);
-    } else if (status === "applied") {
-      applied.push(row);
-    }
-  });
-
-  var lanes = [];
-
-  if (waiting.length) {
-    lanes.push({
-      title: "Top waiting profiles",
-      note: "These are the sprint items currently waiting on therapist replies.",
-      filter: "waiting_on_therapist",
-      rows: waiting.slice(0, 3),
-    });
-  }
-
-  if (confirmed.length) {
-    lanes.push({
-      title: "Ready to apply now",
-      note: "These sprint items are already confirmed and ready for live profile updates.",
-      filter: "confirmed",
-      rows: confirmed.slice(0, 3),
-    });
-  }
-
-  if (applied.length) {
-    lanes.push({
-      title: "Recently applied",
-      note: "These sprint items have already been reflected in the live profile and can move out of the active handoff path.",
-      filter: "applied",
-      rows: applied.slice(0, 3),
-    });
-  }
-
-  return lanes;
 }
 
 function csvEscape(value) {
@@ -3193,24 +1791,6 @@ function normalizeConciergeRequests(value) {
       }),
     };
   });
-}
-
-function updateConciergeRequestStatus(index, status) {
-  var requests = readConciergeRequests();
-  if (!requests[index]) {
-    return;
-  }
-  requests[index].request_status = status;
-  writeConciergeRequests(requests);
-}
-
-function updateConciergeShortlistStatus(requestIndex, shortlistIndex, status) {
-  var requests = readConciergeRequests();
-  if (!requests[requestIndex] || !requests[requestIndex].shortlist[shortlistIndex]) {
-    return;
-  }
-  requests[requestIndex].shortlist[shortlistIndex].follow_up_status = status;
-  writeConciergeRequests(requests);
 }
 
 function formatStatusLabel(value) {
@@ -4789,9 +3369,7 @@ function renderStats() {
       button.addEventListener("click", function (event) {
         event.preventDefault();
         var targetId = button.getAttribute("data-admin-scroll-target");
-        var confirmationFilter = button.getAttribute("data-admin-confirmation-filter");
         var applicationStatus = button.getAttribute("data-admin-application-status");
-        var conciergeStatus = button.getAttribute("data-admin-concierge-status");
         var portalRequestStatus = button.getAttribute("data-admin-portal-request-status");
         var focusSelector = button.getAttribute("data-admin-focus-selector");
         var focusTargetId = button.getAttribute("data-admin-focus-target-id");
@@ -4806,10 +3384,6 @@ function renderStats() {
         var workflowPrimaryActionTargetId = button.getAttribute(
           "data-admin-workflow-primary-target-id",
         );
-        if (confirmationFilter) {
-          setConfirmationQueueFilter(confirmationFilter);
-          renderConfirmationQueue();
-        }
         if (applicationStatus !== null) {
           applicationFilters.status = applicationStatus || "";
           var applicationStatusFilter = document.getElementById("applicationStatusFilter");
@@ -4817,14 +3391,6 @@ function renderStats() {
             applicationStatusFilter.value = applicationFilters.status;
           }
           renderApplications();
-        }
-        if (conciergeStatus !== null) {
-          conciergeFilters.status = conciergeStatus || "";
-          var conciergeStatusFilter = document.getElementById("conciergeStatusFilter");
-          if (conciergeStatusFilter) {
-            conciergeStatusFilter.value = conciergeFilters.status;
-          }
-          renderConciergeQueue();
         }
         if (portalRequestStatus !== null) {
           portalRequestFilters.status = portalRequestStatus || "";
@@ -4941,101 +3507,12 @@ function renderFunnelInsights() {
   });
 }
 
-function renderListings() {
-  listingsWorkspace.renderListings();
-}
-
-function renderLicensureQueue() {
-  // Migrated to the controller pattern (PR 2). Store + registry own
-  // data, filter, and auth state; this kicks the registry.
-  adminRegistry.render("licensureQueue");
-}
-
-function renderLicensureSprint() {
-  var latestAutomationRun = ingestionAutomationHistory.length
-    ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
-    : null;
-  withLazyAdminModule("./admin-licensure-sprint.js", function (module) {
-    module.renderLicensureSprintPanel({
-      root: document.getElementById("licensureSprint"),
-      authRequired: authRequired,
-      rows: licensureRefreshQueue,
-      activityFeed: licensureActivityFeed,
-      latestAutomationRun: latestAutomationRun,
-      decideLicensureOps: decideLicensureOps,
-      loadData: loadData,
-      escapeHtml: escapeHtml,
-      copyText: copyText,
-    });
-  });
-}
-
-function renderDeferredLicensureQueue() {
-  // Migrated to the controller pattern (PR 2).
-  adminRegistry.render("deferredLicensureQueue");
-}
-
 function renderLicensureActivity() {
   // Migrated to the controller pattern. Everything (data, filter, auth
   // gating) flows through adminStore + adminRegistry; this orchestration
   // function just kicks the registry. Kept as a function for
   // compatibility with the renderAdminSection wrapper below.
   adminRegistry.render("licensureActivity");
-}
-
-function renderImportBlockerSprint() {
-  withLazyAdminModule("./admin-import-blocker-sprint.js", function (module) {
-    module.renderImportBlockerSprintPanel({
-      authRequired: authRequired,
-      getPublishedTherapistImportBlockerQueue: getPublishedTherapistImportBlockerQueue,
-      getImportBlockerSprintRows: getImportBlockerSprintRows,
-      getConfirmationSprintRows: getConfirmationSprintRows,
-      getOverlappingAskDetails: getOverlappingAskDetails,
-      escapeHtml: escapeHtml,
-      getImportBlockerSprintSummary: getImportBlockerSprintSummary,
-      getImportBlockerSprintBottleneck: getImportBlockerSprintBottleneck,
-      getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
-      getImportBlockerSprintSharedAskDetails: getImportBlockerSprintSharedAskDetails,
-      getImportBlockerSprintWaveShape: getImportBlockerSprintWaveShape,
-      getImportBlockerSprintFieldPattern: getImportBlockerSprintFieldPattern,
-      getImportBlockerSprintSharedAsk: getImportBlockerSprintSharedAsk,
-      getImportBlockerSprintSharedAskStatus: getImportBlockerSprintSharedAskStatus,
-      getImportBlockerSprintSharedAskImpact: getImportBlockerSprintSharedAskImpact,
-      getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
-      getImportBlockerRecommendationNote: getImportBlockerRecommendationNote,
-      getOutreachChannelMixSummary: getOutreachChannelMixSummary,
-      getTopOutreachWaveRows: getTopOutreachWaveRows,
-      getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
-      formatFieldLabel: formatFieldLabel,
-      getConfirmationQueueEntry: getConfirmationQueueEntry,
-      getImportBlockerFieldBuckets: getImportBlockerFieldBuckets,
-      formatStatusLabel: formatStatusLabel,
-      getConfirmationTarget: getConfirmationTarget,
-      getConfirmationLastActionNote: getConfirmationLastActionNote,
-      renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-      getImportBlockerLeverageNote: getImportBlockerLeverageNote,
-      buildImportBlockerRequestSubject: buildImportBlockerRequestSubject,
-      buildImportBlockerRequestMessage: buildImportBlockerRequestMessage,
-      buildConfirmationLink: buildConfirmationLink,
-      copyText: copyText,
-      updateConfirmationQueueEntry: updateConfirmationQueueEntry,
-      renderStats: renderStats,
-      renderImportBlockerSprint: renderImportBlockerSprint,
-      renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
-      renderConfirmationSprint: renderConfirmationSprint,
-      renderConfirmationQueue: renderConfirmationQueue,
-      setConfirmationQueueFilter: function (value) {
-        setConfirmationQueueFilter(value);
-      },
-      buildImportBlockerPacket: buildImportBlockerPacket,
-      getImportBlockerSprintSharedAskText: getImportBlockerSprintSharedAskText,
-      buildImportBlockerSharedAskPacket: buildImportBlockerSharedAskPacket,
-      buildOverlappingAskPacket: buildOverlappingAskPacket,
-      buildTopOutreachWavePacket: buildTopOutreachWavePacket,
-      buildImportBlockerSprintCsv: buildImportBlockerSprintCsv,
-      buildImportBlockerSprintMarkdown: buildImportBlockerSprintMarkdown,
-    });
-  });
 }
 
 // Option-bag factory for the Confirmation Sprint panel. Closes over
@@ -5047,112 +3524,8 @@ function renderImportBlockerSprint() {
 // the refactor plan flagged. A future PR can split them by category
 // (pure data helpers → shared module import; closures over admin.js
 // state → store-backed slices) without touching the controller shape.
-function buildConfirmationSprintOptions(store) {
-  return {
-    authRequired: store.get("authRequired") === true,
-    getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
-    getConfirmationSprintRows: getConfirmationSprintRows,
-    getImportBlockerSprintRows: getImportBlockerSprintRows,
-    getOverlappingAskDetails: getOverlappingAskDetails,
-    buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
-    applyOverlapRecommendationContext: applyOverlapRecommendationContext,
-    getConfirmationSprintRecommendation: getConfirmationSprintRecommendation,
-    getConfirmationSprintMiniLanes: getConfirmationSprintMiniLanes,
-    escapeHtml: escapeHtml,
-    getConfirmationSprintHealthSummary: getConfirmationSprintHealthSummary,
-    getConfirmationSprintBottleneckSummary: getConfirmationSprintBottleneckSummary,
-    getPrimaryAskHeaderLine: getPrimaryAskHeaderLine,
-    getConfirmationSprintThemeDetails: getConfirmationSprintThemeDetails,
-    getConfirmationSprintThemeSummary: getConfirmationSprintThemeSummary,
-    getBlockerConfirmationThemeBridge: getBlockerConfirmationThemeBridge,
-    getOutreachChannelMixSummary: getOutreachChannelMixSummary,
-    getTopOutreachWaveRows: getTopOutreachWaveRows,
-    getOutreachChannelNextMoveSummary: getOutreachChannelNextMoveSummary,
-    formatFieldLabel: formatFieldLabel,
-    formatStatusLabel: formatStatusLabel,
-    getConfirmationQueueEntry: getConfirmationQueueEntry,
-    getConfirmationGraceWindowNote: getConfirmationGraceWindowNote,
-    buildConfirmationLink: buildConfirmationLink,
-    getPreferredFieldOrder: getPreferredFieldOrder,
-    getConfirmationResultLabel: getConfirmationResultLabel,
-    getConfirmationTarget: getConfirmationTarget,
-    getConfirmationLastActionNote: getConfirmationLastActionNote,
-    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-    buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
-    buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
-    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
-    buildConfirmationApplySummary: buildConfirmationApplySummary,
-    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
-    buildConfirmationSprintCsv: buildConfirmationSprintCsv,
-    buildConfirmationSprintMarkdown: buildConfirmationSprintMarkdown,
-    copyText: copyText,
-    buildOverlappingAskPacket: buildOverlappingAskPacket,
-    buildTopOutreachWavePacket: buildTopOutreachWavePacket,
-    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
-    renderStats: renderStats,
-    renderImportBlockerSprint: renderImportBlockerSprint,
-    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
-    renderConfirmationSprint: renderConfirmationSprint,
-    renderConfirmationQueue: renderConfirmationQueue,
-    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
-    setConfirmationQueueFilter: function (value) {
-      setConfirmationQueueFilter(value);
-    },
-  };
-}
-
-function renderConfirmationSprint() {
-  // Migrated to the controller pattern (PR 4).
-  adminRegistry.render("confirmationSprint");
-}
-
 // Option-bag factory for the Confirmation Queue panel. Same shape and
 // rationale as buildConfirmationSprintOptions above. PR 4.
-function buildConfirmationQueueOptions(store) {
-  return {
-    root: document.getElementById("confirmationQueue"),
-    statusFilter: document.getElementById("confirmationQueueStatusFilter"),
-    countLabel: document.getElementById("confirmationQueueCount"),
-    authRequired: store.get("authRequired") === true,
-    confirmationQueueFilter: getConfirmationQueueFilter(),
-    confirmationStatusOptions: CONFIRMATION_STATUS_OPTIONS,
-    getPublishedTherapistConfirmationQueue: getPublishedTherapistConfirmationQueue,
-    getConfirmationQueuePrimaryField: getConfirmationQueuePrimaryField,
-    getConfirmationQueueEntry: getConfirmationQueueEntry,
-    getConfirmationLastActionNote: getConfirmationLastActionNote,
-    buildConfirmationApplyCsvRows: buildConfirmationApplyCsvRows,
-    buildConfirmationLink: buildConfirmationLink,
-    getPreferredFieldOrder: getPreferredFieldOrder,
-    formatStatusLabel: formatStatusLabel,
-    formatFieldLabel: formatFieldLabel,
-    buildConfirmationResponseCaptureHtml: buildConfirmationResponseCaptureHtml,
-    buildConfirmationApplyPreviewHtml: buildConfirmationApplyPreviewHtml,
-    formatDate: formatDate,
-    escapeHtml: escapeHtml,
-    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
-    buildConfirmationApplySummary: buildConfirmationApplySummary,
-    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
-    copyText: copyText,
-    buildOrderedConfirmationRequestMessage: buildOrderedConfirmationRequestMessage,
-    setConfirmationActionStatus: setConfirmationActionStatus,
-    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
-    renderStats: renderStats,
-    renderImportBlockerSprint: renderImportBlockerSprint,
-    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
-    renderConfirmationSprint: renderConfirmationSprint,
-    renderConfirmationQueue: renderConfirmationQueue,
-    buildConfirmationChecklist: buildConfirmationChecklist,
-    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
-    bindConfirmationResponseCapture: bindConfirmationResponseCapture,
-    renderReviewEntityTaskHtml: reviewerWorkspace.renderReviewEntityTaskHtml,
-  };
-}
-
-function renderConfirmationQueue() {
-  // Migrated to the controller pattern (PR 4).
-  adminRegistry.render("confirmationQueue");
-}
-
 // Option-bag factory for the Applications panel. Same pattern as the
 // confirmation tabs in PR 4: the ~70-prop bag closures over admin.js
 // helpers and getters; the controller is a passthrough.
@@ -5271,72 +3644,6 @@ function buildCandidateDecisionActions(item) {
   return actions.join("");
 }
 
-// Option-bag factory for the Ops Inbox panel. Same pattern as PR 4/5:
-// admin.js owns the bag (where the helpers exist), the controller is
-// a passthrough invoking ctx.deps.buildOpsInboxOptions.
-//
-// admin-ops-inbox.js is 3,727 lines and intentionally NOT being split
-// internally in this PR, that's a separate follow-up project.
-function buildOpsInboxOptions(store) {
-  return {
-    root: document.getElementById("opsInbox"),
-    authRequired: store.get("authRequired") === true,
-    candidates: dataMode === "sanity" ? remoteCandidates : [],
-    therapists: dataMode === "sanity" ? publishedTherapists : getTherapists(),
-    applications: dataMode === "sanity" ? remoteApplications : getApplications(),
-    licensureRefreshQueue: licensureRefreshQueue,
-    profileConversionFreshnessQueue: profileConversionFreshnessQueue,
-    getDataFreshnessSummary: getDataFreshnessSummary,
-    getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
-    getCandidateOpsEvidence: reviewModels.getCandidateOpsEvidence,
-    getCandidateTrustSummary: reviewModels.getCandidateTrustSummary,
-    getCandidateTrustRecommendation: reviewModels.getCandidateTrustRecommendation,
-    getCandidatePublishPacket: reviewModels.getCandidatePublishPacket,
-    getCandidateReviewLaneLabel: reviewModels.getCandidateReviewLaneLabel,
-    getCandidateOpsReason: reviewModels.getCandidateOpsReason,
-    buildCandidateDecisionActions: buildCandidateDecisionActions,
-    getTherapistFieldTrustSummary: getTherapistFieldTrustSummary,
-    getTherapistTrustRecommendation: getTherapistTrustRecommendation,
-    renderFieldTrustChips: renderFieldTrustChips,
-    getVerificationLaneLabel: reviewModels.getVerificationLaneLabel,
-    buildTherapistFieldConfirmationPrompt: buildTherapistFieldConfirmationPrompt,
-    buildConfirmationApplyBrief: buildConfirmationApplyBrief,
-    buildConfirmationApplyCsv: buildConfirmationApplyCsv,
-    buildConfirmationApplySummary: buildConfirmationApplySummary,
-    buildConfirmationApplyOperatorChecklist: buildConfirmationApplyOperatorChecklist,
-    getPreferredFieldOrder: getPreferredFieldOrder,
-    getConfirmationQueueEntry: getConfirmationQueueEntry,
-    getConfirmationResponseEntry: confirmationWorkspace.getConfirmationResponseEntry,
-    getReviewEntityTask: reviewerWorkspace.getReviewEntityTask,
-    assignReviewWorkItem: reviewerWorkspace.assignWorkItem,
-    getTherapistConfirmationAgenda: getTherapistConfirmationAgenda,
-    formatFieldLabel: formatFieldLabel,
-    formatStatusLabel: formatStatusLabel,
-    formatDate: formatDate,
-    escapeHtml: escapeHtml,
-    copyText: copyText,
-    updateConfirmationResponseEntry: confirmationWorkspace.updateConfirmationResponseEntry,
-    clearConfirmationResponseEntry: confirmationWorkspace.clearConfirmationResponseEntry,
-    updateConfirmationQueueEntry: updateConfirmationQueueEntry,
-    renderStats: renderStats,
-    renderImportBlockerSprint: renderImportBlockerSprint,
-    renderCaliforniaPriorityConfirmationWave: renderCaliforniaPriorityConfirmationWave,
-    renderConfirmationSprint: renderConfirmationSprint,
-    renderConfirmationQueue: renderConfirmationQueue,
-    renderOpsInbox: renderOpsInbox,
-    decideTherapistCandidate: decideTherapistCandidate,
-    decideTherapistOps: decideTherapistOps,
-    loadData: loadData,
-  };
-}
-
-function renderOpsInbox() {
-  // Migrated to the controller pattern (PR 6, final tab in the
-  // planned refactor). The module's internal 3,727 lines stay intact;
-  // a future PR can split it without touching the registry contract.
-  adminRegistry.render("opsInbox");
-}
-
 function renderCandidateQueue() {
   withLazyAdminModule("./admin-candidate-queue.js", function (module) {
     module.renderCandidateQueuePanel({
@@ -5394,31 +3701,6 @@ function renderReviewQueue() {
       decideTherapistCandidate: decideTherapistCandidate,
       fetchMatchedTherapist: fetchMatchedTherapistForCandidate,
       loadData: loadData,
-    });
-  });
-}
-
-function renderConciergeQueue() {
-  withLazyAdminModule("./admin-concierge-queue.js", function (module) {
-    module.renderConciergeQueuePanel({
-      root: document.getElementById("conciergeQueue"),
-      countLabel: document.getElementById("conciergeQueueCount"),
-      authRequired: authRequired,
-      conciergeStatusFilter: conciergeFilters.status,
-      readConciergeRequests: readConciergeRequests,
-      readOutreachOutcomes: readOutreachOutcomes,
-      analyzeConciergePatterns: analyzeConciergePatterns,
-      analyzeOutreachOutcomes: analyzeOutreachOutcomes,
-      analyzeOutreachJourneys: analyzeOutreachJourneys,
-      analyzePivotTiming: analyzePivotTiming,
-      requestStatusOptions: REQUEST_STATUS_OPTIONS,
-      therapistFollowUpOptions: THERAPIST_FOLLOW_UP_OPTIONS,
-      escapeHtml: escapeHtml,
-      formatDate: formatDate,
-      formatStatusLabel: formatStatusLabel,
-      updateConciergeRequestStatus: updateConciergeRequestStatus,
-      updateConciergeShortlistStatus: updateConciergeShortlistStatus,
-      renderAll: renderAll,
     });
   });
 }
@@ -5561,23 +3843,10 @@ function renderAll() {
     }
   }
   renderAdminSection("ingestion scorecard", renderIngestionScorecard);
-  renderAdminSection("ops inbox", renderOpsInbox);
   renderAdminSection("coverage intelligence", renderCoverageIntelligence);
   renderAdminSection("funnel insights", renderFunnelInsights);
-  renderAdminSection("listings", renderListings);
   renderAdminSection("needs attention", renderNeedsAttention);
-  renderAdminSection("licensure queue", renderLicensureQueue);
-  renderAdminSection("licensure sprint", renderLicensureSprint);
-  renderAdminSection("deferred licensure queue", renderDeferredLicensureQueue);
   renderAdminSection("licensure activity", renderLicensureActivity);
-  renderAdminSection("missing-details lane", renderImportBlockerSprint);
-  renderAdminSection(
-    "california priority confirmation wave",
-    renderCaliforniaPriorityConfirmationWave,
-  );
-  renderAdminSection("confirmation sprint", renderConfirmationSprint);
-  renderAdminSection("confirmation queue", renderConfirmationQueue);
-  renderAdminSection("concierge queue", renderConciergeQueue);
   renderAdminSection("portal requests queue", renderPortalRequestsQueue);
   renderAdminSection("review activity", renderReviewActivity);
   renderAdminSection("add new listings", renderCandidateQueue);
@@ -5629,16 +3898,6 @@ function setAuthUiState() {
       }
     }
     return;
-  }
-
-  var confirmationQueueStatusFilter = document.getElementById("confirmationQueueStatusFilter");
-  if (confirmationQueueStatusFilter) {
-    confirmationQueueStatusFilter.value = getConfirmationQueueFilter();
-    confirmationQueueStatusFilter.onchange = function () {
-      setConfirmationQueueFilter(confirmationQueueStatusFilter.value);
-      renderCaliforniaPriorityConfirmationWave();
-      renderConfirmationQueue();
-    };
   }
 
   gate.style.display = "none";
@@ -6024,14 +4283,6 @@ if (applicationClearFiltersEl) {
     toggle();
   });
 })();
-
-var conciergeStatusFilterEl = document.getElementById("conciergeStatusFilter");
-if (conciergeStatusFilterEl) {
-  conciergeStatusFilterEl.addEventListener("change", function (event) {
-    conciergeFilters.status = event.target.value || "";
-    renderConciergeQueue();
-  });
-}
 
 document.getElementById("portalRequestStatusFilter").addEventListener("change", function (event) {
   portalRequestFilters.status = event.target.value || "";
