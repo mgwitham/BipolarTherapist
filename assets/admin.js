@@ -61,8 +61,6 @@ import {
   signOutAdmin,
   updateTherapistApplication,
   updateTherapistPortalRequest,
-  fetchPortalCompletenessSummary,
-  sendPortalCompletenessNudges,
 } from "./review-api.js";
 import {
   getDataFreshnessSummary,
@@ -866,7 +864,6 @@ const adminLazyModuleLoaders = import.meta.glob([
   "./admin-ingestion-scorecard.js",
   "./admin-licensure-activity.js",
   "./admin-needs-attention.js",
-  "./admin-portal-completeness.js",
   "./admin-funnel-insights.js",
 ]);
 
@@ -3046,12 +3043,6 @@ function renderPortalRequestsQueue() {
   });
 }
 
-function renderPortalCompleteness() {
-  withLazyAdminModule("./admin-portal-completeness.js", function (module) {
-    module.renderPortalCompletenessPanel();
-  });
-}
-
 function renderAdminSection(label, renderFn) {
   if (typeof renderFn !== "function") {
     return;
@@ -3082,7 +3073,6 @@ function renderAll() {
   renderAdminSection("review parked listings", renderReviewQueue);
   renderAdminSection("review applications", renderApplications);
   renderAdminSection("record inspector", renderAdminRecordInspector);
-  renderAdminSection("portal completeness", renderPortalCompleteness);
 }
 
 function setAuthUiState() {
