@@ -615,11 +615,14 @@ function renderOutreachView() {
     </div>
 
     <div style="padding:10px 24px 0;flex-shrink:0;">
-      <button id="insights-toggle" type="button" style="background:none;border:none;padding:4px 0;cursor:pointer;font-size:11px;font-weight:600;color:#6b7280;letter-spacing:0.5px;text-transform:uppercase;display:flex;align-items:center;gap:6px;">
-        <span>${insightsOpen ? "▾" : "▸"}</span>
-        <span>Insights</span>
-        <span style="font-size:10px;font-weight:500;color:#9ca3af;text-transform:none;letter-spacing:0;">subject performance + patient signal</span>
-      </button>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+        <button id="insights-toggle" type="button" style="background:none;border:none;padding:4px 0;cursor:pointer;font-size:11px;font-weight:600;color:#6b7280;letter-spacing:0.5px;text-transform:uppercase;display:flex;align-items:center;gap:6px;">
+          <span>${insightsOpen ? "▾" : "▸"}</span>
+          <span>Insights</span>
+          <span style="font-size:10px;font-weight:500;color:#9ca3af;text-transform:none;letter-spacing:0;">subject performance + patient signal</span>
+        </button>
+        <span id="demand-chip" style="font-size:12px;">${demandChipHtml(state.patientSignal)}</span>
+      </div>
       <div id="insights-body" style="${insightsOpen ? "" : "display:none;"}margin-top:8px;">
         ${subjectPerformanceHtml(computeSubjectPerformance(state.therapists))}
         <div style="padding:10px 0 0;">
@@ -1440,6 +1443,26 @@ function subjectPerformanceHtml(rows) {
   `;
 }
 
+// Trend direction for patient match-request demand, week over week.
+function trendMeta(signal) {
+  const trend = signal?.matchRequests?.trend7dVsPrev7d || "flat";
+  if (trend === "growing") return { label: "↑ growing", color: "#059669" };
+  if (trend === "declining") return { label: "↓ declining", color: "#dc2626" };
+  return { label: "→ flat", color: "#6b7280" };
+}
+
+// Always-visible demand pulse shown next to the Insights toggle so the
+// "is patient demand real?" signal stays in view without expanding
+// Insights. Measurement is the bottleneck, so this leads the eye.
+function demandChipHtml(signal) {
+  if (!signal) {
+    return `<span style="color:#9ca3af;">Patient demand: …</span>`;
+  }
+  const mr = signal.matchRequests || {};
+  const t = trendMeta(signal);
+  return `<span style="color:#374151;">Patient demand: <strong style="color:#10b981;">${mr.last7d || 0}</strong> match requests (7d) <span style="color:${t.color};font-weight:600;">${t.label}</span></span>`;
+}
+
 function patientSignalCardsHtml(signal) {
   if (!signal) {
     // Loading state, placeholder cards.
@@ -1447,24 +1470,15 @@ function patientSignalCardsHtml(signal) {
       statCard("Match requests", "…", "#9ca3af"),
       statCard("Profile views (7d)", "…", "#9ca3af"),
       statCard("CTA clicks (7d)", "…", "#9ca3af"),
-      statCard("Trend", "…", "#9ca3af"),
     ].join("");
   }
   const mr = signal.matchRequests || {};
   const views = signal.profileViews || {};
   const clicks = signal.ctaClicks || {};
-  const trend = mr.trend7dVsPrev7d || "flat";
-  const trendStyle =
-    trend === "growing"
-      ? { label: "↑ growing", color: "#059669" }
-      : trend === "declining"
-        ? { label: "↓ declining", color: "#dc2626" }
-        : { label: "→ flat", color: "#6b7280" };
   return [
     statCard(`Match requests (${mr.last30d || 0} this month)`, mr.last7d || 0, "#10b981"),
     statCard("Profile views (7d)", views.last7d || 0, "#0ea5e9"),
     statCard("CTA clicks (7d)", clicks.last7d || 0, "#8b5cf6"),
-    statCard(trendStyle.label, "", trendStyle.color),
   ].join("");
 }
 
@@ -1486,6 +1500,16 @@ async function loadAndRenderPatientSignal() {
   state.patientSignal = data;
   const row = document.getElementById("patient-signal-row");
   if (row) row.innerHTML = patientSignalCardsHtml(data);
+  // Trend label inside the Insights header.
+  const trendEl = document.getElementById("patient-signal-trend");
+  if (trendEl && data) {
+    const t = trendMeta(data);
+    trendEl.textContent = t.label;
+    trendEl.style.color = t.color;
+  }
+  // Always-visible demand chip on the Insights toggle row.
+  const chip = document.getElementById("demand-chip");
+  if (chip) chip.innerHTML = demandChipHtml(data);
 }
 
 // ---- TABLE ----
