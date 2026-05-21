@@ -37,6 +37,11 @@ export const INITIAL_SUBJECT = "BipolarTherapyHub | Michael here. One Ask";
 // inbox attention back after two prior touches.
 export const PROFILE_GAP_SUBJECT = "BipolarTherapyHub | Complete Your Profile";
 
+// Touch-4 (reassurance) also stands alone rather than threading. The
+// angle is objection-handling: it answers the unspoken "what's the
+// catch" that stalls a claim after three touches.
+export const REASSURANCE_SUBJECT = "BipolarTherapyHub | No catch, two minutes";
+
 // The body is identical for the initial email and the follow-up. The
 // messaging is doing the work; we just want the second message in the
 // same thread.
@@ -90,6 +95,32 @@ export function buildProfileGapBody({ name, profileUrl }) {
   ].join("\n");
 }
 
+// Touch-4 angle: pure objection-handling. Assumes three prior touches
+// have landed and the claim still hasn't happened, so the blocker is no
+// longer awareness but hesitation ("what's the catch / what does this
+// cost me / can I undo it"). Names and dismisses each friction point in
+// one beat: free, fast, fully under their control, reversible. Closes by
+// reframing claiming as the only thing standing between them and the
+// patients already searching.
+export function buildReassuranceBody({ name, profileUrl }) {
+  const first = firstName(name);
+  const url = profileUrl || "";
+  return [
+    `Hi ${first},`,
+    "",
+    "A few therapists wrote back asking what the catch is. There isn't one.",
+    "",
+    "Claiming your profile is free. It takes two minutes. You write every word, you choose what patients see, and one reply takes it down for good.",
+    "",
+    "All claiming does is put you in front of people already searching for someone who understands bipolar instead of leaving the listing half-blank.",
+    "",
+    url,
+    "",
+    "Michael",
+    "bipolartherapyhub.com",
+  ].join("\n");
+}
+
 // Convenience for the client composer: returns the { subject, body }
 // pair for a given template. Server consumers use INITIAL_SUBJECT and
 // buildOutreachBody directly because they wrap them in their own
@@ -100,6 +131,12 @@ export function getOutreachTemplate(template, { name, profileUrl }) {
     return {
       subject: PROFILE_GAP_SUBJECT,
       body: buildProfileGapBody({ name, profileUrl: refUrl }),
+    };
+  }
+  if (template === "reassurance") {
+    return {
+      subject: REASSURANCE_SUBJECT,
+      body: buildReassuranceBody({ name, profileUrl: refUrl }),
     };
   }
   const body = buildOutreachBody({ name, profileUrl: refUrl });

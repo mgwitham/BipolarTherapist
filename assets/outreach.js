@@ -1110,6 +1110,7 @@ function openFindOnPT() {
 function nextStatusForTemplate(template) {
   if (template === "email_1") return "email_1_sent";
   if (template === "profile_gap") return "profile_gap_sent";
+  if (template === "reassurance") return "reassurance_sent";
   return "followed_up";
 }
 
@@ -1172,6 +1173,7 @@ function openBatchComposer() {
           <option value="email_1" selected>Initial outreach</option>
           <option value="follow_up">Follow-up</option>
           <option value="profile_gap">Profile gap (photo + experience)</option>
+          <option value="reassurance">Reassurance (no catch)</option>
         </select>
 
         <div id="batch-dupe-warning" style="display:none;margin-bottom:12px;"></div>
@@ -1980,6 +1982,7 @@ function gmailComposerHtml(t, defaultTemplate, mode) {
       <option value="email_1" ${defaultTemplate === "email_1" ? "selected" : ""}>Initial outreach</option>
       <option value="follow_up" ${defaultTemplate === "follow_up" ? "selected" : ""}>Follow-up</option>
       <option value="profile_gap" ${defaultTemplate === "profile_gap" ? "selected" : ""}>Profile gap (photo + experience)</option>
+      <option value="reassurance" ${defaultTemplate === "reassurance" ? "selected" : ""}>Reassurance (no catch)</option>
     </select>
   `;
 

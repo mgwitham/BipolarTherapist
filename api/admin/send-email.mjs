@@ -3,8 +3,10 @@ import { verifyAdminSession } from "../_adminAuth.mjs";
 import {
   INITIAL_SUBJECT,
   PROFILE_GAP_SUBJECT,
+  REASSURANCE_SUBJECT,
   buildOutreachBody,
   buildProfileGapBody,
+  buildReassuranceBody,
   withOutreachRef,
 } from "../../shared/outreach-templates.mjs";
 
@@ -30,7 +32,7 @@ async function resendSend({ apiKey, from, to, subject, html, text }) {
   return data;
 }
 
-const VALID_TEMPLATES = new Set(["email_1", "follow_up", "profile_gap"]);
+const VALID_TEMPLATES = new Set(["email_1", "follow_up", "profile_gap", "reassurance"]);
 
 // Fallback copy used when the composer ships a blank subject/body
 // (shouldn't happen — the client validates — but defense in depth).
@@ -44,6 +46,12 @@ function buildSharedBody(t) {
 }
 function buildSharedProfileGapBody(t) {
   return buildProfileGapBody({
+    name: t.name,
+    profileUrl: withOutreachRef(t.profileUrl || ""),
+  });
+}
+function buildSharedReassuranceBody(t) {
+  return buildReassuranceBody({
     name: t.name,
     profileUrl: withOutreachRef(t.profileUrl || ""),
   });
@@ -71,6 +79,15 @@ const TEMPLATES = {
     text: (t) => buildSharedProfileGapBody(t),
     html: (t) => plainTextToHtml(buildSharedProfileGapBody(t)),
     nextStatus: "profile_gap_sent",
+  },
+  reassurance: {
+    // Touch-4 angle: objection-handling (free / fast / reversible /
+    // under their control) for therapists who've seen three touches and
+    // still haven't claimed. Fresh, non-threaded subject.
+    subject: () => REASSURANCE_SUBJECT,
+    text: (t) => buildSharedReassuranceBody(t),
+    html: (t) => plainTextToHtml(buildSharedReassuranceBody(t)),
+    nextStatus: "reassurance_sent",
   },
 };
 
