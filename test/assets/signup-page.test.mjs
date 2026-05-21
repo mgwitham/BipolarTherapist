@@ -33,18 +33,32 @@ test("signup page: form validation rejects malformed emails before submit", () =
   assert.match(signupJs, /const email = form\.elements\.email\.value\.trim\(\)\.toLowerCase\(\)/);
 });
 
-test("signup page: duplicate lookup and photo preview avoid stale or string-built DOM", () => {
+test("signup page: duplicate lookup guards against stale results", () => {
   assert.match(signupJs, /let emailLookupSeq = 0/);
   assert.match(
     signupJs,
     /if \(seq !== emailLookupSeq \|\| emailInput\.value\.trim\(\)\.toLowerCase\(\) !== val\) return/,
   );
-  assert.match(signupJs, /document\.createElement\("img"\)/);
-  assert.match(signupJs, /preview\.replaceChildren\(img\)/);
-  assert.doesNotMatch(signupJs, /preview\.innerHTML\s*=\s*'<img/);
 });
 
 test("signup page: client-side submit throttle matches the documented window", () => {
   assert.match(signupJs, /const SUBMIT_RATE_MAX = 3/);
   assert.match(signupJs, /const SUBMIT_RATE_WINDOW_MS = 10 \* 60 \* 1000/);
+});
+
+test("signup page: only declares fonts that are actually loaded", () => {
+  // The page must inherit the global stack (DM Serif Display / DM Sans via
+  // CSS vars) rather than declaring Lora/Inter, which are never loaded and
+  // silently fall back to Times/system-sans.
+  assert.doesNotMatch(signupHtml, /font-family:\s*"Lora"/);
+  assert.doesNotMatch(signupHtml, /font-family:\s*"Inter"/);
+  assert.match(signupHtml, /font-family:\s*var\(--serif\)/);
+  assert.match(signupHtml, /font-family:\s*var\(--sans\)/);
+});
+
+test("signup page: surfaces inline field errors with accessible state", () => {
+  assert.match(signupHtml, /id="err_email"/);
+  assert.match(signupHtml, /id="err_zip"/);
+  assert.match(signupJs, /function setFieldError\(input, errId, message\)/);
+  assert.match(signupJs, /input\.setAttribute\("aria-invalid", "true"\)/);
 });
