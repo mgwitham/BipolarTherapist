@@ -63,7 +63,7 @@
         --red: #e53e3e;
       }
       body {
-        font-family: "Inter", sans-serif;
+        font-family: var(--sans);
         background: var(--bg);
         color: var(--navy);
         line-height: 1.6;
@@ -102,7 +102,7 @@
         list-style: none;
       }
       .nav-links a {
-        font-family: "Inter", sans-serif;
+        font-family: var(--sans);
         color: var(--navy);
         text-decoration: none;
         font-weight: 500;
@@ -195,7 +195,7 @@
         border-bottom-color: var(--teal);
       }
       .signup-hero-copy h1 {
-        font-family: "Lora", serif;
+        font-family: var(--serif);
         font-size: clamp(1.85rem, 3vw, 2.55rem);
         line-height: 1.1;
         letter-spacing: -0.01em;
@@ -291,7 +291,7 @@
         margin-bottom: 0.25rem;
       }
       .signup-form-card h2 {
-        font-family: "Lora", serif;
+        font-family: var(--serif);
         font-size: 1.25rem;
         color: var(--navy);
         margin: 0;
@@ -346,6 +346,13 @@
         border-color: var(--teal);
         box-shadow: 0 0 0 3px rgba(26, 122, 143, 0.14);
       }
+      .new-listing-form input.is-invalid,
+      .new-listing-form input.is-invalid:hover {
+        border-color: var(--red);
+      }
+      .new-listing-form input.is-invalid:focus {
+        box-shadow: 0 0 0 3px rgba(229, 62, 62, 0.16);
+      }
       .new-listing-row-2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -355,6 +362,14 @@
         font-weight: 400;
         font-size: 0.8rem;
         color: var(--muted);
+      }
+      .new-listing-field-error {
+        font-weight: 500;
+        font-size: 0.8rem;
+        color: var(--red);
+      }
+      .new-listing-field-error:empty {
+        display: none;
       }
       .new-listing-checkbox {
         display: grid;
@@ -378,105 +393,6 @@
         width: 18px;
         height: 18px;
         accent-color: var(--teal);
-      }
-      .new-listing-photo {
-        background: var(--bg);
-        border: 1px dashed var(--border);
-        border-radius: 12px;
-        padding: 0.9rem 1rem;
-      }
-      .new-listing-photo-row {
-        display: grid;
-        grid-template-columns: 56px 1fr;
-        gap: 0.9rem;
-        align-items: center;
-      }
-      .new-listing-photo-preview {
-        width: 56px;
-        height: 56px;
-        border-radius: 50%;
-        background: linear-gradient(180deg, #eaf2f4, #d8e6ea);
-        border: 1px solid rgba(14, 77, 95, 0.15);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        font-size: 1.2rem;
-        color: rgba(14, 77, 95, 0.55);
-      }
-      .new-listing-photo-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-      }
-      .new-listing-photo-copy {
-        display: grid;
-        gap: 0.3rem;
-      }
-      .new-listing-photo-line {
-        display: flex;
-        gap: 0.5rem;
-        align-items: baseline;
-        flex-wrap: wrap;
-      }
-      .new-listing-photo-title {
-        font-weight: 600;
-        font-size: 0.92rem;
-        color: var(--navy);
-      }
-      .new-listing-photo-optional {
-        font-size: 0.74rem;
-        font-weight: 600;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: 0.06em;
-      }
-      .new-listing-photo-hint {
-        font-size: 0.78rem;
-        color: var(--muted);
-        line-height: 1.4;
-      }
-      .new-listing-photo-controls {
-        display: flex;
-        gap: 0.4rem;
-        flex-wrap: wrap;
-        margin-top: 0.2rem;
-      }
-      .new-listing-photo-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.4rem 0.75rem;
-        border: 1px solid var(--teal);
-        color: var(--teal);
-        background: white;
-        border-radius: 8px;
-        font-size: 0.82rem;
-        font-weight: 600;
-        cursor: pointer;
-      }
-      .new-listing-photo-btn:hover {
-        background: rgba(14, 77, 95, 0.05);
-      }
-      .new-listing-photo-clear {
-        padding: 0.4rem 0.65rem;
-        border: 1px solid var(--border);
-        background: white;
-        color: var(--muted);
-        border-radius: 8px;
-        font-size: 0.78rem;
-        cursor: pointer;
-      }
-      .new-listing-photo-status {
-        font-size: 0.78rem;
-        color: var(--muted);
-        min-height: 1rem;
-      }
-      .new-listing-photo-status.is-success {
-        color: #1c7a47;
-      }
-      .new-listing-photo-status.is-error {
-        color: #b3261e;
       }
       .new-listing-submit {
         background: var(--teal);
@@ -871,7 +787,7 @@
         contain-intrinsic-size: 0 420px;
       }
       .signup-how-it-works h2 {
-        font-family: "Lora", serif;
+        font-family: var(--serif);
         font-size: 1.8rem;
         color: var(--navy);
         margin-bottom: 0.5rem;
@@ -944,7 +860,7 @@
         contain-intrinsic-size: 0 380px;
       }
       .signup-faq h2 {
-        font-family: "Lora", serif;
+        font-family: var(--serif);
         font-size: 1.8rem;
         color: var(--navy);
         margin-bottom: 1.25rem;
@@ -1312,18 +1228,6 @@
           padding: 1rem;
           font-size: 1rem;
         }
-        .new-listing-photo {
-          padding: 0.8rem;
-        }
-        .new-listing-photo-row {
-          grid-template-columns: 48px 1fr;
-          gap: 0.75rem;
-        }
-        .new-listing-photo-preview {
-          width: 48px;
-          height: 48px;
-          font-size: 1rem;
-        }
 
         .signup-trust-strip {
           padding: 1.5rem 1rem 0;
@@ -1463,11 +1367,12 @@
                     autocomplete="email"
                     placeholder="jamie@yourpractice.com"
                     required
-                    aria-describedby="hint_email"
+                    aria-describedby="hint_email err_email"
                   />
                   <span class="new-listing-field-hint" id="hint_email"
                     >We'll send your welcome link here.</span
                   >
+                  <span class="new-listing-field-error" id="err_email" aria-live="polite"></span>
                 </label>
                 <div class="new-listing-row-2">
                   <label>
@@ -1500,7 +1405,7 @@
                       maxlength="5"
                       placeholder="90025"
                       required
-                      aria-describedby="hint_zip"
+                      aria-describedby="hint_zip err_zip"
                     />
                     <span class="new-listing-field-hint" id="hint_zip"
                       >Used for location-based matching.</span
@@ -1510,6 +1415,7 @@
                       id="newListingZipHint"
                       aria-live="polite"
                     ></span>
+                    <span class="new-listing-field-error" id="err_zip" aria-live="polite"></span>
                   </label>
                 </div>
                 <div
