@@ -10,8 +10,8 @@
   "dependencies": {
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
-    "sanity": "^5.25.1",
-    "styled-components": "^6.4.1"
+    "sanity": "^5.26.0",
+    "styled-components": "^6.4.2"
   },
   "overrides": {
     "@vercel/frameworks": {
