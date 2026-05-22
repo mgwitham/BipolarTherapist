@@ -68,6 +68,7 @@ import {
   createTherapistSession,
   getAuthorizedActor,
   getAuthorizedTherapist,
+  getClientAddress,
   getSecurityWarnings,
   isAuthorized,
   normalizeRoutePath,
@@ -281,14 +282,9 @@ function parseRawBody(request) {
 }
 
 function getRateLimitClientKey(request) {
-  const forwardedFor = request.headers && request.headers["x-forwarded-for"];
-  const realIp = request.headers && request.headers["x-real-ip"];
-  const raw =
-    (Array.isArray(forwardedFor) ? forwardedFor[0] : forwardedFor) ||
-    (Array.isArray(realIp) ? realIp[0] : realIp) ||
-    (request.socket && request.socket.remoteAddress) ||
-    "unknown";
-  return String(raw).split(",")[0].trim() || "unknown";
+  // Delegate to the shared trusted-IP resolver so the gateway limiter
+  // keys on a header a client cannot spoof (see getClientAddress).
+  return getClientAddress(request) || "unknown";
 }
 
 async function evaluatePublicWriteRateLimit(request, routePath, config) {
