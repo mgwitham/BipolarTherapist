@@ -1,3 +1,5 @@
+import { safeExternalUrl } from "./safe-url.js";
+
 export function renderLicensureActivityPanel(options) {
   const root = options.root;
   const countEl = options.countEl;
@@ -97,12 +99,12 @@ export function renderLicensureActivityPanel(options) {
             '</div><div style="display:flex;gap:0.5rem;flex-wrap:wrap;justify-content:flex-end">' +
             (item.official_profile_url
               ? '<a class="btn-secondary btn-inline" href="' +
-                options.escapeHtml(item.official_profile_url) +
+                options.escapeHtml(safeExternalUrl(item.official_profile_url)) +
                 '" target="_blank" rel="noreferrer">Official source</a>'
               : "") +
             (item.profile_link
               ? '<a class="btn-secondary btn-inline" href="' +
-                options.escapeHtml(item.profile_link) +
+                options.escapeHtml(safeExternalUrl(item.profile_link)) +
                 '">Open profile</a>'
               : "") +
             "</div></article>"

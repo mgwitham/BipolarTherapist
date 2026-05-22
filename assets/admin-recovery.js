@@ -5,6 +5,7 @@
 // before clicking Approve.
 
 import { escapeHtml } from "./escape-html.js";
+import { safeExternalUrl } from "./safe-url.js";
 import {
   approveRecoveryRequest,
   dismissRecoveryRequest,
@@ -126,7 +127,7 @@ function renderAnchorsBlock(req) {
       label: "Website",
       html: a.website
         ? '<a href="' +
-          escapeHtml(a.website) +
+          escapeHtml(safeExternalUrl(a.website)) +
           '" target="_blank" rel="noopener">' +
           escapeHtml(a.website.replace(/^https?:\/\//, "").replace(/\/$/, "")) +
           " ↗</a>"

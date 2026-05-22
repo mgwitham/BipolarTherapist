@@ -1,3 +1,5 @@
+import { safeExternalUrl } from "./safe-url.js";
+
 export function getSourceReferenceMeta(record) {
   var sourceUrl = String(
     (record && (record.source_url || record.sourceUrl || record.website || record.booking_url)) ||
@@ -13,7 +15,7 @@ export function getSourceReferenceMeta(record) {
     /\.json(?:[?#]|$)/i.test(sourceUrl);
 
   return {
-    href: sourceUrl,
+    href: safeExternalUrl(sourceUrl),
     label: sourceUrl
       ? looksApiRecord
         ? "View source record"
