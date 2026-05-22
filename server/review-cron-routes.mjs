@@ -3,17 +3,16 @@
 // plan's 12-function cap. Vercel cron entries in vercel.json point
 // at /api/review/cron/* which falls through the catch-all to here.
 //
-// Auth: each route checks the Bearer cron secret like the dedicated
-// cron files used to. If the secret isn't configured, the routes are
-// open — same posture as the existing cron functions.
+// Auth: each route checks the Bearer cron secret via the shared
+// fail-closed helper. If CRON_SECRET isn't configured, every request
+// is rejected rather than running the job wide open.
 
 import { runAbandonedClaimAlerts } from "./abandoned-claim-alerts.mjs";
+import { isAuthorizedCronRequest } from "./cron-auth.mjs";
 import { runOutreachClickDigest } from "./outreach-click-digest.mjs";
 
 function checkCronAuth(request, config) {
-  if (!config.cronSecret) return true;
-  const header = String((request.headers && request.headers.authorization) || "");
-  return header === "Bearer " + config.cronSecret;
+  return isAuthorizedCronRequest(request, config);
 }
 
 function writeJson(response, status, body) {
