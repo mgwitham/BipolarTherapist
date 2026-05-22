@@ -10,21 +10,18 @@
 
 import { createClient } from "@sanity/client";
 
+import { isAuthorizedCronRequest } from "../../server/cron-auth.mjs";
 import { getReviewApiConfig } from "../../server/review-config.mjs";
 import { runWeeklyDigest } from "../../server/review-weekly-digest.mjs";
 
 export default async function weeklyDigestCron(request, response) {
   const config = getReviewApiConfig();
 
-  if (config.cronSecret) {
-    const header = String((request.headers && request.headers.authorization) || "");
-    const expected = "Bearer " + config.cronSecret;
-    if (header !== expected) {
-      response.statusCode = 401;
-      response.setHeader("Content-Type", "application/json");
-      response.end(JSON.stringify({ error: "unauthorized" }));
-      return;
-    }
+  if (!isAuthorizedCronRequest(request, config)) {
+    response.statusCode = 401;
+    response.setHeader("Content-Type", "application/json");
+    response.end(JSON.stringify({ error: "unauthorized" }));
+    return;
   }
 
   if (!config.projectId || !config.dataset) {

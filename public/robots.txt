@@ -8,6 +8,8 @@ Disallow: /portal
 Disallow: /portal.html
 Disallow: /admin
 Disallow: /admin.html
+Disallow: /outreach
+Disallow: /outreach.html
 Disallow: /api/
 
 Sitemap: https://www.bipolartherapyhub.com/sitemap.xml
