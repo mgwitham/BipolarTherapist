@@ -19,6 +19,7 @@ import { handleCandidateIngestRoutes } from "./review-candidate-ingest-routes.mj
 import { handleCandidateRoutes } from "./review-candidate-routes.mjs";
 import { verifyLicense } from "./dca-license-client.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
+import { getRateLimiter } from "./rate-limit-store.mjs";
 import { handleAnalyticsRoutes } from "./review-analytics-routes.mjs";
 import { handleEngagementRoutes } from "./review-engagement-routes.mjs";
 import { handleCronRoutes } from "./review-cron-routes.mjs";
@@ -133,12 +134,10 @@ const publishingHelpers = {
 const MAX_REQUEST_BODY_BYTES = 8 * 1024 * 1024;
 const MAX_PHOTO_UPLOAD_BYTES = 4 * 1024 * 1024;
 const ALLOWED_PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
-// In-memory store — resets on every Vercel cold start (i.e. per process).
-// Provides meaningful protection within a warm process. Does NOT carry
-// counts across cold starts or across concurrent instances. Acceptable
-// for current traffic; upgrade to Vercel KV / Upstash if abuse appears.
-const publicWriteRateLimitStore = new Map();
-const PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS = 5000;
+// Per-route limits for abuse-prone public writes. Enforcement runs
+// through the shared rate-limit store (Upstash Redis when configured,
+// in-process Map otherwise), so counts survive cold starts and are
+// shared across concurrent serverless instances. See rate-limit-store.mjs.
 const PUBLIC_WRITE_RATE_LIMITS = {
   "POST /applications": { limit: 30, windowMs: 60 * 60 * 1000 },
   "POST /applications/free-path-selected": { limit: 60, windowMs: 60 * 60 * 1000 },
@@ -292,65 +291,27 @@ function getRateLimitClientKey(request) {
   return String(raw).split(",")[0].trim() || "unknown";
 }
 
-function prunePublicWriteRateLimitStore(now) {
-  if (publicWriteRateLimitStore.size <= PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS) {
-    return;
-  }
-
-  for (const [key, entry] of publicWriteRateLimitStore) {
-    const limit = PUBLIC_WRITE_RATE_LIMITS[entry.routeKey];
-    if (
-      !limit ||
-      !entry.timestamps.some(function (timestamp) {
-        return now - timestamp < limit.windowMs;
-      })
-    ) {
-      publicWriteRateLimitStore.delete(key);
-    }
-  }
-
-  if (publicWriteRateLimitStore.size > PUBLIC_WRITE_RATE_LIMIT_MAX_KEYS) {
-    let stalestKey = null;
-    let stalestTime = Infinity;
-    for (const [key, entry] of publicWriteRateLimitStore) {
-      const lastSeen = entry.timestamps.length ? Math.max(...entry.timestamps) : 0;
-      if (lastSeen < stalestTime) {
-        stalestTime = lastSeen;
-        stalestKey = key;
-      }
-    }
-    if (stalestKey !== null) publicWriteRateLimitStore.delete(stalestKey);
-  }
-}
-
-function evaluatePublicWriteRateLimit(request, routePath) {
+async function evaluatePublicWriteRateLimit(request, routePath, config) {
   const routeKey = `${request.method} ${routePath}`;
   const limit = PUBLIC_WRITE_RATE_LIMITS[routeKey];
   if (!limit) {
     return { exceeded: false };
   }
 
-  const now = Date.now();
-  prunePublicWriteRateLimitStore(now);
+  const limiter = getRateLimiter(`public-write:${routeKey}`, limit.windowMs, limit.limit, config);
+  const key = getRateLimitClientKey(request);
 
-  const key = `${routeKey}:${getRateLimitClientKey(request)}`;
-  const entry = publicWriteRateLimitStore.get(key);
-  const recent = (entry && Array.isArray(entry.timestamps) ? entry.timestamps : []).filter(
-    function (timestamp) {
-      return now - timestamp < limit.windowMs;
-    },
-  );
-
-  if (recent.length >= limit.limit) {
-    const oldest = recent[0] || now;
-    return {
-      exceeded: true,
-      retryAfterSeconds: Math.max(1, Math.ceil((limit.windowMs - (now - oldest)) / 1000)),
-    };
+  if (!(await limiter.canAttempt(key))) {
+    // Both backends use a fixed window; the current window ends at the
+    // next windowMs boundary, so that's the soonest a retry can succeed.
+    const retryAfterSeconds = Math.max(
+      1,
+      Math.ceil((limit.windowMs - (Date.now() % limit.windowMs)) / 1000),
+    );
+    return { exceeded: true, retryAfterSeconds };
   }
 
-  recent.push(now);
-  publicWriteRateLimitStore.set(key, { routeKey, timestamps: recent });
+  await limiter.record(key);
   return { exceeded: false };
 }
 
@@ -1070,7 +1031,7 @@ export function createReviewApiHandler(configOverride, clientOverride) {
       return;
     }
 
-    const publicWriteRateLimit = evaluatePublicWriteRateLimit(request, routePath);
+    const publicWriteRateLimit = await evaluatePublicWriteRateLimit(request, routePath, config);
     if (publicWriteRateLimit.exceeded) {
       response.setHeader("Retry-After", String(publicWriteRateLimit.retryAfterSeconds));
       sendJson(
