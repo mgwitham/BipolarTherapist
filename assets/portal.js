@@ -1,6 +1,7 @@
 import "./sentry-init.js";
 import "./funnel-analytics.js";
 import { escapeHtml } from "./escape-html.js";
+import { safeStripeRedirectUrl } from "./safe-url.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { mountPortalTdCompleteness, shouldShowCompleteness } from "./portal-td-completeness.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
@@ -881,8 +882,9 @@ function renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail) 
           plan: "paid_monthly",
           return_path: "/portal.html?slug=" + encodeURIComponent(therapistSlug),
         });
-        if (result && result.url) {
-          window.location.href = result.url;
+        var checkoutUrl = result && result.url ? safeStripeRedirectUrl(result.url) : "";
+        if (checkoutUrl) {
+          window.location.href = checkoutUrl;
           return;
         }
         throw new Error("No checkout URL returned.");
@@ -1014,8 +1016,9 @@ async function handleFeaturedBillingClick(event) {
       // subscription state rather than relying on cached render data.
       return_path: "/portal.html?slug=" + encodeURIComponent(slug || "") + "&stripe=managed",
     });
-    if (result && result.url) {
-      window.location.href = result.url;
+    var billingUrl = result && result.url ? safeStripeRedirectUrl(result.url) : "";
+    if (billingUrl) {
+      window.location.href = billingUrl;
       return;
     }
     throw new Error("No billing portal URL returned.");

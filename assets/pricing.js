@@ -2,6 +2,7 @@ import "./sentry-init.js";
 import "./site-analytics.js";
 import "./funnel-analytics.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
+import { safeStripeRedirectUrl } from "./safe-url.js";
 import {
   createStripeBillingPortalSession,
   createStripeFeaturedCheckoutSession,
@@ -324,8 +325,9 @@ async function handleDirectCheckout(event) {
       source: "pricing_page",
       therapist_slug: therapist.slug,
     });
-    if (checkout && checkout.url) {
-      window.location.href = checkout.url;
+    var checkoutUrl = checkout && checkout.url ? safeStripeRedirectUrl(checkout.url) : "";
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
       return;
     }
     throw new Error("No checkout URL returned.");
@@ -364,8 +366,9 @@ async function handleManageSubscription(event) {
     var session = await createStripeBillingPortalSession({
       return_path: "/portal.html?slug=" + encodeURIComponent(therapist.slug),
     });
-    if (session && session.url) {
-      window.location.href = session.url;
+    var sessionUrl = session && session.url ? safeStripeRedirectUrl(session.url) : "";
+    if (sessionUrl) {
+      window.location.href = sessionUrl;
       return;
     }
     throw new Error("No billing portal URL returned.");
