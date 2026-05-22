@@ -33,61 +33,52 @@ test("buildFounderFunnelDigest still emits when only supply-side activity exists
 
 test("buildFounderFunnelDigest computes patient funnel rows + conversions", () => {
   const events = [
-    eventAt("home_match_started", 1),
-    eventAt("home_match_started", 1),
-    eventAt("home_match_started", 1),
-    eventAt("home_match_started", 1),
-    eventAt("match_intake_landed", 1),
-    eventAt("match_intake_landed", 1),
-    eventAt("match_intake_landed", 1),
-    eventAt("match_submitted", 1),
-    eventAt("match_submitted", 1),
-    eventAt("match_results_viewed", 1),
-    eventAt("match_result_profile_opened", 1),
-    eventAt("match_contact_modal_opened", 1),
+    eventAt("match_results_page_viewed", 1),
+    eventAt("match_results_page_viewed", 1),
+    eventAt("match_results_page_viewed", 1),
+    eventAt("match_results_page_viewed", 1),
+    eventAt("match_results_card_clicked", 1),
+    eventAt("match_results_card_clicked", 1),
+    eventAt("match_results_card_clicked", 1),
+    eventAt("profile_contact_route_clicked", 1),
   ];
   const result = buildFounderFunnelDigest({ events, nowIso: NOW });
   assert.ok(result);
   assert.equal(result.patient.started, 4);
   assert.equal(result.patient.reachedContact, 1);
   const rows = result.patient.rows;
+  assert.equal(rows.length, 3);
   assert.equal(rows[0].count, 4);
   assert.equal(rows[0].conversion, 100);
   assert.equal(rows[1].count, 3);
   assert.equal(rows[1].dropoff, 25);
-  assert.equal(rows[2].count, 2);
-  assert.equal(rows[5].count, 1);
+  assert.equal(rows[2].count, 1);
+  assert.equal(rows[2].conversion, 25);
 });
 
 test("buildFounderFunnelDigest identifies the biggest drop-off rung", () => {
   const events = [
-    eventAt("home_match_started", 1),
-    eventAt("home_match_started", 1),
-    eventAt("home_match_started", 1),
-    eventAt("home_match_started", 1),
-    eventAt("match_intake_landed", 1),
-    eventAt("match_intake_landed", 1),
-    eventAt("match_intake_landed", 1),
-    eventAt("match_intake_landed", 1),
-    eventAt("match_submitted", 1),
-    eventAt("match_results_viewed", 1),
-    eventAt("match_result_profile_opened", 1),
-    eventAt("match_contact_modal_opened", 1),
+    eventAt("match_results_page_viewed", 1),
+    eventAt("match_results_page_viewed", 1),
+    eventAt("match_results_page_viewed", 1),
+    eventAt("match_results_page_viewed", 1),
+    eventAt("match_results_card_clicked", 1),
+    eventAt("profile_contact_route_clicked", 1),
   ];
   const result = buildFounderFunnelDigest({ events, nowIso: NOW });
   assert.ok(result.patient.bottleneck);
-  assert.equal(result.patient.bottleneck.fromLabel, "Landed on results page");
-  assert.equal(result.patient.bottleneck.toLabel, "Completed intake");
+  assert.equal(result.patient.bottleneck.fromLabel, "Saw matches");
+  assert.equal(result.patient.bottleneck.toLabel, "Opened a therapist");
   assert.equal(result.patient.bottleneck.dropoff, 75);
 });
 
 test("buildFounderFunnelDigest computes direction vs prior week", () => {
   const events = [
-    eventAt("home_match_started", 1),
-    eventAt("home_match_started", 2),
-    eventAt("home_match_started", 8),
-    eventAt("home_match_started", 9),
-    eventAt("home_match_started", 10),
+    eventAt("match_results_page_viewed", 1),
+    eventAt("match_results_page_viewed", 2),
+    eventAt("match_results_page_viewed", 8),
+    eventAt("match_results_page_viewed", 9),
+    eventAt("match_results_page_viewed", 10),
   ];
   const result = buildFounderFunnelDigest({ events, nowIso: NOW });
   assert.equal(result.patient.started, 2);
@@ -96,26 +87,26 @@ test("buildFounderFunnelDigest computes direction vs prior week", () => {
 });
 
 test("buildFounderFunnelDigest treats prior-zero current-positive as 'new'", () => {
-  const events = [eventAt("home_match_started", 1)];
+  const events = [eventAt("match_results_page_viewed", 1)];
   const result = buildFounderFunnelDigest({ events, nowIso: NOW });
   assert.equal(result.patient.direction, "new");
 });
 
 test("buildFounderFunnelDigest excludes events outside the windows", () => {
-  const events = [eventAt("home_match_started", 30), eventAt("home_match_started", 60)];
+  const events = [
+    eventAt("match_results_page_viewed", 30),
+    eventAt("match_results_page_viewed", 60),
+  ];
   const result = buildFounderFunnelDigest({ events, nowIso: NOW });
   assert.equal(result, null);
 });
 
 test("renderFounderFunnelEmail produces subject and body anchored on numbers", () => {
   const events = [
-    eventAt("home_match_started", 1),
-    eventAt("home_match_started", 1),
-    eventAt("match_intake_landed", 1),
-    eventAt("match_submitted", 1),
-    eventAt("match_results_viewed", 1),
-    eventAt("match_result_profile_opened", 1),
-    eventAt("match_contact_modal_opened", 1),
+    eventAt("match_results_page_viewed", 1),
+    eventAt("match_results_page_viewed", 1),
+    eventAt("match_results_card_clicked", 1),
+    eventAt("profile_contact_route_clicked", 1),
   ];
   const digest = buildFounderFunnelDigest({ events, nowIso: NOW });
   const { subject, text } = renderFounderFunnelEmail({
@@ -124,14 +115,15 @@ test("renderFounderFunnelEmail produces subject and body anchored on numbers", (
   });
   assert.match(subject, /BipolarTherapyHub funnel:/);
   assert.match(subject, /2 patient session/);
+  assert.match(subject, /reached out to a therapist/);
   assert.match(text, /Patient match funnel:/);
-  assert.match(text, /Started from home: 2/);
-  assert.match(text, /Opened contact modal: 1/);
+  assert.match(text, /Saw matches: 2/);
+  assert.match(text, /Reached out: 1/);
   assert.match(text, /https:\/\/www\.bipolartherapyhub\.com\/admin\.html/);
 });
 
 test("renderFounderFunnelEmail singularizes 1-session copy", () => {
-  const events = [eventAt("home_match_started", 1), eventAt("match_contact_modal_opened", 1)];
+  const events = [eventAt("match_results_page_viewed", 1)];
   const digest = buildFounderFunnelDigest({ events, nowIso: NOW });
   const { subject } = renderFounderFunnelEmail({ digest });
   assert.match(subject, /1 patient session(?!s)/);
@@ -182,7 +174,7 @@ test("buildFounderFunnelDigest emits a digest even with only issue reports", () 
 
 test("renderFounderFunnelEmail includes the issue reports section", () => {
   const events = [
-    eventAt("home_match_started", 1),
+    eventAt("match_results_page_viewed", 1),
     issueReportEvent(
       {
         slug: "jane-doe",
@@ -202,7 +194,7 @@ test("renderFounderFunnelEmail includes the issue reports section", () => {
 
 test("buildFounderFunnelDigest excludes issue reports older than the window", () => {
   const events = [
-    eventAt("home_match_started", 1),
+    eventAt("match_results_page_viewed", 1),
     issueReportEvent({ slug: "old-report", reason: "other" }, 30),
   ];
   const result = buildFounderFunnelDigest({ events, nowIso: NOW });
@@ -210,7 +202,7 @@ test("buildFounderFunnelDigest excludes issue reports older than the window", ()
 });
 
 test("internals expose step keys for cross-referencing", () => {
-  assert.ok(_internals.PATIENT_STEPS.length === 6);
-  assert.equal(_internals.PATIENT_STEPS[0].key, "home_match_started");
-  assert.equal(_internals.PATIENT_STEPS[5].key, "match_contact_modal_opened");
+  assert.equal(_internals.PATIENT_STEPS.length, 3);
+  assert.equal(_internals.PATIENT_STEPS[0].key, "match_results_page_viewed");
+  assert.equal(_internals.PATIENT_STEPS[2].key, "profile_contact_route_clicked");
 });

@@ -7,6 +7,13 @@
 // Pure client-side aggregation, the log is a flat event list, we
 // bucket here. No chart library, just DOM.
 
+import {
+  PATIENT_STEPS,
+  SIGNUP_STEPS,
+  CLAIM_STEPS,
+  PORTAL_STEPS,
+  REMOVAL_STEPS,
+} from "../shared/funnel-step-definitions.mjs";
 import { proportionsAreSeparated, wilsonInterval } from "../shared/stats-domain.mjs";
 import { fetchFunnelEventLog } from "./review-api.js";
 import { escapeHtml } from "./escape-html.js";
@@ -14,59 +21,6 @@ import { escapeHtml } from "./escape-html.js";
 const DASHBOARD_ID = "adminFunnelDashboard";
 const REFRESH_ID = "adminFunnelRefresh";
 const STATUS_ID = "adminFunnelStatus";
-
-const SIGNUP_STEPS = [
-  { key: "signup_page_viewed", label: "Viewed signup" },
-  { key: "signup_already_listed_search_started", label: "Started search" },
-  { key: "signup_new_listing_form_started", label: "Started form" },
-  { key: "signup_new_listing_submit_attempted", label: "Attempted submit" },
-  { key: "signup_new_listing_submitted", label: "Submitted" },
-];
-
-const CLAIM_STEPS = [
-  { key: "claim_page_viewed", label: "Viewed claim" },
-  { key: "claim_listing_picked", label: "Picked listing" },
-  { key: "claim_trial_clicked", label: "Clicked trial" },
-  { key: "claim_trial_checkout_opened", label: "Opened Stripe" },
-];
-
-// Removal funnel. Headline number is listing_removal_confirmed,
-// that's the only event fired server-side, so the count reflects
-// listings that actually went dark.
-const REMOVAL_STEPS = [
-  { key: "claim_remove_link_clicked", label: "Clicked hero remove link" },
-  { key: "listing_removal_section_opened", label: "Opened removal section" },
-  { key: "listing_removal_request_submitted", label: "Submitted form" },
-  { key: "listing_removal_confirmed", label: "Confirmed via email (removed)" },
-];
-
-// Patient match funnel. Tracks the demand-side path from "started a
-// search on the homepage" through "opened the contact modal." This is
-// what tells us which pillar to invest in next: drops at viewed→
-// profile_opened mean the shortlist isn't trusted; drops at
-// profile_opened→contact mean the handoff is the friction.
-const PATIENT_STEPS = [
-  { key: "home_match_started", label: "Started from home" },
-  { key: "match_intake_landed", label: "Landed on results page" },
-  { key: "match_submitted", label: "Completed intake" },
-  { key: "match_results_viewed", label: "Saw shortlist" },
-  { key: "match_result_profile_opened", label: "Opened a profile" },
-  { key: "match_contact_modal_opened", label: "Opened contact modal" },
-  { key: "match_contact_completed", label: "Completed contact action" },
-];
-
-// Portal edit-form funnel. Tracks the post-claim path a therapist
-// takes from "landed on portal" through "profile is match-ready."
-// This is the primary metric driver for the portal UX work, if
-// fewer therapists reach "portal_readiness_crossed_65", the polish
-// isn't converting the way we expect.
-const PORTAL_STEPS = [
-  { key: "portal_opened", label: "Opened portal" },
-  { key: "portal_first_edit", label: "First edit" },
-  { key: "portal_save_success", label: "Saved changes" },
-  { key: "portal_readiness_crossed_65", label: "Readiness ≥ 65" },
-  { key: "portal_readiness_crossed_85", label: "Match-ready (≥ 85)" },
-];
 
 function parsePayload(raw) {
   if (!raw) return {};
