@@ -216,5 +216,17 @@ export function getReviewApiConfig() {
     );
   }
 
+  // Anti-bot protection must be wired up in real production. Turnstile
+  // fails open (no-op pass-through) when the secret is unset — see
+  // server/turnstile-verify.mjs — so a missing prod secret would
+  // silently drop bot protection on signup/claim/recover/remove. Gate
+  // on VERCEL_ENV (not NODE_ENV) so Preview deploys, which run with
+  // NODE_ENV=production but may legitimately lack the secret, still boot.
+  if (process.env.VERCEL_ENV === "production" && !config.turnstileSecretKey) {
+    throw new Error(
+      "TURNSTILE_SECRET_KEY must be set in production so anti-bot verification cannot silently fail open.",
+    );
+  }
+
   return config;
 }
