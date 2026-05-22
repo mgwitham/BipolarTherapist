@@ -16,6 +16,7 @@ import {
   createTherapistSession,
   getAuthorizedActor,
   getAuthorizedTherapist,
+  getClientAddress,
   isAuthorized,
   readAdminSessionFromRequest,
   readSignedPayload,
@@ -219,6 +220,48 @@ test("buildExpiredSessionCookie: sets Max-Age=0", () => {
   };
   const cookie = buildExpiredSessionCookie(request, ADMIN_SESSION_COOKIE);
   assert.ok(cookie.includes("Max-Age=0"), "expected Max-Age=0 for logout cookie");
+});
+
+// ─── Client IP resolution (anti-spoofing) ─────────────────────────────────────
+
+test("getClientAddress: platform-trusted header beats a spoofed x-forwarded-for", () => {
+  const request = {
+    headers: {
+      "x-forwarded-for": "1.2.3.4",
+      "x-real-ip": "203.0.113.9",
+    },
+    socket: { remoteAddress: "10.0.0.1" },
+  };
+  // An attacker controls x-forwarded-for, but Vercel sets x-real-ip; the
+  // trusted header must win so rate limits can't be bypassed.
+  assert.equal(getClientAddress(request), "203.0.113.9");
+});
+
+test("getClientAddress: x-vercel-forwarded-for is preferred over x-real-ip and xff", () => {
+  const request = {
+    headers: {
+      "x-forwarded-for": "1.2.3.4",
+      "x-real-ip": "5.6.7.8",
+      "x-vercel-forwarded-for": "203.0.113.10",
+    },
+  };
+  assert.equal(getClientAddress(request), "203.0.113.10");
+});
+
+test("getClientAddress: falls back to x-forwarded-for when no trusted header (local/non-Vercel)", () => {
+  const request = {
+    headers: { "x-forwarded-for": "198.51.100.7, 70.0.0.1" },
+    socket: { remoteAddress: "10.0.0.1" },
+  };
+  assert.equal(getClientAddress(request), "198.51.100.7");
+});
+
+test("getClientAddress: falls back to socket address, then 'unknown'", () => {
+  assert.equal(
+    getClientAddress({ headers: {}, socket: { remoteAddress: "10.0.0.2" } }),
+    "10.0.0.2",
+  );
+  assert.equal(getClientAddress({ headers: {} }), "unknown");
 });
 
 // ─── Admin login brute-force protection ───────────────────────────────────────

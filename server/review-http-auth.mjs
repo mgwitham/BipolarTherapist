@@ -12,13 +12,25 @@ const INTAKE_MAX_ATTEMPTS = 5; // lenient: legitimate therapist may retry after 
 const PORTAL_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const PORTAL_MAX_ATTEMPTS = 10; // lenient: portal sign-in / claim-link / OTP / recovery
 
+// Resolve the client IP for security-sensitive use (rate limiters,
+// brute-force lockouts). Prefer headers the Vercel edge sets and
+// overwrites — x-vercel-forwarded-for (Vercel's validated XFF) and
+// x-real-ip — because a client cannot spoof them. The raw
+// x-forwarded-for chain is only used as a fallback for non-Vercel
+// setups (local dev, self-hosting); its left-most entry IS
+// client-controllable, so it must never take precedence over the
+// platform-trusted headers. Falls back to the socket address last.
 export function getClientAddress(request) {
-  // x-forwarded-for may be a comma-separated chain; take the first entry.
-  const xff = request.headers && request.headers["x-forwarded-for"];
-  if (xff) {
-    const first = String(xff).split(",")[0].trim();
-    if (first) return first;
-  }
+  const headers = request.headers || {};
+  const firstEntry = function (value) {
+    if (!value) return "";
+    const raw = Array.isArray(value) ? value[0] : value;
+    return String(raw).split(",")[0].trim();
+  };
+  const trusted = firstEntry(headers["x-vercel-forwarded-for"]) || firstEntry(headers["x-real-ip"]);
+  if (trusted) return trusted;
+  const forwarded = firstEntry(headers["x-forwarded-for"]);
+  if (forwarded) return forwarded;
   return (request.socket && request.socket.remoteAddress) || "unknown";
 }
 
