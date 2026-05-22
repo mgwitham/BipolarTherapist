@@ -112,16 +112,16 @@
     "@sanity/client": "^7.22.0",
     "eslint": "^10.4.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.0.4",
+    "lint-staged": "^17.0.5",
     "prettier": "^3.8.3",
-    "vite": "^8.0.13"
+    "vite": "^8.0.14"
   },
   "dependencies": {
     "@sentry/browser": "^10.53.1",
     "@sentry/node": "^10.53.1",
     "@upstash/redis": "^1.38.0",
     "@vercel/analytics": "^2.0.1",
-    "posthog-js": "^1.373.5",
+    "posthog-js": "^1.376.0",
     "stripe": "^22.1.1"
   }
 }
