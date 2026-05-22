@@ -7,37 +7,12 @@
 // one is per-operator: a single email summarizing where the business
 // is leaking volume.
 
-const PATIENT_STEPS = [
-  { key: "home_match_started", label: "Started from home" },
-  { key: "match_intake_landed", label: "Landed on results page" },
-  { key: "match_submitted", label: "Completed intake" },
-  { key: "match_results_viewed", label: "Saw shortlist" },
-  { key: "match_result_profile_opened", label: "Opened a profile" },
-  { key: "match_contact_modal_opened", label: "Opened contact modal" },
-];
-
-const SIGNUP_STEPS = [
-  { key: "signup_page_viewed", label: "Viewed signup" },
-  { key: "signup_already_listed_search_started", label: "Started search" },
-  { key: "signup_new_listing_form_started", label: "Started form" },
-  { key: "signup_new_listing_submit_attempted", label: "Attempted submit" },
-  { key: "signup_new_listing_submitted", label: "Submitted" },
-];
-
-const CLAIM_STEPS = [
-  { key: "claim_page_viewed", label: "Viewed claim" },
-  { key: "claim_listing_picked", label: "Picked listing" },
-  { key: "claim_trial_clicked", label: "Clicked trial" },
-  { key: "claim_trial_checkout_opened", label: "Opened Stripe" },
-];
-
-const PORTAL_STEPS = [
-  { key: "portal_opened", label: "Opened portal" },
-  { key: "portal_first_edit", label: "First edit" },
-  { key: "portal_save_success", label: "Saved changes" },
-  { key: "portal_readiness_crossed_65", label: "Readiness ≥ 65" },
-  { key: "portal_readiness_crossed_85", label: "Match-ready (≥ 85)" },
-];
+import {
+  PATIENT_STEPS,
+  SIGNUP_STEPS,
+  CLAIM_STEPS,
+  PORTAL_STEPS,
+} from "./funnel-step-definitions.mjs";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -211,7 +186,7 @@ export function renderFounderFunnelEmail(options) {
     ) +
     "), " +
     digest.patient.reachedContact +
-    " reached contact modal";
+    " reached out to a therapist";
 
   const subject = "BipolarTherapyHub funnel: " + headline;
 
