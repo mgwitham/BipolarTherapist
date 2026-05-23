@@ -289,7 +289,7 @@ function buildJsonLd(therapist) {
       jobTitle: therapist.title || "Therapist",
       knowsAbout: ["Bipolar disorder", "Psychotherapy", "Mental health"],
       address,
-      image: therapist.photo_url || undefined,
+      image: therapist.photo_url ? optimizeSanityImage(therapist.photo_url) : undefined,
       telephone: therapist.phone || undefined,
       email: therapist.email || undefined,
       sameAs: (() => {
@@ -460,11 +460,22 @@ function buildFallbackProfileHtml(therapist, similar) {
       </div>`;
 }
 
+// Cap and format-optimize a Sanity-hosted image so we never hand a
+// full-resolution original to social scrapers / structured-data
+// consumers. auto=format serves webp/avif where supported; fit=max
+// preserves aspect ratio (no awkward headshot cropping).
+function optimizeSanityImage(url) {
+  if (!url || !/\/cdn\.sanity\.io\//.test(url) || url.includes("?")) return url;
+  return `${url}?auto=format&fit=max&w=1200&q=75`;
+}
+
 function buildHeadTags(therapist) {
   const canonicalUrl = buildCanonicalUrl(therapist);
   const title = `${buildTitle(therapist)} - BipolarTherapyHub`;
   const description = buildDescription(therapist);
-  const image = therapist.photo_url || `${SITE_URL}/og-image.png`;
+  const image = therapist.photo_url
+    ? optimizeSanityImage(therapist.photo_url)
+    : `${SITE_URL}/og-image.png`;
   return [
     `<title>${escapeHtml(title)}</title>`,
     `<meta name="description" content="${escapeAttribute(description)}" />`,
