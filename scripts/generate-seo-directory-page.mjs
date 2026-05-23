@@ -1,0 +1,249 @@
+#!/usr/bin/env node
+// Post-build pre-render for the main /directory page. The directory is a
+// client-rendered SPA: without JS it shows a loading spinner, and its
+// JSON-LD is empty until directory.js runs. This script injects a static,
+// crawlable fallback into dist/directory.html so Googlebot sees a real
+// page on first fetch:
+//   - a grid of every listing-active therapist (links to each profile)
+//   - CollectionPage + ItemList JSON-LD in the initial HTML
+//   - Open Graph / Twitter card tags (the SPA shell has none)
+// directory.js still hydrates over all of this for interactive users
+// (it overwrites #resultsGrid and #dirJsonLd on load), so the fallback
+// is purely for crawlers and no-JS visitors.
+//
+// Reuses the city-page card styles (seo-city-pages.css). Skips cleanly
+// when Sanity isn't configured. Idempotent.
+
+import fs from "node:fs";
+import path from "node:path";
+import process from "node:process";
+import { createClient } from "@sanity/client";
+
+const ROOT = process.cwd();
+const API_VERSION = "2026-04-02";
+const SITE_URL = "https://www.bipolartherapyhub.com";
+const DIST_DIR = path.join(ROOT, "dist");
+const TARGET_PATH = path.join(DIST_DIR, "directory.html");
+const CANONICAL_URL = SITE_URL + "/directory";
+const OG_TITLE = "Browse Bipolar-Informed Therapists in California · BipolarTherapyHub";
+const OG_DESCRIPTION =
+  "Browse bipolar informed therapists and psychiatrists in California. Filter by location, insurance, and format. Save providers and reach out on your terms.";
+const CITY_STYLESHEET_LINK = '<link rel="stylesheet" href="/seo-city-pages.css" />';
+
+function readEnvFile(filePath) {
+  if (!fs.existsSync(filePath)) return {};
+  return fs
+    .readFileSync(filePath, "utf8")
+    .split(/\r?\n/)
+    .reduce((acc, line) => {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) return acc;
+      const sep = trimmed.indexOf("=");
+      if (sep === -1) return acc;
+      acc[trimmed.slice(0, sep).trim()] = trimmed
+        .slice(sep + 1)
+        .trim()
+        .replace(/^"(.*)"$/, "$1");
+      return acc;
+    }, {});
+}
+
+function getConfig() {
+  const rootEnv = readEnvFile(path.join(ROOT, ".env"));
+  const studioEnv = readEnvFile(path.join(ROOT, "studio", ".env"));
+  return {
+    projectId:
+      process.env.SANITY_PROJECT_ID ||
+      process.env.VITE_SANITY_PROJECT_ID ||
+      rootEnv.VITE_SANITY_PROJECT_ID ||
+      studioEnv.SANITY_STUDIO_PROJECT_ID,
+    dataset:
+      process.env.SANITY_DATASET ||
+      process.env.VITE_SANITY_DATASET ||
+      rootEnv.VITE_SANITY_DATASET ||
+      studioEnv.SANITY_STUDIO_DATASET,
+  };
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replace(/`/g, "&#96;");
+}
+
+// Two-letter initials, mirrors the city generator.
+function getInitials(name) {
+  const parts = String(name || "")
+    .replace(/\(.*?\)/g, "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean);
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+}
+
+function toneForName(name) {
+  let hash = 0;
+  const str = String(name || "");
+  for (let i = 0; i < str.length; i += 1) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash) % 6;
+}
+
+function buildProviderCardsHtml(providers) {
+  return providers
+    .map(function (p) {
+      const fullName = String(p.name || "").trim();
+      const credentials = String(p.credentials || "").trim();
+      const role = String(p.title || "").trim();
+      const city = String(p.city || "").trim();
+      const meta = [role, city].filter(Boolean).join(" · ");
+      const initials = getInitials(fullName);
+      const tone = toneForName(fullName);
+      const href = "/therapists/" + encodeURIComponent(String(p.slug || "").trim()) + "/";
+      return (
+        '<a class="city-provider-card" href="' +
+        escapeAttribute(href) +
+        '">' +
+        '<div class="city-provider-avatar city-provider-avatar--tone-' +
+        tone +
+        '" aria-hidden="true">' +
+        escapeHtml(initials) +
+        "</div>" +
+        '<div class="city-provider-body">' +
+        '<div class="city-provider-name">' +
+        escapeHtml(fullName) +
+        (credentials
+          ? '<span class="city-provider-creds">' + escapeHtml(credentials) + "</span>"
+          : "") +
+        "</div>" +
+        (meta ? '<div class="city-provider-role">' + escapeHtml(meta) + "</div>" : "") +
+        '<div class="city-provider-cta">View profile <span aria-hidden="true">&rarr;</span></div>' +
+        "</div>" +
+        "</a>"
+      );
+    })
+    .join("");
+}
+
+function buildJsonLd(providers) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    name: "Bipolar Therapists in California",
+    url: CANONICAL_URL,
+    description: OG_DESCRIPTION,
+    about: { "@type": "MedicalCondition", name: "Bipolar disorder" },
+    mainEntity: {
+      "@type": "ItemList",
+      numberOfItems: providers.length,
+      itemListElement: providers.map(function (p, index) {
+        return {
+          "@type": "ListItem",
+          position: index + 1,
+          url: SITE_URL + "/therapists/" + encodeURIComponent(String(p.slug || "").trim()) + "/",
+          name: (p.name || "") + (p.credentials ? ", " + p.credentials : ""),
+        };
+      }),
+    },
+  };
+}
+
+function buildHeadTags() {
+  return [
+    '<meta property="og:type" content="website" />',
+    '<meta property="og:site_name" content="BipolarTherapyHub" />',
+    '<meta property="og:url" content="' + CANONICAL_URL + '" />',
+    '<meta property="og:title" content="' + escapeAttribute(OG_TITLE) + '" />',
+    '<meta property="og:description" content="' + escapeAttribute(OG_DESCRIPTION) + '" />',
+    '<meta property="og:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta property="og:image:width" content="1200" />',
+    '<meta property="og:image:height" content="630" />',
+    '<meta name="twitter:card" content="summary_large_image" />',
+    '<meta name="twitter:title" content="' + escapeAttribute(OG_TITLE) + '" />',
+    '<meta name="twitter:description" content="' + escapeAttribute(OG_DESCRIPTION) + '" />',
+    '<meta name="twitter:image" content="' + SITE_URL + '/og-image.png" />',
+  ].join("\n    ");
+}
+
+function injectSeo(html, providers) {
+  const headBlock = buildHeadTags();
+  const jsonLd = JSON.stringify(buildJsonLd(providers));
+  const cardsHtml =
+    '<div class="city-provider-grid" data-static-seo-directory>' +
+    buildProviderCardsHtml(providers) +
+    "</div>";
+
+  return (
+    html
+      // OG/Twitter tags + city card styles, before </head>.
+      .replace(/<\/head>/i, "    " + headBlock + "\n    " + CITY_STYLESHEET_LINK + "\n  </head>")
+      // Fill the empty JSON-LD placeholder with a real CollectionPage.
+      .replace(
+        /<script type="application\/ld\+json" id="dirJsonLd">\s*<\/script>/i,
+        '<script type="application/ld+json" id="dirJsonLd">' + jsonLd + "</script>",
+      )
+      // Swap the loading spinner for the static provider grid.
+      .replace(/<div class="loading"[\s\S]*?<\/p>\s*<\/div>/i, cardsHtml)
+  );
+}
+
+async function fetchTherapists(config) {
+  const client = createClient({
+    projectId: config.projectId,
+    dataset: config.dataset,
+    apiVersion: API_VERSION,
+    useCdn: true,
+  });
+  return client.fetch(
+    `*[_type == "therapist" && listingActive == true && status == "active" && defined(slug.current)] | order(name asc) {
+       "slug": slug.current, name, credentials, title, city, state
+     }`,
+  );
+}
+
+async function main() {
+  const config = getConfig();
+  if (!config.projectId || !config.dataset) {
+    console.warn("[seo-directory] Sanity not configured; skipped directory pre-render.");
+    return;
+  }
+  if (!fs.existsSync(TARGET_PATH)) {
+    console.warn("[seo-directory] Missing " + TARGET_PATH + "; run vite build before this script.");
+    return;
+  }
+
+  let therapists = [];
+  try {
+    therapists = await fetchTherapists(config);
+  } catch (err) {
+    console.warn("[seo-directory] Failed to fetch therapists:", err.message, "- skipped.");
+    return;
+  }
+  if (!therapists.length) {
+    console.warn("[seo-directory] No therapists returned; left SPA shell untouched.");
+    return;
+  }
+
+  const html = fs.readFileSync(TARGET_PATH, "utf8");
+  fs.writeFileSync(TARGET_PATH, injectSeo(html, therapists), "utf8");
+  console.log(
+    "[seo-directory] Pre-rendered /directory with " +
+      therapists.length +
+      " provider cards + CollectionPage JSON-LD + OG tags",
+  );
+}
+
+main().catch(function (error) {
+  console.error("[seo-directory] Unexpected error:", error);
+  process.exitCode = 1;
+});
