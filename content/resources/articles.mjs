@@ -203,6 +203,256 @@ export const articles = [
       },
     ],
   },
+  {
+    slug: "bipolar-i-vs-bipolar-ii-treatment",
+    title: "Bipolar I vs Bipolar II: How They Differ and Why Treatment Changes",
+    metaTitle: "Bipolar I vs Bipolar II: How Treatment Differs",
+    description:
+      "Bipolar I and bipolar II are not mild and severe versions of the same thing. Here is how they differ and why the distinction changes treatment.",
+    datePublished: "2026-05-22",
+    dateModified: "2026-05-22",
+    keywords: [
+      "bipolar I vs bipolar II",
+      "bipolar 1 vs bipolar 2",
+      "bipolar II treatment",
+      "hypomania vs mania",
+      "bipolar disorder types",
+      "bipolar II misdiagnosis",
+    ],
+    heroEyebrow: "Guide",
+    heroSubtitle:
+      "Bipolar I and bipolar II are not the mild and severe versions of one condition. They are distinct, and the difference changes how each is treated.",
+    sections: [
+      {
+        type: "p",
+        html: "One of the most common misunderstandings about bipolar disorder is that bipolar II is just a lighter version of bipolar I. It is not. They are two distinct conditions that often call for different treatment, and getting the distinction right is one of the most consequential parts of good care.",
+      },
+      {
+        type: "p",
+        html: "This guide explains how bipolar I and bipolar II differ, why that changes the treatment plan, and what to look for in a clinician who takes the distinction seriously. It is general information, not medical advice. Any treatment plan should be tailored to you by your prescriber and therapist.",
+      },
+      {
+        type: "h2",
+        text: "The core difference: mania versus hypomania",
+      },
+      {
+        type: "p",
+        html: "The line between the two diagnoses comes down to the high end of the mood range.",
+      },
+      {
+        type: "ul",
+        items: [
+          "<strong>Bipolar I</strong> involves at least one full manic episode. Mania is intense and disruptive: it can include little need for sleep, racing thoughts, risky decisions, and sometimes a break from reality. It can require hospitalization.",
+          "<strong>Bipolar II</strong> involves at least one hypomanic episode plus at least one major depressive episode, and no full mania. Hypomania is a milder elevated state that does not cause the same level of disruption and can even feel productive.",
+        ],
+      },
+      {
+        type: "callout",
+        title: "Bipolar II is not 'bipolar lite'",
+        html: "The elevated states in bipolar II are milder, but the depressive episodes are often longer and more frequent than in bipolar I. People with bipolar II can spend years mostly depressed. The condition is serious and deserves serious treatment.",
+      },
+      {
+        type: "h2",
+        text: "Why the distinction changes treatment",
+      },
+      {
+        type: "p",
+        html: "Because the two conditions put their weight in different places, the treatment emphasis shifts.",
+      },
+      {
+        type: "ul",
+        items: [
+          "<strong>Where the burden falls.</strong> Bipolar I care has to plan for the possibility of full mania. Bipolar II care usually centers on managing recurrent depression while protecting against hypomania.",
+          "<strong>Medication emphasis.</strong> Both conditions are typically managed with mood stabilizers or other medications chosen by a prescriber. The specific choices often differ, because controlling mania and managing bipolar depression are not the same task.",
+          "<strong>Antidepressant caution.</strong> Antidepressants used on their own can sometimes trigger or worsen mood instability in bipolar disorder. This is a key reason an accurate diagnosis matters before treatment begins.",
+          "<strong>Therapy emphasis.</strong> For bipolar II, therapy often focuses heavily on the depressive side and on protecting daily rhythms. For bipolar I, relapse prevention and early-warning planning for mania carry extra weight.",
+        ],
+      },
+      {
+        type: "h2",
+        text: "Why bipolar II is so often missed",
+      },
+      {
+        type: "p",
+        html: "Bipolar II is frequently misdiagnosed as ordinary depression, sometimes for years. The reasons are understandable.",
+      },
+      {
+        type: "ul",
+        items: [
+          "People seek help when they are depressed, not when they are hypomanic, so the elevated episodes never come up.",
+          "Hypomania can feel good. It may look like a burst of energy or productivity rather than a symptom worth mentioning.",
+          "If a clinician does not specifically ask about past elevated periods, the pattern stays invisible and the diagnosis defaults to unipolar depression.",
+        ],
+      },
+      {
+        type: "p",
+        html: "This is exactly why working with someone who understands bipolar disorder matters. A clinician who knows what to ask is far more likely to catch the distinction. Our guide on <a href='/resources/signs-your-therapist-understands-bipolar/'>signs your therapist understands bipolar</a> covers what that looks like in practice.",
+      },
+      {
+        type: "h2",
+        text: "What good treatment looks like for either type",
+      },
+      {
+        type: "p",
+        html: "Whichever type you have, the building blocks are similar even when the emphasis differs: medication managed by a psychiatrist or psychiatric nurse practitioner, therapy with someone who understands bipolar disorder, and a shared plan for catching mood shifts early. Evidence-based approaches like IPSRT, family-focused therapy, and bipolar-adapted CBT apply to both conditions.",
+      },
+      {
+        type: "h2",
+        text: "What to look for in a therapist",
+      },
+      {
+        type: "ul",
+        items: [
+          "Asks specifically about past hypomania, not only about depression.",
+          "Can explain how bipolar I and bipolar II shape the plan differently, rather than treating them as one thing.",
+          "Coordinates with the prescriber who manages your medication.",
+          "Does not collapse bipolar II into 'just depression.'",
+        ],
+      },
+      {
+        type: "p",
+        html: "If you are still searching, start with our guide on <a href='/resources/how-to-find-a-bipolar-therapist/'>how to find a bipolar therapist</a>, or browse <a href='/directory'>the directory</a> of bipolar-informed clinicians.",
+      },
+      {
+        type: "cta",
+        title: "Find a therapist who knows the difference",
+        html: "Two questions and we shortlist bipolar specialists who understand both bipolar I and bipolar II. No account, no insurance required.",
+        href: "/match",
+        label: "Get matched",
+      },
+    ],
+    faqs: [
+      {
+        q: "Is bipolar II less serious than bipolar I?",
+        a: "No. The elevated episodes are milder in bipolar II, but the depressive episodes are often longer and more frequent, and the overall burden can be just as heavy. Both conditions are serious and benefit from specialist care.",
+      },
+      {
+        q: "Can bipolar II turn into bipolar I?",
+        a: "For most people the diagnosis stays stable, but a smaller number who are first diagnosed with bipolar II later experience a full manic episode, which changes the diagnosis to bipolar I. This is one reason ongoing care and monitoring matter.",
+      },
+      {
+        q: "Why was I diagnosed with depression first?",
+        a: "Because people usually seek help while depressed, and hypomania often goes unmentioned or unnoticed, bipolar II is commonly misdiagnosed as unipolar depression at first. A clinician who asks specifically about past elevated periods is more likely to catch it.",
+      },
+      {
+        q: "Do bipolar I and bipolar II use different medications?",
+        a: "Often, yes. Both are typically treated with mood stabilizers or related medications, but the specific choices a prescriber makes can differ because managing mania and managing bipolar depression are different tasks. Medication decisions belong to a psychiatrist or psychiatric nurse practitioner.",
+      },
+      {
+        q: "Can therapy alone treat bipolar disorder?",
+        a: "Therapy is a powerful part of bipolar care, but medication is generally the foundation for both bipolar I and bipolar II. Most effective treatment combines a prescriber and a therapist who coordinate on your care.",
+      },
+    ],
+  },
+  {
+    slug: "signs-your-therapist-understands-bipolar",
+    title: "Signs Your Therapist Actually Understands Bipolar Disorder",
+    metaTitle: "Signs Your Therapist Understands Bipolar",
+    description:
+      "How to tell whether a therapist truly gets bipolar disorder, the green flags and red flags to watch for, and when it is worth switching.",
+    datePublished: "2026-05-22",
+    dateModified: "2026-05-22",
+    keywords: [
+      "therapist understands bipolar",
+      "good bipolar therapist signs",
+      "bipolar therapist red flags",
+      "how to evaluate a therapist",
+      "switching therapists bipolar",
+    ],
+    heroEyebrow: "Guide",
+    heroSubtitle:
+      "Finding a therapist is one thing. Knowing they actually get bipolar disorder is another. The first few sessions tell you more than any profile.",
+    sections: [
+      {
+        type: "p",
+        html: "You can do everything right in the search and still end up with a therapist who does not quite understand bipolar disorder. The good news is that competence shows itself quickly. Within the first few sessions, the way a therapist asks questions and frames your experience tells you a lot about whether they get it.",
+      },
+      {
+        type: "p",
+        html: "Here are the green flags worth trusting, the red flags worth taking seriously, and how to decide whether to stay or move on. If you are still at the search stage, start with our guide on <a href='/resources/how-to-find-a-bipolar-therapist/'>how to find a bipolar therapist</a>.",
+      },
+      {
+        type: "h2",
+        text: "Green flags: signs they get it",
+      },
+      {
+        type: "ul",
+        items: [
+          "<strong>They ask about sleep and daily rhythm.</strong> Sleep and routine are powerful levers in bipolar disorder. A therapist who treats them as central, not small talk, understands the condition.",
+          "<strong>They ask about the highs, not just the lows.</strong> A clinician who only explores depression is missing half the picture. Good ones ask specifically about hypomania and elevated periods.",
+          "<strong>They want to coordinate with your prescriber.</strong> Bipolar care is a team effort. A therapist who asks about your psychiatrist or nurse practitioner and wants to stay in the loop is doing it right.",
+          "<strong>They help you map early warning signs.</strong> Knowing your personal signals before an episode builds is one of the most protective things therapy can do.",
+          "<strong>They distinguish bipolar I from bipolar II.</strong> If they can explain how the two differ for you, that is real expertise. Our guide on <a href='/resources/bipolar-i-vs-bipolar-ii-treatment/'>bipolar I vs bipolar II</a> covers why this matters.",
+          "<strong>They treat stability as a long practice.</strong> Not a quick fix, but something built and maintained over time.",
+          "<strong>They validate without pathologizing.</strong> You feel understood, not reduced to a diagnosis.",
+        ],
+      },
+      {
+        type: "h2",
+        text: "Red flags: signs to take seriously",
+      },
+      {
+        type: "ul",
+        items: [
+          "They treat bipolar as interchangeable with depression and never mention the elevated side.",
+          "They are dismissive of medication, or encourage you to stop it without involving your prescriber.",
+          "They have no plan for what happens if a mood episode starts to build.",
+          "They seem surprised or unsure when you describe mixed states or hypomania.",
+          "They make you feel judged for symptoms instead of supported through them.",
+        ],
+      },
+      {
+        type: "callout",
+        title: "One red flag is a conversation, a pattern is a decision",
+        html: "No therapist is perfect, and one awkward moment is not a reason to leave. But a consistent pattern of missing the bipolar-specific picture is worth acting on. Your time and stability are too valuable to spend explaining the basics every week.",
+      },
+      {
+        type: "h2",
+        text: "How to evaluate in the first few sessions",
+      },
+      {
+        type: "p",
+        html: "You do not need to interrogate anyone. Just notice how the early sessions feel and whether the therapist does the things above. It also helps to name what you want directly: tell them you are looking for someone who understands bipolar disorder specifically, and see how they respond. A specialist will meet that head-on.",
+      },
+      {
+        type: "h2",
+        text: "When it is worth switching",
+      },
+      {
+        type: "p",
+        html: "Switching therapists is normal and not a failure. Fit is clinical, not just personal, and the right match makes a measurable difference. If you do decide to move on, keep a few things in mind: do not stop any medication on your own, ask your current therapist for a summary or records if helpful, and line up the next clinician before you leave the current one when you can.",
+      },
+      {
+        type: "p",
+        html: "When you are ready to look, browse <a href='/directory'>the directory</a> of bipolar-informed clinicians, or get a shortlist matched to you.",
+      },
+      {
+        type: "cta",
+        title: "Find a therapist who truly gets it",
+        html: "Skip the trial and error. Two questions and we shortlist the bipolar specialists who fit you. No account, no insurance required.",
+        href: "/match",
+        label: "Get matched",
+      },
+    ],
+    faqs: [
+      {
+        q: "How long before I know if a therapist is right for me?",
+        a: "Usually within two to four sessions. That is enough time to see whether they ask about the full mood range, coordinate with your prescriber, and help you plan for episodes. Trust how the sessions feel alongside what they actually do.",
+      },
+      {
+        q: "Is it normal to switch therapists?",
+        a: "Completely normal. Fit matters clinically, and many people see more than one therapist before finding the right match. Switching is a sign you are taking your care seriously, not a failure.",
+      },
+      {
+        q: "Should my therapist talk to my psychiatrist?",
+        a: "Ideally, yes, with your permission. Bipolar care works best when the therapist and the prescriber coordinate. A therapist who welcomes that collaboration is usually a good sign.",
+      },
+      {
+        q: "Can a good therapist help with bipolar even if they are not a specialist?",
+        a: "Sometimes, but specificity matters for bipolar disorder. A therapist who explicitly works with bipolar clients and understands the distinction between mania and hypomania is far more likely to give you care that fits.",
+      },
+    ],
+  },
 ];
 
 export default articles;
