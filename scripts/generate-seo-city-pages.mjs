@@ -258,11 +258,16 @@ function buildCityHeroHtml(city, state, providers) {
   );
 }
 
-function buildCityContextHtml(city, state, cityContent) {
+function buildCityContextHtml(city, state, cityContent, stats) {
+  const fee = formatFeeRange(stats);
+  const feeClause = fee
+    ? " Among the specialists listed here, session fees typically run " + fee + "."
+    : "";
   const fallback =
     "Finding a therapist who specializes in bipolar disorder in " +
     city +
-    " means looking past general mood disorder listings and confirming real bipolar-specific experience. Every clinician on this page has been verified for that, so you can compare options without the usual guesswork.";
+    " means looking past general mood disorder listings and confirming real bipolar-specific experience. Every clinician on this page has been verified for that, so you can compare options without the usual guesswork." +
+    feeClause;
   const blurb = (cityContent && cityContent.context) || fallback;
   return (
     '<section class="city-context">' +
@@ -355,7 +360,15 @@ function buildWhatToLookForHtml(city) {
   );
 }
 
-function buildCityFaqHtml(city) {
+function buildCityFaqHtml(city, stats) {
+  const cityFee = stats ? formatFeeRange(stats) : "";
+  const costAnswer = cityFee
+    ? "Among the bipolar specialists listed in " +
+      city +
+      ", typical session fees run " +
+      cityFee +
+      ". Across California, out-of-pocket rates generally range from $150 to $300, with the highest in San Francisco and West Los Angeles. Many therapists accept commercial insurance, a smaller number accept Medi-Cal, and some offer sliding scale. Each provider lists their fee range and insurance acceptance on their profile."
+    : "Out-of-pocket sessions in California generally range from $150 to $300, with the highest rates in San Francisco and West Los Angeles. Many therapists accept commercial insurance, and a smaller number accept Medi-Cal or offer sliding scale. Each provider on this page lists their fee range and insurance acceptance on their profile.";
   const items = [
     {
       q: "Do I need a psychiatrist or a therapist for bipolar?",
@@ -366,7 +379,7 @@ function buildCityFaqHtml(city) {
     },
     {
       q: "How much does bipolar therapy typically cost in " + city + "?",
-      a: "Out-of-pocket sessions in California generally range from $150 to $300, with the highest rates in San Francisco and West Los Angeles. Many therapists accept commercial insurance, and a smaller number accept Medi-Cal or offer sliding scale. Each provider on this page lists their fee range and insurance acceptance on their profile.",
+      a: costAnswer,
     },
     {
       q: "What if I can't find an in-network bipolar specialist?",
@@ -423,14 +436,41 @@ function buildCityCtaBandHtml(city) {
   );
 }
 
+// Real session-fee range for a city, derived from provider data. This is
+// the one trustworthy datum that genuinely varies city to city, so it is
+// woven into the context blurb and the cost FAQ to de-templatize them.
+// (Accepting/telehealth/in-person booleans are uniformly true across the
+// dataset, so they are not surfaced — they would read as filler and may
+// be defaults rather than verified facts.)
+function computeCityStats(providers) {
+  let feeMin = null;
+  let feeMax = null;
+  for (const p of providers || []) {
+    const lo = Number(p && p.sessionFeeMin);
+    const hi = Number((p && p.sessionFeeMax) || (p && p.sessionFeeMin));
+    if (Number.isFinite(lo) && lo > 0) feeMin = feeMin === null ? lo : Math.min(feeMin, lo);
+    if (Number.isFinite(hi) && hi > 0) feeMax = feeMax === null ? hi : Math.max(feeMax, hi);
+  }
+  return { feeMin, feeMax };
+}
+
+function formatFeeRange(stats) {
+  if (!stats || stats.feeMin === null) return "";
+  if (stats.feeMax && stats.feeMax !== stats.feeMin) {
+    return "$" + stats.feeMin + "–$" + stats.feeMax;
+  }
+  return "$" + stats.feeMin;
+}
+
 function buildFallbackBodyHtml(city, state, providers, cityContent) {
+  const stats = computeCityStats(providers);
   return (
     '<div class="seo-city-fallback" data-static-seo-city>' +
     buildCityHeroHtml(city, state, providers) +
-    buildCityContextHtml(city, state, cityContent) +
+    buildCityContextHtml(city, state, cityContent, stats) +
     buildCityProvidersHtml(city, providers) +
     buildWhatToLookForHtml(city) +
-    buildCityFaqHtml(city) +
+    buildCityFaqHtml(city, stats) +
     buildCityCtaBandHtml(city) +
     "</div>"
   );
@@ -711,7 +751,8 @@ async function fetchTherapists(config) {
   });
   return client.fetch(
     `*[_type == "therapist" && listingActive == true && status == "active" && defined(slug.current) && defined(city)] | order(name asc) {
-       "slug": slug.current, name, credentials, title, city, state
+       "slug": slug.current, name, credentials, title, city, state,
+       sessionFeeMin, sessionFeeMax
      }`,
   );
 }
