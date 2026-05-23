@@ -1,0 +1,338 @@
+/* Styles for the /resources/ guide hub and article pages.
+   Loaded only on those pages (injected by generate-resource-pages.mjs),
+   so it never touches the homepage / directory / match bundles.
+   Self-contained: defines its own palette + fonts so it does not depend
+   on variables declared inline in any single template. */
+
+.res {
+  --res-teal: #1a7a8f;
+  --res-teal-light: #2a9cb3;
+  --res-teal-dark: #155f70;
+  --res-teal-faint: #e8f5f8;
+  --res-navy: #1d3a4a;
+  --res-slate: #4a6572;
+  --res-muted: #5a727f;
+  --res-border: #d4e4e9;
+  --res-serif: "DM Serif Display", Georgia, "Times New Roman", serif;
+  --res-sans: "DM Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+}
+
+/* ---- HERO ---- */
+.res-hero {
+  background: linear-gradient(160deg, #0a3a4a 0%, #1a7a8f 60%, #2a9cb3 100%);
+  color: #fff;
+  padding: 4.5rem 1.5rem 4rem;
+}
+.res-hero-inner {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.res-hero-eyebrow {
+  display: inline-block;
+  font-family: var(--res-sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.12);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  margin-bottom: 1.25rem;
+}
+.res-hero h1 {
+  font-family: var(--res-serif);
+  font-size: clamp(2rem, 4.2vw, 2.9rem);
+  font-weight: 600;
+  line-height: 1.14;
+  color: #fff;
+  margin: 0 0 1.25rem;
+  letter-spacing: -0.01em;
+}
+.res-hero-sub {
+  font-size: 1.08rem;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 60ch;
+  margin: 0 0 1.25rem;
+}
+.res-hero-meta {
+  font-family: var(--res-sans);
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.78);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1rem;
+  align-items: center;
+}
+.res-hero-meta a {
+  color: #fff;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ---- ARTICLE BODY ---- */
+.res-article {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2.75rem 1.5rem 1rem;
+  font-family: var(--res-sans);
+}
+.res-article p {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: var(--res-slate);
+  margin: 0 0 1.15rem;
+}
+.res-article a {
+  color: var(--res-teal-dark);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.res-article a:hover {
+  color: var(--res-teal);
+}
+.res-article h2 {
+  font-family: var(--res-serif);
+  font-size: clamp(1.5rem, 2.8vw, 1.85rem);
+  font-weight: 600;
+  line-height: 1.2;
+  color: var(--res-navy);
+  margin: 2.5rem 0 1rem;
+  scroll-margin-top: 80px;
+}
+.res-article h3 {
+  font-family: var(--res-sans);
+  font-size: 1.12rem;
+  font-weight: 700;
+  color: var(--res-navy);
+  margin: 1.75rem 0 0.6rem;
+}
+.res-article ul,
+.res-article ol {
+  margin: 0 0 1.3rem;
+  padding-left: 1.3rem;
+}
+.res-article li {
+  font-size: 1.05rem;
+  line-height: 1.65;
+  color: var(--res-slate);
+  margin-bottom: 0.6rem;
+}
+.res-article li strong {
+  color: var(--res-navy);
+}
+
+/* ---- TABLE OF CONTENTS ---- */
+.res-toc {
+  border: 1px solid var(--res-border);
+  background: #fbfdfe;
+  border-radius: 14px;
+  padding: 1.25rem 1.4rem;
+  margin: 0 0 2.25rem;
+}
+.res-toc-title {
+  font-family: var(--res-sans);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--res-teal-dark);
+  margin: 0 0 0.75rem;
+}
+.res-toc ol {
+  margin: 0;
+  padding-left: 1.1rem;
+}
+.res-toc li {
+  margin-bottom: 0.4rem;
+  font-size: 0.97rem;
+}
+.res-toc a {
+  color: var(--res-slate);
+  text-decoration: none;
+}
+.res-toc a:hover {
+  color: var(--res-teal-dark);
+  text-decoration: underline;
+}
+
+/* ---- CALLOUT ---- */
+.res-callout {
+  background: var(--res-teal-faint);
+  border: 1px solid rgba(26, 122, 143, 0.18);
+  border-left: 4px solid var(--res-teal);
+  border-radius: 12px;
+  padding: 1.25rem 1.4rem;
+  margin: 0 0 1.6rem;
+}
+.res-callout-title {
+  font-family: var(--res-sans);
+  font-weight: 700;
+  color: var(--res-navy);
+  margin: 0 0 0.5rem;
+}
+.res-callout p {
+  margin: 0;
+  color: var(--res-slate);
+}
+
+/* ---- CTA BAND ---- */
+.res-cta {
+  max-width: 760px;
+  margin: 2rem auto 0;
+  padding: 0 1.5rem;
+}
+.res-cta-card {
+  background: linear-gradient(160deg, #0a3a4a 0%, #1a7a8f 100%);
+  color: #fff;
+  border-radius: 16px;
+  padding: 2rem 1.75rem;
+  text-align: center;
+}
+.res-cta-card h2 {
+  font-family: var(--res-serif);
+  font-size: 1.6rem;
+  font-weight: 600;
+  margin: 0 0 0.6rem;
+  color: #fff;
+}
+.res-cta-card p {
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 1.25rem;
+  font-size: 1.02rem;
+}
+.res-cta-button {
+  display: inline-block;
+  background: #fff;
+  color: var(--res-teal-dark);
+  font-family: var(--res-sans);
+  font-weight: 700;
+  text-decoration: none;
+  padding: 0.8rem 1.6rem;
+  border-radius: 999px;
+  transition: transform 0.15s ease;
+}
+.res-cta-button:hover {
+  transform: translateY(-1px);
+}
+
+/* ---- FAQ ---- */
+.res-faq {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 2.75rem 1.5rem 1rem;
+  font-family: var(--res-sans);
+}
+.res-faq-kicker {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--res-teal-dark);
+  margin: 0 0 0.5rem;
+}
+.res-faq h2 {
+  font-family: var(--res-serif);
+  font-size: clamp(1.5rem, 2.8vw, 1.85rem);
+  font-weight: 600;
+  color: var(--res-navy);
+  margin: 0 0 1.5rem;
+}
+.res-faq-item {
+  border-top: 1px solid var(--res-border);
+  padding: 1.25rem 0;
+}
+.res-faq-q {
+  font-weight: 700;
+  color: var(--res-navy);
+  font-size: 1.05rem;
+  margin: 0 0 0.5rem;
+}
+.res-faq-a {
+  color: var(--res-slate);
+  font-size: 1.02rem;
+  line-height: 1.65;
+  margin: 0;
+}
+
+/* ---- ARTICLE FOOTER NAV ---- */
+.res-back {
+  max-width: 760px;
+  margin: 2.5rem auto 0;
+  padding: 0 1.5rem;
+  font-family: var(--res-sans);
+  font-size: 0.95rem;
+}
+.res-back a {
+  color: var(--res-teal-dark);
+  text-decoration: none;
+  font-weight: 600;
+}
+.res-back a:hover {
+  text-decoration: underline;
+}
+
+/* ---- HUB ---- */
+.res-hub {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 3rem 1.5rem 2rem;
+  font-family: var(--res-sans);
+}
+.res-hub-grid {
+  display: grid;
+  gap: 1.1rem;
+  grid-template-columns: 1fr;
+}
+.res-hub-card {
+  display: block;
+  border: 1px solid var(--res-border);
+  border-radius: 14px;
+  padding: 1.5rem 1.6rem;
+  text-decoration: none;
+  background: #fff;
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
+}
+.res-hub-card:hover {
+  border-color: var(--res-teal-light);
+  transform: translateY(-2px);
+}
+.res-hub-card-eyebrow {
+  font-size: 0.74rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--res-teal-dark);
+  margin: 0 0 0.55rem;
+}
+.res-hub-card-title {
+  font-family: var(--res-serif);
+  font-size: 1.3rem;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--res-navy);
+  margin: 0 0 0.55rem;
+}
+.res-hub-card-desc {
+  color: var(--res-slate);
+  font-size: 1rem;
+  line-height: 1.6;
+  margin: 0 0 0.75rem;
+}
+.res-hub-card-meta {
+  font-size: 0.85rem;
+  color: var(--res-muted);
+}
+
+@media (max-width: 640px) {
+  .res-hero {
+    padding: 3.25rem 1.25rem 2.75rem;
+  }
+  .res-article,
+  .res-faq {
+    padding-left: 1.25rem;
+    padding-right: 1.25rem;
+  }
+}

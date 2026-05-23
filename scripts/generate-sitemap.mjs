@@ -11,6 +11,8 @@ import path from "node:path";
 import process from "node:process";
 import { createClient } from "@sanity/client";
 
+import { articles } from "../content/resources/articles.mjs";
+
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const SITE_URL = "https://www.bipolartherapyhub.com";
@@ -138,6 +140,35 @@ function bucketTherapistsByCity(therapists) {
   });
 }
 
+// Static resource/guide pages. Fully static content (no Sanity), so
+// these are included in every sitemap, including the offline fallback.
+function buildResourceEntries(now) {
+  const list = Array.isArray(articles) ? articles : [];
+  const latest = list
+    .map((a) => (a.dateModified || a.datePublished || "").slice(0, 10))
+    .filter(Boolean)
+    .sort()
+    .pop();
+  const entries = [
+    {
+      loc: "/resources/",
+      lastmod: latest || now,
+      changefreq: "weekly",
+      priority: "0.6",
+    },
+  ];
+  for (const a of list) {
+    if (!a || !a.slug) continue;
+    entries.push({
+      loc: "/resources/" + a.slug + "/",
+      lastmod: (a.dateModified || a.datePublished || "").slice(0, 10) || now,
+      changefreq: "monthly",
+      priority: "0.7",
+    });
+  }
+  return entries;
+}
+
 function buildSitemapXml(entries) {
   const header = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
   const body = entries.map(buildUrlEntry).join("\n");
@@ -146,10 +177,9 @@ function buildSitemapXml(entries) {
 }
 
 function writeStaticFallback() {
-  const entries = STATIC_ROUTES.map((r) => ({
-    ...r,
-    lastmod: new Date().toISOString().slice(0, 10),
-  }));
+  const now = new Date().toISOString().slice(0, 10);
+  const entries = STATIC_ROUTES.map((r) => ({ ...r, lastmod: now }));
+  entries.push(...buildResourceEntries(now));
   fs.writeFileSync(OUTPUT_PATH, buildSitemapXml(entries), "utf8");
   console.warn(`[sitemap] Sanity not configured — wrote static-only sitemap to ${OUTPUT_PATH}`);
 }
@@ -197,9 +227,12 @@ async function main() {
     });
   });
 
+  const resourceEntries = buildResourceEntries(now);
+  entries.push(...resourceEntries);
+
   fs.writeFileSync(OUTPUT_PATH, buildSitemapXml(entries), "utf8");
   console.log(
-    `[sitemap] Wrote ${entries.length} URLs (${therapists.length} therapist profiles + ${cityBuckets.length} city pages + ${STATIC_ROUTES.length} static) to ${OUTPUT_PATH}`,
+    `[sitemap] Wrote ${entries.length} URLs (${therapists.length} therapist profiles + ${cityBuckets.length} city pages + ${resourceEntries.length} resource pages + ${STATIC_ROUTES.length} static) to ${OUTPUT_PATH}`,
   );
 }
 
