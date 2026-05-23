@@ -129,6 +129,7 @@ function buildDescription(city, state, count) {
 
 function buildJsonLd(city, state, slug, providers) {
   const canonicalUrl = buildCanonicalUrl(slug);
+  const stats = computeCityStats(providers);
   return [
     {
       "@context": "https://schema.org",
@@ -152,6 +153,7 @@ function buildJsonLd(city, state, slug, providers) {
         }),
       },
     },
+    buildCityFaqJsonLd(city, stats),
   ];
 }
 
@@ -360,7 +362,9 @@ function buildWhatToLookForHtml(city) {
   );
 }
 
-function buildCityFaqHtml(city, stats) {
+// Single source of truth for the city FAQ, consumed by both the visible
+// HTML and the JSON-LD FAQPage so the two never drift.
+function getCityFaqItems(city, stats) {
   const cityFee = stats ? formatFeeRange(stats) : "";
   const costAnswer = cityFee
     ? "Among the bipolar specialists listed in " +
@@ -369,7 +373,7 @@ function buildCityFaqHtml(city, stats) {
       cityFee +
       ". Across California, out-of-pocket rates generally range from $150 to $300, with the highest in San Francisco and West Los Angeles. Many therapists accept commercial insurance, a smaller number accept Medi-Cal, and some offer sliding scale. Each provider lists their fee range and insurance acceptance on their profile."
     : "Out-of-pocket sessions in California generally range from $150 to $300, with the highest rates in San Francisco and West Los Angeles. Many therapists accept commercial insurance, and a smaller number accept Medi-Cal or offer sliding scale. Each provider on this page lists their fee range and insurance acceptance on their profile.";
-  const items = [
+  return [
     {
       q: "Do I need a psychiatrist or a therapist for bipolar?",
       a:
@@ -394,8 +398,15 @@ function buildCityFaqHtml(city, stats) {
       a: "Licensed therapists (LMFT, LCSW, LPCC) can identify symptoms consistent with bipolar disorder, but formal diagnosis and medication management require a psychiatrist, psychiatric nurse practitioner, or in some cases a psychologist with prescribing authority. If you suspect bipolar, ask any therapist you talk to whether they can refer you to a prescriber.",
     },
   ];
+}
+
+// Visible FAQ. Structured data now lives in the JSON-LD FAQPage (see
+// buildCityFaqJsonLd), so no microdata attributes here — carrying both
+// would risk duplicate FAQ structured data.
+function buildCityFaqHtml(city, stats) {
+  const items = getCityFaqItems(city, stats);
   return (
-    '<section class="city-faq" itemscope itemtype="https://schema.org/FAQPage">' +
+    '<section class="city-faq">' +
     '<div class="city-section-inner">' +
     '<p class="city-section-kicker">Common questions</p>' +
     '<h2 class="city-section-h2">Frequently asked</h2>' +
@@ -403,14 +414,12 @@ function buildCityFaqHtml(city, stats) {
     items
       .map(function (item) {
         return (
-          '<div class="city-faq-item" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">' +
-          '<dt class="city-faq-q" itemprop="name">' +
+          '<div class="city-faq-item">' +
+          '<dt class="city-faq-q">' +
           escapeHtml(item.q) +
           "</dt>" +
-          '<dd class="city-faq-a" itemscope itemprop="acceptedAnswer" itemtype="https://schema.org/Answer">' +
-          '<span itemprop="text">' +
+          '<dd class="city-faq-a">' +
           escapeHtml(item.a) +
-          "</span>" +
           "</dd>" +
           "</div>"
         );
@@ -420,6 +429,20 @@ function buildCityFaqHtml(city, stats) {
     "</div>" +
     "</section>"
   );
+}
+
+function buildCityFaqJsonLd(city, stats) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: getCityFaqItems(city, stats).map(function (item) {
+      return {
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      };
+    }),
+  };
 }
 
 function buildCityCtaBandHtml(city) {
