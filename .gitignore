@@ -35,3 +35,6 @@ public/sitemap.xml
 
 # Sanity dataset exports — local backups, not content
 backups/
+
+# Lighthouse CI local run artifacts
+.lighthouseci/
