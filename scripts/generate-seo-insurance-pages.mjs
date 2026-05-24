@@ -646,7 +646,7 @@ function buildInsuranceColumn(buckets) {
 function buildInsuranceInline(buckets) {
   return (
     '<div class="footer-cities-inline footer-insurance-inline">\n' +
-    "        <h4>Browse by Insurance</h4>\n        " +
+    "        <h2>Browse by Insurance</h2>\n        " +
     buildFooterInsuranceLinks(buckets) +
     '\n        <a href="/insurance/" class="footer-city-all">See all insurance</a>\n      </div>'
   );
