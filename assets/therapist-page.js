@@ -1,6 +1,7 @@
 import "./sentry-init.js";
 import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
+import { sanityImageUrl } from "./sanity-image.js";
 import { getDataFreshnessSummary, getTherapistMatchReadiness } from "./matching-model.js";
 import {
   getPublicResponsivenessSignal,
@@ -2093,8 +2094,8 @@ function renderProfile(t, therapistDirectory) {
   var heroPhotoUrl = safeExternalUrl(t.photo_url);
   var heroAvatarHtml = heroPhotoUrl
     ? '<img src="' +
-      escapeHtml(heroPhotoUrl) +
-      '" alt="" class="profile-hero-avatar" loading="lazy" decoding="async" />'
+      escapeHtml(sanityImageUrl(heroPhotoUrl, { width: 144, height: 144 })) +
+      '" alt="" width="72" height="72" class="profile-hero-avatar" loading="lazy" decoding="async" />'
     : '<span class="profile-hero-avatar profile-hero-avatar--tone-' +
       heroAvatarTone(t.slug) +
       '">' +
