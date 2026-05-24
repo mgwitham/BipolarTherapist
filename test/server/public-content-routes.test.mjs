@@ -26,6 +26,16 @@ const SENSITIVE_KEYS = new Set([
   "supporting_source_urls",
   "fieldTrustMeta",
   "field_trust_meta",
+  "claimStatus",
+  "claim_status",
+  "dedupeOverrides",
+  "dedupe_overrides",
+  "lifecycle",
+  "listingActive",
+  "listing_active",
+  "status",
+  "visibilityIntent",
+  "visibility_intent",
 ]);
 
 function collectSensitiveKeys(value, found = []) {
@@ -59,6 +69,8 @@ function publicTherapist(overrides) {
     status: "active",
     visibilityIntent: "listed",
     lifecycle: "approved",
+    claimStatus: "claimed",
+    dedupeOverrides: ["internal-dedupe-override"],
     claimedByEmail: "private-owner@example.com",
     claimedAt: "2026-04-01T00:00:00.000Z",
     portalLastSeenAt: "2026-04-15T00:00:00.000Z",
@@ -98,6 +110,7 @@ test("public content API lists only live therapists and strips private fields", 
   assert.equal(response.payload.length, 1);
   assert.equal(response.payload[0].slug, "dr-public-boundary");
   assert.equal(response.payload[0].email, "public@example.com");
+  assert.equal("license_number" in response.payload[0], false);
   assert.equal("photo_source_type" in response.payload[0], false);
   assert.equal("photo_reviewed_at" in response.payload[0], false);
   assert.equal("photo_usage_permission_confirmed" in response.payload[0], false);
@@ -132,6 +145,64 @@ test("public content API returns derived source metadata instead of raw source U
   assert.equal(response.payload.supporting_source_count, 2);
   assert.equal("source_url" in response.payload, false);
   assert.equal("supporting_source_urls" in response.payload, false);
+});
+
+test("public content API redacts email and phone when another public contact route is preferred", async function () {
+  const { client } = createMemoryClient({
+    public: publicTherapist({
+      preferredContactMethod: "booking",
+      bookingUrl: "https://practice.example/book",
+      website: "https://practice.example",
+    }),
+  });
+  const handler = createPublicContentHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    headers: { host: "localhost:8787" },
+    method: "GET",
+    url: "/api/public/therapists/dr-public-boundary",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.preferred_contact_method, "booking");
+  assert.equal(response.payload.booking_url, "https://practice.example/book");
+  assert.equal(response.payload.website, "https://practice.example");
+  assert.equal(response.payload.email, "");
+  assert.equal(response.payload.phone, "");
+});
+
+test("public content API only exposes the explicitly preferred direct contact field", async function () {
+  const { client } = createMemoryClient({
+    email: publicTherapist({
+      _id: "therapist-email",
+      slug: { current: "email-profile" },
+      preferredContactMethod: "email",
+    }),
+    phone: publicTherapist({
+      _id: "therapist-phone",
+      slug: { current: "phone-profile" },
+      preferredContactMethod: "phone",
+    }),
+  });
+  const handler = createPublicContentHandler(createTestApiConfig(), client);
+
+  const emailResponse = await runHandlerRequest(handler, {
+    headers: { host: "localhost:8787" },
+    method: "GET",
+    url: "/api/public/therapists/email-profile",
+  });
+  const phoneResponse = await runHandlerRequest(handler, {
+    headers: { host: "localhost:8787" },
+    method: "GET",
+    url: "/api/public/therapists/phone-profile",
+  });
+
+  assert.equal(emailResponse.statusCode, 200);
+  assert.equal(emailResponse.payload.email, "public@example.com");
+  assert.equal(emailResponse.payload.phone, "");
+  assert.equal(phoneResponse.statusCode, 200);
+  assert.equal(phoneResponse.payload.email, "");
+  assert.equal(phoneResponse.payload.phone, "555-202-4040");
 });
 
 test("public content API returns 404 for hidden therapist slugs", async function () {

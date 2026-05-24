@@ -7,7 +7,59 @@ import { getReviewApiConfig } from "./review-config.mjs";
 const FOUNDING_SLOT_CAP = 50;
 const PUBLIC_CACHE_CONTROL = "public, max-age=0, s-maxage=60, stale-while-revalidate=300";
 
-const PUBLIC_THERAPIST_PROJECTION = `{
+const PUBLIC_THERAPIST_LIST_PROJECTION = `{
+  _id,
+  _type,
+  name,
+  credentials,
+  title,
+  bio,
+  bioPreview,
+  "photo_url": photo.asset->url,
+  email,
+  phone,
+  website,
+  preferredContactMethod,
+  preferredContactLabel,
+  contactGuidance,
+  firstStepExpectation,
+  bookingUrl,
+  city,
+  state,
+  zip,
+  country,
+  specialties,
+  treatmentModalities,
+  clientPopulations,
+  insuranceAccepted,
+  acceptsTelehealth,
+  acceptsInPerson,
+  acceptingNewPatients,
+  yearsExperience,
+  bipolarYearsExperience,
+  languages,
+  telehealthStates,
+  estimatedWaitTime,
+  careApproach,
+  bipolarApproach,
+  availabilityPosture,
+  medicationManagement,
+  verificationStatus,
+  sourceReviewedAt,
+  therapistReportedFields,
+  therapistReportedConfirmedAt,
+  fieldReviewStates,
+  sessionFeeMin,
+  sessionFeeMax,
+  slidingScale,
+  gender,
+  listingActive,
+  status,
+  visibilityIntent,
+  "slug": slug.current
+}`;
+
+const PUBLIC_THERAPIST_PROFILE_PROJECTION = `{
   _id,
   _type,
   name,
@@ -27,7 +79,6 @@ const PUBLIC_THERAPIST_PROJECTION = `{
   contactGuidance,
   firstStepExpectation,
   bookingUrl,
-  claimStatus,
   practiceName,
   city,
   state,
@@ -64,14 +115,12 @@ const PUBLIC_THERAPIST_PROJECTION = `{
   gender,
   listingActive,
   status,
-  lifecycle,
   visibilityIntent,
-  dedupeOverrides,
   "slug": slug.current
 }`;
 
-const PUBLIC_THERAPIST_LIST_QUERY = `*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"] | order(name asc) ${PUBLIC_THERAPIST_PROJECTION}`;
-const PUBLIC_THERAPIST_BY_SLUG_QUERY = `*[_type == "therapist" && slug.current == $slug && listingActive == true && status == "active" && visibilityIntent == "listed"][0] ${PUBLIC_THERAPIST_PROJECTION}`;
+const PUBLIC_THERAPIST_LIST_QUERY = `*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"] | order(name asc) ${PUBLIC_THERAPIST_LIST_PROJECTION}`;
+const PUBLIC_THERAPIST_BY_SLUG_QUERY = `*[_type == "therapist" && slug.current == $slug && listingActive == true && status == "active" && visibilityIntent == "listed"][0] ${PUBLIC_THERAPIST_PROFILE_PROJECTION}`;
 
 function getAllowedOrigin(origin, config) {
   if (!origin || !Array.isArray(config.allowedOrigins)) {
@@ -146,6 +195,41 @@ function getSupportingSourceCount(doc) {
   return arrayValue(doc && doc.supportingSourceUrls, doc && doc.supporting_source_urls).length;
 }
 
+function normalizePreferredContactMethod(value) {
+  const method = String(value || "")
+    .trim()
+    .toLowerCase();
+  return method === "booking_url" ? "booking" : method;
+}
+
+function getPublicEmail(doc) {
+  const email = String((doc && doc.email) || "").trim();
+  if (!email) return "";
+  const preferredContactMethod = normalizePreferredContactMethod(
+    doc && (doc.preferredContactMethod || doc.preferred_contact_method),
+  );
+  // If a therapist explicitly prefers booking, website, or phone, do not
+  // publish their email as an alternate scrapeable route. Older records
+  // without a preference keep the legacy fallback so live profiles do not
+  // become unreachable until the portal has collected a clear choice.
+  if (preferredContactMethod && preferredContactMethod !== "email") {
+    return "";
+  }
+  return email;
+}
+
+function getPublicPhone(doc) {
+  const phone = String((doc && doc.phone) || "").trim();
+  if (!phone) return "";
+  const preferredContactMethod = normalizePreferredContactMethod(
+    doc && (doc.preferredContactMethod || doc.preferred_contact_method),
+  );
+  if (preferredContactMethod && preferredContactMethod !== "phone") {
+    return "";
+  }
+  return phone;
+}
+
 export function normalizePublicTherapist(doc, options = {}) {
   const fieldReviewStates = normalizeFieldReviewStates(doc && doc.fieldReviewStates, {
     keyStyle: "camelCase",
@@ -158,20 +242,18 @@ export function normalizePublicTherapist(doc, options = {}) {
     bio: normalizeDisplayRole(doc.bio || ""),
     bio_preview: normalizeDisplayRole(doc.bioPreview || doc.bio_preview || doc.bio || ""),
     photo_url: getPhotoUrl(doc),
-    email: doc.email || "",
-    phone: doc.phone || "",
+    email: getPublicEmail(doc),
+    phone: getPublicPhone(doc),
     website: doc.website || null,
     preferred_contact_method: doc.preferredContactMethod || doc.preferred_contact_method || "",
     preferred_contact_label: doc.preferredContactLabel || doc.preferred_contact_label || "",
     contact_guidance: doc.contactGuidance || doc.contact_guidance || "",
     first_step_expectation: doc.firstStepExpectation || doc.first_step_expectation || "",
     booking_url: doc.bookingUrl || doc.booking_url || null,
-    claim_status: doc.claimStatus || doc.claim_status || "unclaimed",
     city: doc.city || "",
     state: doc.state || "",
     zip: doc.zip || "",
     country: doc.country || "US",
-    license_number: doc.licenseNumber || doc.license_number || "",
     specialties: arrayValue(doc.specialties),
     treatment_modalities: arrayValue(doc.treatmentModalities, doc.treatment_modalities),
     client_populations: arrayValue(doc.clientPopulations, doc.client_populations),
@@ -217,16 +299,6 @@ export function normalizePublicTherapist(doc, options = {}) {
     session_fee_max: doc.sessionFeeMax || doc.session_fee_max || null,
     sliding_scale:
       doc.slidingScale !== undefined ? Boolean(doc.slidingScale) : Boolean(doc.sliding_scale),
-    listing_active:
-      doc.listingActive !== undefined ? doc.listingActive !== false : doc.listing_active !== false,
-    status: doc.status || "active",
-    lifecycle: doc.lifecycle || "",
-    visibility_intent: doc.visibilityIntent || doc.visibility_intent || "",
-    dedupe_overrides: Array.isArray(doc.dedupeOverrides)
-      ? doc.dedupeOverrides
-      : Array.isArray(doc.dedupe_overrides)
-        ? doc.dedupe_overrides
-        : [],
     slug: getSlug(doc),
     has_paid_subscription: Boolean(options.hasPaidSubscription),
   };
@@ -239,6 +311,7 @@ export function normalizePublicTherapist(doc, options = {}) {
     );
     payload.practice_name = doc.practiceName || doc.practice_name || "";
     payload.license_state = doc.licenseState || doc.license_state || "";
+    payload.license_number = doc.licenseNumber || doc.license_number || "";
     payload.source_host = doc.sourceHost || doc.source_host || getSourceHost(doc);
     payload.supporting_source_count =
       doc.supportingSourceCount !== undefined
@@ -481,7 +554,7 @@ async function fetchHomeContent(client) {
           cards[]{ icon, stepLabel, title, description },
           buttonLabel,
           buttonUrl,
-          therapists[]->${PUBLIC_THERAPIST_PROJECTION},
+          therapists[]->${PUBLIC_THERAPIST_LIST_PROJECTION},
           items[]{ stars, quote, author, role },
           primaryLabel,
           primaryUrl,
