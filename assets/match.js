@@ -80,7 +80,7 @@ import { getZipMarketStatus, getZipDistanceMiles, preloadZipcodes } from "./zip-
 import { orderMatchEntries as orderMatchEntriesBase } from "./match-ordering.js";
 import { initValuePillPopover } from "./therapist-pills.js";
 import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-state.js";
-import { buildContactModalContent } from "../shared/contact-modal-content.mjs";
+import { getContactRoutes, renderContactDialogBody } from "./match-contact-dialog.js";
 import { INSURANCE_OPTIONS } from "../shared/therapist-picker-options.mjs";
 import {
   renderRoundAvatar,
@@ -3983,96 +3983,6 @@ function isMobileViewport() {
   return false;
 }
 
-function getDomainFromUrl(url) {
-  try {
-    return new URL(url).host.replace(/^www\./, "");
-  } catch (_e) {
-    return "";
-  }
-}
-
-function formatPhoneDisplay(phone) {
-  var digits = String(phone || "").replace(/[^\d]/g, "");
-  if (digits.length === 11 && digits.charAt(0) === "1") {
-    digits = digits.slice(1);
-  }
-  if (digits.length === 10) {
-    return "(" + digits.slice(0, 3) + ") " + digits.slice(3, 6) + "-" + digits.slice(6);
-  }
-  return String(phone || "").trim();
-}
-
-function getContactRoutes(entry) {
-  var therapist = (entry && entry.therapist) || {};
-  var routes = [];
-  var phoneDigits = String(therapist.phone || "").replace(/[^\d+]/g, "");
-  if (phoneDigits) {
-    routes.push({
-      type: "phone",
-      label: "Phone",
-      display: formatPhoneDisplay(therapist.phone),
-      href: "tel:" + phoneDigits,
-      raw: therapist.phone,
-    });
-  }
-  if (therapist.email && therapist.email !== "contact@example.com") {
-    routes.push({
-      type: "email",
-      label: "Email",
-      display: therapist.email,
-      href: "mailto:" + therapist.email,
-      raw: therapist.email,
-    });
-  }
-  if (therapist.booking_url) {
-    var bookingHref = /^(https?:)/i.test(therapist.booking_url)
-      ? therapist.booking_url
-      : "https://" + therapist.booking_url.replace(/^\/+/, "");
-    routes.push({
-      type: "booking",
-      label: "Book online",
-      display: getDomainFromUrl(bookingHref) || "Booking page",
-      href: bookingHref,
-      raw: bookingHref,
-    });
-  }
-  if (therapist.website) {
-    var siteHref = /^(https?:)/i.test(therapist.website)
-      ? therapist.website
-      : "https://" + therapist.website.replace(/^\/+/, "");
-    routes.push({
-      type: "website",
-      label: "Website",
-      display: getDomainFromUrl(siteHref) || "Website",
-      href: siteHref,
-      raw: siteHref,
-    });
-  }
-  return routes;
-}
-
-// Maps the frontend's snake_case therapist viewmodel to the camelCase
-// shape the shared contact-modal module accepts.
-function toSharedContactTherapist(therapist) {
-  var t = therapist || {};
-  return {
-    name: t.name || "",
-    phone: t.phone || "",
-    email: t.email || "",
-    website: t.website || "",
-    bookingUrl: t.booking_url || t.bookingUrl || "",
-    preferredContactMethod: t.preferred_contact_method || t.preferredContactMethod || "",
-  };
-}
-
-function renderContactDialogBody(entry) {
-  var therapist = entry.therapist || {};
-  var result = buildContactModalContent(toSharedContactTherapist(therapist), {
-    isMobile: isMobileViewport(),
-  });
-  return result.html;
-}
-
 function flashCopyConfirmation(button) {
   if (!button) return;
   var original = button.getAttribute("data-original-label") || button.textContent;
@@ -4201,7 +4111,7 @@ function openContactDialog(slug) {
   var dialog = document.getElementById("contactDialog");
   var body = document.getElementById("contactDialogBody");
   if (!dialog || !body || typeof dialog.showModal !== "function") return false;
-  body.innerHTML = renderContactDialogBody(entry);
+  body.innerHTML = renderContactDialogBody(entry, { isMobile: isMobileViewport() });
   if (!dialog.open) dialog.showModal();
   bindContactDialogActions(entry);
   trackFunnelEvent("match_contact_modal_opened", {
