@@ -780,7 +780,7 @@ function buildBrowseByCityColumn(eligibleCities) {
 function buildBrowseByCityInline(eligibleCities) {
   return (
     '<div class="footer-cities-inline">\n' +
-    "        <h4>Browse by City</h4>\n        " +
+    "        <h2>Browse by City</h2>\n        " +
     buildBrowseByCityLinks(eligibleCities) +
     '\n        <a href="/bipolar-therapists/" class="footer-city-all">See all cities</a>\n      </div>'
   );

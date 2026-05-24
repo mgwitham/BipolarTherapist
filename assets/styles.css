@@ -2457,7 +2457,7 @@ footer a:active {
   text-align: center;
   font-size: 0.82rem;
 }
-.footer-cities-inline h4 {
+.footer-cities-inline h2 {
   font-size: 0.7rem;
   font-weight: 600;
   text-transform: uppercase;
@@ -2499,7 +2499,7 @@ footer a:active {
     column-gap: 12px;
     row-gap: 4px;
   }
-  .footer-cities-inline h4 {
+  .footer-cities-inline h2 {
     grid-column: 1 / -1;
   }
   .footer-cities-inline a {
