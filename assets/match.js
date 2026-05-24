@@ -35,12 +35,9 @@ import {
   shortlistRowDiffers,
 } from "./match-compare.js";
 import {
-  buildActiveFilterChipsHtml,
   buildMatchOutreachDisclosure,
-  buildResultsHeaderHtml as buildResultsHeaderHtmlBase,
+  buildPrimaryMatchCardsMarkup,
   countActiveRefinements,
-  renderLeadResultCard as renderLeadResultCardBase,
-  renderSupportingResultCard as renderSupportingResultCardBase,
 } from "./match-card-render.js";
 import { buildContactOrderPlan as buildContactOrderPlanBase } from "./match-followthrough.js";
 import {
@@ -3744,12 +3741,6 @@ function buildIntakeMirrorSentence(profile) {
   return parts.join(". ") + ".";
 }
 
-function buildResultsHeaderHtml(profile, totalCount) {
-  return buildResultsHeaderHtmlBase(profile, totalCount, {
-    buildIntakeMirrorSentence: buildIntakeMirrorSentence,
-  });
-}
-
 function renderSaveIcon(saved) {
   var fill = saved ? "currentColor" : "none";
   return (
@@ -3867,18 +3858,8 @@ function getCardRenderServices() {
     buildTherapistProfileHref: buildTherapistProfileHref,
     renderSaveButton: renderSaveButton,
     buildCardInfoRow: buildCardInfoRow,
+    buildIntakeMirrorSentence: buildIntakeMirrorSentence,
   };
-}
-
-function renderLeadResultCard(entry, _backupName, options) {
-  var settings = options || {};
-  var services = getCardRenderServices();
-  services.showBestBadge = settings.showBestBadge;
-  return renderLeadResultCardBase(entry, services);
-}
-
-function renderSupportingResultCard(entry, _rank, _options) {
-  return renderSupportingResultCardBase(entry, getCardRenderServices());
 }
 
 function renderPrimaryMatchCards(entries, profile) {
@@ -3887,106 +3868,17 @@ function renderPrimaryMatchCards(entries, profile) {
     return;
   }
 
-  var isAsap = profile && String(profile.urgency || "").toUpperCase() === "ASAP";
-
-  // Hide entries with no working contact method, never render a card whose
-  // only action would 404 or dead-end. A card must have at least one of:
-  // booking_url, website, phone, or email.
-  // When urgency is ASAP, also exclude therapists who are not accepting new patients.
-  var allEntries = (entries || [])
-    .filter(function (entry) {
-      if (!getPreferredOutreach(entry)) return false;
-      if (isAsap && entry.therapist && entry.therapist.accepting_new_patients === false) {
-        return false;
-      }
-      return true;
-    })
-    .slice(0, 8);
-
-  if (!allEntries.length) {
+  var primary = buildPrimaryMatchCardsMarkup(entries, profile, getCardRenderServices());
+  if (!primary.html) {
     root.className = "match-empty";
     return;
   }
 
-  var leadEntry = allEntries[0];
-  var runnerUps = allEntries.slice(1, 5); // ranks 2-5, 2×2 grid, always visible
-  var moreEntries = allEntries.slice(5); // ranks 6+, hidden behind Show more
-
-  // Only show the "Best match" badge when rank 1 materially beats rank 2.
-  var leadScore = leadEntry && typeof leadEntry.score === "number" ? leadEntry.score : null;
-  var runnerScore =
-    runnerUps[0] && typeof runnerUps[0].score === "number" ? runnerUps[0].score : null;
-  var showBestBadge =
-    leadScore !== null && runnerScore !== null ? leadScore - runnerScore > 0.05 : true;
-
-  var runnersHtml = runnerUps.length
-    ? '<div class="mx-runners">' +
-      runnerUps
-        .map(function (entry) {
-          return renderSupportingResultCard(entry, 0, { context: "runner" });
-        })
-        .join("") +
-      "</div>"
-    : "";
-
-  var moreHtml = moreEntries.length
-    ? '<section class="mx-more-cards" hidden>' +
-      moreEntries
-        .map(function (entry) {
-          return renderSupportingResultCard(entry, 0, { context: "more" });
-        })
-        .join("") +
-      "</section>" +
-      '<div class="mx-show-more-wrap">' +
-      '<button type="button" class="mx-show-more" id="matchShowMore">' +
-      "Show " +
-      moreEntries.length +
-      " more " +
-      (moreEntries.length === 1 ? "match" : "matches") +
-      "</button>" +
-      "</div>"
-    : "";
-
-  var compareTriggerHtml =
-    allEntries.length >= 2
-      ? '<div class="mx-compare-trigger-wrap">' +
-        '<button type="button" class="mx-compare-trigger" id="matchCompareTrigger">Compare these</button>' +
-        "</div>"
-      : "";
-
-  var noFitLinkHtml =
-    '<div id="matchNoFitLink" class="mx-no-fit-link-wrap">' +
-    '<button type="button" class="mx-no-fit-link" id="matchNoFitOpen">Not seeing the right fit?</button>' +
-    "</div>";
-
-  var refineBarHtml =
-    '<div class="mx-refine-bar">' +
-    '<button type="button" class="mx-refine-bar-btn" data-mx-refine-open="bar">' +
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="16" height="16">' +
-    '<line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line>' +
-    '<line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line>' +
-    '<line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line>' +
-    '<line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line>' +
-    '<line x1="17" y1="16" x2="23" y2="16"></line>' +
-    "</svg>" +
-    "Edit my preferences" +
-    "</button>" +
-    "</div>";
+  var allEntries = primary.allEntries;
+  var leadEntry = primary.leadEntry;
 
   root.className = "match-list";
-  root.innerHTML =
-    '<div class="results-panel">' +
-    buildResultsHeaderHtml(profile, allEntries.length) +
-    buildActiveFilterChipsHtml(profile) +
-    '<section class="mx-top-three">' +
-    renderLeadResultCard(leadEntry, null, { showBestBadge: showBestBadge }) +
-    runnersHtml +
-    "</section>" +
-    moreHtml +
-    refineBarHtml +
-    compareTriggerHtml +
-    noFitLinkHtml +
-    "</div>";
+  root.innerHTML = primary.html;
 
   // Deliberately NOT calling placeBuilderInResults: that used to move
   // the .match-builder into #matchResults wrapped in a <details>
