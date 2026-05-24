@@ -2,12 +2,16 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  applySecondPassRefinement,
   buildFallbackLearningMap,
   buildLearningSegments,
   buildStarterProfile,
+  getMatchAvailabilityBonus,
+  getMatchContactClarityBonus,
   getPreferredOutreach,
   getPreferredRouteType,
   getRouteLearningForProfile,
+  getSecondPassScore,
   pickRecommendedFirstContact,
 } from "../../assets/match-ranking.js";
 import { buildUserMatchProfile } from "../../assets/matching-model.js";
@@ -212,4 +216,114 @@ test("pickRecommendedFirstContact prefers the strongest follow-through path", fu
 
   assert.equal(picked.entry.therapist.slug, "first");
   assert.equal(picked.readiness.route, "Book consultation");
+});
+
+test("getMatchAvailabilityBonus rewards open, low-wait practices", function () {
+  assert.equal(getMatchAvailabilityBonus(null), 0);
+  assert.equal(
+    getMatchAvailabilityBonus({
+      accepting_new_patients: true,
+      estimated_wait_time: "Within 2 weeks",
+    }),
+    12,
+  );
+  assert.equal(
+    getMatchAvailabilityBonus({
+      accepting_new_patients: true,
+      estimated_wait_time: "Waitlist only",
+    }),
+    8,
+  );
+  assert.equal(getMatchAvailabilityBonus({ accepting_new_patients: false }), 0);
+});
+
+test("getMatchContactClarityBonus scales with readiness tone and guidance", function () {
+  const deps = {
+    getContactReadiness: function (entry) {
+      return entry.readiness;
+    },
+  };
+  assert.equal(getMatchContactClarityBonus({ readiness: null }, deps), 0);
+  assert.equal(getMatchContactClarityBonus({ readiness: { tone: "high" } }, deps), 8);
+  assert.equal(
+    getMatchContactClarityBonus({ readiness: { tone: "medium", guidance: "Call first" } }, deps),
+    7,
+  );
+  assert.equal(
+    getMatchContactClarityBonus(
+      { readiness: { tone: "light", guidance: "Note", firstStep: "Intro call" } },
+      deps,
+    ),
+    6,
+  );
+});
+
+test("getSecondPassScore returns the base score in balanced/default mode", function () {
+  const entry = { evaluation: { score: 42, score_breakdown: { trust: 10 } }, therapist: {} };
+  const deps = {
+    getPublicResponsivenessSignal: function () {
+      return null;
+    },
+    getContactReadiness: function () {
+      return null;
+    },
+  };
+  assert.equal(getSecondPassScore(entry, {}, "balanced", deps), 42);
+  assert.equal(getSecondPassScore(entry, {}, undefined, deps), 42);
+});
+
+test("getSecondPassScore weights trust heavily in reviewed mode", function () {
+  const entry = {
+    evaluation: {
+      score: 50,
+      confidence_score: 10,
+      completeness_score: 20,
+      score_breakdown: { trust: 12, practical: 5 },
+    },
+    therapist: { verification_status: "editorially_verified" },
+  };
+  const deps = {
+    getPublicResponsivenessSignal: function () {
+      return null;
+    },
+    getContactReadiness: function () {
+      return null;
+    },
+  };
+  // 50*0.62 + 12*1.55 + 20*0.14 + 10*0.12 + 5*0.24 + 8 = 62.8
+  assert.ok(Math.abs(getSecondPassScore(entry, {}, "reviewed", deps) - 62.8) < 1e-9);
+});
+
+test("applySecondPassRefinement leaves balanced order untouched and re-sorts other modes", function () {
+  const deps = {
+    getPublicResponsivenessSignal: function () {
+      return null;
+    },
+    getContactReadiness: function () {
+      return null;
+    },
+  };
+  const entries = [
+    {
+      evaluation: { score: 10, score_breakdown: { access: 1 } },
+      therapist: { name: "A", slug: "a" },
+    },
+    {
+      evaluation: { score: 90, score_breakdown: { access: 9 } },
+      therapist: { name: "B", slug: "b" },
+    },
+  ];
+
+  const balanced = applySecondPassRefinement(entries, {}, "balanced", deps);
+  assert.deepEqual(
+    balanced.map((e) => e.therapist.slug),
+    ["a", "b"],
+  );
+  assert.notEqual(balanced, entries);
+
+  const speed = applySecondPassRefinement(entries, {}, "speed", deps);
+  assert.deepEqual(
+    speed.map((e) => e.therapist.slug),
+    ["b", "a"],
+  );
 });
