@@ -64,6 +64,115 @@ export function rankEntriesForProfile(profile, options) {
   return settings.applySecondPassRefinement(baseEntries, profile, settings.activeSecondPassMode);
 }
 
+export function getMatchAvailabilityBonus(therapist) {
+  if (!therapist) {
+    return 0;
+  }
+  var bonus = 0;
+  if (therapist.accepting_new_patients) {
+    bonus += 8;
+  }
+  if (therapist.estimated_wait_time && therapist.estimated_wait_time !== "Waitlist only") {
+    bonus += 4;
+  }
+  return bonus;
+}
+
+export function getMatchContactClarityBonus(entry, options) {
+  var settings = options || {};
+  var readiness = settings.getContactReadiness(entry);
+  if (!readiness) {
+    return 0;
+  }
+  var bonus = readiness.tone === "high" ? 8 : readiness.tone === "medium" ? 5 : 2;
+  if (readiness.guidance) {
+    bonus += 2;
+  }
+  if (readiness.firstStep) {
+    bonus += 2;
+  }
+  return bonus;
+}
+
+export function getSecondPassScore(entry, profile, mode, options) {
+  var settings = options || {};
+  var evaluation = entry && entry.evaluation ? entry.evaluation : {};
+  var breakdown = evaluation.score_breakdown || {};
+  var therapist = entry && entry.therapist ? entry.therapist : {};
+  var base = Number(evaluation.score || 0) || 0;
+  var trust = Number(breakdown.trust || 0) || 0;
+  var clinical = Number(breakdown.clinical || 0) || 0;
+  var access = Number(breakdown.access || 0) || 0;
+  var practical = Number(breakdown.practical || 0) || 0;
+  var learned = Number(breakdown.learned || 0) || 0;
+  var confidence = Number(evaluation.confidence_score || 0) || 0;
+  var completeness = Number(evaluation.completeness_score || 0) || 0;
+  var bipolarYears = Math.min(Number(therapist.bipolar_years_experience || 0) || 0, 15);
+  var responsiveness = settings.getPublicResponsivenessSignal(therapist) ? 3 : 0;
+  var availability = getMatchAvailabilityBonus(therapist);
+  var contactClarity = getMatchContactClarityBonus(entry, settings);
+
+  if (mode === "reviewed") {
+    return (
+      base * 0.62 +
+      trust * 1.55 +
+      completeness * 0.14 +
+      confidence * 0.12 +
+      practical * 0.24 +
+      (therapist.verification_status === "editorially_verified" ? 8 : 0)
+    );
+  }
+
+  if (mode === "speed") {
+    return base * 0.58 + access * 1.5 + availability + contactClarity * 0.8 + responsiveness;
+  }
+
+  if (mode === "specialization") {
+    return (
+      base * 0.58 +
+      clinical * 1.6 +
+      bipolarYears * 1.2 +
+      (profile && profile.needs_medication_management === "Yes" && therapist.medication_management
+        ? 5
+        : 0)
+    );
+  }
+
+  if (mode === "followthrough") {
+    return (
+      base * 0.58 +
+      access * 1.15 +
+      learned * 0.8 +
+      contactClarity +
+      responsiveness +
+      availability * 0.35
+    );
+  }
+
+  return base;
+}
+
+export function applySecondPassRefinement(entries, profile, mode, options) {
+  // Adaptive ranking disabled: every code path resolves to "balanced"
+  // and returns the base order untouched. The branch below is preserved
+  // for future reactivation but is currently unreachable.
+  if (!mode || mode === "balanced") {
+    return (entries || []).slice();
+  }
+
+  return (entries || []).slice().sort(function (a, b) {
+    var aScore = getSecondPassScore(a, profile, mode, options);
+    var bScore = getSecondPassScore(b, profile, mode, options);
+
+    return (
+      bScore - aScore ||
+      (Number(b?.evaluation?.score) || 0) - (Number(a?.evaluation?.score) || 0) ||
+      String(a?.therapist?.name || "").localeCompare(String(b?.therapist?.name || "")) ||
+      String(a?.therapist?.slug || "").localeCompare(String(b?.therapist?.slug || ""))
+    );
+  });
+}
+
 export function buildStarterProfile(options) {
   var settings = options || {};
   return settings.buildUserMatchProfile({
