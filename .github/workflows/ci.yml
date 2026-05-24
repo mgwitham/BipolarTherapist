@@ -51,10 +51,10 @@ jobs:
     name: Lighthouse CI
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -68,19 +68,14 @@ jobs:
           SANITY_PROJECT_ID: ${{ secrets.SANITY_PROJECT_ID }}
           SANITY_DATASET: ${{ secrets.SANITY_DATASET }}
 
+      # Audit the PR's own freshly-built dist/ (lhci serves it locally) so
+      # regressions are caught before merge — not one deploy late against
+      # prod. Targets one representative URL per indexed template; swap a
+      # slug if it is ever delisted. Assertions + URLs live in
+      # .lighthouserc.json (configPath, not budgetPath — the two conflict).
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:
-          # One representative URL per indexed template so regressions on the
-          # high-volume programmatic pages (150 profiles, 23 city, 11 insurance)
-          # are caught, not just the two static pages. Swap a slug if it is ever
-          # delisted from production.
-          urls: |
-            https://www.bipolartherapyhub.com/
-            https://www.bipolartherapyhub.com/directory
-            https://www.bipolartherapyhub.com/therapists/abigail-horton-los-angeles-ca/
-            https://www.bipolartherapyhub.com/bipolar-therapists/los-angeles-ca/
-            https://www.bipolartherapyhub.com/insurance/aetna/
-          budgetPath: .lighthouserc.json
+          configPath: .lighthouserc.json
           uploadArtifacts: true
           temporaryPublicStorage: true
