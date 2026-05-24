@@ -25,17 +25,40 @@ import {
   syncZipResolvedLabel as syncZipResolvedLabelBase,
 } from "./match-intake.js";
 import { renderAdaptiveGuidanceSection, renderNoResultsStateSection } from "./match-results.js";
+import {
+  getCompareCostLabel,
+  getCompareFreshness,
+  getCompareRole,
+  getCompareTimingLabel,
+  getCompareTrustLabel,
+  renderCompareValue,
+  shortlistRowDiffers,
+} from "./match-compare.js";
+import {
+  buildActiveFilterChipsHtml,
+  buildMatchOutreachDisclosure,
+  buildResultsHeaderHtml as buildResultsHeaderHtmlBase,
+  countActiveRefinements,
+} from "./match-card-render.js";
 import { buildContactOrderPlan as buildContactOrderPlanBase } from "./match-followthrough.js";
 import {
+  FEEDBACK_REASON_OPTIONS,
+  analyzeConciergePatterns,
+  analyzeOutreachJourneys,
+  analyzePivotTiming,
+  analyzePivotTimingByUrgency,
   applySecondPassRefinement as applySecondPassRefinementBase,
   buildFallbackLearningMap as buildFallbackLearningMapBase,
   buildLearningSegments as buildLearningSegmentsBase,
+  buildLearningSignals,
+  buildShortcutLearningMap,
   buildStarterProfile as buildStarterProfileBase,
   getPreferredOutreach as getPreferredOutreachBase,
   getPreferredRouteType as getPreferredRouteTypeBase,
   getResponsivenessScore as getResponsivenessScoreBase,
   getRouteLearningForProfile as getRouteLearningForProfileBase,
   getRoutePriority as getRoutePriorityBase,
+  getShortcutPreference,
   hasCostClarity as hasCostClarityBase,
   hasInsuranceClarity as hasInsuranceClarityBase,
   pickRecommendedFirstContact as pickRecommendedFirstContactBase,
@@ -46,15 +69,8 @@ import {
   buildFirstContactRecommendation as buildFirstContactRecommendationBase,
   renderFallbackRecommendation as renderFallbackRecommendationBase,
 } from "./match-outreach.js";
-import {
-  buildUserMatchProfile,
-  getDataFreshnessSummary,
-  getRecentAppliedSummary,
-  getRecentConfirmationSummary,
-  rankTherapistsForUser,
-} from "./matching-model.js";
+import { buildUserMatchProfile, rankTherapistsForUser } from "./matching-model.js";
 import { submitMatchRequest } from "./review-api.js";
-import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
 import {
   getExperimentVariant,
   readFunnelEvents,
@@ -153,14 +169,6 @@ function rememberMatchResultsUrl(profile, entries) {
     /* ignore */
   }
 }
-var FEEDBACK_REASON_OPTIONS = [
-  "Insurance mismatch",
-  "Availability mismatch",
-  "Needs medication management",
-  "Wrong care format",
-  "Weak bipolar specialization",
-  "Other",
-];
 var latestAdaptiveSignals = null;
 var isInternalMode = new URLSearchParams(window.location.search).get("internal") === "1";
 var directoryEntryMode = new URLSearchParams(window.location.search).get("entry") || "";
@@ -1782,151 +1790,6 @@ function getHeroFitReasons(entry, therapist, profileArg) {
   return out.slice(0, 3);
 }
 
-function renderCompareValue(value, kind) {
-  if (kind === "order") {
-    var tone = value === "#1 Best match" ? "positive" : "neutral";
-    return (
-      '<div class="compare-cell-center"><span class="compare-chip compare-chip-' +
-      tone +
-      '">' +
-      escapeHtml(value) +
-      "</span></div>"
-    );
-  }
-  if (kind === "format") {
-    if (Array.isArray(value)) {
-      return value.length
-        ? value
-            .map(function (item) {
-              return '<div class="compare-format-item">' + escapeHtml(item) + "</div>";
-            })
-            .join("")
-        : '<span class="compare-sub">Not listed</span>';
-    }
-    return value
-      ? '<div class="compare-format-item">' + escapeHtml(String(value)) + "</div>"
-      : '<span class="compare-sub">Not listed</span>';
-  }
-  if (kind === "boolean") {
-    if (value === true) {
-      return "Available";
-    }
-    if (value === false) {
-      return '<span class="compare-sub">Not listed</span>';
-    }
-  }
-  if (Array.isArray(value)) {
-    return value.length
-      ? value
-          .map(function (item) {
-            return '<span class="compare-list-item">' + escapeHtml(item) + "</span>";
-          })
-          .join("")
-      : '<span class="compare-sub">Not listed</span>';
-  }
-  if (value === true) {
-    return "Yes";
-  }
-  if (value === false) {
-    return "No";
-  }
-  if (value === null || value === undefined || value === "") {
-    return '<span class="compare-sub">Not listed</span>';
-  }
-  return escapeHtml(String(value));
-}
-
-function getCompareCostLabel(therapist) {
-  if (!therapist) {
-    return "";
-  }
-
-  var min = therapist.session_fee_min;
-  var max = therapist.session_fee_max;
-  if (min && max && min !== max) {
-    return "$" + min + "–$" + max;
-  }
-  if (min) {
-    return "$" + min;
-  }
-  if (max) {
-    return "Up to $" + max;
-  }
-  if (therapist.sliding_scale) {
-    return "Sliding scale available";
-  }
-  return "";
-}
-
-function getCompareTimingLabel(therapist) {
-  if (!therapist) {
-    return "";
-  }
-  if (therapist.estimated_wait_time) {
-    return therapist.estimated_wait_time;
-  }
-  if (therapist.accepting_new_patients) {
-    return "Appears to be accepting new patients";
-  }
-  return "";
-}
-
-function getCompareTrustLabel(entry) {
-  var therapist = entry && entry.therapist ? entry.therapist : null;
-  if (!therapist) {
-    return "";
-  }
-  if (therapist.bipolar_years_experience) {
-    return therapist.bipolar_years_experience + " years with bipolar-related care";
-  }
-  if (therapist.verification_status === "editorially_verified") {
-    return "Editorially verified profile";
-  }
-  return "Trust details still partial";
-}
-
-function getCompareFreshness(entry) {
-  var therapist = entry && entry.therapist ? entry.therapist : null;
-  if (!therapist) {
-    return null;
-  }
-
-  var recentApplied = getRecentAppliedSummary(therapist);
-  if (recentApplied) {
-    return {
-      label: recentApplied.short_label || recentApplied.label,
-      note: recentApplied.note,
-      tone: "fresh",
-    };
-  }
-
-  var recentConfirmation = getRecentConfirmationSummary(therapist);
-  if (recentConfirmation) {
-    return {
-      label: recentConfirmation.short_label || recentConfirmation.label,
-      note: recentConfirmation.note,
-      tone: recentConfirmation.tone === "fresh" ? "fresh" : "recent",
-    };
-  }
-
-  var freshness = getDataFreshnessSummary(therapist);
-  return freshness
-    ? {
-        label: freshness.label,
-        note: freshness.note,
-        tone: freshness.status === "fresh" ? "fresh" : "stale",
-      }
-    : null;
-}
-
-function getCompareRole(entry, index) {
-  var rank = index + 1;
-  if (index === 0) {
-    return "#1 Best match";
-  }
-  return "#" + rank + " match";
-}
-
 function getCompareRoleReason(entry, profile, recommendation, role) {
   if (
     recommendation &&
@@ -2108,30 +1971,6 @@ function buildShortlistCompareRows(topEntries) {
       },
     },
   ];
-}
-
-// Smart-diff: returns true when the row's value differs across entries.
-// Booleans, strings, and arrays are all normalized to a comparable
-// signature so e.g. ["Aetna","BCBS"] vs ["BCBS","Aetna"] is the same.
-function shortlistRowDiffers(row, topEntries) {
-  var sigs = topEntries.map(function (entry) {
-    var v = row.getValue(entry.therapist);
-    if (Array.isArray(v)) {
-      return v
-        .map(function (x) {
-          return String(x || "").toLowerCase();
-        })
-        .sort()
-        .join("|");
-    }
-    if (typeof v === "boolean") return v ? "y" : "n";
-    return String(v || "").toLowerCase();
-  });
-  var first = sigs[0];
-  for (var i = 1; i < sigs.length; i++) {
-    if (sigs[i] !== first) return true;
-  }
-  return false;
 }
 
 // "Best fit" hero card: photo, name, location, 3 differentiating
@@ -2696,422 +2535,14 @@ function readOutreachOutcomes() {
   }
 }
 
-function analyzeConciergePatterns(requests) {
-  var entries = Array.isArray(requests) ? requests : [];
-  var totals = {
-    insurance: 0,
-    availability: 0,
-    medication: 0,
-    contact_first: 0,
-    fit_uncertainty: 0,
-  };
-
-  entries.forEach(function (request) {
-    var haystack = [
-      request && request.help_topic ? request.help_topic : "",
-      request && request.request_note ? request.request_note : "",
-      request && request.request_summary ? request.request_summary : "",
-    ]
-      .join(" ")
-      .toLowerCase();
-
-    if (
-      haystack.includes("insurance") ||
-      haystack.includes("cost") ||
-      haystack.includes("coverage")
-    ) {
-      totals.insurance += 1;
-    }
-    if (
-      haystack.includes("availability") ||
-      haystack.includes("wait") ||
-      haystack.includes("timing") ||
-      haystack.includes("schedule")
-    ) {
-      totals.availability += 1;
-    }
-    if (
-      haystack.includes("medication") ||
-      haystack.includes("psychiatry") ||
-      haystack.includes("med support")
-    ) {
-      totals.medication += 1;
-    }
-    if (
-      haystack.includes("who should i contact first") ||
-      haystack.includes("contact first") ||
-      haystack.includes("one person first")
-    ) {
-      totals.contact_first += 1;
-    }
-    if (
-      haystack.includes("best fit") ||
-      haystack.includes("fit") ||
-      haystack.includes("not sure") ||
-      haystack.includes("uncertain")
-    ) {
-      totals.fit_uncertainty += 1;
-    }
-  });
-
-  return totals;
-}
-
 function buildLearningSegments(profile) {
   return buildLearningSegmentsBase(profile);
-}
-
-function buildLearningSignals(feedback, outreachOutcomes) {
-  var entries = Array.isArray(feedback) ? feedback : [];
-  var outreach = Array.isArray(outreachOutcomes) ? outreachOutcomes : [];
-  var segmentMap = {};
-
-  function ensureSegment(name) {
-    if (!segmentMap[name]) {
-      segmentMap[name] = {
-        negative_reasons: [],
-        therapist_adjustments: {},
-        outreach_adjustments: {},
-      };
-    }
-    return segmentMap[name];
-  }
-
-  entries.forEach(function (item) {
-    var profile = item && item.context ? item.context.profile : null;
-    var segments = buildLearningSegments(profile);
-
-    segments.forEach(function (segment) {
-      var bucket = ensureSegment(segment);
-      if (item && item.value === "negative" && Array.isArray(item.reasons)) {
-        bucket.negative_reasons = bucket.negative_reasons.concat(item.reasons);
-      }
-      if (item && item.type === "therapist_feedback" && item.therapist_slug) {
-        if (!bucket.therapist_adjustments[item.therapist_slug]) {
-          bucket.therapist_adjustments[item.therapist_slug] = 0;
-        }
-        bucket.therapist_adjustments[item.therapist_slug] += item.value === "positive" ? 3 : -3;
-      }
-    });
-  });
-
-  outreach.forEach(function (item) {
-    if (!item || !item.therapist_slug) {
-      return;
-    }
-
-    var profile = item && item.context ? item.context.profile : null;
-    var segments = buildLearningSegments(profile);
-
-    segments.forEach(function (segment) {
-      var bucket = ensureSegment(segment);
-      if (!bucket.outreach_adjustments[item.therapist_slug]) {
-        bucket.outreach_adjustments[item.therapist_slug] = 0;
-      }
-
-      if (item.outcome === "heard_back") {
-        bucket.outreach_adjustments[item.therapist_slug] += 4;
-      } else if (item.outcome === "booked_consult") {
-        bucket.outreach_adjustments[item.therapist_slug] += 7;
-      } else if (item.outcome === "good_fit_call") {
-        bucket.outreach_adjustments[item.therapist_slug] += 8;
-      } else if (item.outcome === "reached_out") {
-        bucket.outreach_adjustments[item.therapist_slug] += 1;
-      } else if (item.outcome === "insurance_mismatch") {
-        bucket.outreach_adjustments[item.therapist_slug] -= 4;
-      } else if (item.outcome === "waitlist") {
-        bucket.outreach_adjustments[item.therapist_slug] -= 3;
-      } else if (item.outcome === "no_response") {
-        bucket.outreach_adjustments[item.therapist_slug] -= 2;
-      }
-    });
-  });
-
-  var normalizedSegments = Object.keys(segmentMap).reduce(function (accumulator, segment) {
-    var bucket = segmentMap[segment];
-    var reasonWeights = FEEDBACK_REASON_OPTIONS.reduce(function (reasonAccumulator, reason) {
-      var count = bucket.negative_reasons.filter(function (value) {
-        return value === reason;
-      }).length;
-
-      if (count > 0) {
-        reasonAccumulator[reason] = Math.min(8, 2 + count * 2);
-      }
-      return reasonAccumulator;
-    }, {});
-
-    Object.keys(bucket.therapist_adjustments).forEach(function (slug) {
-      bucket.therapist_adjustments[slug] = Math.max(
-        -10,
-        Math.min(10, bucket.therapist_adjustments[slug]),
-      );
-    });
-
-    Object.keys(bucket.outreach_adjustments).forEach(function (slug) {
-      bucket.outreach_adjustments[slug] = Math.max(
-        -8,
-        Math.min(10, bucket.outreach_adjustments[slug]),
-      );
-    });
-
-    accumulator[segment] = {
-      reason_weights: reasonWeights,
-      therapist_adjustments: bucket.therapist_adjustments,
-      outreach_adjustments: bucket.outreach_adjustments,
-    };
-    return accumulator;
-  }, {});
-
-  var global = normalizedSegments.all || {
-    reason_weights: {},
-    therapist_adjustments: {},
-    outreach_adjustments: {},
-  };
-
-  return {
-    reason_weights: global.reason_weights,
-    therapist_adjustments: global.therapist_adjustments,
-    outreach_adjustments: global.outreach_adjustments,
-    segments: normalizedSegments,
-  };
-}
-
-function buildShortcutLearningMap(feedback, outreachOutcomes) {
-  var entries = Array.isArray(feedback) ? feedback : [];
-  var outcomes = Array.isArray(outreachOutcomes) ? outreachOutcomes : [];
-  var learning = {};
-
-  function ensureBucket(segment, shortcutType) {
-    var key = "shortcut::" + segment;
-    if (!learning[key]) {
-      learning[key] = {};
-    }
-    if (!learning[key][shortcutType]) {
-      learning[key][shortcutType] = {
-        draft: 0,
-        compare: 0,
-        strong: 0,
-        weak: 0,
-      };
-    }
-    return learning[key][shortcutType];
-  }
-
-  entries.forEach(function (item) {
-    if (!item || item.type !== "shortcut_interaction" || !item.shortcut_type) {
-      return;
-    }
-
-    var segments = buildLearningSegments(
-      item.context && item.context.profile ? item.context.profile : null,
-    );
-    segments.forEach(function (segment) {
-      var bucket = ensureBucket(segment, item.shortcut_type);
-      if (item.action === "copy_draft") {
-        bucket.draft += 1;
-      }
-      if (item.action === "focus_compare") {
-        bucket.compare += 1;
-      }
-    });
-  });
-
-  outcomes.forEach(function (item) {
-    if (!item || !item.shortcut_type) {
-      return;
-    }
-
-    var segments = buildLearningSegments(
-      item.context && item.context.profile ? item.context.profile : null,
-    );
-    segments.forEach(function (segment) {
-      var bucket = ensureBucket(segment, item.shortcut_type);
-      if (item.outcome === "booked_consult" || item.outcome === "good_fit_call") {
-        bucket.strong += 1;
-      }
-      if (
-        item.outcome === "insurance_mismatch" ||
-        item.outcome === "waitlist" ||
-        item.outcome === "no_response"
-      ) {
-        bucket.weak += 1;
-      }
-    });
-  });
-
-  return learning;
-}
-
-function getShortcutPreference(profile, shortcutType, shortcutLearningMap) {
-  var segments = buildLearningSegments(profile);
-  var score = 0;
-  var draft = 0;
-  var compare = 0;
-  var strong = 0;
-  var weak = 0;
-
-  segments.forEach(function (segment) {
-    var bucket =
-      shortcutLearningMap["shortcut::" + segment] &&
-      shortcutLearningMap["shortcut::" + segment][shortcutType];
-    if (!bucket) {
-      return;
-    }
-    draft += bucket.draft;
-    compare += bucket.compare;
-    strong += bucket.strong || 0;
-    weak += bucket.weak || 0;
-    score +=
-      bucket.draft * 3 + bucket.compare * 2 + (bucket.strong || 0) * 8 - (bucket.weak || 0) * 5;
-  });
-
-  return {
-    score: score,
-    draft: draft,
-    compare: compare,
-    strong: strong,
-    weak: weak,
-  };
 }
 
 function getShortcutInfluence(profile, entries) {
   void profile;
   void entries;
   return {};
-}
-
-function analyzeOutreachJourneys(outcomes) {
-  var entries = Array.isArray(outcomes) ? outcomes : [];
-  var byJourney = entries.reduce(function (accumulator, item) {
-    if (!item || !item.journey_id) {
-      return accumulator;
-    }
-    if (!accumulator[item.journey_id]) {
-      accumulator[item.journey_id] = [];
-    }
-    accumulator[item.journey_id].push(item);
-    return accumulator;
-  }, {});
-
-  var totals = {
-    fallback_after_no_response: 0,
-    fallback_after_waitlist: 0,
-    fallback_after_insurance_mismatch: 0,
-    second_choice_success: 0,
-  };
-
-  Object.keys(byJourney).forEach(function (journeyId) {
-    var journey = byJourney[journeyId].slice().sort(function (a, b) {
-      return new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime();
-    });
-    var byRank = {};
-
-    journey.forEach(function (item) {
-      if (!byRank[item.rank_position]) {
-        byRank[item.rank_position] = [];
-      }
-      byRank[item.rank_position].push(item.outcome);
-    });
-
-    var first = byRank[1] || [];
-    var second = byRank[2] || [];
-
-    if (first.includes("no_response") && second.length) {
-      totals.fallback_after_no_response += 1;
-    }
-    if (first.includes("waitlist") && second.length) {
-      totals.fallback_after_waitlist += 1;
-    }
-    if (first.includes("insurance_mismatch") && second.length) {
-      totals.fallback_after_insurance_mismatch += 1;
-    }
-    if (
-      second.some(function (outcome) {
-        return outcome === "booked_consult" || outcome === "good_fit_call";
-      })
-    ) {
-      totals.second_choice_success += 1;
-    }
-  });
-
-  return totals;
-}
-
-function analyzePivotTiming(outcomes) {
-  var entries = Array.isArray(outcomes) ? outcomes : [];
-  var byJourney = entries.reduce(function (accumulator, item) {
-    if (!item || !item.journey_id) {
-      return accumulator;
-    }
-    if (!accumulator[item.journey_id]) {
-      accumulator[item.journey_id] = [];
-    }
-    accumulator[item.journey_id].push(item);
-    return accumulator;
-  }, {});
-
-  var totals = {
-    on_time_pivots: 0,
-    early_pivots: 0,
-    late_pivots: 0,
-  };
-
-  Object.keys(byJourney).forEach(function (journeyId) {
-    var journey = byJourney[journeyId].slice().sort(function (a, b) {
-      return new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime();
-    });
-    var firstNegative = journey.find(function (item) {
-      return (
-        item.rank_position === 1 &&
-        ["no_response", "waitlist", "insurance_mismatch"].includes(item.outcome)
-      );
-    });
-    var fallbackAttempt = journey.find(function (item) {
-      return item.rank_position > 1;
-    });
-
-    if (!firstNegative || !fallbackAttempt || !firstNegative.pivot_at) {
-      return;
-    }
-
-    var pivotAt = new Date(firstNegative.pivot_at).getTime();
-    var fallbackAt = new Date(fallbackAttempt.recorded_at).getTime();
-    var delta = fallbackAt - pivotAt;
-    var tolerance = 12 * 60 * 60 * 1000;
-
-    if (Math.abs(delta) <= tolerance) {
-      totals.on_time_pivots += 1;
-    } else if (delta < -tolerance) {
-      totals.early_pivots += 1;
-    } else {
-      totals.late_pivots += 1;
-    }
-  });
-
-  return totals;
-}
-
-function analyzePivotTimingByUrgency(outcomes, profile) {
-  var entries = Array.isArray(outcomes) ? outcomes : [];
-  var targetUrgency = profile && profile.urgency ? String(profile.urgency) : "";
-  if (!targetUrgency || targetUrgency === "ASAP") {
-    return {
-      on_time_pivots: 0,
-      early_pivots: 0,
-      late_pivots: 0,
-    };
-  }
-
-  return analyzePivotTiming(
-    entries.filter(function (item) {
-      return (
-        item &&
-        item.context &&
-        item.context.profile &&
-        String(item.context.profile.urgency || "") === targetUrgency
-      );
-    }),
-  );
 }
 
 function buildFallbackLearningMap(outcomes) {
@@ -4319,6 +3750,12 @@ function buildIntakeMirrorSentence(profile) {
   return parts.join(". ") + ".";
 }
 
+function buildResultsHeaderHtml(profile, totalCount) {
+  return buildResultsHeaderHtmlBase(profile, totalCount, {
+    buildIntakeMirrorSentence: buildIntakeMirrorSentence,
+  });
+}
+
 // Generic bipolar terms too broad to use as a card reason label.
 var REASON_LINE_GENERIC = {
   "bipolar disorder": true,
@@ -4458,57 +3895,6 @@ function buildCardInfoRow(therapist) {
   );
 }
 
-// Build the "How to reach out" disclosure for a match card.
-// Returns "" when the therapist has no contactable channel.
-function buildMatchOutreachDisclosure(entry, options) {
-  var therapist = entry && entry.therapist ? entry.therapist : null;
-  if (!therapist) return "";
-  var settings = options || {};
-  var expanded = settings.expanded === true;
-  var routeType = getPreferredRouteType(entry) || "";
-  var inner = renderOutreachPanelMarkup({
-    therapist: therapist,
-    contactStrategy: routeType ? { route: routeType } : null,
-    escapeHtml: escapeHtml,
-    inline: expanded,
-  });
-  if (!inner) return "";
-  var slug = String(therapist.slug || "");
-  if (expanded) {
-    var firstName = String(therapist.name || "").split(" ")[0] || "them";
-    return (
-      '<details open class="mx-outreach mx-outreach--expanded" data-mx-outreach="' +
-      escapeHtml(slug) +
-      '">' +
-      '<summary class="mx-outreach-expanded-summary">' +
-      '<div class="mx-outreach-expanded-header">' +
-      '<span class="mx-outreach-expanded-kicker">Next step</span>' +
-      '<span class="mx-outreach-expanded-label">Reach out to ' +
-      escapeHtml(firstName) +
-      "</span>" +
-      "</div>" +
-      '<svg class="mx-outreach-chevron mx-outreach-expanded-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-      "</summary>" +
-      '<div class="mx-outreach-body outreach-script-shell">' +
-      inner +
-      "</div></details>"
-    );
-  }
-  return (
-    '<details class="mx-outreach" data-mx-outreach="' +
-    escapeHtml(slug) +
-    '">' +
-    '<summary class="mx-outreach-summary">' +
-    '<span class="mx-outreach-summary-label">How to reach out</span>' +
-    '<span class="mx-outreach-summary-helper">We\'ve drafted a message for you</span>' +
-    '<svg class="mx-outreach-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
-    "</summary>" +
-    '<div class="mx-outreach-body outreach-script-shell">' +
-    inner +
-    "</div></details>"
-  );
-}
-
 function renderLeadResultCard(entry, _backupName, options) {
   var settings = options || {};
   var therapist = entry.therapist || {};
@@ -4609,120 +3995,6 @@ function renderSupportingResultCard(entry, _rank, _options) {
     "</div>" +
     buildMatchOutreachDisclosure(entry) +
     "</article>"
-  );
-}
-
-function countActiveRefinements(profile) {
-  if (!profile) return 0;
-  var count = 0;
-  if (profile.insurance) count += 1;
-  if (profile.care_format) count += 1;
-  if (profile.budget_max) count += 1;
-  if (profile.urgency && profile.urgency !== "ASAP") count += 1;
-  if (Array.isArray(profile.bipolar_focus) && profile.bipolar_focus.length) count += 1;
-  if (Array.isArray(profile.preferred_modalities) && profile.preferred_modalities.length)
-    count += 1;
-  if (Array.isArray(profile.population_fit) && profile.population_fit.length) count += 1;
-  if (Array.isArray(profile.language_preferences) && profile.language_preferences.length)
-    count += 1;
-  return count;
-}
-
-function buildActiveFilterChipsHtml(profile) {
-  if (!profile) return "";
-  var chips = [];
-
-  // Only chip for an explicit format choice, "Either" is the model's
-  // internal default for "Any" and should not surface as an active filter.
-  if (
-    profile.care_format &&
-    profile.care_format !== "No preference" &&
-    profile.care_format !== "Either"
-  ) {
-    chips.push({ key: "care_format", label: profile.care_format });
-  }
-  if (profile.insurance) {
-    chips.push({ key: "insurance", label: profile.insurance + " insurance" });
-  }
-  if (profile.budget_max) {
-    chips.push({ key: "budget_max", label: "Under $" + profile.budget_max + "/session" });
-  }
-  if (profile.priority_mode && profile.priority_mode !== "Best overall fit") {
-    var modeLabels = {
-      "Soonest availability": "Soonest",
-      "Lowest cost": "Affordable",
-      "Highest specialization": "Most experienced",
-    };
-    chips.push({
-      key: "priority_mode",
-      label: modeLabels[profile.priority_mode] || profile.priority_mode,
-    });
-  }
-  if (Array.isArray(profile.language_preferences) && profile.language_preferences.length) {
-    chips.push({
-      key: "language_preferences",
-      label: profile.language_preferences.join(", "),
-    });
-  }
-
-  if (!chips.length) return "";
-
-  var xIcon =
-    '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" width="9" height="9">' +
-    '<line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/>' +
-    "</svg>";
-
-  return (
-    '<div class="mx-active-filters">' +
-    chips
-      .map(function (chip) {
-        return (
-          '<button type="button" class="mx-filter-chip" data-clear-filter="' +
-          escapeHtml(chip.key) +
-          '">' +
-          escapeHtml(chip.label) +
-          xIcon +
-          "</button>"
-        );
-      })
-      .join("") +
-    "</div>"
-  );
-}
-
-function buildResultsHeaderHtml(profile, totalCount) {
-  var mirrorSentence = buildIntakeMirrorSentence(profile);
-
-  var activeCount = countActiveRefinements(profile);
-  var countBadge = activeCount
-    ? '<span class="mx-refine-btn-count">' + activeCount + "</span>"
-    : '<span class="mx-refine-btn-count" hidden>0</span>';
-
-  return (
-    '<header class="mx-results-header">' +
-    '<div class="mx-results-kicker">Your matches</div>' +
-    '<h1 class="mx-results-title">' +
-    totalCount +
-    " bipolar informed " +
-    (totalCount === 1 ? "match" : "matches") +
-    " for you</h1>" +
-    (mirrorSentence ? '<p class="mx-results-sub">' + escapeHtml(mirrorSentence) + "</p>" : "") +
-    '<button type="button" class="mx-refine-btn mx-refine-btn--header" data-mx-refine-open="header">' +
-    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
-    '<line x1="4" y1="21" x2="4" y2="14"></line>' +
-    '<line x1="4" y1="10" x2="4" y2="3"></line>' +
-    '<line x1="12" y1="21" x2="12" y2="12"></line>' +
-    '<line x1="12" y1="8" x2="12" y2="3"></line>' +
-    '<line x1="20" y1="21" x2="20" y2="16"></line>' +
-    '<line x1="20" y1="12" x2="20" y2="3"></line>' +
-    '<line x1="1" y1="14" x2="7" y2="14"></line>' +
-    '<line x1="9" y1="8" x2="15" y2="8"></line>' +
-    '<line x1="17" y1="16" x2="23" y2="16"></line>' +
-    "</svg>" +
-    "Edit my preferences" +
-    countBadge +
-    "</button>" +
-    "</header>"
   );
 }
 
