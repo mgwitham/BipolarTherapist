@@ -38,6 +38,7 @@ import { buildWeeklyDigest } from "../../shared/weekly-digest-domain.mjs";
 import {
   sampleApplication,
   sampleCompletenessSnapshot,
+  sampleDirectoryIntegrity,
   sampleFunnelEvents,
   sampleLinks,
   samplePortalContactForm,
@@ -349,6 +350,7 @@ export const EMAIL_TEMPLATES = [
       // Founder digest doesn't go through capture; it constructs the payload
       // inline. We replicate that here using the sample funnel events.
       const digest = buildFounderFunnelDigest({
+        directoryIntegrity: sampleDirectoryIntegrity,
         events: sampleFunnelEvents,
         nowIso: "2026-04-29T14:00:00Z",
       });

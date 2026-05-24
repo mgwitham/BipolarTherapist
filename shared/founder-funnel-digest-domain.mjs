@@ -13,6 +13,7 @@ import {
   CLAIM_STEPS,
   PORTAL_STEPS,
 } from "./funnel-step-definitions.mjs";
+import { hasDirectoryIntegrityWork } from "./directory-integrity-domain.mjs";
 
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -72,6 +73,7 @@ function totalForFirstStep(rows) {
 export function buildFounderFunnelDigest(options) {
   const events = (options && Array.isArray(options.events) ? options.events : []).slice();
   const nowIso = (options && options.nowIso) || new Date().toISOString();
+  const directoryIntegrity = (options && options.directoryIntegrity) || null;
   const nowMs = new Date(nowIso).getTime();
   const currentStart = nowMs - WEEK_MS;
   const priorStart = nowMs - 2 * WEEK_MS;
@@ -115,7 +117,8 @@ export function buildFounderFunnelDigest(options) {
     patientStarted === 0 &&
     patientPriorStarted === 0 &&
     supplyTotal === 0 &&
-    issueReports.length === 0
+    issueReports.length === 0 &&
+    !hasDirectoryIntegrityWork(directoryIntegrity)
   ) {
     return null;
   }
@@ -147,6 +150,7 @@ export function buildFounderFunnelDigest(options) {
     claim: { rows: claim, started: totalForFirstStep(claim) },
     portal: { rows: portal, started: totalForFirstStep(portal) },
     issueReports: issueReports,
+    directoryIntegrity,
   };
 }
 
@@ -228,6 +232,25 @@ export function renderFounderFunnelEmail(options) {
     });
     if (digest.issueReports.length > 10) {
       lines.push("  ... and " + (digest.issueReports.length - 10) + " more");
+    }
+  }
+  if (digest.directoryIntegrity) {
+    const integrity = digest.directoryIntegrity;
+    lines.push("");
+    lines.push("Directory integrity:");
+    lines.push("  - Live profiles: " + integrity.liveProfiles + " / " + integrity.intendedLive);
+    lines.push("  - Needs attention: " + integrity.needsAttention);
+    lines.push("  - Missing license: " + integrity.missingLicense);
+    lines.push("  - Missing contact route: " + integrity.missingContactRoute);
+    lines.push(
+      "  - Stale review (>" + integrity.staleCutoffDays + " days): " + integrity.staleReview,
+    );
+    if (Array.isArray(integrity.topIssues) && integrity.topIssues.length) {
+      lines.push("  - Top fixes:");
+      integrity.topIssues.forEach(function (row) {
+        const slugTail = row.slug ? " (" + row.slug + ")" : "";
+        lines.push("    - " + row.name + slugTail + ": " + row.issues.join(", "));
+      });
     }
   }
   if (adminUrl) {
