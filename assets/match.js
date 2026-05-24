@@ -39,6 +39,8 @@ import {
   buildMatchOutreachDisclosure,
   buildResultsHeaderHtml as buildResultsHeaderHtmlBase,
   countActiveRefinements,
+  renderLeadResultCard as renderLeadResultCardBase,
+  renderSupportingResultCard as renderSupportingResultCardBase,
 } from "./match-card-render.js";
 import { buildContactOrderPlan as buildContactOrderPlanBase } from "./match-followthrough.js";
 import {
@@ -3711,14 +3713,6 @@ function buildContactOrderPlan(profile, entries) {
   });
 }
 
-function getPersonalizedCtaLabel(routeType) {
-  if (routeType === "website") return "Visit their website";
-  if (routeType === "booking") return "Book a session";
-  if (routeType === "email") return "Email therapist";
-  if (routeType === "phone") return "Call therapist";
-  return "";
-}
-
 function buildIntakeMirrorSentence(profile) {
   if (!profile) return "";
   var parts = [];
@@ -3754,34 +3748,6 @@ function buildResultsHeaderHtml(profile, totalCount) {
   return buildResultsHeaderHtmlBase(profile, totalCount, {
     buildIntakeMirrorSentence: buildIntakeMirrorSentence,
   });
-}
-
-// Generic bipolar terms too broad to use as a card reason label.
-var REASON_LINE_GENERIC = {
-  "bipolar disorder": true,
-  "bipolar i": true,
-  "bipolar ii": true,
-  "bipolar 1": true,
-  "bipolar 2": true,
-  "mood disorder": true,
-  "mood disorders": true,
-  psychosis: true,
-};
-
-function buildMatchReasonLine(therapist) {
-  var t = therapist || {};
-  var years = Number(t.bipolar_years_experience || 0);
-  if (years > 0) {
-    return years + " yr" + (years === 1 ? "" : "s") + " bipolar experience";
-  }
-  var specs = Array.isArray(t.specialties) ? t.specialties : [];
-  for (var i = 0; i < specs.length; i++) {
-    var s = String(specs[i] || "").trim();
-    if (/bipolar|cycl|mixed/i.test(s) && !REASON_LINE_GENERIC[s.toLowerCase()]) {
-      return s + " specialist";
-    }
-  }
-  return "";
 }
 
 function renderSaveIcon(saved) {
@@ -3895,107 +3861,24 @@ function buildCardInfoRow(therapist) {
   );
 }
 
+function getCardRenderServices() {
+  return {
+    getPreferredOutreach: getPreferredOutreach,
+    buildTherapistProfileHref: buildTherapistProfileHref,
+    renderSaveButton: renderSaveButton,
+    buildCardInfoRow: buildCardInfoRow,
+  };
+}
+
 function renderLeadResultCard(entry, _backupName, options) {
   var settings = options || {};
-  var therapist = entry.therapist || {};
-  var preferredRoute = getPreferredOutreach(entry);
-  var routeType = getPreferredRouteType(entry);
-  var ctaLabel = getPersonalizedCtaLabel(routeType);
-  var reasonLine = buildMatchReasonLine(therapist);
-
-  var topMatchLabel = settings.showBestBadge
-    ? '<span class="mx-top-match-label">Best fit for what you described</span>'
-    : "";
-
-  return (
-    '<article class="bth-card bth-card-lead">' +
-    topMatchLabel +
-    '<div class="bth-card-header">' +
-    '<div class="bth-card-avatar-slot">' +
-    renderRoundAvatar(therapist, "profile") +
-    "</div>" +
-    '<div class="bth-card-ident">' +
-    '<h3 class="bth-card-name">' +
-    escapeHtml(therapist.name || "") +
-    (therapist.credentials
-      ? ', <span class="bth-card-creds">' + escapeHtml(therapist.credentials) + "</span>"
-      : "") +
-    "</h3>" +
-    (reasonLine ? '<p class="mx-card-reason">' + escapeHtml(reasonLine) + "</p>" : "") +
-    "</div>" +
-    renderSaveButton(therapist.slug || "", "card") +
-    "</div>" +
-    renderSpecialtyPills(therapist) +
-    buildCardInfoRow(therapist) +
-    '<div class="bth-card-actions">' +
-    (preferredRoute
-      ? '<a href="' +
-        escapeHtml(preferredRoute.href) +
-        '" class="bth-btn-primary" data-match-primary-cta="' +
-        escapeHtml(therapist.slug || "") +
-        '" data-match-primary-route="' +
-        escapeHtml(routeType || "") +
-        '"' +
-        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
-        ">" +
-        escapeHtml(ctaLabel) +
-        "</a>"
-      : "") +
-    '<a href="' +
-    escapeHtml(buildTherapistProfileHref(therapist)) +
-    '" class="mx-profile-link">See full profile</a>' +
-    "</div>" +
-    buildMatchOutreachDisclosure(entry, { expanded: true }) +
-    "</article>"
-  );
+  var services = getCardRenderServices();
+  services.showBestBadge = settings.showBestBadge;
+  return renderLeadResultCardBase(entry, services);
 }
 
 function renderSupportingResultCard(entry, _rank, _options) {
-  var therapist = entry.therapist || {};
-  var preferredRoute = getPreferredOutreach(entry);
-  var routeType = getPreferredRouteType(entry);
-  var ctaLabel = getPersonalizedCtaLabel(routeType);
-  var reasonLine = buildMatchReasonLine(therapist);
-  return (
-    '<article class="bth-card">' +
-    '<div class="bth-card-header">' +
-    '<div class="bth-card-avatar-slot">' +
-    renderRoundAvatar(therapist, "card") +
-    "</div>" +
-    '<div class="bth-card-ident">' +
-    '<h3 class="bth-card-name">' +
-    escapeHtml(therapist.name || "") +
-    (therapist.credentials
-      ? ', <span class="bth-card-creds">' + escapeHtml(therapist.credentials) + "</span>"
-      : "") +
-    "</h3>" +
-    (reasonLine ? '<p class="mx-card-reason">' + escapeHtml(reasonLine) + "</p>" : "") +
-    "</div>" +
-    renderSaveButton(therapist.slug || "", "card") +
-    "</div>" +
-    renderSpecialtyPills(therapist) +
-    buildCardInfoRow(therapist) +
-    '<div class="bth-card-actions">' +
-    (preferredRoute
-      ? '<a href="' +
-        escapeHtml(preferredRoute.href) +
-        '" class="bth-btn-primary" data-match-primary-cta="' +
-        escapeHtml(therapist.slug || "") +
-        '" data-match-primary-route="' +
-        escapeHtml(routeType || "") +
-        '"' +
-        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
-        ">" +
-        escapeHtml(ctaLabel) +
-        "</a>"
-      : "") +
-    '<a href="' +
-    escapeHtml(buildTherapistProfileHref(therapist)) +
-    '" class="mx-profile-link">See full profile</a>' +
-    "</div>" +
-    buildMatchOutreachDisclosure(entry) +
-    "</article>"
-  );
+  return renderSupportingResultCardBase(entry, getCardRenderServices());
 }
 
 function renderPrimaryMatchCards(entries, profile) {

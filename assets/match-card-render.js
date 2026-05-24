@@ -1,6 +1,43 @@
 import { escapeHtml } from "./escape-html.js";
 import { getPreferredRouteType } from "./match-ranking.js";
 import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
+import { renderRoundAvatar, renderSpecialtyPills } from "./card-content.js";
+
+// Generic bipolar terms too broad to use as a card reason label.
+const REASON_LINE_GENERIC = {
+  "bipolar disorder": true,
+  "bipolar i": true,
+  "bipolar ii": true,
+  "bipolar 1": true,
+  "bipolar 2": true,
+  "mood disorder": true,
+  "mood disorders": true,
+  psychosis: true,
+};
+
+export function buildMatchReasonLine(therapist) {
+  var t = therapist || {};
+  var years = Number(t.bipolar_years_experience || 0);
+  if (years > 0) {
+    return years + " yr" + (years === 1 ? "" : "s") + " bipolar experience";
+  }
+  var specs = Array.isArray(t.specialties) ? t.specialties : [];
+  for (var i = 0; i < specs.length; i++) {
+    var s = String(specs[i] || "").trim();
+    if (/bipolar|cycl|mixed/i.test(s) && !REASON_LINE_GENERIC[s.toLowerCase()]) {
+      return s + " specialist";
+    }
+  }
+  return "";
+}
+
+export function getPersonalizedCtaLabel(routeType) {
+  if (routeType === "website") return "Visit their website";
+  if (routeType === "booking") return "Book a session";
+  if (routeType === "email") return "Email therapist";
+  if (routeType === "phone") return "Call therapist";
+  return "";
+}
 
 export function countActiveRefinements(profile) {
   if (!profile) return 0;
@@ -167,5 +204,109 @@ export function buildMatchOutreachDisclosure(entry, options) {
     '<div class="mx-outreach-body outreach-script-shell">' +
     inner +
     "</div></details>"
+  );
+}
+
+export function renderLeadResultCard(entry, options) {
+  var settings = options || {};
+  var therapist = entry.therapist || {};
+  var preferredRoute = settings.getPreferredOutreach(entry);
+  var routeType = getPreferredRouteType(entry);
+  var ctaLabel = getPersonalizedCtaLabel(routeType);
+  var reasonLine = buildMatchReasonLine(therapist);
+
+  var topMatchLabel = settings.showBestBadge
+    ? '<span class="mx-top-match-label">Best fit for what you described</span>'
+    : "";
+
+  return (
+    '<article class="bth-card bth-card-lead">' +
+    topMatchLabel +
+    '<div class="bth-card-header">' +
+    '<div class="bth-card-avatar-slot">' +
+    renderRoundAvatar(therapist, "profile") +
+    "</div>" +
+    '<div class="bth-card-ident">' +
+    '<h3 class="bth-card-name">' +
+    escapeHtml(therapist.name || "") +
+    (therapist.credentials
+      ? ', <span class="bth-card-creds">' + escapeHtml(therapist.credentials) + "</span>"
+      : "") +
+    "</h3>" +
+    (reasonLine ? '<p class="mx-card-reason">' + escapeHtml(reasonLine) + "</p>" : "") +
+    "</div>" +
+    settings.renderSaveButton(therapist.slug || "", "card") +
+    "</div>" +
+    renderSpecialtyPills(therapist) +
+    settings.buildCardInfoRow(therapist) +
+    '<div class="bth-card-actions">' +
+    (preferredRoute
+      ? '<a href="' +
+        escapeHtml(preferredRoute.href) +
+        '" class="bth-btn-primary" data-match-primary-cta="' +
+        escapeHtml(therapist.slug || "") +
+        '" data-match-primary-route="' +
+        escapeHtml(routeType || "") +
+        '"' +
+        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
+        ">" +
+        escapeHtml(ctaLabel) +
+        "</a>"
+      : "") +
+    '<a href="' +
+    escapeHtml(settings.buildTherapistProfileHref(therapist)) +
+    '" class="mx-profile-link">See full profile</a>' +
+    "</div>" +
+    buildMatchOutreachDisclosure(entry, { expanded: true }) +
+    "</article>"
+  );
+}
+
+export function renderSupportingResultCard(entry, options) {
+  var settings = options || {};
+  var therapist = entry.therapist || {};
+  var preferredRoute = settings.getPreferredOutreach(entry);
+  var routeType = getPreferredRouteType(entry);
+  var ctaLabel = getPersonalizedCtaLabel(routeType);
+  var reasonLine = buildMatchReasonLine(therapist);
+  return (
+    '<article class="bth-card">' +
+    '<div class="bth-card-header">' +
+    '<div class="bth-card-avatar-slot">' +
+    renderRoundAvatar(therapist, "card") +
+    "</div>" +
+    '<div class="bth-card-ident">' +
+    '<h3 class="bth-card-name">' +
+    escapeHtml(therapist.name || "") +
+    (therapist.credentials
+      ? ', <span class="bth-card-creds">' + escapeHtml(therapist.credentials) + "</span>"
+      : "") +
+    "</h3>" +
+    (reasonLine ? '<p class="mx-card-reason">' + escapeHtml(reasonLine) + "</p>" : "") +
+    "</div>" +
+    settings.renderSaveButton(therapist.slug || "", "card") +
+    "</div>" +
+    renderSpecialtyPills(therapist) +
+    settings.buildCardInfoRow(therapist) +
+    '<div class="bth-card-actions">' +
+    (preferredRoute
+      ? '<a href="' +
+        escapeHtml(preferredRoute.href) +
+        '" class="bth-btn-primary" data-match-primary-cta="' +
+        escapeHtml(therapist.slug || "") +
+        '" data-match-primary-route="' +
+        escapeHtml(routeType || "") +
+        '"' +
+        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
+        ">" +
+        escapeHtml(ctaLabel) +
+        "</a>"
+      : "") +
+    '<a href="' +
+    escapeHtml(settings.buildTherapistProfileHref(therapist)) +
+    '" class="mx-profile-link">See full profile</a>' +
+    "</div>" +
+    buildMatchOutreachDisclosure(entry) +
+    "</article>"
   );
 }
