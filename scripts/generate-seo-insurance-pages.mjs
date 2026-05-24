@@ -11,6 +11,11 @@ import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
 import { INSURANCE_OPTIONS, resolveInsuranceName } from "../shared/therapist-picker-options.mjs";
+import {
+  formatFeeRange,
+  formatNameList,
+  summarizeProviders,
+} from "../shared/seo-provider-stats.mjs";
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
@@ -161,7 +166,57 @@ function buildProviderCardsHtml(providers) {
     .join("");
 }
 
-function buildFaqItems(insuranceName, count) {
+function buildFaqItems(bucket) {
+  const insuranceName = bucket.name;
+  const stats = summarizeProviders(bucket.providers);
+  const count = stats.count;
+  const feeRange = formatFeeRange(stats);
+
+  // "How many" answer, enriched with real geographic + availability facts so
+  // it reads differently for every carrier instead of a name-swap template.
+  let coverageAnswer =
+    "This page currently lists " +
+    count +
+    " bipolar-informed therapist" +
+    (count === 1 ? "" : "s") +
+    " in California who include " +
+    insuranceName +
+    " in their profile";
+  if (stats.cityCount > 1 && stats.topCities.length) {
+    coverageAnswer +=
+      ", practicing across " +
+      stats.cityCount +
+      " cities including " +
+      formatNameList(stats.topCities, 3);
+  }
+  coverageAnswer += ".";
+  if (stats.acceptingCount > 0) {
+    coverageAnswer +=
+      " " +
+      stats.acceptingCount +
+      " of them " +
+      (stats.acceptingCount === 1 ? "is" : "are") +
+      " currently marked as accepting new patients";
+    if (stats.telehealthCount > 0) {
+      coverageAnswer += ", and " + stats.telehealthCount + " offer telehealth";
+    }
+    coverageAnswer += ".";
+  }
+
+  // Cost answer derived from the actual fee fields of this carrier's
+  // providers; falls back to the statewide range when fees are unlisted.
+  const costAnswer = feeRange
+    ? "Among the " +
+      insuranceName +
+      " providers listed here, self-reported session fees run " +
+      feeRange +
+      ". Insurance may cover most of that depending on your plan and deductible — confirm your mental-health benefits and copay with " +
+      insuranceName +
+      " directly, since networks and coverage change often."
+    : "Session fees vary by provider and are listed on each profile. Out-of-pocket cost after insurance depends on your specific " +
+      insuranceName +
+      " plan, deductible, and whether the therapist is in-network, so confirm benefits before booking.";
+
   return [
     {
       q: "Are these therapists guaranteed to be in-network with " + insuranceName + "?",
@@ -171,11 +226,8 @@ function buildFaqItems(insuranceName, count) {
         " as accepted insurance, but you should confirm benefits directly with the therapist and your insurer before booking.",
     },
     {
-      q: "Can I use this page if I am comparing plans?",
-      a:
-        "Yes. Use this as a starting point to see which bipolar-informed therapists list " +
-        insuranceName +
-        " in California, then compare fit, location, telehealth availability, and clinical focus.",
+      q: "What will a session cost with " + insuranceName + "?",
+      a: costAnswer,
     },
     {
       q: "What if none of these providers are the right fit?",
@@ -183,14 +235,7 @@ function buildFaqItems(insuranceName, count) {
     },
     {
       q: "How many " + insuranceName + " bipolar therapists are listed?",
-      a:
-        "This page currently lists " +
-        count +
-        " bipolar-informed therapist" +
-        (count === 1 ? "" : "s") +
-        " in California who include " +
-        insuranceName +
-        " in their profile.",
+      a: coverageAnswer,
     },
   ];
 }
@@ -232,7 +277,7 @@ function buildJsonLd(bucket) {
     {
       "@context": "https://schema.org",
       "@type": "FAQPage",
-      mainEntity: buildFaqItems(bucket.name, bucket.providers.length).map((item) => ({
+      mainEntity: buildFaqItems(bucket).map((item) => ({
         "@type": "Question",
         name: item.q,
         acceptedAnswer: { "@type": "Answer", text: item.a },
@@ -299,6 +344,24 @@ function buildHeroHtml(bucket) {
 }
 
 function buildContextHtml(bucket) {
+  const stats = summarizeProviders(bucket.providers);
+  const facts = [];
+  if (stats.cityCount > 1 && stats.topCities.length) {
+    facts.push(
+      "These specialists practice across " +
+        stats.cityCount +
+        " California cities including " +
+        escapeHtml(formatNameList(stats.topCities, 3)),
+    );
+  }
+  const feeRange = formatFeeRange(stats);
+  if (feeRange) {
+    facts.push("listed session fees run " + escapeHtml(feeRange));
+  }
+  if (stats.acceptingCount > 0) {
+    facts.push(escapeHtml(String(stats.acceptingCount)) + " are accepting new patients");
+  }
+  const factSentence = facts.length ? " " + capitalize(joinFacts(facts)) + "." : "";
   return (
     '<section class="city-context">' +
     '<div class="city-section-inner">' +
@@ -306,10 +369,23 @@ function buildContextHtml(bucket) {
     '<h2 class="city-section-h2">Start with insurance, then choose for clinical fit</h2>' +
     '<p class="city-context-blurb">Insurance is often the first constraint, but bipolar care still needs specific experience. Use this page to find therapists who list ' +
     escapeHtml(bucket.name) +
-    ", then compare profile details like bipolar-specific years, modalities, telehealth, and availability.</p>" +
+    ", then compare profile details like bipolar-specific years, modalities, telehealth, and availability." +
+    factSentence +
+    "</p>" +
     "</div>" +
     "</section>"
   );
+}
+
+function joinFacts(facts) {
+  if (facts.length === 1) return facts[0];
+  if (facts.length === 2) return facts[0] + ", and " + facts[1];
+  return facts.slice(0, -1).join(", ") + ", and " + facts[facts.length - 1];
+}
+
+function capitalize(text) {
+  const s = String(text || "");
+  return s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
 }
 
 function buildProvidersHtml(bucket) {
@@ -377,7 +453,7 @@ function buildFaqHtml(bucket) {
     '<p class="city-section-kicker">Common questions</p>' +
     '<h2 class="city-section-h2">Frequently asked</h2>' +
     '<dl class="city-faq-list">' +
-    buildFaqItems(bucket.name, bucket.providers.length)
+    buildFaqItems(bucket)
       .map(
         (item) =>
           '<div class="city-faq-item"><dt class="city-faq-q">' +
@@ -629,7 +705,9 @@ async function fetchTherapists(config) {
   });
   return client.fetch(
     `*[_type == "therapist" && listingActive == true && status == "active" && defined(slug.current)] | order(name asc) {
-       _updatedAt, "slug": slug.current, name, credentials, title, city, state, insuranceAccepted
+       _updatedAt, "slug": slug.current, name, credentials, title, city, state, insuranceAccepted,
+       sessionFeeMin, sessionFeeMax, acceptsTelehealth, acceptsInPerson, acceptingNewPatients,
+       treatmentModalities, specialties
      }`,
   );
 }
