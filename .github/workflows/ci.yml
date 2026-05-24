@@ -71,9 +71,16 @@ jobs:
       - name: Run Lighthouse CI
         uses: treosh/lighthouse-ci-action@v12
         with:
+          # One representative URL per indexed template so regressions on the
+          # high-volume programmatic pages (150 profiles, 23 city, 11 insurance)
+          # are caught, not just the two static pages. Swap a slug if it is ever
+          # delisted from production.
           urls: |
             https://www.bipolartherapyhub.com/
             https://www.bipolartherapyhub.com/directory
+            https://www.bipolartherapyhub.com/therapists/abigail-horton-los-angeles-ca/
+            https://www.bipolartherapyhub.com/bipolar-therapists/los-angeles-ca/
+            https://www.bipolartherapyhub.com/insurance/aetna/
           budgetPath: .lighthouserc.json
           uploadArtifacts: true
           temporaryPublicStorage: true
