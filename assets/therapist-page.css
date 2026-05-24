@@ -3925,6 +3925,21 @@ img.bth-avatar {
 .profile-faq-q i.profile-faq-icon--success {
   color: #3b9b5a;
 }
+/* Inline SVG icons (replacing the former Tabler webfont). Sized in em so the
+   existing `.context i { font-size }` rules scale them; stroke inherits color
+   via currentColor. */
+.ti-svg {
+  width: 1em;
+  height: 1em;
+  display: inline-block;
+  vertical-align: -0.125em;
+}
+.profile-faq-chevron {
+  transition: transform 0.2s ease;
+}
+.profile-faq-q[aria-expanded="true"] .profile-faq-chevron {
+  transform: rotate(180deg);
+}
 .profile-faq-a {
   font-size: 13.5px;
   color: #3a5b65;

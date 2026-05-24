@@ -100,6 +100,46 @@ function recordCtaClickSafely(slug, route) {
   }
 }
 
+// Inline Tabler icon paths (official, from @tabler/icons). Rendered as inline
+// SVG instead of the @tabler webfont: the webfont was loaded from a CDN the
+// CSP no longer allows (so icons were silently broken in production), and a
+// self-hosted webfont would ship ~450KB for ~12 glyphs. Inline SVG is a few
+// hundred bytes, CSP-clean, and removes a render-blocking third-party request.
+var TI_ICON_PATHS = {
+  bookmark: '<path d="M18 7v14l-6 -4l-6 4v-14a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4" />',
+  calendar:
+    '<path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /><path d="M11 15h1" /><path d="M12 15v3" />',
+  check: '<path d="M5 12l5 5l10 -10" />',
+  "chevron-down": '<path d="M6 9l6 6l6 -6" />',
+  "circle-check": '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M9 12l2 2l4 -4" />',
+  copy: '<path d="M7 9.667a2.667 2.667 0 0 1 2.667 -2.667h8.666a2.667 2.667 0 0 1 2.667 2.667v8.666a2.667 2.667 0 0 1 -2.667 2.667h-8.666a2.667 2.667 0 0 1 -2.667 -2.667l0 -8.666" /><path d="M4.012 16.737a2.005 2.005 0 0 1 -1.012 -1.737v-10c0 -1.1 .9 -2 2 -2h10c.75 0 1.158 .385 1.5 1" />',
+  mail: '<path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-10" /><path d="M3 7l9 6l9 -6" />',
+  "map-pin":
+    '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0" />',
+  phone:
+    '<path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2" />',
+  "shield-check":
+    '<path d="M11.46 20.846a12 12 0 0 1 -7.96 -14.846a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 -.09 7.06" /><path d="M15 19l2 2l4 -4" />',
+  world:
+    '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M3.6 9h16.8" /><path d="M3.6 15h16.8" /><path d="M11.5 3a17 17 0 0 0 0 18" /><path d="M12.5 3a17 17 0 0 1 0 18" />',
+};
+
+// Wrap the SVG in an <i> so the existing `.context i { ... }` icon styles
+// (size, color, spacing) keep applying unchanged — only the glyph source
+// changes from a webfont to inline SVG.
+function tiSvg(name, extraClass) {
+  var paths = TI_ICON_PATHS[name] || "";
+  var cls = "ti-icon" + (extraClass ? " " + extraClass : "");
+  return (
+    '<i class="' +
+    cls +
+    '" aria-hidden="true"><svg class="ti-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+    'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+    paths +
+    "</svg></i>"
+  );
+}
+
 function getSlugFromPath(pathname) {
   var match = String(pathname || "").match(/^\/therapists\/([^/]+)\/?$/);
   return match ? decodeURIComponent(match[1]) : "";
@@ -2449,7 +2489,9 @@ function renderProfile(t, therapistDirectory) {
       '<button type="button" class="profile-reach-call-cta" data-profile-call-cta data-tel="' +
       escapeHtml(normalizeTelUri(t.phone)) +
       '">' +
-      '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
+      "" +
+      tiSvg("phone") +
+      " Call " +
       escapeHtml(t.phone) +
       "</button>" +
       "</div>";
@@ -2468,7 +2510,9 @@ function renderProfile(t, therapistDirectory) {
     "</div>" +
     '<div class="profile-reach-draft-foot">' +
     '<button type="button" class="profile-reach-copy" data-profile-copy-draft>' +
-    '<i class="ti ti-copy" aria-hidden="true"></i> Copy message' +
+    "" +
+    tiSvg("copy") +
+    " Copy message" +
     "</button>" +
     "</div>" +
     "</div>";
@@ -2497,12 +2541,11 @@ function renderProfile(t, therapistDirectory) {
     .map(function (item, i) {
       var isFirst = i === 0;
       var isOpen = isFirst && faqAcceptingOpen;
-      var iconClass = isOpen
-        ? "ti ti-circle-check"
-        : isFirst && !faqAcceptingOpen
-          ? "ti ti-chevron-down"
-          : "ti ti-chevron-down";
-      var iconSuccessClass = isOpen ? " profile-faq-icon--success" : "";
+      // Locked-open (accepting) item shows a static check; all others show a
+      // chevron that rotates via CSS keyed on the button's aria-expanded.
+      var faqIconSvg = isOpen
+        ? tiSvg("circle-check", "profile-faq-icon--success")
+        : tiSvg("chevron-down", "profile-faq-chevron");
       return (
         '<div class="profile-faq-item' +
         (isOpen ? " is-open" : "") +
@@ -2515,10 +2558,7 @@ function renderProfile(t, therapistDirectory) {
         "<span>" +
         escapeHtml(item.q) +
         "</span>" +
-        '<i class="' +
-        iconClass +
-        iconSuccessClass +
-        '" aria-hidden="true"></i>' +
+        faqIconSvg +
         "</button>" +
         '<div class="profile-faq-a"' +
         (isOpen ? "" : " hidden") +
@@ -2536,7 +2576,9 @@ function renderProfile(t, therapistDirectory) {
     var faqLicenseType = t.credentials || "License";
     faqLicenseRow =
       '<div class="profile-faq-license">' +
-      '<i class="ti ti-shield-check" aria-hidden="true"></i> ' +
+      "" +
+      tiSvg("shield-check") +
+      " " +
       "License verified · " +
       escapeHtml(faqLicenseState + " " + faqLicenseType + " #" + t.license_number) +
       " · California Department of Consumer Affairs" +
@@ -2575,7 +2617,9 @@ function renderProfile(t, therapistDirectory) {
         '<a href="mailto:' +
         escapeHtml(t.email) +
         '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="email">' +
-        '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
+        "" +
+        tiSvg("mail") +
+        " Email " +
         escapeHtml(therapistFirstName) +
         "</a>"
       );
@@ -2585,7 +2629,9 @@ function renderProfile(t, therapistDirectory) {
         '<a href="tel:' +
         escapeHtml(normalizeTelUri(t.phone)) +
         '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="phone">' +
-        '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
+        "" +
+        tiSvg("phone") +
+        " Call " +
         escapeHtml(t.phone) +
         "</a>"
       );
@@ -2595,7 +2641,9 @@ function renderProfile(t, therapistDirectory) {
         '<a href="' +
         escapeHtml(bookingUrl) +
         '" target="_blank" rel="noopener noreferrer" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="booking">' +
-        '<i class="ti ti-calendar" aria-hidden="true"></i> Book a consultation' +
+        "" +
+        tiSvg("calendar") +
+        " Book a consultation" +
         "</a>"
       );
     }
@@ -2604,7 +2652,9 @@ function renderProfile(t, therapistDirectory) {
         '<a href="' +
         escapeHtml(websiteUrl) +
         '" target="_blank" rel="noopener noreferrer" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="website">' +
-        '<i class="ti ti-world" aria-hidden="true"></i> Visit ' +
+        "" +
+        tiSvg("world") +
+        " Visit " +
         escapeHtml(therapistFirstName) +
         "'s website</a>"
       );
@@ -2616,7 +2666,9 @@ function renderProfile(t, therapistDirectory) {
         '<a href="tel:' +
         escapeHtml(normalizeTelUri(t.phone)) +
         '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="phone">' +
-        '<i class="ti ti-phone" aria-hidden="true"></i> Call ' +
+        "" +
+        tiSvg("phone") +
+        " Call " +
         escapeHtml(t.phone) +
         "</a>"
       );
@@ -2626,7 +2678,9 @@ function renderProfile(t, therapistDirectory) {
         '<a href="mailto:' +
         escapeHtml(t.email) +
         '" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="email">' +
-        '<i class="ti ti-mail" aria-hidden="true"></i> Email ' +
+        "" +
+        tiSvg("mail") +
+        " Email " +
         escapeHtml(therapistFirstName) +
         "</a>"
       );
@@ -2655,9 +2709,7 @@ function renderProfile(t, therapistDirectory) {
       '<div class="profile-side-item' +
       (preferred ? " profile-side-item--preferred" : "") +
       '">' +
-      '<i class="ti ' +
-      iconClass +
-      '" aria-hidden="true"></i>' +
+      tiSvg(String(iconClass).replace(/^ti-/, "")) +
       '<a href="' +
       escapeHtml(href) +
       '"' +
@@ -2721,7 +2773,9 @@ function renderProfile(t, therapistDirectory) {
     '<button type="button" class="profile-side-save" data-profile-side-save data-save-id="' +
     escapeHtml(sideSaveId) +
     '" aria-pressed="false">' +
-    '<i class="ti ti-bookmark" aria-hidden="true"></i>' +
+    "" +
+    tiSvg("bookmark") +
+    "" +
     '<span class="profile-side-save-label">Save</span>' +
     "</button>";
 
@@ -2761,9 +2815,7 @@ function renderProfile(t, therapistDirectory) {
       ? '<div class="profile-hero-practice">' + escapeHtml(t.practice_name) + "</div>"
       : "") +
     (heroLocationLine
-      ? '<div class="profile-hero-loc"><i class="ti ti-map-pin" aria-hidden="true"></i> ' +
-        heroLocationLine +
-        "</div>"
+      ? '<div class="profile-hero-loc">' + tiSvg("map-pin") + " " + heroLocationLine + "</div>"
       : "") +
     "</div>" +
     "</div>" +
@@ -3095,15 +3147,15 @@ function renderProfile(t, therapistDirectory) {
       var item = button.closest("[data-profile-faq-item]");
       if (!item) return;
       var answer = item.querySelector(".profile-faq-a");
-      var icon = button.querySelector("i");
-      var locked = item.hasAttribute("data-faq-accept-locked");
+      // The chevron now rotates via CSS keyed on the button's aria-expanded
+      // (see .profile-faq-chevron in therapist-page.css), so the handler only
+      // toggles state — no icon swapping needed.
       button.addEventListener("click", function () {
         var open = item.classList.contains("is-open");
         if (open) {
           item.classList.remove("is-open");
           if (answer) answer.hidden = true;
           button.setAttribute("aria-expanded", "false");
-          if (icon && !locked) icon.className = "ti ti-chevron-down";
         } else {
           var siblings = item.parentNode
             ? item.parentNode.querySelectorAll("[data-profile-faq-item]")
@@ -3113,16 +3165,12 @@ function renderProfile(t, therapistDirectory) {
             sib.classList.remove("is-open");
             var sibAnswer = sib.querySelector(".profile-faq-a");
             var sibButton = sib.querySelector("[data-profile-faq-toggle]");
-            var sibIcon = sibButton ? sibButton.querySelector("i") : null;
-            var sibLocked = sib.hasAttribute("data-faq-accept-locked");
             if (sibAnswer) sibAnswer.hidden = true;
             if (sibButton) sibButton.setAttribute("aria-expanded", "false");
-            if (sibIcon && !sibLocked) sibIcon.className = "ti ti-chevron-down";
           });
           item.classList.add("is-open");
           if (answer) answer.hidden = false;
           button.setAttribute("aria-expanded", "true");
-          if (icon && !locked) icon.className = "ti ti-chevron-up";
         }
       });
     });
@@ -3140,7 +3188,7 @@ function renderProfile(t, therapistDirectory) {
         var text = msgEl.innerText || msgEl.textContent || "";
         var done = function () {
           button.classList.add("is-copied");
-          button.innerHTML = '<i class="ti ti-check" aria-hidden="true"></i> Copied';
+          button.innerHTML = "" + tiSvg("check") + " Copied";
           window.setTimeout(function () {
             button.classList.remove("is-copied");
             button.innerHTML = defaultLabel;
