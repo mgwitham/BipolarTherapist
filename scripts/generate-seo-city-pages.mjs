@@ -15,6 +15,8 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
+import { formatNameList, summarizeProviders } from "../shared/seo-provider-stats.mjs";
+
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const SITE_URL = "https://www.bipolartherapyhub.com";
@@ -287,6 +289,34 @@ function buildCityContextHtml(city, state, cityContent, stats) {
   );
 }
 
+// Plain-text lede for the providers section, enriched with real
+// availability/modality facts so each city page reads distinctly. Caller
+// escapes the result.
+function buildCityProvidersLede(providers) {
+  let sentence =
+    "Each profile lists training, modalities, insurance, and years of bipolar-specific experience.";
+  const stats = summarizeProviders(providers);
+  const facts = [];
+  if (stats.acceptingCount > 0) {
+    facts.push(
+      stats.acceptingCount +
+        " " +
+        (stats.acceptingCount === 1 ? "is" : "are") +
+        " accepting new patients",
+    );
+  }
+  if (stats.telehealthCount > 0) {
+    facts.push(stats.telehealthCount + " offer telehealth");
+  }
+  if (facts.length) {
+    sentence += " Of these, " + formatNameList(facts, 2) + ".";
+  }
+  if (stats.topModalities.length) {
+    sentence += " Common approaches here include " + formatNameList(stats.topModalities, 3) + ".";
+  }
+  return sentence;
+}
+
 function buildCityProvidersHtml(city, providers) {
   return (
     '<section class="city-providers" id="cityProviders">' +
@@ -297,7 +327,9 @@ function buildCityProvidersHtml(city, providers) {
     " clinicians in " +
     escapeHtml(city) +
     "</h2>" +
-    '<p class="city-section-lede">Each profile lists training, modalities, insurance, and years of bipolar-specific experience. Tap any card for the full profile.</p>' +
+    '<p class="city-section-lede">' +
+    escapeHtml(buildCityProvidersLede(providers)) +
+    "</p>" +
     '<div class="city-provider-grid">' +
     buildProviderCardsHtml(providers) +
     "</div>" +
@@ -784,7 +816,8 @@ async function fetchTherapists(config) {
   return client.fetch(
     `*[_type == "therapist" && listingActive == true && status == "active" && defined(slug.current) && defined(city)] | order(name asc) {
        "slug": slug.current, name, credentials, title, city, state,
-       sessionFeeMin, sessionFeeMax
+       sessionFeeMin, sessionFeeMax, acceptsTelehealth, acceptsInPerson,
+       acceptingNewPatients, treatmentModalities, specialties
      }`,
   );
 }
