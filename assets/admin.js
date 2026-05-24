@@ -14,9 +14,7 @@ import { showLazyLoadFailureBanner } from "./admin-lazy-load-banner.js";
 import { renderAdminHome } from "./admin-home.js";
 import { createAdminStore } from "./admin-store.js";
 import { createControllerRegistry } from "./admin-controller-registry.js";
-import licensureActivityController from "./admin-licensure-activity.js";
 import reviewActivityController from "./admin-review-activity.js";
-import applicationsController from "./admin-application-review.js";
 
 async function fetchMatchedTherapistForCandidate(candidate) {
   if (!candidate) return null;
@@ -200,9 +198,24 @@ const adminRegistry = createControllerRegistry({
     buildApplicationsOptions: buildApplicationsOptions,
   },
 });
-adminRegistry.register(licensureActivityController);
+adminRegistry.register(
+  createLazyAdminController({
+    id: "licensureActivity",
+    regionId: "licensureActivity",
+    countElId: "licensureActivityCount",
+    storeSlices: ["data.licensureActivityFeed", "filters.licensureActivity", "authRequired"],
+    path: "./admin-licensure-activity.js",
+  }),
+);
 adminRegistry.register(reviewActivityController);
-adminRegistry.register(applicationsController);
+adminRegistry.register(
+  createLazyAdminController({
+    id: "applications",
+    regionId: "applicationsList",
+    storeSlices: ["authRequired"],
+    path: "./admin-application-review.js",
+  }),
+);
 
 // Mirror the persisted filter into the legacy `let reviewActivityFilter`
 // so non-controller code that reads it (deep-link builder, savedViews
@@ -224,7 +237,6 @@ let publishedTherapists = [];
 let applicationLiveApplySummaries = {};
 let ingestionAutomationHistory = [];
 let licensureRefreshQueue = [];
-let deferredLicensureQueue = [];
 let licensureActivityFeed = [];
 let authRequired = false;
 let authErrorVisible = false;
@@ -841,7 +853,6 @@ function applyAdminRuntimeState(nextState) {
     adminStore.set("data.licensureRefreshQueue", nextState.licensureRefreshQueue || []);
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "deferredLicensureQueue")) {
-    deferredLicensureQueue = nextState.deferredLicensureQueue;
     adminStore.set("data.deferredLicensureQueue", nextState.deferredLicensureQueue || []);
   }
   if (Object.prototype.hasOwnProperty.call(nextState, "licensureActivityFeed")) {
@@ -874,6 +885,29 @@ function loadAdminLazyModule(path) {
     adminLazyModuleCache.set(path, loader ? loader() : import(path));
   }
   return adminLazyModuleCache.get(path);
+}
+
+function createLazyAdminController(config) {
+  return {
+    id: config.id,
+    regionId: config.regionId,
+    countElId: config.countElId,
+    storeSlices: config.storeSlices || [],
+    render(ctx) {
+      loadAdminLazyModule(config.path)
+        .then(function (module) {
+          const controller = module && module.default;
+          if (!controller || typeof controller.render !== "function") {
+            throw new Error("Lazy controller missing default render: " + config.path);
+          }
+          controller.render(ctx);
+        })
+        .catch(function (error) {
+          console.error("Failed to render lazy admin controller:", config.id, error);
+          showLazyLoadFailureBanner(config.path);
+        });
+    },
+  };
 }
 
 function getAdminPrefetchModulesForTarget(targetId) {

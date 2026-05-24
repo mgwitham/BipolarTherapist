@@ -55,6 +55,8 @@ import {
   sendUnverifiedTrialCanceledNotice,
 } from "./review-email.mjs";
 import {
+  ADMIN_SESSION_COOKIE,
+  THERAPIST_SESSION_COOKIE,
   canAttemptIntake,
   recordIntakeAttempt,
   canAttemptLogin,
@@ -279,6 +281,50 @@ function parseBody(request) {
 
 function parseRawBody(request) {
   return parseRawRequestBody(request, MAX_REQUEST_BODY_BYTES);
+}
+
+function firstHeaderEntry(value) {
+  if (!value) return "";
+  const raw = Array.isArray(value) ? value[0] : value;
+  return String(raw).split(",")[0].trim();
+}
+
+function getRequestOrigin(request) {
+  const headers = (request && request.headers) || {};
+  const host = firstHeaderEntry(headers["x-forwarded-host"]) || firstHeaderEntry(headers.host);
+  if (!host) return "";
+  const proto = firstHeaderEntry(headers["x-forwarded-proto"]) || "https";
+  return `${proto}://${host}`;
+}
+
+function requestHasCookie(request, cookieName) {
+  const header = String((request && request.headers && request.headers.cookie) || "");
+  if (!header || !cookieName) return false;
+  return header.split(";").some(function (entry) {
+    const separatorIndex = entry.indexOf("=");
+    const name = separatorIndex === -1 ? entry : entry.slice(0, separatorIndex);
+    return name.trim() === cookieName;
+  });
+}
+
+function isMutatingMethod(method) {
+  return method === "POST" || method === "PATCH" || method === "PUT" || method === "DELETE";
+}
+
+function isAllowedRequestOrigin(request, origin, config) {
+  if (!origin) return true;
+  if (Array.isArray(config.allowedOrigins) && config.allowedOrigins.includes(origin)) return true;
+  return origin === getRequestOrigin(request);
+}
+
+function shouldRejectSessionWriteForOrigin(request, origin, config) {
+  if (!isMutatingMethod(request.method)) return false;
+  if (!origin) return false;
+  const hasSessionCookie =
+    requestHasCookie(request, ADMIN_SESSION_COOKIE) ||
+    requestHasCookie(request, THERAPIST_SESSION_COOKIE);
+  if (!hasSessionCookie) return false;
+  return !isAllowedRequestOrigin(request, origin, config);
 }
 
 function getRateLimitClientKey(request) {
@@ -998,6 +1044,22 @@ export function createReviewApiHandler(configOverride, clientOverride) {
 
     if (request.method === "OPTIONS") {
       sendJson(response, 200, { ok: true }, origin, config);
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
+      return;
+    }
+
+    if (shouldRejectSessionWriteForOrigin(request, origin, config)) {
+      sendJson(response, 403, { error: "Invalid request origin." }, origin, config);
+      log.warn("[security] rejected authenticated write from disallowed origin", {
+        requestId,
+        method: request.method,
+        path: routePath,
+        origin,
+      });
       log.info("[http] response", {
         requestId,
         status: capturedStatus,

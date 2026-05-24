@@ -193,6 +193,69 @@ test("read routes persist reviewer directory updates for authorized admins", asy
   ]);
 });
 
+test("review API rejects cookie-authenticated writes from disallowed origins", async function () {
+  const { client } = createMemoryClient({
+    siteSettings: {
+      _id: "siteSettings",
+      _type: "siteSettings",
+      reviewerDirectory: [{ reviewerId: "architect", name: "architect", active: true }],
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      reviewers: [{ id: "reviewer-two", name: "reviewer-two", active: true }],
+    },
+    headers: {
+      cookie: sessionToken,
+      host: "localhost:8787",
+      origin: "https://attacker.example",
+    },
+    method: "PATCH",
+    url: "/reviewers",
+  });
+
+  assert.equal(response.statusCode, 403);
+  assert.equal(response.payload.error, "Invalid request origin.");
+  const siteSettings = await client.getDocument("siteSettings");
+  assert.deepEqual(siteSettings.reviewerDirectory, [
+    { reviewerId: "architect", name: "architect", active: true },
+  ]);
+});
+
+test("review API allows same-origin cookie-authenticated writes", async function () {
+  const { client } = createMemoryClient({
+    siteSettings: {
+      _id: "siteSettings",
+      _type: "siteSettings",
+      reviewerDirectory: [{ reviewerId: "architect", name: "architect", active: true }],
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      reviewers: [{ id: "reviewer-two", name: "reviewer-two", active: true }],
+    },
+    headers: {
+      cookie: sessionToken,
+      host: "localhost:8787",
+      origin: "https://localhost:8787",
+    },
+    method: "PATCH",
+    url: "/reviewers",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const siteSettings = await client.getDocument("siteSettings");
+  assert.deepEqual(siteSettings.reviewerDirectory, [
+    { reviewerId: "reviewer-two", name: "reviewer-two", active: true },
+  ]);
+});
+
 test("read routes expose private therapist comparison data only to authorized admins", async function () {
   const { client } = createMemoryClient({
     "therapist-admin-lookup": {
