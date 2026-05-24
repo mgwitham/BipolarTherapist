@@ -1,0 +1,171 @@
+import { escapeHtml } from "./escape-html.js";
+import { getPreferredRouteType } from "./match-ranking.js";
+import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
+
+export function countActiveRefinements(profile) {
+  if (!profile) return 0;
+  var count = 0;
+  if (profile.insurance) count += 1;
+  if (profile.care_format) count += 1;
+  if (profile.budget_max) count += 1;
+  if (profile.urgency && profile.urgency !== "ASAP") count += 1;
+  if (Array.isArray(profile.bipolar_focus) && profile.bipolar_focus.length) count += 1;
+  if (Array.isArray(profile.preferred_modalities) && profile.preferred_modalities.length)
+    count += 1;
+  if (Array.isArray(profile.population_fit) && profile.population_fit.length) count += 1;
+  if (Array.isArray(profile.language_preferences) && profile.language_preferences.length)
+    count += 1;
+  return count;
+}
+
+export function buildActiveFilterChipsHtml(profile) {
+  if (!profile) return "";
+  var chips = [];
+
+  // Only chip for an explicit format choice, "Either" is the model's
+  // internal default for "Any" and should not surface as an active filter.
+  if (
+    profile.care_format &&
+    profile.care_format !== "No preference" &&
+    profile.care_format !== "Either"
+  ) {
+    chips.push({ key: "care_format", label: profile.care_format });
+  }
+  if (profile.insurance) {
+    chips.push({ key: "insurance", label: profile.insurance + " insurance" });
+  }
+  if (profile.budget_max) {
+    chips.push({ key: "budget_max", label: "Under $" + profile.budget_max + "/session" });
+  }
+  if (profile.priority_mode && profile.priority_mode !== "Best overall fit") {
+    var modeLabels = {
+      "Soonest availability": "Soonest",
+      "Lowest cost": "Affordable",
+      "Highest specialization": "Most experienced",
+    };
+    chips.push({
+      key: "priority_mode",
+      label: modeLabels[profile.priority_mode] || profile.priority_mode,
+    });
+  }
+  if (Array.isArray(profile.language_preferences) && profile.language_preferences.length) {
+    chips.push({
+      key: "language_preferences",
+      label: profile.language_preferences.join(", "),
+    });
+  }
+
+  if (!chips.length) return "";
+
+  var xIcon =
+    '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" width="9" height="9">' +
+    '<line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/>' +
+    "</svg>";
+
+  return (
+    '<div class="mx-active-filters">' +
+    chips
+      .map(function (chip) {
+        return (
+          '<button type="button" class="mx-filter-chip" data-clear-filter="' +
+          escapeHtml(chip.key) +
+          '">' +
+          escapeHtml(chip.label) +
+          xIcon +
+          "</button>"
+        );
+      })
+      .join("") +
+    "</div>"
+  );
+}
+
+export function buildResultsHeaderHtml(profile, totalCount, options) {
+  var settings = options || {};
+  var mirrorSentence = settings.buildIntakeMirrorSentence
+    ? settings.buildIntakeMirrorSentence(profile)
+    : "";
+
+  var activeCount = countActiveRefinements(profile);
+  var countBadge = activeCount
+    ? '<span class="mx-refine-btn-count">' + activeCount + "</span>"
+    : '<span class="mx-refine-btn-count" hidden>0</span>';
+
+  return (
+    '<header class="mx-results-header">' +
+    '<div class="mx-results-kicker">Your matches</div>' +
+    '<h1 class="mx-results-title">' +
+    totalCount +
+    " bipolar informed " +
+    (totalCount === 1 ? "match" : "matches") +
+    " for you</h1>" +
+    (mirrorSentence ? '<p class="mx-results-sub">' + escapeHtml(mirrorSentence) + "</p>" : "") +
+    '<button type="button" class="mx-refine-btn mx-refine-btn--header" data-mx-refine-open="header">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+    '<line x1="4" y1="21" x2="4" y2="14"></line>' +
+    '<line x1="4" y1="10" x2="4" y2="3"></line>' +
+    '<line x1="12" y1="21" x2="12" y2="12"></line>' +
+    '<line x1="12" y1="8" x2="12" y2="3"></line>' +
+    '<line x1="20" y1="21" x2="20" y2="16"></line>' +
+    '<line x1="20" y1="12" x2="20" y2="3"></line>' +
+    '<line x1="1" y1="14" x2="7" y2="14"></line>' +
+    '<line x1="9" y1="8" x2="15" y2="8"></line>' +
+    '<line x1="17" y1="16" x2="23" y2="16"></line>' +
+    "</svg>" +
+    "Edit my preferences" +
+    countBadge +
+    "</button>" +
+    "</header>"
+  );
+}
+
+// Build the "How to reach out" disclosure for a match card.
+// Returns "" when the therapist has no contactable channel.
+export function buildMatchOutreachDisclosure(entry, options) {
+  var therapist = entry && entry.therapist ? entry.therapist : null;
+  if (!therapist) return "";
+  var settings = options || {};
+  var expanded = settings.expanded === true;
+  var routeType = getPreferredRouteType(entry) || "";
+  var inner = renderOutreachPanelMarkup({
+    therapist: therapist,
+    contactStrategy: routeType ? { route: routeType } : null,
+    escapeHtml: escapeHtml,
+    inline: expanded,
+  });
+  if (!inner) return "";
+  var slug = String(therapist.slug || "");
+  if (expanded) {
+    var firstName = String(therapist.name || "").split(" ")[0] || "them";
+    return (
+      '<details open class="mx-outreach mx-outreach--expanded" data-mx-outreach="' +
+      escapeHtml(slug) +
+      '">' +
+      '<summary class="mx-outreach-expanded-summary">' +
+      '<div class="mx-outreach-expanded-header">' +
+      '<span class="mx-outreach-expanded-kicker">Next step</span>' +
+      '<span class="mx-outreach-expanded-label">Reach out to ' +
+      escapeHtml(firstName) +
+      "</span>" +
+      "</div>" +
+      '<svg class="mx-outreach-chevron mx-outreach-expanded-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      "</summary>" +
+      '<div class="mx-outreach-body outreach-script-shell">' +
+      inner +
+      "</div></details>"
+    );
+  }
+  return (
+    '<details class="mx-outreach" data-mx-outreach="' +
+    escapeHtml(slug) +
+    '">' +
+    '<summary class="mx-outreach-summary">' +
+    '<span class="mx-outreach-summary-label">How to reach out</span>' +
+    '<span class="mx-outreach-summary-helper">We\'ve drafted a message for you</span>' +
+    '<svg class="mx-outreach-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+    "</summary>" +
+    '<div class="mx-outreach-body outreach-script-shell">' +
+    inner +
+    "</div></details>"
+  );
+}
