@@ -1522,6 +1522,16 @@ function updateShortlistAction(slugValue) {
   }
 }
 
+function readEmbeddedTherapistData() {
+  try {
+    var el = document.getElementById("therapistData");
+    if (!el) return null;
+    return JSON.parse(el.textContent || "null");
+  } catch (_error) {
+    return null;
+  }
+}
+
 async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) {
   var exact = await fetchPublicTherapistBySlug(slugValue);
   if (exact) {
@@ -1559,9 +1569,13 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
       return;
     }
 
-    // When the page was SSR-rendered by api/therapists/[slug].mjs, the server
-    // embeds the full therapist object so we can skip a redundant Sanity fetch.
-    var ssrData = window.__THERAPIST_DATA__;
+    // The prerendered page embeds the full public-API therapist payload in a
+    // <script type="application/json" id="therapistData"> block (CSP-safe, as
+    // the strict CSP forbids inline executable scripts). Reading it lets us
+    // render without a /api/public round-trip — the main profile LCP cost on
+    // mobile. Falls back to the legacy window.__THERAPIST_DATA__ (SSR route)
+    // and then to the network fetch if neither is present.
+    var ssrData = readEmbeddedTherapistData() || window.__THERAPIST_DATA__;
     var therapistDirectoryPromise = fetchPublicTherapists();
     var therapist =
       ssrData && ssrData.slug === slug

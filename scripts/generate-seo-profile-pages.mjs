@@ -15,6 +15,11 @@ import { createClient } from "@sanity/client";
 import { buildCityPath, citySlug } from "./generate-seo-city-pages.mjs";
 import { buildGuideLinks } from "../shared/seo-related-guides.mjs";
 import { articles } from "../content/resources/articles.mjs";
+import {
+  PUBLIC_THERAPIST_PROFILE_PROJECTION,
+  normalizePublicTherapist,
+} from "../server/public-content-handler.mjs";
+import { hasActiveFeatured } from "../shared/therapist-subscription-domain.mjs";
 
 // Mirror the city generator's threshold so we only ever link to a city
 // page that was actually generated.
@@ -572,12 +577,25 @@ export function buildHeadTags(therapist) {
 }
 
 export function injectSeo(template, therapist, similar, options) {
-  const withHead = template
+  const opts = options || {};
+  let withHead = template
     .replace(/<title>[\s\S]*?<\/title>/, buildHeadTags(therapist))
     .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
     .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
     .replace(/src="(?:\.\.\/)*assets\//g, 'src="/assets/')
     .replace(/href="therapist\.html"/g, `href="${buildProfilePath(therapist.slug)}"`);
+
+  // Embed the full public-API therapist payload so the client hydrates
+  // in place without a /api/public round-trip (the dominant profile LCP
+  // cost on mobile). A type="application/json" block is data, not an
+  // executable script, so it is allowed under the strict CSP (which has
+  // no script-src 'unsafe-inline'). therapist-page.js reads it; if it is
+  // absent or malformed it falls back to the network fetch.
+  if (opts.embedData) {
+    const json = JSON.stringify(opts.embedData).replace(/</g, "\\u003c");
+    const tag = `<script type="application/json" id="therapistData">${json}</script>`;
+    withHead = withHead.replace(/<\/head>/, `  ${tag}\n  </head>`);
+  }
 
   return withHead.replace(
     /<div class="profile-wrap" id="profileWrap">[\s\S]*?<\/div>\s*(?=<footer>)/,
@@ -624,6 +642,39 @@ async function fetchTherapists(config) {
   );
 }
 
+// Fetch every listed therapist in the exact shape the /api/public endpoint
+// returns (reusing the API's own projection + normalizer), keyed by slug.
+// This payload is embedded in each page so the client hydrates without a
+// second network round-trip — the dominant cost of profile LCP on mobile.
+async function fetchTherapistEmbedMap(config) {
+  const client = createClient({
+    projectId: config.projectId,
+    dataset: config.dataset,
+    apiVersion: API_VERSION,
+    useCdn: true,
+  });
+  const [docs, subscriptions] = await Promise.all([
+    client.fetch(
+      `*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"] | order(name asc) ${PUBLIC_THERAPIST_PROFILE_PROJECTION}`,
+    ),
+    client.fetch(`*[_type == "therapistSubscription"]{ _id, plan, tier, status }`),
+  ]);
+  const subscriptionById = new Map((subscriptions || []).map((s) => [s._id, s]));
+  const map = new Map();
+  for (const doc of docs || []) {
+    if (!doc || !doc.slug) continue;
+    const subscriptionId = `therapistSubscription-${String(doc.slug).trim().toLowerCase()}`;
+    map.set(
+      doc.slug,
+      normalizePublicTherapist(doc, {
+        hasPaidSubscription: hasActiveFeatured(subscriptionById.get(subscriptionId) || null),
+        includeProfileFields: true,
+      }),
+    );
+  }
+  return map;
+}
+
 async function main() {
   const config = getConfig();
   if (!config.projectId || !config.dataset) {
@@ -636,7 +687,10 @@ async function main() {
   }
 
   const template = fs.readFileSync(TEMPLATE_PATH, "utf8");
-  const therapists = await fetchTherapists(config);
+  const [therapists, embedMap] = await Promise.all([
+    fetchTherapists(config),
+    fetchTherapistEmbedMap(config),
+  ]);
   const eligibleCitySlugs = computeEligibleCitySlugs(therapists);
   const guideLinks = buildGuideLinks(articles, 4);
   let count = 0;
@@ -645,11 +699,12 @@ async function main() {
     const similar = findSimilarTherapists(therapist, therapists);
     const slug = citySlug(therapist.city, therapist.state || "CA");
     const cityHref = eligibleCitySlugs.has(slug) ? buildCityPath(slug) : "";
+    const embedData = embedMap.get(therapist.slug) || null;
     const outputDir = path.join(PROFILE_OUTPUT_DIR, String(therapist.slug));
     fs.mkdirSync(outputDir, { recursive: true });
     fs.writeFileSync(
       path.join(outputDir, "index.html"),
-      injectSeo(template, therapist, similar, { cityHref, guideLinks }),
+      injectSeo(template, therapist, similar, { cityHref, guideLinks, embedData }),
       "utf8",
     );
     count += 1;
