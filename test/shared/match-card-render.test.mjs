@@ -4,9 +4,20 @@ import assert from "node:assert/strict";
 import {
   buildActiveFilterChipsHtml,
   buildMatchOutreachDisclosure,
+  buildMatchReasonLine,
   buildResultsHeaderHtml,
   countActiveRefinements,
+  getPersonalizedCtaLabel,
+  renderLeadResultCard,
+  renderSupportingResultCard,
 } from "../../assets/match-card-render.js";
+
+const CARD_SERVICES = {
+  getPreferredOutreach: () => ({ href: "https://ex.com/book", external: true }),
+  buildTherapistProfileHref: (t) => "/therapists/" + (t.slug || ""),
+  renderSaveButton: (slug) => '<button data-save-slug="' + slug + '"></button>',
+  buildCardInfoRow: () => '<div class="bth-card-info"></div>',
+};
 
 test("countActiveRefinements counts only meaningful, non-default selections", function () {
   assert.equal(countActiveRefinements(null), 0);
@@ -68,4 +79,55 @@ test("buildResultsHeaderHtml works without an injected mirror sentence", functio
 test("buildMatchOutreachDisclosure returns empty when there is no therapist", function () {
   assert.equal(buildMatchOutreachDisclosure(null), "");
   assert.equal(buildMatchOutreachDisclosure({}), "");
+});
+
+test("buildMatchReasonLine prefers years of experience, then a bipolar specialty", function () {
+  assert.equal(buildMatchReasonLine({ bipolar_years_experience: 1 }), "1 yr bipolar experience");
+  assert.equal(buildMatchReasonLine({ bipolar_years_experience: 7 }), "7 yrs bipolar experience");
+  assert.equal(
+    buildMatchReasonLine({ specialties: ["Rapid cycling"] }),
+    "Rapid cycling specialist",
+  );
+  // Generic terms are too broad to surface as a reason label.
+  assert.equal(buildMatchReasonLine({ specialties: ["Bipolar Disorder"] }), "");
+  assert.equal(buildMatchReasonLine({}), "");
+});
+
+test("getPersonalizedCtaLabel maps each route type to a verb-led label", function () {
+  assert.equal(getPersonalizedCtaLabel("website"), "Visit their website");
+  assert.equal(getPersonalizedCtaLabel("booking"), "Book a session");
+  assert.equal(getPersonalizedCtaLabel("email"), "Email therapist");
+  assert.equal(getPersonalizedCtaLabel("phone"), "Call therapist");
+  assert.equal(getPersonalizedCtaLabel("unknown"), "");
+});
+
+test("renderLeadResultCard builds the lead article with injected services", function () {
+  const entry = {
+    therapist: { slug: "dr-a", name: "Dr. A", credentials: "LMFT", booking_url: "x" },
+  };
+  const html = renderLeadResultCard(entry, {
+    showBestBadge: true,
+    ...CARD_SERVICES,
+  });
+  assert.match(html, /bth-card bth-card-lead/);
+  assert.match(html, /mx-top-match-label/); // best badge shown
+  assert.match(html, /Dr\. A/);
+  assert.match(html, /data-match-primary-cta="dr-a"/);
+  assert.match(html, /href="\/therapists\/dr-a"/);
+  assert.match(html, /data-save-slug="dr-a"/);
+});
+
+test("renderLeadResultCard omits the best badge when not requested", function () {
+  const html = renderLeadResultCard({ therapist: { slug: "b", name: "B" } }, { ...CARD_SERVICES });
+  assert.doesNotMatch(html, /mx-top-match-label/);
+});
+
+test("renderSupportingResultCard builds a standard card (no lead modifier)", function () {
+  const html = renderSupportingResultCard(
+    { therapist: { slug: "dr-c", name: "Dr. C" } },
+    CARD_SERVICES,
+  );
+  assert.match(html, /<article class="bth-card">/);
+  assert.doesNotMatch(html, /bth-card-lead/);
+  assert.match(html, /data-match-primary-cta="dr-c"/);
 });
