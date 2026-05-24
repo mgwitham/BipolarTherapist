@@ -1,15 +1,10 @@
 # BipolarTherapyHub robots.txt
-# We want everything indexed except user-specific surfaces and
-# internal admin/API endpoints. See sitemap.xml for the full URL list.
+# We allow crawl access to ordinary HTML pages so Google can see their
+# page-level noindex/X-Robots-Tag directives. API endpoints remain
+# blocked. See sitemap.xml for the canonical indexable URL list.
 
 User-agent: *
 Allow: /
-Disallow: /portal
-Disallow: /portal.html
-Disallow: /admin
-Disallow: /admin.html
-Disallow: /outreach
-Disallow: /outreach.html
 Disallow: /api/
 
 Sitemap: https://www.bipolartherapyhub.com/sitemap.xml

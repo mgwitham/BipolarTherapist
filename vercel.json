@@ -64,11 +64,25 @@
     },
     {
       "source": "/:page(admin|portal|outreach)",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }]
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
     },
     {
       "source": "/:page(admin|portal|outreach).html",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" }]
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store, max-age=0, must-revalidate" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow" }
+      ]
+    },
+    {
+      "source": "/:page(results|recover|remove|confirm-claim)",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
+    },
+    {
+      "source": "/:page(results|recover|remove|confirm-claim).html",
+      "headers": [{ "key": "X-Robots-Tag", "value": "noindex, nofollow" }]
     }
   ],
   "crons": [

@@ -13,6 +13,11 @@ import {
   buildHeadTags as buildProfileHeadTags,
   injectSeo as injectProfileSeo,
 } from "../../scripts/generate-seo-profile-pages.mjs";
+import {
+  bucketTherapistsByCity,
+  buildSitemapXml,
+  STATIC_ROUTES,
+} from "../../scripts/generate-sitemap.mjs";
 
 const ROOT = process.cwd();
 
@@ -161,4 +166,69 @@ test("profile SEO generator injects visible FAQ content into generated profile p
   assert.match(html, /seo-profile-faq/);
   assert.match(pageText, /Frequently asked questions/);
   assert.match(pageText, new RegExp(faqJsonLd.mainEntity[0].name));
+});
+
+test("sitemap static routes exclude noindex match flow and include E-E-A-T about page", () => {
+  const staticLocs = STATIC_ROUTES.map((route) => route.loc);
+
+  assert.ok(staticLocs.includes("/about"));
+  assert.ok(!staticLocs.includes("/match"));
+});
+
+test("sitemap city buckets only include eligible crawlable city pages", () => {
+  const buckets = bucketTherapistsByCity([
+    { city: "Los Angeles", state: "CA", _updatedAt: "2026-05-01T00:00:00Z" },
+    { city: "Los Angeles", state: "CA", _updatedAt: "2026-05-03T00:00:00Z" },
+    { city: "Fresno", state: "CA", _updatedAt: "2026-05-02T00:00:00Z" },
+  ]);
+
+  assert.deepEqual(buckets, [
+    {
+      slug: "los-angeles-ca",
+      count: 2,
+      lastmod: "2026-05-03T00:00:00Z",
+    },
+  ]);
+});
+
+test("sitemap XML escapes URLs and preserves trailing slash canonicals", () => {
+  const xml = buildSitemapXml([
+    {
+      loc: "/bipolar-therapists/",
+      lastmod: "2026-05-03",
+      changefreq: "weekly",
+      priority: "0.8",
+    },
+  ]);
+
+  assert.match(xml, /<loc>https:\/\/www\.bipolartherapyhub\.com\/bipolar-therapists\/<\/loc>/);
+  assert.match(xml, /<lastmod>2026-05-03<\/lastmod>/);
+});
+
+test("robots.txt blocks APIs but does not hide noindex HTML pages from crawlers", async () => {
+  const robots = await readFile(path.join(ROOT, "public", "robots.txt"), "utf8");
+
+  assert.match(robots, /Disallow: \/api\//);
+  assert.doesNotMatch(robots, /Disallow: \/admin\b/);
+  assert.doesNotMatch(robots, /Disallow: \/portal\b/);
+  assert.doesNotMatch(robots, /Disallow: \/outreach\b/);
+});
+
+test("Vercel adds X-Robots-Tag headers to non-indexable HTML app surfaces", async () => {
+  const vercel = JSON.parse(await readFile(path.join(ROOT, "vercel.json"), "utf8"));
+  const headerBlocks = vercel.headers || [];
+  const privatePages = headerBlocks.filter((block) =>
+    String(block.source || "").includes("admin|portal|outreach"),
+  );
+  const utilityPages = headerBlocks.filter((block) =>
+    String(block.source || "").includes("results|recover|remove|confirm-claim"),
+  );
+
+  assert.equal(privatePages.length, 2);
+  assert.equal(utilityPages.length, 2);
+  for (const block of [...privatePages, ...utilityPages]) {
+    assert.ok(
+      block.headers.some((header) => header.key === "X-Robots-Tag" && /noindex/.test(header.value)),
+    );
+  }
 });
