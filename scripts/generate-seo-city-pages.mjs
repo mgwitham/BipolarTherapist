@@ -16,6 +16,8 @@ import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
 import { formatNameList, summarizeProviders } from "../shared/seo-provider-stats.mjs";
+import { buildGuideLinks } from "../shared/seo-related-guides.mjs";
+import { articles } from "../content/resources/articles.mjs";
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
@@ -83,7 +85,7 @@ function escapeAttribute(value) {
   return escapeHtml(value).replace(/`/g, "&#96;");
 }
 
-function citySlug(city, state) {
+export function citySlug(city, state) {
   return (
     String(city || "")
       .trim()
@@ -97,7 +99,7 @@ function citySlug(city, state) {
   );
 }
 
-function buildCityPath(slug) {
+export function buildCityPath(slug) {
   return "/bipolar-therapists/" + slug + "/";
 }
 
@@ -518,6 +520,28 @@ function formatFeeRange(stats) {
   return "$" + stats.feeMin;
 }
 
+function buildCityGuidesHtml() {
+  const links = buildGuideLinks(articles, 4);
+  if (!links.length) return "";
+  const items = links
+    .map(
+      (link) =>
+        '<li><a href="' + escapeAttribute(link.href) + '">' + escapeHtml(link.title) + "</a></li>",
+    )
+    .join("");
+  return (
+    '<section class="city-guides">' +
+    '<div class="city-section-inner">' +
+    '<p class="city-section-kicker">Before you reach out</p>' +
+    '<h2 class="city-section-h2">Guides on finding bipolar care</h2>' +
+    '<ul class="city-guides-list">' +
+    items +
+    "</ul>" +
+    "</div>" +
+    "</section>"
+  );
+}
+
 function buildFallbackBodyHtml(city, state, providers, cityContent) {
   const stats = computeCityStats(providers);
   return (
@@ -527,6 +551,7 @@ function buildFallbackBodyHtml(city, state, providers, cityContent) {
     buildCityProvidersHtml(city, providers) +
     buildWhatToLookForHtml(city) +
     buildCityFaqHtml(city, stats) +
+    buildCityGuidesHtml() +
     buildCityCtaBandHtml(city) +
     "</div>"
   );

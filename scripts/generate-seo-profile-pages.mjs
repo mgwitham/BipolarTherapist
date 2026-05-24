@@ -12,6 +12,14 @@ import process from "node:process";
 import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
+import { buildCityPath, citySlug } from "./generate-seo-city-pages.mjs";
+import { buildGuideLinks } from "../shared/seo-related-guides.mjs";
+import { articles } from "../content/resources/articles.mjs";
+
+// Mirror the city generator's threshold so we only ever link to a city
+// page that was actually generated.
+const CITY_PAGE_MIN_PROVIDERS = 2;
+
 const ZIP_GEO = {
   90001: [33.9731, -118.2479],
   90007: [34.027, -118.2843],
@@ -410,7 +418,25 @@ function buildFaqBlock(therapist) {
         </section>`;
 }
 
-export function buildFallbackProfileHtml(therapist, similar) {
+function buildCityBacklinkHtml(city, cityHref) {
+  if (!cityHref || !city) return "";
+  return `<p class="seo-city-backlink"><a href="${escapeAttribute(cityHref)}">Browse all bipolar therapists in ${escapeHtml(city)} &rarr;</a></p>`;
+}
+
+function buildRelatedGuidesBlock(guideLinks) {
+  const links = Array.isArray(guideLinks) ? guideLinks : [];
+  if (!links.length) return "";
+  const items = links
+    .map((link) => `<li><a href="${escapeAttribute(link.href)}">${escapeHtml(link.title)}</a></li>`)
+    .join("");
+  return `<section class="profile-section seo-related-guides">
+          <h2>Guides on finding bipolar care</h2>
+          <ul>${items}</ul>
+        </section>`;
+}
+
+export function buildFallbackProfileHtml(therapist, similar, options) {
+  const opts = options || {};
   const name = therapist.name || "Therapist";
   const credentials = therapist.credentials ? `, ${therapist.credentials}` : "";
   const location = [therapist.city, therapist.state].filter(Boolean).join(", ");
@@ -420,6 +446,8 @@ export function buildFallbackProfileHtml(therapist, similar) {
   const populations = listItems(therapist.clientPopulations);
   const bio = stripHtml(therapist.bio || therapist.bioPreview || "");
   const similarBlock = buildSimilarTherapistsBlock(similar || [], therapist.city);
+  const cityBacklink = buildCityBacklinkHtml(therapist.city, opts.cityHref);
+  const guidesBlock = buildRelatedGuidesBlock(opts.guideLinks);
   const faqBlock = buildFaqBlock(therapist);
 
   return `<div class="seo-profile-fallback" data-static-seo-profile>
@@ -473,7 +501,27 @@ export function buildFallbackProfileHtml(therapist, similar) {
         }
         ${faqBlock}
         ${similarBlock}
+        ${cityBacklink}
+        ${guidesBlock}
       </div>`;
+}
+
+// Mirror the city generator's bucketing + threshold so a profile only links
+// to a city hub page that was actually generated (never a 404).
+function computeEligibleCitySlugs(therapists) {
+  const counts = new Map();
+  for (const t of therapists || []) {
+    const city = String((t && t.city) || "").trim();
+    if (!city) continue;
+    const state = String((t && t.state) || "CA").trim();
+    const slug = citySlug(city, state);
+    counts.set(slug, (counts.get(slug) || 0) + 1);
+  }
+  const eligible = new Set();
+  for (const [slug, n] of counts) {
+    if (n >= CITY_PAGE_MIN_PROVIDERS) eligible.add(slug);
+  }
+  return eligible;
 }
 
 // Cap and format-optimize a Sanity-hosted image so we never hand a
@@ -523,7 +571,7 @@ export function buildHeadTags(therapist) {
   ].join("\n    ");
 }
 
-export function injectSeo(template, therapist, similar) {
+export function injectSeo(template, therapist, similar, options) {
   const withHead = template
     .replace(/<title>[\s\S]*?<\/title>/, buildHeadTags(therapist))
     .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
@@ -533,7 +581,7 @@ export function injectSeo(template, therapist, similar) {
 
   return withHead.replace(
     /<div class="profile-wrap" id="profileWrap">[\s\S]*?<\/div>\s*(?=<footer>)/,
-    `<div class="profile-wrap" id="profileWrap">\n      ${buildFallbackProfileHtml(therapist, similar)}\n    </div>\n\n    `,
+    `<div class="profile-wrap" id="profileWrap">\n      ${buildFallbackProfileHtml(therapist, similar, options)}\n    </div>\n\n    `,
   );
 }
 
@@ -589,15 +637,19 @@ async function main() {
 
   const template = fs.readFileSync(TEMPLATE_PATH, "utf8");
   const therapists = await fetchTherapists(config);
+  const eligibleCitySlugs = computeEligibleCitySlugs(therapists);
+  const guideLinks = buildGuideLinks(articles, 4);
   let count = 0;
   for (const therapist of therapists || []) {
     if (!therapist || !therapist.slug) continue;
     const similar = findSimilarTherapists(therapist, therapists);
+    const slug = citySlug(therapist.city, therapist.state || "CA");
+    const cityHref = eligibleCitySlugs.has(slug) ? buildCityPath(slug) : "";
     const outputDir = path.join(PROFILE_OUTPUT_DIR, String(therapist.slug));
     fs.mkdirSync(outputDir, { recursive: true });
     fs.writeFileSync(
       path.join(outputDir, "index.html"),
-      injectSeo(template, therapist, similar),
+      injectSeo(template, therapist, similar, { cityHref, guideLinks }),
       "utf8",
     );
     count += 1;
