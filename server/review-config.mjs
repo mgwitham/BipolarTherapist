@@ -57,6 +57,7 @@ function readEnvFile(filePath) {
 export function getReviewApiConfig() {
   const rootEnv = readEnvFile(path.join(ROOT, ".env"));
   const studioEnv = readEnvFile(path.join(ROOT, "studio", ".env"));
+  const allowRootEnvDevLogin = process.env.NODE_ENV !== "production";
   const allowedOrigins = (
     process.env.REVIEW_API_ALLOWED_ORIGINS ||
     rootEnv.REVIEW_API_ALLOWED_ORIGINS ||
@@ -104,11 +105,13 @@ export function getReviewApiConfig() {
         rootEnv.REVIEW_API_LOGIN_MAX_ATTEMPTS ||
         DEFAULT_LOGIN_MAX_ATTEMPTS,
     ),
-    // Dev-only login bypass flag. Read through this parser (not just
-    // process.env) so the project's .env pattern works the same way the
-    // other secrets do. isDevLoginEnabled still requires NODE_ENV=development
-    // at call time, so setting this alone cannot re-enable the bypass in prod.
-    allowDevLogin: parseBooleanEnv(process.env.ALLOW_DEV_LOGIN || rootEnv.ALLOW_DEV_LOGIN, false),
+    // Dev-only login bypass flag. Local development may read .env, but
+    // production must only honor the real runtime environment. This keeps
+    // a locally uploaded .env from tripping production deploys.
+    allowDevLogin: parseBooleanEnv(
+      process.env.ALLOW_DEV_LOGIN || (allowRootEnvDevLogin ? rootEnv.ALLOW_DEV_LOGIN : undefined),
+      false,
+    ),
     resendApiKey: process.env.RESEND_API_KEY || rootEnv.RESEND_API_KEY || "",
     emailFrom: process.env.REVIEW_EMAIL_FROM || rootEnv.REVIEW_EMAIL_FROM || "",
     notificationTo: process.env.REVIEW_NOTIFICATION_TO || rootEnv.REVIEW_NOTIFICATION_TO || "",
@@ -225,6 +228,15 @@ export function getReviewApiConfig() {
   if (process.env.VERCEL_ENV === "production" && !config.turnstileSecretKey) {
     throw new Error(
       "TURNSTILE_SECRET_KEY must be set in production so anti-bot verification cannot silently fail open.",
+    );
+  }
+
+  if (
+    process.env.VERCEL_ENV === "production" &&
+    !(config.upstashRedisRestUrl && config.upstashRedisRestToken)
+  ) {
+    throw new Error(
+      "Persistent rate limiting must be configured in production. Set UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN or KV_REST_API_URL/KV_REST_API_TOKEN.",
     );
   }
 
