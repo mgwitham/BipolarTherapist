@@ -11,7 +11,7 @@
       ribbon.href = "tel:988";
       ribbon.setAttribute(
         "aria-label",
-        "In crisis? Call or text the Suicide and Crisis Lifeline at 988",
+        "In crisis? Call or text 988, the Suicide and Crisis Lifeline",
       );
       ribbon.textContent = "In crisis? Call or text 988";
       document.body.insertBefore(ribbon, document.body.firstChild);
