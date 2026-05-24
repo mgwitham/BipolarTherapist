@@ -19,6 +19,7 @@ const PUBLIC_DIR = path.join(ROOT, "public");
 const SITEMAP_PATH = path.join(PUBLIC_DIR, "sitemap.xml");
 const PROFILE_DIR = path.join(DIST_DIR, "therapists");
 const CITY_DIR = path.join(DIST_DIR, "bipolar-therapists");
+const INSURANCE_DIR = path.join(DIST_DIR, "insurance");
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -141,6 +142,10 @@ async function main() {
   const cityPageCount = countDirEntries(CITY_DIR);
   lines.push("  Generated: " + cityPageCount);
 
+  lines.push(formatHeader("Insurance landing pages"));
+  const insurancePageCount = countDirEntries(INSURANCE_DIR);
+  lines.push("  Generated: " + insurancePageCount);
+
   lines.push(formatHeader("Sitemap"));
   const sitemap = readSitemap();
   lines.push("  Total URLs: " + sitemap.count);
@@ -151,9 +156,15 @@ async function main() {
     const cityUrls = sitemap.locs.filter(function (loc) {
       return loc.includes("/bipolar-therapists/");
     }).length;
+    const insuranceUrls = sitemap.locs.filter(function (loc) {
+      return loc.includes("/insurance/");
+    }).length;
     lines.push("  /therapists/ entries: " + profileUrls);
     lines.push("  /bipolar-therapists/ entries: " + cityUrls);
-    lines.push("  Other (static) entries: " + (sitemap.count - profileUrls - cityUrls));
+    lines.push("  /insurance/ entries: " + insuranceUrls);
+    lines.push(
+      "  Other (static) entries: " + (sitemap.count - profileUrls - cityUrls - insuranceUrls),
+    );
   }
 
   const config = getSanityConfig();

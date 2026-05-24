@@ -13,6 +13,7 @@ import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
 import { articles } from "../content/resources/articles.mjs";
+import { bucketTherapistsByInsurance, insuranceSlug } from "./generate-seo-insurance-pages.mjs";
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
@@ -94,8 +95,8 @@ async function fetchTherapistSlugs(config) {
     useCdn: true,
   });
   return client.fetch(
-    `*[_type == "therapist" && listingActive == true && defined(slug.current)]{
-      "slug": slug.current, city, state, _updatedAt
+    `*[_type == "therapist" && listingActive == true && status == "active" && defined(slug.current)]{
+      "slug": slug.current, city, state, _updatedAt, insuranceAccepted
     }`,
   );
 }
@@ -106,6 +107,7 @@ function buildTherapistPath(slug) {
 
 const CITY_PATH_PREFIX = "/bipolar-therapists/";
 const CITY_MIN_PROVIDERS = 2;
+const INSURANCE_PATH_PREFIX = "/insurance/";
 
 function citySlug(city, state) {
   return (
@@ -242,12 +244,35 @@ async function main() {
     });
   });
 
+  const insuranceBuckets = bucketTherapistsByInsurance(therapists);
+  if (insuranceBuckets.length) {
+    const latestInsuranceLastmod = insuranceBuckets
+      .map((bucket) => bucket.lastmod)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    entries.push({
+      loc: INSURANCE_PATH_PREFIX,
+      lastmod: (latestInsuranceLastmod || "").slice(0, 10) || now,
+      changefreq: "weekly",
+      priority: "0.7",
+    });
+  }
+  insuranceBuckets.forEach(function (bucket) {
+    entries.push({
+      loc: INSURANCE_PATH_PREFIX + insuranceSlug(bucket.name) + "/",
+      lastmod: (bucket.lastmod || "").slice(0, 10) || now,
+      changefreq: "weekly",
+      priority: "0.7",
+    });
+  });
+
   const resourceEntries = buildResourceEntries(now);
   entries.push(...resourceEntries);
 
   fs.writeFileSync(OUTPUT_PATH, buildSitemapXml(entries), "utf8");
   console.log(
-    `[sitemap] Wrote ${entries.length} URLs (${therapists.length} therapist profiles + ${cityBuckets.length} city pages + ${resourceEntries.length} resource pages + ${STATIC_ROUTES.length} static) to ${OUTPUT_PATH}`,
+    `[sitemap] Wrote ${entries.length} URLs (${therapists.length} therapist profiles + ${cityBuckets.length} city pages + ${insuranceBuckets.length} insurance pages + ${resourceEntries.length} resource pages + ${STATIC_ROUTES.length} static) to ${OUTPUT_PATH}`,
   );
 }
 

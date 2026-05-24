@@ -1142,8 +1142,8 @@ footer {
   max-width: 1160px;
   margin: 0 auto;
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 1fr;
-  gap: 48px;
+  grid-template-columns: minmax(220px, 2fr) repeat(5, minmax(118px, 1fr));
+  gap: 32px;
   margin-bottom: 48px;
 }
 .footer-col-cities .footer-city-all {

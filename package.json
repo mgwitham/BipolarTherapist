@@ -7,10 +7,11 @@
   "scripts": {
     "dev": "vite",
     "api:dev": "NODE_ENV=development node server/review-api.mjs",
-    "build": "npm run build:sitemap && vite build && npm run build:seo-pages && npm run build:seo-city-pages && npm run build:seo-directory-page && npm run build:resource-pages && npm run cms:snapshot:emails",
+    "build": "npm run build:sitemap && vite build && npm run build:seo-pages && npm run build:seo-city-pages && npm run build:seo-insurance-pages && npm run build:seo-directory-page && npm run build:resource-pages && npm run cms:snapshot:emails",
     "build:sitemap": "node scripts/generate-sitemap.mjs",
     "build:seo-pages": "node scripts/generate-seo-profile-pages.mjs",
     "build:seo-city-pages": "node scripts/generate-seo-city-pages.mjs",
+    "build:seo-insurance-pages": "node scripts/generate-seo-insurance-pages.mjs",
     "build:seo-directory-page": "node scripts/generate-seo-directory-page.mjs",
     "build:resource-pages": "node scripts/generate-resource-pages.mjs",
     "audit:seo": "node scripts/audit-seo-coverage.mjs",

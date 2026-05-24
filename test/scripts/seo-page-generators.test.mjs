@@ -14,6 +14,10 @@ import {
   injectSeo as injectProfileSeo,
 } from "../../scripts/generate-seo-profile-pages.mjs";
 import {
+  bucketTherapistsByInsurance,
+  insuranceSlug,
+} from "../../scripts/generate-seo-insurance-pages.mjs";
+import {
   bucketTherapistsByCity,
   buildSitemapXml,
   STATIC_ROUTES,
@@ -189,6 +193,55 @@ test("sitemap city buckets only include eligible crawlable city pages", () => {
       lastmod: "2026-05-03T00:00:00Z",
     },
   ]);
+});
+
+test("insurance SEO generator buckets canonical carrier pages above threshold", () => {
+  const buckets = bucketTherapistsByInsurance([
+    {
+      slug: "a",
+      name: "A",
+      insuranceAccepted: ["Blue Shield", "Self-pay"],
+      _updatedAt: "2026-05-01T00:00:00Z",
+    },
+    {
+      slug: "b",
+      name: "B",
+      insuranceAccepted: ["Blue Shield of California"],
+      _updatedAt: "2026-05-03T00:00:00Z",
+    },
+    {
+      slug: "c",
+      name: "C",
+      insuranceAccepted: ["Kaiser"],
+      _updatedAt: "2026-05-02T00:00:00Z",
+    },
+  ]);
+
+  assert.deepEqual(buckets, [
+    {
+      name: "Blue Shield of California",
+      providers: [
+        {
+          slug: "a",
+          name: "A",
+          insuranceAccepted: ["Blue Shield", "Self-pay"],
+          _updatedAt: "2026-05-01T00:00:00Z",
+        },
+        {
+          slug: "b",
+          name: "B",
+          insuranceAccepted: ["Blue Shield of California"],
+          _updatedAt: "2026-05-03T00:00:00Z",
+        },
+      ],
+      lastmod: "2026-05-03T00:00:00Z",
+    },
+  ]);
+});
+
+test("insurance SEO generator creates clean readable slugs", () => {
+  assert.equal(insuranceSlug("Blue Shield of California"), "blue-shield-of-california");
+  assert.equal(insuranceSlug("Anthem Blue Cross"), "anthem-blue-cross");
 });
 
 test("sitemap XML escapes URLs and preserves trailing slash canonicals", () => {
