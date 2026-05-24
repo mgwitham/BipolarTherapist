@@ -73,18 +73,29 @@ function scrubBreadcrumb(breadcrumb) {
 
 const dsn = import.meta.env.VITE_SENTRY_DSN;
 if (dsn) {
-  import("@sentry/browser")
-    .then(function (Sentry) {
-      Sentry.init({
-        dsn,
-        environment: import.meta.env.MODE,
-        // Capture 100% of errors; set tracesSampleRate to enable performance monitoring.
-        tracesSampleRate: 0,
-        beforeSend: scrubEvent,
-        beforeBreadcrumb: scrubBreadcrumb,
+  // Defer loading the ~60KB Sentry SDK until the main thread is idle so it
+  // never competes with first render. Error monitoring is best-effort; the
+  // brief uninstrumented window at startup is an acceptable trade for not
+  // blocking LCP with a third-party chunk on the critical path.
+  var initSentry = function () {
+    import("@sentry/browser")
+      .then(function (Sentry) {
+        Sentry.init({
+          dsn,
+          environment: import.meta.env.MODE,
+          // Capture 100% of errors; set tracesSampleRate to enable performance monitoring.
+          tracesSampleRate: 0,
+          beforeSend: scrubEvent,
+          beforeBreadcrumb: scrubBreadcrumb,
+        });
+      })
+      .catch(function () {
+        // Error monitoring is best-effort and should never block the page.
       });
-    })
-    .catch(function () {
-      // Error monitoring is best-effort and should never block the page.
-    });
+  };
+  if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+    window.requestIdleCallback(initSentry, { timeout: 3000 });
+  } else {
+    setTimeout(initSentry, 2000);
+  }
 }
