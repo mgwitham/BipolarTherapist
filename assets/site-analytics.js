@@ -171,10 +171,13 @@ function loadPostHog() {
           );
           return properties;
         },
-        // Mask all input fields (zip, search queries, anything the
-        // user types). The page text is still recorded — we want to
-        // see what content the visitor saw, just not what they typed.
-        // Especially important on a mental-health site.
+        // Session replay and surveys are not used yet, so keep their modules
+        // (~54KB recorder + ~34KB surveys of third-party JS) from loading at
+        // all — a meaningful perf win on patient pages. The masking config
+        // below is retained so replay is privacy-safe the moment it's enabled
+        // (flip disable_session_recording back to false).
+        disable_session_recording: true,
+        disable_surveys: true,
         session_recording: {
           maskAllInputs: true,
           maskInputOptions: { password: true, email: true },
@@ -183,9 +186,6 @@ function loadPostHog() {
         capture_pageview: true,
         capture_pageleave: true,
         persistence: "localStorage+cookie",
-        // Disable PostHog's own toolbar in prod — we don't need it
-        // and it would only confuse the founder during a live session.
-        disable_session_recording: false,
         loaded: function () {
           window.posthog = posthog;
         },
