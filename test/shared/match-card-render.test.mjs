@@ -5,6 +5,7 @@ import {
   buildActiveFilterChipsHtml,
   buildMatchOutreachDisclosure,
   buildMatchReasonLine,
+  buildPrimaryMatchCardsMarkup,
   buildResultsHeaderHtml,
   countActiveRefinements,
   getPersonalizedCtaLabel,
@@ -17,7 +18,12 @@ const CARD_SERVICES = {
   buildTherapistProfileHref: (t) => "/therapists/" + (t.slug || ""),
   renderSaveButton: (slug) => '<button data-save-slug="' + slug + '"></button>',
   buildCardInfoRow: () => '<div class="bth-card-info"></div>',
+  buildIntakeMirrorSentence: () => "",
 };
+
+function entryWith(overrides) {
+  return { therapist: Object.assign({ slug: "t", name: "T" }, overrides) };
+}
 
 test("countActiveRefinements counts only meaningful, non-default selections", function () {
   assert.equal(countActiveRefinements(null), 0);
@@ -130,4 +136,40 @@ test("renderSupportingResultCard builds a standard card (no lead modifier)", fun
   assert.match(html, /<article class="bth-card">/);
   assert.doesNotMatch(html, /bth-card-lead/);
   assert.match(html, /data-match-primary-cta="dr-c"/);
+});
+
+test("buildPrimaryMatchCardsMarkup returns empty shape when nothing is contactable", function () {
+  const services = { ...CARD_SERVICES, getPreferredOutreach: () => null };
+  const result = buildPrimaryMatchCardsMarkup([entryWith({ slug: "a" })], {}, services);
+  assert.deepEqual(result, { html: "", allEntries: [], leadEntry: null });
+});
+
+test("buildPrimaryMatchCardsMarkup assembles panel, lead, runners, and show-more", function () {
+  const entries = [];
+  for (let i = 0; i < 7; i++) entries.push(entryWith({ slug: "t" + i, name: "T" + i }));
+
+  const result = buildPrimaryMatchCardsMarkup(entries, {}, CARD_SERVICES);
+
+  assert.match(result.html, /results-panel/);
+  assert.match(result.html, /bth-card-lead/);
+  assert.match(result.html, /mx-runners/);
+  assert.match(result.html, /Show 2 more matches/); // 7 entries: 1 lead + 4 runners + 2 more
+  assert.match(result.html, /mx-compare-trigger/);
+  assert.equal(result.allEntries.length, 7);
+  assert.equal(result.leadEntry.therapist.slug, "t0");
+});
+
+test("buildPrimaryMatchCardsMarkup caps results at 8 and drops non-accepting on ASAP", function () {
+  const entries = [];
+  for (let i = 0; i < 10; i++) {
+    entries.push(entryWith({ slug: "t" + i, accepting_new_patients: i !== 0 }));
+  }
+  // No urgency: cap at 8, lead is t0 even though it isn't accepting.
+  const relaxed = buildPrimaryMatchCardsMarkup(entries, {}, CARD_SERVICES);
+  assert.equal(relaxed.allEntries.length, 8);
+  assert.equal(relaxed.leadEntry.therapist.slug, "t0");
+
+  // ASAP: t0 (not accepting) is filtered out, so t1 leads.
+  const asap = buildPrimaryMatchCardsMarkup(entries, { urgency: "ASAP" }, CARD_SERVICES);
+  assert.equal(asap.leadEntry.therapist.slug, "t1");
 });
