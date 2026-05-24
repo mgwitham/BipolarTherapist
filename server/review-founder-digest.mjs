@@ -7,9 +7,16 @@ import {
   buildFounderFunnelDigest,
   renderFounderFunnelEmail,
 } from "../shared/founder-funnel-digest-domain.mjs";
+import { buildDirectoryIntegritySummary } from "../shared/directory-integrity-domain.mjs";
 import { hasEmailConfig, sendEmail } from "./review-email.mjs";
 
 const FUNNEL_LOG_ID = "funnelEventLog.singleton";
+const DIRECTORY_INTEGRITY_QUERY = `*[_type == "therapist"]{
+  _id, _updatedAt, name, "slug": slug.current,
+  email, phone, website, bookingUrl, preferredContactMethod,
+  licenseNumber, sourceReviewedAt,
+  listingActive, status, lifecycle, visibilityIntent
+}`;
 
 function parseEventPayload(events) {
   if (!Array.isArray(events)) return [];
@@ -47,8 +54,10 @@ export async function runFounderDigest(options) {
 
   const log = await client.getDocument(FUNNEL_LOG_ID);
   const events = parseEventPayload(log && log.events);
+  const therapists = await client.fetch(DIRECTORY_INTEGRITY_QUERY);
+  const directoryIntegrity = buildDirectoryIntegritySummary({ therapists, nowIso });
 
-  const digest = buildFounderFunnelDigest({ events, nowIso });
+  const digest = buildFounderFunnelDigest({ events, nowIso, directoryIntegrity });
   if (!digest) {
     summary.skipped_reason = "no_activity";
     return summary;
@@ -68,5 +77,13 @@ export async function runFounderDigest(options) {
   summary.patient_started = digest.patient.started;
   summary.patient_reached_contact = digest.patient.reachedContact;
   summary.bottleneck = digest.patient.bottleneck;
+  summary.directory_integrity = {
+    intended_live: directoryIntegrity.intendedLive,
+    live_profiles: directoryIntegrity.liveProfiles,
+    needs_attention: directoryIntegrity.needsAttention,
+    missing_license: directoryIntegrity.missingLicense,
+    missing_contact_route: directoryIntegrity.missingContactRoute,
+    stale_review: directoryIntegrity.staleReview,
+  };
   return summary;
 }

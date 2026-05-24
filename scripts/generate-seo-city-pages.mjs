@@ -12,6 +12,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
 const ROOT = process.cwd();
@@ -530,9 +531,17 @@ function injectStylesheet(html) {
   return html.replace(/<\/head>/, "    " + CITY_STYLESHEET_LINK + "\n  </head>");
 }
 
-function injectSeo(template, city, state, slug, providers, cityContent) {
+export function stripDirectoryTemplateSeoHead(html) {
+  return String(html || "")
+    .replace(/\s*<meta\b(?=[^>]*\bid="dirPageDescription")[^>]*\/?>/gi, "")
+    .replace(/\s*<link\b(?=[^>]*\bid="dirPageCanonical")[^>]*\/?>/gi, "")
+    .replace(/\s*<meta\b(?=[^>]*\bid="dirRobots")[^>]*\/?>/gi, "")
+    .replace(/\s*<script\b(?=[^>]*\bid="dirJsonLd")[^>]*>[\s\S]*?<\/script>/gi, "");
+}
+
+export function injectSeo(template, city, state, slug, providers, cityContent) {
   return injectStylesheet(
-    template
+    stripDirectoryTemplateSeoHead(template)
       .replace(/<title[^>]*>[\s\S]*?<\/title>/, buildHeadTags(city, state, slug, providers))
       .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
       .replace(/href="(?:\.\.\/)*assets\//g, 'href="/assets/')
@@ -860,7 +869,9 @@ async function main() {
   );
 }
 
-main().catch(function (error) {
-  console.error("[seo-city-pages] Unexpected error:", error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch(function (error) {
+    console.error("[seo-city-pages] Unexpected error:", error);
+    process.exitCode = 1;
+  });
+}

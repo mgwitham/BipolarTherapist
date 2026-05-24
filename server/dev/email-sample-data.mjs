@@ -103,6 +103,34 @@ export const sampleFunnelEvents = [
   { type: "portal_save_success", occurredAt: "2026-04-26T13:45:00Z" },
 ];
 
+export const sampleDirectoryIntegrity = {
+  generatedAt: "2026-04-29T14:00:00Z",
+  staleCutoffDays: 180,
+  totalProfiles: 150,
+  intendedLive: 142,
+  liveProfiles: 138,
+  needsAttention: 4,
+  missingLicense: 2,
+  missingContactRoute: 1,
+  staleReview: 9,
+  topIssues: [
+    {
+      id: "therapist-sample-missing-license",
+      slug: "morgan-lee-los-angeles-ca",
+      name: "Morgan Lee",
+      issues: ["not Live", "missing license"],
+      reviewedDays: 12,
+    },
+    {
+      id: "therapist-sample-stale",
+      slug: "alex-patel-san-diego-ca",
+      name: "Alex Patel",
+      issues: ["stale review"],
+      reviewedDays: 224,
+    },
+  ],
+};
+
 // Weekly digest "current" + "previous" period rollups. Shape matches
 // what buildWeeklyDigest in shared/weekly-digest-domain.mjs expects.
 export const sampleWeeklyDigestPeriods = {

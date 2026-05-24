@@ -9,6 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
 const ZIP_GEO = {
@@ -190,7 +191,7 @@ function buildDescription(therapist) {
   );
 }
 
-function buildFAQItems(therapist) {
+export function buildFAQItems(therapist) {
   const name = therapist.name || "This therapist";
   const first = (therapist.name || "").split(" ")[0] || "They";
   const phone = therapist.phone || null;
@@ -333,7 +334,7 @@ function buildJsonLd(therapist) {
           "@type": "ListItem",
           position: 2,
           name: "Directory",
-          item: `${SITE_URL}/directory.html`,
+          item: `${SITE_URL}/directory`,
         },
         { "@type": "ListItem", position: 3, name: nameWithCreds, item: canonicalUrl },
       ],
@@ -396,7 +397,20 @@ function buildSimilarTherapistsBlock(similar, sourceCity) {
         </section>`;
 }
 
-function buildFallbackProfileHtml(therapist, similar) {
+function buildFaqBlock(therapist) {
+  const items = buildFAQItems(therapist);
+  if (!items.length) return "";
+  return `<section class="profile-section seo-profile-faq">
+          <h2>Frequently asked questions</h2>
+          <dl>
+            ${items
+              .map((item) => `<dt>${escapeHtml(item.q)}</dt><dd>${escapeHtml(item.a)}</dd>`)
+              .join("")}
+          </dl>
+        </section>`;
+}
+
+export function buildFallbackProfileHtml(therapist, similar) {
   const name = therapist.name || "Therapist";
   const credentials = therapist.credentials ? `, ${therapist.credentials}` : "";
   const location = [therapist.city, therapist.state].filter(Boolean).join(", ");
@@ -406,6 +420,7 @@ function buildFallbackProfileHtml(therapist, similar) {
   const populations = listItems(therapist.clientPopulations);
   const bio = stripHtml(therapist.bio || therapist.bioPreview || "");
   const similarBlock = buildSimilarTherapistsBlock(similar || [], therapist.city);
+  const faqBlock = buildFaqBlock(therapist);
 
   return `<div class="seo-profile-fallback" data-static-seo-profile>
         <section class="profile-hero">
@@ -456,6 +471,7 @@ function buildFallbackProfileHtml(therapist, similar) {
             ? `<section class="profile-section"><h2>Insurance</h2><ul>${insurance}</ul></section>`
             : ""
         }
+        ${faqBlock}
         ${similarBlock}
       </div>`;
 }
@@ -469,7 +485,7 @@ function optimizeSanityImage(url) {
   return `${url}?auto=format&fit=max&w=1200&q=75`;
 }
 
-function buildHeadTags(therapist) {
+export function buildHeadTags(therapist) {
   const canonicalUrl = buildCanonicalUrl(therapist);
   const title = `${buildTitle(therapist)} - BipolarTherapyHub`;
   const description = buildDescription(therapist);
@@ -507,7 +523,7 @@ function buildHeadTags(therapist) {
   ].join("\n    ");
 }
 
-function injectSeo(template, therapist, similar) {
+export function injectSeo(template, therapist, similar) {
   const withHead = template
     .replace(/<title>[\s\S]*?<\/title>/, buildHeadTags(therapist))
     .replace(/href="(?:\.\.\/)*favicon/g, 'href="/favicon')
@@ -591,7 +607,9 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  console.error("[seo-pages] Unexpected error:", error);
-  process.exitCode = 1;
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error("[seo-pages] Unexpected error:", error);
+    process.exitCode = 1;
+  });
+}

@@ -9,6 +9,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
 import { articles } from "../content/resources/articles.mjs";
@@ -19,12 +20,13 @@ const SITE_URL = "https://www.bipolartherapyhub.com";
 const OUTPUT_PATH = path.join(ROOT, "public", "sitemap.xml");
 const PROFILE_PATH_PREFIX = "/therapists/";
 
-// Static routes we always want indexed. Portal/admin deliberately
-// excluded (robots.txt also disallows them).
-const STATIC_ROUTES = [
+// Static routes we always want indexed. Portal/admin and transient
+// matching surfaces are deliberately excluded because they carry
+// noindex directives.
+export const STATIC_ROUTES = [
   { loc: "/", changefreq: "weekly", priority: "1.0" },
   { loc: "/directory", changefreq: "daily", priority: "0.9" },
-  { loc: "/match", changefreq: "weekly", priority: "0.8" },
+  { loc: "/about", changefreq: "monthly", priority: "0.7" },
   { loc: "/signup", changefreq: "monthly", priority: "0.7" },
   { loc: "/claim", changefreq: "monthly", priority: "0.7" },
   { loc: "/pricing", changefreq: "monthly", priority: "0.6" },
@@ -119,7 +121,7 @@ function citySlug(city, state) {
   );
 }
 
-function bucketTherapistsByCity(therapists) {
+export function bucketTherapistsByCity(therapists) {
   const map = new Map();
   for (const t of therapists || []) {
     const city = String((t && t.city) || "").trim();
@@ -142,7 +144,7 @@ function bucketTherapistsByCity(therapists) {
 
 // Static resource/guide pages. Fully static content (no Sanity), so
 // these are included in every sitemap, including the offline fallback.
-function buildResourceEntries(now) {
+export function buildResourceEntries(now) {
   const list = Array.isArray(articles) ? articles : [];
   const latest = list
     .map((a) => (a.dateModified || a.datePublished || "").slice(0, 10))
@@ -169,7 +171,7 @@ function buildResourceEntries(now) {
   return entries;
 }
 
-function buildSitemapXml(entries) {
+export function buildSitemapXml(entries) {
   const header = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">`;
   const body = entries.map(buildUrlEntry).join("\n");
   const footer = `</urlset>\n`;
@@ -218,6 +220,19 @@ async function main() {
   });
 
   const cityBuckets = bucketTherapistsByCity(therapists);
+  if (cityBuckets.length) {
+    const latestCityLastmod = cityBuckets
+      .map((bucket) => bucket.lastmod)
+      .filter(Boolean)
+      .sort()
+      .pop();
+    entries.push({
+      loc: CITY_PATH_PREFIX,
+      lastmod: (latestCityLastmod || "").slice(0, 10) || now,
+      changefreq: "weekly",
+      priority: "0.8",
+    });
+  }
   cityBuckets.forEach(function (bucket) {
     entries.push({
       loc: CITY_PATH_PREFIX + bucket.slug + "/",
@@ -236,12 +251,14 @@ async function main() {
   );
 }
 
-main().catch((error) => {
-  console.error("[sitemap] Unexpected error:", error);
-  // Don't fail the build — ship static fallback instead
-  try {
-    writeStaticFallback();
-  } catch (_fallbackError) {
-    // if even fallback fails, still don't block build
-  }
-});
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
+  main().catch((error) => {
+    console.error("[sitemap] Unexpected error:", error);
+    // Don't fail the build — ship static fallback instead
+    try {
+      writeStaticFallback();
+    } catch (_fallbackError) {
+      // if even fallback fails, still don't block build
+    }
+  });
+}

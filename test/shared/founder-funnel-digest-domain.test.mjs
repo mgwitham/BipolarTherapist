@@ -172,6 +172,26 @@ test("buildFounderFunnelDigest emits a digest even with only issue reports", () 
   assert.equal(result.issueReports.length, 1);
 });
 
+test("buildFounderFunnelDigest emits when only directory integrity needs attention", () => {
+  const result = buildFounderFunnelDigest({
+    events: [],
+    nowIso: NOW,
+    directoryIntegrity: {
+      intendedLive: 3,
+      liveProfiles: 2,
+      needsAttention: 1,
+      missingLicense: 1,
+      missingContactRoute: 0,
+      staleReview: 0,
+      staleCutoffDays: 180,
+      topIssues: [],
+    },
+  });
+
+  assert.ok(result);
+  assert.equal(result.directoryIntegrity.needsAttention, 1);
+});
+
 test("renderFounderFunnelEmail includes the issue reports section", () => {
   const events = [
     eventAt("match_results_page_viewed", 1),
@@ -190,6 +210,35 @@ test("renderFounderFunnelEmail includes the issue reports section", () => {
   assert.match(text, /Listing issues reported \(1\):/);
   assert.match(text, /Jane Doe \[closed or moved\]/);
   assert.match(text, /Office closed/);
+});
+
+test("renderFounderFunnelEmail includes directory integrity section", () => {
+  const digest = buildFounderFunnelDigest({
+    events: [eventAt("match_results_page_viewed", 1)],
+    nowIso: NOW,
+    directoryIntegrity: {
+      intendedLive: 4,
+      liveProfiles: 3,
+      needsAttention: 1,
+      missingLicense: 1,
+      missingContactRoute: 1,
+      staleReview: 2,
+      staleCutoffDays: 180,
+      topIssues: [
+        {
+          name: "Dr. Fix Me",
+          slug: "dr-fix-me",
+          issues: ["missing license", "no contact route"],
+        },
+      ],
+    },
+  });
+  const { text } = renderFounderFunnelEmail({ digest });
+
+  assert.match(text, /Directory integrity:/);
+  assert.match(text, /Live profiles: 3 \/ 4/);
+  assert.match(text, /Missing contact route: 1/);
+  assert.match(text, /Dr\. Fix Me \(dr-fix-me\): missing license, no contact route/);
 });
 
 test("buildFounderFunnelDigest excludes issue reports older than the window", () => {
