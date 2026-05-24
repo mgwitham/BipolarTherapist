@@ -333,7 +333,7 @@ function buildJsonLd(therapist) {
           "@type": "ListItem",
           position: 2,
           name: "Directory",
-          item: `${SITE_URL}/directory.html`,
+          item: `${SITE_URL}/directory`,
         },
         { "@type": "ListItem", position: 3, name: nameWithCreds, item: canonicalUrl },
       ],
