@@ -4,6 +4,10 @@
 // this module presentation-only, no DOM events, no fetches.
 
 import { escapeHtml } from "./escape-html.js";
+import { sanityImageUrl } from "./sanity-image.js";
+
+// Rendered CSS pixel size for each avatar variant (see match-page.css).
+var AVATAR_SIZE_PX = { card: 56, "card-mobile": 48, modal: 68, profile: 80 };
 
 var NAME_TITLE_PREFIXES = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
 
@@ -49,10 +53,15 @@ export function renderRoundAvatar(therapist, sizeKey) {
   var t = therapist || {};
   var className = "bth-avatar bth-avatar-" + size;
   if (t.photo_url) {
+    var px = AVATAR_SIZE_PX[size] || 56;
     return (
       '<img src="' +
-      escapeHtml(t.photo_url) +
-      '" alt="" class="' +
+      escapeHtml(sanityImageUrl(t.photo_url, { width: px * 2, height: px * 2 })) +
+      '" alt="" width="' +
+      px +
+      '" height="' +
+      px +
+      '" class="' +
       className +
       '" loading="lazy" decoding="async" />'
     );
