@@ -2,9 +2,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  analyzeConciergePatterns,
+  analyzeOutreachJourneys,
+  analyzePivotTiming,
+  analyzePivotTimingByUrgency,
   applySecondPassRefinement,
   buildFallbackLearningMap,
   buildLearningSegments,
+  buildLearningSignals,
+  buildShortcutLearningMap,
   buildStarterProfile,
   getMatchAvailabilityBonus,
   getMatchContactClarityBonus,
@@ -12,6 +18,7 @@ import {
   getPreferredRouteType,
   getRouteLearningForProfile,
   getSecondPassScore,
+  getShortcutPreference,
   pickRecommendedFirstContact,
 } from "../../assets/match-ranking.js";
 import { buildUserMatchProfile } from "../../assets/matching-model.js";
@@ -325,5 +332,140 @@ test("applySecondPassRefinement leaves balanced order untouched and re-sorts oth
   assert.deepEqual(
     speed.map((e) => e.therapist.slug),
     ["b", "a"],
+  );
+});
+
+test("analyzeConciergePatterns tallies help-topic themes from free text", function () {
+  const totals = analyzeConciergePatterns([
+    { help_topic: "Insurance coverage question" },
+    { request_note: "What's the wait / availability like?" },
+    { request_summary: "Not sure who is the best fit" },
+    { help_topic: "Need medication management / psychiatry" },
+  ]);
+
+  assert.equal(totals.insurance, 1);
+  assert.equal(totals.availability, 1);
+  assert.equal(totals.fit_uncertainty, 1);
+  assert.equal(totals.medication, 1);
+  assert.equal(analyzeConciergePatterns(null).insurance, 0);
+});
+
+test("buildLearningSignals folds feedback + outreach into clamped per-segment adjustments", function () {
+  const profile = { care_format: "Telehealth" };
+  const signals = buildLearningSignals(
+    [
+      { value: "negative", reasons: ["Insurance mismatch"], context: { profile } },
+      {
+        type: "therapist_feedback",
+        therapist_slug: "alpha",
+        value: "positive",
+        context: { profile },
+      },
+    ],
+    [{ therapist_slug: "alpha", outcome: "booked_consult", context: { profile } }],
+  );
+
+  assert.equal(signals.reason_weights["Insurance mismatch"], 4);
+  assert.equal(signals.therapist_adjustments.alpha, 3);
+  assert.equal(signals.outreach_adjustments.alpha, 7);
+  assert.ok(signals.segments["format:telehealth"]);
+});
+
+test("buildShortcutLearningMap counts shortcut actions and outcomes per segment", function () {
+  const profile = { care_intent: "Therapy" };
+  const map = buildShortcutLearningMap(
+    [
+      {
+        type: "shortcut_interaction",
+        shortcut_type: "draft",
+        action: "copy_draft",
+        context: { profile },
+      },
+    ],
+    [{ shortcut_type: "draft", outcome: "good_fit_call", context: { profile } }],
+  );
+
+  assert.equal(map["shortcut::all"].draft.draft, 1);
+  assert.equal(map["shortcut::all"].draft.strong, 1);
+});
+
+test("getShortcutPreference scores stronger outcomes above raw interactions", function () {
+  const map = {
+    "shortcut::all": {
+      draft: { draft: 2, compare: 1, strong: 1, weak: 0 },
+    },
+  };
+  const pref = getShortcutPreference({}, "draft", map);
+  // 2*3 + 1*2 + 1*8 - 0*5 = 16
+  assert.equal(pref.score, 16);
+  assert.equal(pref.strong, 1);
+});
+
+test("analyzeOutreachJourneys detects fallback-after-failure and second-choice wins", function () {
+  const totals = analyzeOutreachJourneys([
+    {
+      journey_id: "j1",
+      rank_position: 1,
+      outcome: "no_response",
+      recorded_at: "2026-04-01T09:00:00Z",
+    },
+    {
+      journey_id: "j1",
+      rank_position: 2,
+      outcome: "booked_consult",
+      recorded_at: "2026-04-01T10:00:00Z",
+    },
+  ]);
+
+  assert.equal(totals.fallback_after_no_response, 1);
+  assert.equal(totals.second_choice_success, 1);
+});
+
+test("analyzePivotTiming buckets fallback latency relative to pivot point", function () {
+  const onTime = analyzePivotTiming([
+    {
+      journey_id: "j1",
+      rank_position: 1,
+      outcome: "no_response",
+      pivot_at: "2026-04-01T09:00:00Z",
+      recorded_at: "2026-04-01T08:00:00Z",
+    },
+    {
+      journey_id: "j1",
+      rank_position: 2,
+      outcome: "reached_out",
+      recorded_at: "2026-04-01T11:00:00Z",
+    },
+  ]);
+  assert.equal(onTime.on_time_pivots, 1);
+});
+
+test("analyzePivotTimingByUrgency returns zeros for ASAP and filters by urgency otherwise", function () {
+  const outcomes = [
+    {
+      journey_id: "j1",
+      rank_position: 1,
+      outcome: "no_response",
+      pivot_at: "2026-04-01T09:00:00Z",
+      recorded_at: "2026-04-01T08:00:00Z",
+      context: { profile: { urgency: "Within 2 weeks" } },
+    },
+    {
+      journey_id: "j1",
+      rank_position: 2,
+      outcome: "reached_out",
+      recorded_at: "2026-04-01T11:00:00Z",
+      context: { profile: { urgency: "Within 2 weeks" } },
+    },
+  ];
+
+  assert.deepEqual(analyzePivotTimingByUrgency(outcomes, { urgency: "ASAP" }), {
+    on_time_pivots: 0,
+    early_pivots: 0,
+    late_pivots: 0,
+  });
+  assert.equal(
+    analyzePivotTimingByUrgency(outcomes, { urgency: "Within 2 weeks" }).on_time_pivots,
+    1,
   );
 });

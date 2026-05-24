@@ -1,6 +1,15 @@
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 import { insuranceMatches } from "../shared/therapist-picker-options.mjs";
 
+export const FEEDBACK_REASON_OPTIONS = [
+  "Insurance mismatch",
+  "Availability mismatch",
+  "Needs medication management",
+  "Wrong care format",
+  "Weak bipolar specialization",
+  "Other",
+];
+
 function normalizeExternalUrl(value) {
   var raw = String(value || "").trim();
   if (!raw) return "";
@@ -492,4 +501,412 @@ export function pickRecommendedFirstContact(profile, entries, options) {
     });
 
   return ranked[0];
+}
+
+export function analyzeConciergePatterns(requests) {
+  var entries = Array.isArray(requests) ? requests : [];
+  var totals = {
+    insurance: 0,
+    availability: 0,
+    medication: 0,
+    contact_first: 0,
+    fit_uncertainty: 0,
+  };
+
+  entries.forEach(function (request) {
+    var haystack = [
+      request && request.help_topic ? request.help_topic : "",
+      request && request.request_note ? request.request_note : "",
+      request && request.request_summary ? request.request_summary : "",
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    if (
+      haystack.includes("insurance") ||
+      haystack.includes("cost") ||
+      haystack.includes("coverage")
+    ) {
+      totals.insurance += 1;
+    }
+    if (
+      haystack.includes("availability") ||
+      haystack.includes("wait") ||
+      haystack.includes("timing") ||
+      haystack.includes("schedule")
+    ) {
+      totals.availability += 1;
+    }
+    if (
+      haystack.includes("medication") ||
+      haystack.includes("psychiatry") ||
+      haystack.includes("med support")
+    ) {
+      totals.medication += 1;
+    }
+    if (
+      haystack.includes("who should i contact first") ||
+      haystack.includes("contact first") ||
+      haystack.includes("one person first")
+    ) {
+      totals.contact_first += 1;
+    }
+    if (
+      haystack.includes("best fit") ||
+      haystack.includes("fit") ||
+      haystack.includes("not sure") ||
+      haystack.includes("uncertain")
+    ) {
+      totals.fit_uncertainty += 1;
+    }
+  });
+
+  return totals;
+}
+
+export function buildLearningSignals(feedback, outreachOutcomes) {
+  var entries = Array.isArray(feedback) ? feedback : [];
+  var outreach = Array.isArray(outreachOutcomes) ? outreachOutcomes : [];
+  var segmentMap = {};
+
+  function ensureSegment(name) {
+    if (!segmentMap[name]) {
+      segmentMap[name] = {
+        negative_reasons: [],
+        therapist_adjustments: {},
+        outreach_adjustments: {},
+      };
+    }
+    return segmentMap[name];
+  }
+
+  entries.forEach(function (item) {
+    var profile = item && item.context ? item.context.profile : null;
+    var segments = buildLearningSegments(profile);
+
+    segments.forEach(function (segment) {
+      var bucket = ensureSegment(segment);
+      if (item && item.value === "negative" && Array.isArray(item.reasons)) {
+        bucket.negative_reasons = bucket.negative_reasons.concat(item.reasons);
+      }
+      if (item && item.type === "therapist_feedback" && item.therapist_slug) {
+        if (!bucket.therapist_adjustments[item.therapist_slug]) {
+          bucket.therapist_adjustments[item.therapist_slug] = 0;
+        }
+        bucket.therapist_adjustments[item.therapist_slug] += item.value === "positive" ? 3 : -3;
+      }
+    });
+  });
+
+  outreach.forEach(function (item) {
+    if (!item || !item.therapist_slug) {
+      return;
+    }
+
+    var profile = item && item.context ? item.context.profile : null;
+    var segments = buildLearningSegments(profile);
+
+    segments.forEach(function (segment) {
+      var bucket = ensureSegment(segment);
+      if (!bucket.outreach_adjustments[item.therapist_slug]) {
+        bucket.outreach_adjustments[item.therapist_slug] = 0;
+      }
+
+      if (item.outcome === "heard_back") {
+        bucket.outreach_adjustments[item.therapist_slug] += 4;
+      } else if (item.outcome === "booked_consult") {
+        bucket.outreach_adjustments[item.therapist_slug] += 7;
+      } else if (item.outcome === "good_fit_call") {
+        bucket.outreach_adjustments[item.therapist_slug] += 8;
+      } else if (item.outcome === "reached_out") {
+        bucket.outreach_adjustments[item.therapist_slug] += 1;
+      } else if (item.outcome === "insurance_mismatch") {
+        bucket.outreach_adjustments[item.therapist_slug] -= 4;
+      } else if (item.outcome === "waitlist") {
+        bucket.outreach_adjustments[item.therapist_slug] -= 3;
+      } else if (item.outcome === "no_response") {
+        bucket.outreach_adjustments[item.therapist_slug] -= 2;
+      }
+    });
+  });
+
+  var normalizedSegments = Object.keys(segmentMap).reduce(function (accumulator, segment) {
+    var bucket = segmentMap[segment];
+    var reasonWeights = FEEDBACK_REASON_OPTIONS.reduce(function (reasonAccumulator, reason) {
+      var count = bucket.negative_reasons.filter(function (value) {
+        return value === reason;
+      }).length;
+
+      if (count > 0) {
+        reasonAccumulator[reason] = Math.min(8, 2 + count * 2);
+      }
+      return reasonAccumulator;
+    }, {});
+
+    Object.keys(bucket.therapist_adjustments).forEach(function (slug) {
+      bucket.therapist_adjustments[slug] = Math.max(
+        -10,
+        Math.min(10, bucket.therapist_adjustments[slug]),
+      );
+    });
+
+    Object.keys(bucket.outreach_adjustments).forEach(function (slug) {
+      bucket.outreach_adjustments[slug] = Math.max(
+        -8,
+        Math.min(10, bucket.outreach_adjustments[slug]),
+      );
+    });
+
+    accumulator[segment] = {
+      reason_weights: reasonWeights,
+      therapist_adjustments: bucket.therapist_adjustments,
+      outreach_adjustments: bucket.outreach_adjustments,
+    };
+    return accumulator;
+  }, {});
+
+  var global = normalizedSegments.all || {
+    reason_weights: {},
+    therapist_adjustments: {},
+    outreach_adjustments: {},
+  };
+
+  return {
+    reason_weights: global.reason_weights,
+    therapist_adjustments: global.therapist_adjustments,
+    outreach_adjustments: global.outreach_adjustments,
+    segments: normalizedSegments,
+  };
+}
+
+export function buildShortcutLearningMap(feedback, outreachOutcomes) {
+  var entries = Array.isArray(feedback) ? feedback : [];
+  var outcomes = Array.isArray(outreachOutcomes) ? outreachOutcomes : [];
+  var learning = {};
+
+  function ensureBucket(segment, shortcutType) {
+    var key = "shortcut::" + segment;
+    if (!learning[key]) {
+      learning[key] = {};
+    }
+    if (!learning[key][shortcutType]) {
+      learning[key][shortcutType] = {
+        draft: 0,
+        compare: 0,
+        strong: 0,
+        weak: 0,
+      };
+    }
+    return learning[key][shortcutType];
+  }
+
+  entries.forEach(function (item) {
+    if (!item || item.type !== "shortcut_interaction" || !item.shortcut_type) {
+      return;
+    }
+
+    var segments = buildLearningSegments(
+      item.context && item.context.profile ? item.context.profile : null,
+    );
+    segments.forEach(function (segment) {
+      var bucket = ensureBucket(segment, item.shortcut_type);
+      if (item.action === "copy_draft") {
+        bucket.draft += 1;
+      }
+      if (item.action === "focus_compare") {
+        bucket.compare += 1;
+      }
+    });
+  });
+
+  outcomes.forEach(function (item) {
+    if (!item || !item.shortcut_type) {
+      return;
+    }
+
+    var segments = buildLearningSegments(
+      item.context && item.context.profile ? item.context.profile : null,
+    );
+    segments.forEach(function (segment) {
+      var bucket = ensureBucket(segment, item.shortcut_type);
+      if (item.outcome === "booked_consult" || item.outcome === "good_fit_call") {
+        bucket.strong += 1;
+      }
+      if (
+        item.outcome === "insurance_mismatch" ||
+        item.outcome === "waitlist" ||
+        item.outcome === "no_response"
+      ) {
+        bucket.weak += 1;
+      }
+    });
+  });
+
+  return learning;
+}
+
+export function getShortcutPreference(profile, shortcutType, shortcutLearningMap) {
+  var segments = buildLearningSegments(profile);
+  var score = 0;
+  var draft = 0;
+  var compare = 0;
+  var strong = 0;
+  var weak = 0;
+
+  segments.forEach(function (segment) {
+    var bucket =
+      shortcutLearningMap["shortcut::" + segment] &&
+      shortcutLearningMap["shortcut::" + segment][shortcutType];
+    if (!bucket) {
+      return;
+    }
+    draft += bucket.draft;
+    compare += bucket.compare;
+    strong += bucket.strong || 0;
+    weak += bucket.weak || 0;
+    score +=
+      bucket.draft * 3 + bucket.compare * 2 + (bucket.strong || 0) * 8 - (bucket.weak || 0) * 5;
+  });
+
+  return {
+    score: score,
+    draft: draft,
+    compare: compare,
+    strong: strong,
+    weak: weak,
+  };
+}
+
+export function analyzeOutreachJourneys(outcomes) {
+  var entries = Array.isArray(outcomes) ? outcomes : [];
+  var byJourney = entries.reduce(function (accumulator, item) {
+    if (!item || !item.journey_id) {
+      return accumulator;
+    }
+    if (!accumulator[item.journey_id]) {
+      accumulator[item.journey_id] = [];
+    }
+    accumulator[item.journey_id].push(item);
+    return accumulator;
+  }, {});
+
+  var totals = {
+    fallback_after_no_response: 0,
+    fallback_after_waitlist: 0,
+    fallback_after_insurance_mismatch: 0,
+    second_choice_success: 0,
+  };
+
+  Object.keys(byJourney).forEach(function (journeyId) {
+    var journey = byJourney[journeyId].slice().sort(function (a, b) {
+      return new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime();
+    });
+    var byRank = {};
+
+    journey.forEach(function (item) {
+      if (!byRank[item.rank_position]) {
+        byRank[item.rank_position] = [];
+      }
+      byRank[item.rank_position].push(item.outcome);
+    });
+
+    var first = byRank[1] || [];
+    var second = byRank[2] || [];
+
+    if (first.includes("no_response") && second.length) {
+      totals.fallback_after_no_response += 1;
+    }
+    if (first.includes("waitlist") && second.length) {
+      totals.fallback_after_waitlist += 1;
+    }
+    if (first.includes("insurance_mismatch") && second.length) {
+      totals.fallback_after_insurance_mismatch += 1;
+    }
+    if (
+      second.some(function (outcome) {
+        return outcome === "booked_consult" || outcome === "good_fit_call";
+      })
+    ) {
+      totals.second_choice_success += 1;
+    }
+  });
+
+  return totals;
+}
+
+export function analyzePivotTiming(outcomes) {
+  var entries = Array.isArray(outcomes) ? outcomes : [];
+  var byJourney = entries.reduce(function (accumulator, item) {
+    if (!item || !item.journey_id) {
+      return accumulator;
+    }
+    if (!accumulator[item.journey_id]) {
+      accumulator[item.journey_id] = [];
+    }
+    accumulator[item.journey_id].push(item);
+    return accumulator;
+  }, {});
+
+  var totals = {
+    on_time_pivots: 0,
+    early_pivots: 0,
+    late_pivots: 0,
+  };
+
+  Object.keys(byJourney).forEach(function (journeyId) {
+    var journey = byJourney[journeyId].slice().sort(function (a, b) {
+      return new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime();
+    });
+    var firstNegative = journey.find(function (item) {
+      return (
+        item.rank_position === 1 &&
+        ["no_response", "waitlist", "insurance_mismatch"].includes(item.outcome)
+      );
+    });
+    var fallbackAttempt = journey.find(function (item) {
+      return item.rank_position > 1;
+    });
+
+    if (!firstNegative || !fallbackAttempt || !firstNegative.pivot_at) {
+      return;
+    }
+
+    var pivotAt = new Date(firstNegative.pivot_at).getTime();
+    var fallbackAt = new Date(fallbackAttempt.recorded_at).getTime();
+    var delta = fallbackAt - pivotAt;
+    var tolerance = 12 * 60 * 60 * 1000;
+
+    if (Math.abs(delta) <= tolerance) {
+      totals.on_time_pivots += 1;
+    } else if (delta < -tolerance) {
+      totals.early_pivots += 1;
+    } else {
+      totals.late_pivots += 1;
+    }
+  });
+
+  return totals;
+}
+
+export function analyzePivotTimingByUrgency(outcomes, profile) {
+  var entries = Array.isArray(outcomes) ? outcomes : [];
+  var targetUrgency = profile && profile.urgency ? String(profile.urgency) : "";
+  if (!targetUrgency || targetUrgency === "ASAP") {
+    return {
+      on_time_pivots: 0,
+      early_pivots: 0,
+      late_pivots: 0,
+    };
+  }
+
+  return analyzePivotTiming(
+    entries.filter(function (item) {
+      return (
+        item &&
+        item.context &&
+        item.context.profile &&
+        String(item.context.profile.urgency || "") === targetUrgency
+      );
+    }),
+  );
 }
