@@ -59,7 +59,7 @@ const PUBLIC_THERAPIST_LIST_PROJECTION = `{
   "slug": slug.current
 }`;
 
-const PUBLIC_THERAPIST_PROFILE_PROJECTION = `{
+export const PUBLIC_THERAPIST_PROFILE_PROJECTION = `{
   _id,
   _type,
   name,
