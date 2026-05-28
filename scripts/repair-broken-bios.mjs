@@ -27,23 +27,60 @@ import { createClient } from "@sanity/client";
 
 const APPLY = process.argv.includes("--apply");
 
-// The six slugs flagged HIGH or very-short-bio by the text-quality
-// audit. Listed explicitly (not derived by re-running the audit)
-// because each one needs human review of what got replaced and we
-// don't want a future audit-tuning to accidentally rewrite a bio.
+// Slugs flagged by text-quality + phone-strip audits as needing a
+// fresh placeholder bio. Listed explicitly (not derived by re-running
+// the audit) because each one needs human review of what got
+// replaced and we don't want a future audit-tuning to accidentally
+// rewrite a real bio.
 const SLUGS = [
+  // First batch: scrape garbage / very short bios from the original
+  // text-quality audit.
   "courtnee-reis-san-francisco-ca",
   "farrah-hedayati-costa-mesa-ca",
   "kalisha-goodwin-fresno-ca",
   "kathlyn-clementelli-san-jose-ca",
   "katja-d-pohl-los-angeles-ca",
   "wei-chin-hwang-pasadena-ca",
-  // Caught on second look — his bio is duplicated page-header text
-  // ("Nathaniel Mills, Ph.D. Nathaniel Mills, Ph.D. Psychologist
-  // License:   23861    Psychotherapy for Adults…"). The audit only
-  // flagged it LOW because the duplication wasn't strictly adjacent
-  // words, but the content is just as broken as the other six.
+  // Caught on second look — duplicated page-header text. The audit
+  // only flagged it LOW because the duplication wasn't strictly
+  // adjacent words, but the content was just as broken.
   "nathaniel-mills-sacramento-ca",
+
+  // Second batch: caught during the phone-in-bio strip pass. After
+  // removing the leading CSV metadata prefix, these bios had nothing
+  // substantive left (most were JUST the metadata line — name, title,
+  // city, zip, phone — with no actual prose). Treating them like the
+  // original 7: replace with an evergreen placeholder built from
+  // their structured fields.
+  "artin-terhakopian-glendale-ca",
+  "daneicia-williams-sacramento-ca",
+  "deepinder-singh-anaheim-ca",
+  "gianna-heatherly-bakersfield-ca",
+  "jake-snyder-san-francisco-ca",
+  "joseph-gulino-m-d-beverly-hills-ca",
+  "kelly-axthelm-anaheim-ca",
+  "maria-barelli-pasadena-ca",
+  "mark-abelson-oakland-ca",
+  "melissa-jones-san-jose-ca",
+  "tara-duque-fresno-ca",
+
+  // Third batch: SEO marketing copy / NPI registry rows scraped in
+  // place of an actual bio. Not structurally CSV-metadata so the
+  // strip script couldn't auto-clean them, but the content isn't a
+  // patient-facing bio either.
+  "daniel-kaushansky-psyd-los-angeles-ca",
+  "deeann-peterson-irvine-ca",
+  "melinda-carlisle-brackett-san-jose-ca",
+  "sapna-purawat-stockton-ca",
+
+  // Fourth batch: CSV prefix is present and stripped cleanly, but
+  // the remaining bio text is below the substantive-prose threshold
+  // (truncated at scrape time, ending mid-sentence). Easier to give
+  // them a placeholder built from structured data than try to repair
+  // mid-sentence trailings.
+  "jennifer-purcell-san-jose-ca",
+  "lauren-rachelle-palazuelos-santa-ana-ca",
+  "teresa-yunker-huntington-beach-ca",
 ];
 
 // ─── Phrasing helpers ────────────────────────────────────────────────
