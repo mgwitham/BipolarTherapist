@@ -38,6 +38,15 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
 (async function () {
   initValuePillPopover();
+  // Kick off the ca-zipcodes.json fetch in parallel with the
+  // therapist content fetch. Previously these ran serially (content
+  // first, then zips awaited later in bootstrap), adding ~200-400 ms
+  // to time-to-render on slower connections. preloadZipcodes() is
+  // idempotent — the await further down still works as a safety belt
+  // if the zip data isn't ready in time.
+  var zipcodesPromise = preloadZipcodes().catch(function () {
+    return null;
+  });
   var content = await fetchDirectoryPageContent();
   var therapists = content.therapists || [];
   var directoryPage = content.directoryPage || null;
@@ -2361,7 +2370,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   applySiteSettings();
   applyDirectoryCopy();
-  await preloadZipcodes();
+  // Safety belt: the zip preload was kicked off at the top of this
+  // IIFE in parallel with fetchDirectoryPageContent(), so on a normal
+  // network this await resolves immediately. On slow connections it
+  // ensures distance sort and getZipMarketStatus have data before the
+  // first render. Captured promise lets us await without re-fetching.
+  await zipcodesPromise;
   stableOrderMap = buildStableOrderMap(therapists);
   initializeFilters();
   initSortZip();
