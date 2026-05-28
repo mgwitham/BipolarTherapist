@@ -499,12 +499,17 @@ async function submitIntake(form, status) {
       trackFunnelEvent("signup_license_not_verified", {
         dca_error: (data && data.dca_error) || "",
       });
-      setStatus(
-        status,
-        (data && data.error) ||
-          "We couldn't verify that CA license. Double-check the number and try again.",
-        "error",
-      );
+      // Surface the specific number + board we checked so a typo
+      // (or wrong-board entry — e.g., a PSY number typed without
+      // the prefix) is fast to diagnose. Falls back to the older
+      // generic copy if the server returned its own error.
+      var detectedBoard = detectLicenseBoard(licenseNumber);
+      var defaultMsg =
+        "We couldn't verify license " +
+        licenseNumber +
+        (detectedBoard ? " on the " + detectedBoard.board : "") +
+        ". Check for a typo, or email support if your license expired recently.";
+      setStatus(status, (data && data.error) || defaultMsg, "error");
       showRecovery(licenseNumber);
       return;
     }
