@@ -32,8 +32,21 @@
     <link rel="stylesheet" href="assets/directory-bottom-sheet.css" />
     <link rel="stylesheet" href="assets/directory-redesign.css" />
     <link rel="stylesheet" href="assets/public-nav.css" />
-    <!-- JSON-LD structured data, populated by directory.js after render -->
-    <script type="application/ld+json" id="dirJsonLd"></script>
+    <!-- JSON-LD structured data. directory.js replaces this with the
+         filtered/ranked ItemList client-side after data loads, but we
+         pre-seed a valid ItemList shell here so Googlebot's initial
+         (non-JS) crawl + secondary crawlers see the correct page
+         type. Without the shell, the script tag was empty on first
+         paint and crawlers got no schema signal. -->
+    <script type="application/ld+json" id="dirJsonLd">
+      {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "Browse Bipolar-Informed Therapists in California",
+        "url": "https://www.bipolartherapyhub.com/directory",
+        "description": "Licensed California therapists who treat bipolar disorder. Browse by specialty, location, insurance, and care format."
+      }
+    </script>
   </head>
   <body class="dir-vb">
     <nav aria-label="Main navigation" class="nav-dark">

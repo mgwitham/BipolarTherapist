@@ -324,6 +324,34 @@ function buildJsonLd(t) {
     addressCountry: "US",
   };
   const ins = t.insurance_accepted.filter(Boolean);
+  // hasCredential surfaces the therapist's license category + issuing
+  // board to search engines. For health professionals, this is the
+  // single highest-value structured-data signal — Google uses it to
+  // rank verified clinicians above bare directory listings on
+  // "[credential] therapist [city]" queries. We map credential
+  // initials to the issuing CA board (see BOARD_NAME_MAP in
+  // server/dca-license-client.mjs for the canonical names).
+  const credIssuer = (function () {
+    const c = String(t.credentials || "").toUpperCase();
+    if (/\b(LMFT|LCSW|LPCC|LPC|LEP)\b/.test(c)) return "California Board of Behavioral Sciences";
+    if (/\b(PSY|PSYD|PHD)\b/.test(c)) return "California Board of Psychology";
+    if (/\bMD\b/.test(c)) return "Medical Board of California";
+    if (/\bDO\b/.test(c)) return "Osteopathic Medical Board of California";
+    if (/\b(NP|RN)\b/.test(c)) return "California Board of Registered Nursing";
+    return null;
+  })();
+  const credentialSchema =
+    t.credentials && credIssuer
+      ? {
+          "@type": "EducationalOccupationalCredential",
+          credentialCategory: "license",
+          name: t.credentials,
+          recognizedBy: {
+            "@type": "Organization",
+            name: credIssuer,
+          },
+        }
+      : undefined;
   const schemas = [
     {
       "@context": "https://schema.org",
@@ -336,6 +364,7 @@ function buildJsonLd(t) {
       image: t.photo_url || undefined,
       telephone: t.phone || undefined,
       email: t.email || undefined,
+      hasCredential: credentialSchema,
     },
     {
       "@context": "https://schema.org",
@@ -405,8 +434,21 @@ function renderSSRProfile(t) {
     .filter(Boolean)
     .join("")
     .toUpperCase();
+  // Richer alt text doubles as image-search context: "Dr Jane Doe,
+  // LMFT in San Francisco, CA" lands better on "lmft san francisco
+  // therapist" image queries than a bare name. Falls back to just
+  // the name when credentials or city are missing.
+  const photoAlt = (function () {
+    const parts = [t.name];
+    if (t.credentials) parts.push(t.credentials);
+    const cityState = [t.city, t.state || "CA"].filter(Boolean).join(", ");
+    if (cityState) {
+      return parts.join(", ") + " in " + cityState;
+    }
+    return parts.join(", ");
+  })();
   const avatar = t.photo_url
-    ? `<img src="${esc(t.photo_url)}" alt="${esc(t.name)}" class="bth-avatar bth-avatar-profile" loading="eager">`
+    ? `<img src="${esc(t.photo_url)}" alt="${esc(photoAlt)}" class="bth-avatar bth-avatar-profile" loading="eager">`
     : `<div class="bth-avatar bth-avatar-profile" aria-hidden="true" style="background:#1a7a8f;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:600">${esc(initials)}</div>`;
 
   const trustSignals = [];
