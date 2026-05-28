@@ -339,6 +339,81 @@ var SECTIONS = [
   { key: "audience", title: "Who you help" },
 ];
 
+// ─── Patient-friendly field labels for toast copy ────────────────────
+// The internal field keys ("card_bio", "first_step") aren't language a
+// non-technical therapist would recognize. Map them to the same titles
+// shown in the row headers so a save toast reads naturally.
+function getFieldLabelFor(key) {
+  for (var i = 0; i < FIELD_REGISTRY.length; i++) {
+    if (FIELD_REGISTRY[i].key === key) {
+      return String(FIELD_REGISTRY[i].title || "").trim();
+    }
+  }
+  return "";
+}
+
+// ─── Save toast ──────────────────────────────────────────────────────
+// The in-row "Saved ✓" indicator is fine when the user is looking at
+// the row they just saved, but invisible if they've scrolled away or
+// the row has already collapsed by the time the eye catches up. This
+// renders a viewport-pinned confirmation that's visible regardless of
+// scroll position.
+var saveToastEl = null;
+var saveToastHideTimeout = null;
+function showSaveToast(message) {
+  if (typeof document === "undefined") return;
+  if (!saveToastEl) {
+    saveToastEl = document.createElement("div");
+    saveToastEl.className = "portal-save-toast";
+    saveToastEl.setAttribute("role", "status");
+    saveToastEl.setAttribute("aria-live", "polite");
+    document.body.appendChild(saveToastEl);
+  }
+  saveToastEl.textContent = message;
+  // Force reflow so the .is-visible class transition fires when the
+  // toast was previously hidden in the same tick (e.g. a rapid second
+  // save while the first was still fading out).
+  void saveToastEl.offsetWidth;
+  saveToastEl.classList.add("is-visible");
+  if (saveToastHideTimeout) {
+    window.clearTimeout(saveToastHideTimeout);
+  }
+  saveToastHideTimeout = window.setTimeout(function () {
+    if (saveToastEl) saveToastEl.classList.remove("is-visible");
+  }, 2400);
+}
+
+// ─── Unsaved-changes guard ───────────────────────────────────────────
+// Tracks whether the user has touched any input since the last
+// successful save (or since the page loaded). Wired to a beforeunload
+// handler so a stray tab close doesn't silently lose mid-edit work.
+// False positives are fine — if a therapist types and then deletes,
+// the guard is still "dirty" until the next save — but false negatives
+// would be the bad outcome. Use markPortalDirty() on input events and
+// clearPortalDirty() after a successful save.
+var portalDirty = false;
+var beforeunloadAttached = false;
+function markPortalDirty() {
+  portalDirty = true;
+  attachBeforeunloadOnce();
+}
+function clearPortalDirty() {
+  portalDirty = false;
+}
+function attachBeforeunloadOnce() {
+  if (beforeunloadAttached || typeof window === "undefined") return;
+  beforeunloadAttached = true;
+  window.addEventListener("beforeunload", function (event) {
+    if (!portalDirty) return undefined;
+    // Modern browsers ignore the returned string and show their own
+    // generic prompt, but the assignment to returnValue + the string
+    // return is required to trigger the prompt at all.
+    event.preventDefault();
+    event.returnValue = "";
+    return "";
+  });
+}
+
 // Pre-set picker options (matching what Phase 2 was using).
 var INSURANCE_OPTIONS = [
   "Aetna",
@@ -387,6 +462,25 @@ function getScoreBand(score) {
   return { label: "Getting started", tone: "needs" };
 }
 
+// Pick the next field to nudge the therapist toward. Required
+// essential fields (card_bio, contact) come first because the
+// listing isn't live without them. After those, fall back to the
+// highest-point-value field that's still incomplete — that's the
+// biggest score win for the least effort. Returns null when nothing
+// is incomplete.
+function getNextRequiredField(therapist) {
+  var essentials = FIELD_REGISTRY.filter(function (f) {
+    return f.section === "essential" && !f.isComplete(therapist);
+  });
+  if (essentials.length > 0) return essentials[0];
+  var others = FIELD_REGISTRY.filter(function (f) {
+    return !f.isComplete(therapist);
+  }).sort(function (a, b) {
+    return Number(b.pts || 0) - Number(a.pts || 0);
+  });
+  return others[0] || null;
+}
+
 function getRingTone(score) {
   if (score >= 96) return "deep-green";
   if (score >= 76) return "green";
@@ -398,7 +492,7 @@ function ringOffset(score) {
   return Math.round(RING_CIRC * (1 - Math.max(0, Math.min(100, score)) / 100) * 100) / 100;
 }
 
-function renderProgressHeader(score, fieldsRemaining) {
+function renderProgressHeader(score, fieldsRemaining, nextField) {
   var band = getScoreBand(score);
   var subline =
     fieldsRemaining > 0
@@ -409,6 +503,21 @@ function renderProgressHeader(score, fieldsRemaining) {
       : "Profile complete, your listing is fully optimized.";
   var offset = ringOffset(score);
   var ringTone = getRingTone(score);
+  // "Next up" CTA below the band label. Renders only when there's
+  // something incomplete; otherwise hidden by leaving the element
+  // empty (still in the DOM so refreshScore can populate it later if
+  // the user un-saves a field somehow).
+  var nextUpHtml = nextField
+    ? '<button type="button" class="td-completeness-next" data-tdc-next="' +
+      escapeHtml(nextField.key) +
+      '" id="tdcNextUp">' +
+      '<span class="td-completeness-next-label">Next up</span>' +
+      '<span class="td-completeness-next-target">' +
+      escapeHtml(nextField.title) +
+      "</span>" +
+      '<span class="td-completeness-next-arrow" aria-hidden="true">→</span>' +
+      "</button>"
+    : '<div class="td-completeness-next is-empty" id="tdcNextUp" hidden></div>';
   return (
     '<div class="td-completeness-header">' +
     '<div class="td-score-ring-wrap" aria-hidden="true">' +
@@ -444,6 +553,7 @@ function renderProgressHeader(score, fieldsRemaining) {
     escapeHtml(subline) +
     "</p>" +
     '<p class="td-completeness-outcome" id="tdcOutcome">Profiles above 80 typically receive more match appearances.</p>' +
+    nextUpHtml +
     "</div>" +
     "</div>"
   );
@@ -637,7 +747,7 @@ function renderShell(therapist, score, fieldsRemaining) {
     '<section class="portal-card td-completeness" id="portalTdCompleteness">' +
     '<div class="td-completeness-grid">' +
     '<div class="td-completeness-main">' +
-    renderProgressHeader(score, fieldsRemaining) +
+    renderProgressHeader(score, fieldsRemaining, getNextRequiredField(therapist)) +
     SECTIONS.map(function (s) {
       return renderSection(s.key, therapist);
     }).join("") +
@@ -1380,6 +1490,37 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   var localTherapist = Object.assign({}, therapist);
   var wasLive = isLive(localTherapist);
 
+  // Mark the form dirty on any user-driven input/change so the
+  // beforeunload guard can warn if they try to leave with unsaved
+  // edits. Listeners are attached at the container level (event
+  // delegation) so they catch fields inside accordion rows that
+  // re-render on save. The capture phase ensures we still see the
+  // event even if a downstream handler stops propagation.
+  container.addEventListener(
+    "input",
+    function (event) {
+      var target = event.target;
+      if (!target) return;
+      var tag = String(target.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") {
+        markPortalDirty();
+      }
+    },
+    true,
+  );
+  container.addEventListener(
+    "change",
+    function (event) {
+      var target = event.target;
+      if (!target) return;
+      var tag = String(target.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || tag === "select") {
+        markPortalDirty();
+      }
+    },
+    true,
+  );
+
   function fieldsRemaining() {
     return FIELD_REGISTRY.filter(function (f) {
       return !f.isComplete(localTherapist);
@@ -1458,8 +1599,72 @@ export function mountPortalTdCompleteness(container, therapist, options) {
 
     lastScore = score;
 
+    // Refresh the "Next up" CTA — the target field can shift after
+    // every save, and the element should disappear once nothing is
+    // incomplete. Re-bind the click handler each time because we
+    // replace innerHTML rather than mutating in place.
+    refreshNextUp();
+
     // Tell the host page so the TD-A header can update its own badge.
     if (typeof opts.onScoreChange === "function") opts.onScoreChange(score);
+  }
+
+  // Re-renders the Next-up CTA element based on the current local
+  // therapist state. Wires the click handler so clicking it scrolls
+  // to + opens the relevant row.
+  function refreshNextUp() {
+    var nextEl = container.querySelector("#tdcNextUp");
+    if (!nextEl) return;
+    var nextField = getNextRequiredField(localTherapist);
+    if (!nextField) {
+      nextEl.hidden = true;
+      nextEl.innerHTML = "";
+      nextEl.classList.add("is-empty");
+      return;
+    }
+    nextEl.hidden = false;
+    nextEl.classList.remove("is-empty");
+    // Re-create as a button if it was previously the empty-div state.
+    if (nextEl.tagName.toLowerCase() !== "button") {
+      var newBtn = document.createElement("button");
+      newBtn.type = "button";
+      newBtn.className = "td-completeness-next";
+      newBtn.id = "tdcNextUp";
+      nextEl.parentNode.replaceChild(newBtn, nextEl);
+      nextEl = newBtn;
+    }
+    nextEl.setAttribute("data-tdc-next", nextField.key);
+    nextEl.innerHTML =
+      '<span class="td-completeness-next-label">Next up</span>' +
+      '<span class="td-completeness-next-target">' +
+      escapeHtml(nextField.title) +
+      "</span>" +
+      '<span class="td-completeness-next-arrow" aria-hidden="true">→</span>';
+    bindNextUpClick(nextEl);
+  }
+
+  function bindNextUpClick(btn) {
+    if (!btn || btn.dataset.tdcNextBound === "1") return;
+    btn.dataset.tdcNextBound = "1";
+    btn.addEventListener("click", function () {
+      var key = btn.getAttribute("data-tdc-next");
+      if (!key) return;
+      var toggle = container.querySelector('[data-tdc-toggle="' + key + '"]');
+      if (!toggle) return;
+      // Scroll the target row into view first, then click. If the row
+      // is already open the click will collapse it, so check first.
+      var row = container.querySelector('[data-tdc-row="' + key + '"]');
+      if (row) {
+        row.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+      var body = container.querySelector('[data-tdc-body="' + key + '"]');
+      var alreadyOpen = body && !body.hidden;
+      if (!alreadyOpen) toggle.click();
+      trackFunnelEvent("portal_td_next_up_clicked", {
+        slug: localTherapist.slug,
+        field_key: key,
+      });
+    });
   }
 
   function refreshNotLiveBar() {
@@ -2096,6 +2301,15 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         saveBtn.classList.add("is-saved");
         saveBtn.textContent = "Saved ✓";
       }
+      // Viewport-pinned save confirmation so the therapist sees the
+      // save succeeded even if they've already scrolled away from the
+      // row. Falls back to a generic "Changes saved" when the field
+      // key isn't in the registry (rare; defensive).
+      var savedLabel = getFieldLabelFor(key);
+      showSaveToast(savedLabel ? savedLabel + " saved" : "Changes saved");
+      // Clear the unsaved-changes guard — anything the user typed up
+      // to this save is now persisted, so a tab close is safe.
+      clearPortalDirty();
       if (key === "card_bio") {
         var previewSaved = container.querySelector("#tdcPreview");
         if (previewSaved) previewSaved.classList.remove("tdc-preview-bio-editing");
@@ -2139,6 +2353,11 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   var remaining = fieldsRemaining();
   container.innerHTML = renderShell(localTherapist, score, remaining);
   bindRowEvents();
+  // Wire the "Next up" click target rendered in renderProgressHeader.
+  var initialNextEl = container.querySelector("#tdcNextUp");
+  if (initialNextEl && initialNextEl.tagName.toLowerCase() === "button") {
+    bindNextUpClick(initialNextEl);
+  }
   trackFunnelEvent("portal_td_completeness_shown", {
     slug: localTherapist.slug,
     score: score,
