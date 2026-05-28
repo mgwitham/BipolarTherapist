@@ -409,7 +409,20 @@ export default async function handler(request) {
         "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
       },
     });
-  } catch (_err) {
+  } catch (err) {
+    // Debug escape hatch: ?debug=1 returns the actual error message
+    // so we can diagnose Satori / font failures in prod without
+    // tailing logs. Remove once the endpoint is stable.
+    if (url.searchParams.get("debug") === "1") {
+      return new Response(
+        JSON.stringify(
+          { error: String(err?.message || err), stack: String(err?.stack || "") },
+          null,
+          2,
+        ),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
     // If Satori throws (e.g. on a future CSS rule it doesn't support)
     // or the font fetch fails, the edge runtime can otherwise return
     // an empty 200 that Vercel happily caches — that was the original
