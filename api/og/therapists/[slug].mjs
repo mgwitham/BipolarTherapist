@@ -187,11 +187,12 @@ function buildCard(t) {
           "div",
           {
             style: {
-              // Satori (under @vercel/og) does not support inline-flex
-              // — using it throws inside the edge runtime and returns
-              // an empty 200, which Vercel then caches. Keep this flex
-              // and constrain width via alignSelf so the pill still
-              // hugs its content.
+              // Render the leading dot as a child div, not a unicode
+              // glyph. `●` (U+25CF) isn't in DM Sans's Latin subset, so
+              // Satori tries dynamic Google Font loading at render
+              // time, that fetch fails with 400, and Satori then
+              // throws "div with >1 child" — the empty-PNG cause we
+              // chased for hours. Glyph-free pill = no dynamic font.
               display: "flex",
               alignSelf: "flex-start",
               alignItems: "center",
@@ -206,7 +207,16 @@ function buildCard(t) {
               marginTop: 18,
             },
           },
-          "● Accepting new patients",
+          el("div", {
+            style: {
+              display: "flex",
+              width: 12,
+              height: 12,
+              borderRadius: "50%",
+              background: COLOR.acceptingFg,
+            },
+          }),
+          el("div", { style: { display: "flex" } }, "Accepting new patients"),
         )
       : null;
 
@@ -299,6 +309,7 @@ function buildCard(t) {
     },
     el("div", {
       style: {
+        display: "flex",
         position: "absolute",
         top: 0,
         left: 0,
@@ -310,6 +321,7 @@ function buildCard(t) {
     }),
     el("div", {
       style: {
+        display: "flex",
         position: "absolute",
         top: 46,
         left: 50,
