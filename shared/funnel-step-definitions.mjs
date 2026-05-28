@@ -29,19 +29,29 @@ export const SIGNUP_STEPS = [
   { key: "signup_new_listing_submitted", label: "Submitted" },
 ];
 
+// Now extended past the "link sent" step to capture what happens
+// after the magic-link email lands in the therapist's inbox — the
+// previously-dark transitions between email arrival and a finalized
+// claim. claim_link_opened fires on portal load with a claim_token;
+// claim_accepted fires after the confirm-button click succeeds.
 export const CLAIM_STEPS = [
   { key: "claim_page_viewed", label: "Viewed claim" },
   { key: "claim_listing_selected", label: "Selected a listing" },
   { key: "claim_send_link_clicked", label: "Requested claim link" },
   { key: "claim_link_sent", label: "Claim link sent" },
+  { key: "claim_link_opened", label: "Opened claim link" },
+  { key: "claim_accepted", label: "Claim accepted" },
 ];
 
-// Login conversion only. There is no per-session "edited" milestone
-// event — portal_td_field_saved fires per field — so engagement depth is
-// tracked elsewhere, not as a funnel step.
+// Login → first publish. portal_first_save fires once per session
+// when a profile transitions from not-live to live (i.e. both
+// required fields completed). This is distinct from
+// portal_td_field_saved which fires per-field and would push
+// conversion over 100%.
 export const PORTAL_STEPS = [
   { key: "portal_signin_viewed", label: "Viewed sign-in" },
   { key: "portal_signin_completed", label: "Signed in" },
+  { key: "portal_first_save", label: "Listing went live" },
 ];
 
 export const REMOVAL_STEPS = [

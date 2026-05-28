@@ -253,11 +253,18 @@ function renderHeadlineCounts(events) {
     { label: "7 days", ms: 7 * 24 * 60 * 60 * 1000 },
     { label: "30 days", ms: 30 * 24 * 60 * 60 * 1000 },
   ];
+  // Four headline events that anchor each side of the funnel:
+  //   - signup_page_viewed:           supply top of funnel
+  //   - signup_new_listing_submitted: supply conversion
+  //   - claim_page_viewed:            existing-listing claim top of funnel
+  //   - claim_accepted:               claim conversion (terminal step
+  //     of the email-magic-link flow; replaces the never-fired
+  //     `claim_trial_checkout_opened` which was a dead reference)
   const keyEvents = [
     "signup_page_viewed",
     "signup_new_listing_submitted",
     "claim_page_viewed",
-    "claim_trial_checkout_opened",
+    "claim_accepted",
   ];
   return (
     '<div class="admin-funnel-headline-grid">' +
