@@ -158,56 +158,141 @@
                 <span>Psychiatrist</span>
               </button>
 
-              <!-- Insurance + Gender chips placeholder-open the existing
-                   modal; step 6 will swap these for dedicated dropdowns. -->
-              <button
-                type="button"
-                class="dir-filter-chip dir-filter-chip--dropdown"
-                id="dirInsuranceChip"
-                aria-haspopup="dialog"
-              >
-                <span>Insurance</span>
-                <svg
-                  class="dir-filter-chip-caret"
-                  width="10"
-                  height="10"
-                  viewBox="0 0 10 10"
-                  fill="none"
-                  aria-hidden="true"
+              <!-- Insurance + Gender chips open dedicated dropdowns
+                   anchored to the chip rather than the full filter
+                   modal. The filter controls themselves are lifted
+                   from the modal so existing change handlers, value
+                   syncing, and the active-filter count keep working
+                   without any directory.js changes. -->
+              <div class="dir-filter-dropdown-wrap" data-dir-dropdown="insurance">
+                <button
+                  type="button"
+                  class="dir-filter-chip dir-filter-chip--dropdown"
+                  id="dirInsuranceChip"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="dirInsurancePanel"
                 >
-                  <path
-                    d="M2 4l3 3 3-3"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              </button>
-              <button
-                type="button"
-                class="dir-filter-chip dir-filter-chip--dropdown"
-                id="dirGenderChip"
-                aria-haspopup="dialog"
-              >
-                <span>Gender</span>
-                <svg
-                  class="dir-filter-chip-caret"
-                  width="10"
-                  height="10"
-                  viewBox="0 0 10 10"
-                  fill="none"
-                  aria-hidden="true"
+                  <span>Insurance</span>
+                  <svg
+                    class="dir-filter-chip-caret"
+                    width="10"
+                    height="10"
+                    viewBox="0 0 10 10"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M2 4l3 3 3-3"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
+                <div
+                  class="dir-filter-dropdown-panel"
+                  id="dirInsurancePanel"
+                  role="region"
+                  aria-label="Insurance filter"
+                  hidden
                 >
-                  <path
-                    d="M2 4l3 3 3-3"
-                    stroke="currentColor"
-                    stroke-width="1.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                  />
-                </svg>
-              </button>
+                  <div class="filter-group">
+                    <label for="insuranceDisplay" id="insuranceLabelText">Insurance</label>
+                    <div class="ins-ta-wrap">
+                      <input
+                        type="text"
+                        id="insuranceDisplay"
+                        class="ins-ta-input"
+                        autocomplete="off"
+                        spellcheck="false"
+                        placeholder="Search insurance…"
+                        role="combobox"
+                        aria-autocomplete="list"
+                        aria-expanded="false"
+                        aria-controls="insuranceSuggestions"
+                        aria-haspopup="listbox"
+                      />
+                      <button
+                        type="button"
+                        class="ins-ta-clear"
+                        id="insuranceClearBtn"
+                        aria-label="Clear insurance filter"
+                        hidden
+                      >
+                        <svg
+                          width="12"
+                          height="12"
+                          viewBox="0 0 12 12"
+                          fill="none"
+                          aria-hidden="true"
+                        >
+                          <path
+                            d="M9 3L3 9M3 3l6 6"
+                            stroke="currentColor"
+                            stroke-width="1.8"
+                            stroke-linecap="round"
+                          />
+                        </svg>
+                      </button>
+                      <div
+                        id="insuranceSuggestions"
+                        class="ins-ta-list"
+                        hidden
+                        role="listbox"
+                        aria-label="Insurance options"
+                      ></div>
+                    </div>
+                    <input type="hidden" id="insurance" />
+                  </div>
+                </div>
+              </div>
+              <div class="dir-filter-dropdown-wrap" data-dir-dropdown="gender">
+                <button
+                  type="button"
+                  class="dir-filter-chip dir-filter-chip--dropdown"
+                  id="dirGenderChip"
+                  aria-haspopup="listbox"
+                  aria-expanded="false"
+                  aria-controls="dirGenderPanel"
+                >
+                  <span>Gender</span>
+                  <svg
+                    class="dir-filter-chip-caret"
+                    width="10"
+                    height="10"
+                    viewBox="0 0 10 10"
+                    fill="none"
+                    aria-hidden="true"
+                  >
+                    <path
+                      d="M2 4l3 3 3-3"
+                      stroke="currentColor"
+                      stroke-width="1.5"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    />
+                  </svg>
+                </button>
+                <div
+                  class="dir-filter-dropdown-panel"
+                  id="dirGenderPanel"
+                  role="region"
+                  aria-label="Therapist gender filter"
+                  hidden
+                >
+                  <div class="filter-group">
+                    <label for="gender">Therapist gender</label>
+                    <select id="gender">
+                      <option value="">Any gender</option>
+                      <option value="female">Female</option>
+                      <option value="male">Male</option>
+                      <option value="non_binary">Non-binary</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
 
               <button
                 type="button"
@@ -370,73 +455,12 @@
             <option value="CA">California</option>
           </select>
 
-          <section class="dir-vb-section">
-            <div class="dir-vb-section-head">
-              <h3 id="insurancePanelTitle">Coverage</h3>
-            </div>
-            <div class="dir-vb-section-body">
-              <div class="filter-group">
-                <label for="insuranceDisplay" id="insuranceLabelText">Insurance</label>
-                <div class="ins-ta-wrap">
-                  <input
-                    type="text"
-                    id="insuranceDisplay"
-                    class="ins-ta-input"
-                    autocomplete="off"
-                    spellcheck="false"
-                    placeholder="Search insurance…"
-                    role="combobox"
-                    aria-autocomplete="list"
-                    aria-expanded="false"
-                    aria-controls="insuranceSuggestions"
-                    aria-haspopup="listbox"
-                  />
-                  <button
-                    type="button"
-                    class="ins-ta-clear"
-                    id="insuranceClearBtn"
-                    aria-label="Clear insurance filter"
-                    hidden
-                  >
-                    <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
-                      <path
-                        d="M9 3L3 9M3 3l6 6"
-                        stroke="currentColor"
-                        stroke-width="1.8"
-                        stroke-linecap="round"
-                      />
-                    </svg>
-                  </button>
-                  <div
-                    id="insuranceSuggestions"
-                    class="ins-ta-list"
-                    hidden
-                    role="listbox"
-                    aria-label="Insurance options"
-                  ></div>
-                </div>
-                <input type="hidden" id="insurance" />
-              </div>
-            </div>
-          </section>
-
-          <section class="dir-vb-section">
-            <div class="dir-vb-section-head">
-              <h3>Therapist gender</h3>
-            </div>
-            <div class="dir-vb-section-body">
-              <div class="filter-group">
-                <label for="gender">Gender</label>
-                <select id="gender">
-                  <option value="">Any gender</option>
-                  <option value="female">Female</option>
-                  <option value="male">Male</option>
-                  <option value="non_binary">Non-binary</option>
-                </select>
-              </div>
-            </div>
-          </section>
-
+          <!-- Insurance and Therapist-gender sections were moved out
+               of this modal in PR ~921 — they now live in dedicated
+               dropdowns anchored to the Insurance and Gender chips on
+               the filter bar. The change handlers and the active
+               filter count still find the same #insurance / #gender
+               inputs via getElementById, so nothing breaks. -->
           <section class="dir-vb-section">
             <div class="dir-vb-section-head">
               <h3 id="bipolarExperiencePanelTitle">Experience level</h3>
