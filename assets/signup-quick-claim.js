@@ -562,6 +562,16 @@ function initQuickClaim() {
         ".</strong> Enter the email you want to sign in with. " +
         "We'll send the activation link there. You can set a public contact email separately after you sign in.";
       emailLabel.textContent = "Email for signing in";
+      // Funnel measurement: closes the dark transition between
+      // "picked an existing listing" and "completed the fallback
+      // form." Without it we couldn't tell whether the on-file-
+      // missing fallback was bouncing therapists vs. silently
+      // working. Fired only when the fallback form is actually
+      // shown so it doesn't double-count regular claim flows.
+      trackFunnelEvent("claim_form_shown", {
+        therapist_slug: (result && result.slug) || "",
+        reason: "on_file_missing",
+      });
     } else {
       banner.hidden = true;
       banner.innerHTML = "";

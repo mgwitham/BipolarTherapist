@@ -212,6 +212,36 @@
         max-width: 46ch;
         margin-bottom: 1.1rem;
       }
+      /* Hero differentiators — three short bullets that answer the
+         "why list with you vs Psychology Today?" question a clinician
+         is silently asking. Sits between the sub-copy and the
+         secondary "Learn why" link so it's read before the boards
+         lockup. */
+      .signup-hero-bullets {
+        list-style: none;
+        padding: 0;
+        margin: 0 0 1.1rem;
+        display: grid;
+        gap: 0.4rem;
+        max-width: 46ch;
+      }
+      .signup-hero-bullets li {
+        position: relative;
+        padding-left: 1.4rem;
+        font-size: 0.95rem;
+        color: var(--navy);
+        line-height: 1.45;
+      }
+      .signup-hero-bullets li::before {
+        content: "";
+        position: absolute;
+        left: 0;
+        top: 0.55em;
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: var(--teal);
+      }
       .signup-hero-pills {
         display: flex;
         flex-wrap: wrap;
@@ -1257,9 +1287,14 @@
             <span class="signup-hero-eyebrow">For California clinicians</span>
             <h1>Get found by Californians searching for <em>bipolar informed care</em>.</h1>
             <p class="signup-hero-sub">
-              Four short fields. Instant California license check. Most clinicians finish in under
+              Four short fields. Instant California license check. Many clinicians finish in under
               two minutes.
             </p>
+            <ul class="signup-hero-bullets">
+              <li>Individual therapists only. No group-practice spam.</li>
+              <li>License-verified, instant and automatic.</li>
+              <li>Free to list. No listing fees, ever.</li>
+            </ul>
             <a class="signup-hero-about-link" href="/about" target="_blank" rel="noopener"
               >Learn why we built this <span aria-hidden="true">→</span></a
             >
@@ -1340,12 +1375,13 @@
                       type="text"
                       name="license_number"
                       autocomplete="off"
-                      placeholder="e.g. 109462"
+                      placeholder="e.g. 109462 or PSY 12345"
                       required
                       aria-describedby="hint_license"
                     />
                     <span class="new-listing-field-hint" id="hint_license"
-                      >Verified instantly against the state board.</span
+                      >Verified instantly against the state board. LMFT, LCSW, LPCC, PSY, and MD
+                      formats all work.</span
                     >
                     <span
                       class="new-listing-live-hint"
