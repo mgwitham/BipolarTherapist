@@ -3,6 +3,24 @@ import { getPreferredRouteType } from "./match-ranking.js";
 import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
 import { renderRoundAvatar, renderSpecialtyPills } from "./card-content.js";
 
+// "Accepting new patients" pill on the card. Surfaces a critical
+// buying-decision signal that was previously hidden in the data —
+// the field exists on every therapist doc (acceptingNewPatients)
+// but wasn't rendered on the patient-facing card. Only show the
+// positive state; "not accepting" therapists are filtered out of
+// ASAP urgency matches upstream, so a missing pill is ambiguous
+// (could be unknown). Patients see green only when it's definite.
+function buildAcceptingPill(therapist) {
+  if (!therapist || therapist.accepting_new_patients !== true) return "";
+  return (
+    '<span class="bth-card-accepting" title="This therapist is currently accepting new patients">' +
+    '<svg viewBox="0 0 12 12" width="10" height="10" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
+    '<polyline points="2 6 5 9 10 3"></polyline></svg>' +
+    "Accepting new patients" +
+    "</span>"
+  );
+}
+
 // Generic bipolar terms too broad to use as a card reason label.
 const REASON_LINE_GENERIC = {
   "bipolar disorder": true,
@@ -136,6 +154,11 @@ export function buildResultsHeaderHtml(profile, totalCount, options) {
     " bipolar informed " +
     (totalCount === 1 ? "match" : "matches") +
     " for you</h1>" +
+    // One-line ranking explainer. Without it, a patient sees card #2
+    // and wonders "why not this one?" — choice paralysis on a
+    // low-energy day. The explanation grounds the order so they can
+    // start at the top with confidence.
+    '<p class="mx-results-ranking-note">Ranked by bipolar experience and your answers.</p>' +
     (mirrorSentence ? '<p class="mx-results-sub">' + escapeHtml(mirrorSentence) + "</p>" : "") +
     '<button type="button" class="mx-refine-btn mx-refine-btn--header" data-mx-refine-open="header">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">' +
@@ -234,6 +257,7 @@ export function renderLeadResultCard(entry, options) {
       : "") +
     "</h3>" +
     (reasonLine ? '<p class="mx-card-reason">' + escapeHtml(reasonLine) + "</p>" : "") +
+    buildAcceptingPill(therapist) +
     "</div>" +
     settings.renderSaveButton(therapist.slug || "", "card") +
     "</div>" +
@@ -283,6 +307,7 @@ export function renderSupportingResultCard(entry, options) {
       : "") +
     "</h3>" +
     (reasonLine ? '<p class="mx-card-reason">' + escapeHtml(reasonLine) + "</p>" : "") +
+    buildAcceptingPill(therapist) +
     "</div>" +
     settings.renderSaveButton(therapist.slug || "", "card") +
     "</div>" +

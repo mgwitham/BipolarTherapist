@@ -1527,6 +1527,27 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
   gap: 0.75rem;
   margin-top: 1.25rem;
 }
+/* Tertiary escape hatch shown below the primary/secondary actions
+   when no filter loosening will help (rural ZIP, niche language,
+   narrow insurance). Smaller weight than the action buttons so it
+   doesn't compete, but visible enough that a stuck patient sees it. */
+.match-empty-support {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  font-size: 0.88rem;
+  color: var(--text-mid, #3a5b65);
+  line-height: 1.5;
+}
+.match-empty-support a {
+  color: var(--teal, #1a7a8f);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.match-empty-support a:hover,
+.match-empty-support a:focus-visible {
+  color: var(--teal-dark, #155f70);
+}
 .match-empty-primary {
   background: #1a7a8f;
   color: #fff;
@@ -5450,6 +5471,15 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
   font-size: 0.88rem;
   margin: 0;
 }
+/* Ranking explainer — sits between the title and any context
+   sentence. Smaller and dimmer than the subtitle so it reads as
+   meta-info, not a second headline. */
+.mx-results-ranking-note {
+  color: #6b8189;
+  font-size: 0.82rem;
+  margin: 0.2rem 0 0;
+  line-height: 1.45;
+}
 
 /* Header refine button — inline below subtitle; mobile also has a sticky shortcut. */
 .mx-refine-btn--header {
@@ -6092,6 +6122,30 @@ body.match-refine-drawer-open .mx-refine-sticky {
   color: #52707c;
   line-height: 1.45;
   margin: 0;
+}
+/* Surfaces accepting_new_patients=true on the card. Critical
+   buying-decision signal that was hidden in the data layer until
+   now. Green for "go ahead." Small enough that it doesn't compete
+   with credentials or the reason line, prominent enough that a
+   glance catches it. */
+.bth-card-accepting {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  padding: 0.2rem 0.55rem;
+  background: #e3f3ec;
+  border: 1px solid #b8e0c9;
+  border-radius: 999px;
+  color: #14704c;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+.bth-card-accepting svg {
+  flex-shrink: 0;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .mx-card-meta {
   display: flex;
@@ -6847,11 +6901,16 @@ img.bth-avatar {
   color: #ffffff;
   font-size: 13px;
   font-weight: 600;
-  padding: 8px 16px;
+  /* 44px minimum tap target — matches iOS HIG and WCAG. The
+     primary CTA on each match card is the conversion event; a
+     low-energy patient on a laptop trackpad shouldn't have to aim
+     at a 36px target. Mobile already sized to 44px below; this
+     brings desktop in line. */
+  padding: 10px 20px;
   border-radius: 8px;
   text-decoration: none;
   transition: background 0.15s ease;
-  min-height: 36px;
+  min-height: 44px;
 }
 .bth-btn-primary:hover {
   background: var(--teal-dark);
