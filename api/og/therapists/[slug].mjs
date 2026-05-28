@@ -48,11 +48,16 @@ const COLOR = {
 // silently in the edge runtime — Satori then renders nothing without
 // throwing a catchable error. jsDelivr serves the same Google Fonts
 // repo via CDN and is reliable from Vercel edge.
+// @fontsource on jsDelivr provides static WOFF instances of the same
+// Google Fonts families. DM Sans's repo on github.com/google/fonts is
+// variable-only; @fontsource pre-computes static cuts that Satori
+// renders reliably. WOFF (not WOFF2) because Satori parses WOFF
+// directly without needing brotli decompression in edge runtime.
 const FONT_URLS = {
-  sans: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/dmsans/static/DMSans-Regular.ttf",
-  sansBold: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/dmsans/static/DMSans-Bold.ttf",
+  sans: "https://cdn.jsdelivr.net/npm/@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff",
+  sansBold: "https://cdn.jsdelivr.net/npm/@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff",
   serif:
-    "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/dmserifdisplay/DMSerifDisplay-Regular.ttf",
+    "https://cdn.jsdelivr.net/npm/@fontsource/dm-serif-display/files/dm-serif-display-latin-400-normal.woff",
 };
 
 let cachedFonts = null;
