@@ -1,5 +1,6 @@
 import { createClient } from "@sanity/client";
 import { verifyAdminSession } from "../_adminAuth.mjs";
+import { getRateLimiter } from "../../server/rate-limit-store.mjs";
 import {
   INITIAL_SUBJECT,
   PROFILE_GAP_SUBJECT,
@@ -9,6 +10,41 @@ import {
   buildReassuranceBody,
   withOutreachRef,
 } from "../../shared/outreach-templates.mjs";
+
+// Hourly send cap for therapist-outreach emails from this endpoint.
+// Backstop against a compromised admin session attempting to blast all
+// 150 live therapists with phishing in seconds. The duplicate-send
+// guard below prevents the same template-to-therapist combo twice,
+// but does NOT cap the total throughput per hour — this does.
+//
+// 50/hour matches the operational reality of weekly outreach sprints
+// (we never legitimately send more than ~30 in a working session) and
+// is configurable via ADMIN_OUTREACH_HOURLY_LIMIT if a real campaign
+// genuinely needs more headroom.
+const ADMIN_OUTREACH_HOURLY_LIMIT = Number(process.env.ADMIN_OUTREACH_HOURLY_LIMIT) || 50;
+const ADMIN_OUTREACH_WINDOW_MS = 60 * 60 * 1000;
+
+// The limiter persists across Vercel cold starts via Upstash Redis
+// when configured (the Vercel KV integration also exposes the same
+// Upstash REST credentials under KV_REST_API_* — accepted either way).
+// In dev with neither set, it falls back to an in-process Map; that's
+// fine because dev rarely sends real emails and a cold-start reset is
+// not a security issue at that scale.
+function getOutreachLimiter() {
+  return getRateLimiter("admin_outreach", ADMIN_OUTREACH_WINDOW_MS, ADMIN_OUTREACH_HOURLY_LIMIT, {
+    upstashRedisRestUrl: process.env.UPSTASH_REDIS_REST_URL || process.env.KV_REST_API_URL || "",
+    upstashRedisRestToken:
+      process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TOKEN || "",
+  });
+}
+
+function getClientIpAddress(req) {
+  const forwarded = String((req && req.headers && req.headers["x-forwarded-for"]) || "")
+    .split(",")[0]
+    .trim();
+  if (forwarded) return forwarded;
+  return (req && req.socket && req.socket.remoteAddress) || "unknown";
+}
 
 // Direct fetch to the Resend HTTP API instead of the `resend` SDK.
 // The SDK isn't in package.json (the rest of the codebase posts to
@@ -202,6 +238,30 @@ export default async function handler(req, res) {
     campaign: rawCampaign,
     force,
   } = body || {};
+
+  // Hourly send-cap check. Runs after auth (so anonymous probes don't
+  // burn limiter quota) and after JSON parsing (so a bad-shape request
+  // doesn't count either), but BEFORE we touch Sanity or Resend. Test
+  // sends (sendToSelf, which only ever hit the founder's own inbox)
+  // bypass the cap so previews never get blocked. We `record` here
+  // unconditionally on real sends — counts both successful and failed
+  // attempts — so loops on Resend errors can't game the limit.
+  if (!sendToSelf) {
+    const limiter = getOutreachLimiter();
+    const ipKey = getClientIpAddress(req);
+    const allowed = await limiter.canAttempt(ipKey);
+    if (!allowed) {
+      res.setHeader("Retry-After", String(Math.ceil(ADMIN_OUTREACH_WINDOW_MS / 1000)));
+      res.status(429).json({
+        error: "rate_limited",
+        message: `Admin outreach send cap of ${ADMIN_OUTREACH_HOURLY_LIMIT}/hour reached. Wait and retry, or raise ADMIN_OUTREACH_HOURLY_LIMIT in env if a campaign legitimately needs more headroom.`,
+        limit: ADMIN_OUTREACH_HOURLY_LIMIT,
+        windowMs: ADMIN_OUTREACH_WINDOW_MS,
+      });
+      return;
+    }
+    await limiter.record(ipKey);
+  }
   // Free-text campaign tag set per batch. Capped at 80 chars and
   // sanitized to slug-style so noisy entries don't pollute Subject
   // Performance grouping. Empty string is allowed and falls back to
