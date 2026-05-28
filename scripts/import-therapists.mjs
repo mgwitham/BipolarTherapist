@@ -12,6 +12,15 @@ import {
   validateWebsite,
 } from "../shared/contact-validation.mjs";
 import { resolvePreferredContactMethod } from "../shared/contact-modal-content.mjs";
+import { decodeHtmlEntities } from "../shared/html-entities.mjs";
+
+// Wrap a string-coercion that also strips any HTML entities that
+// rode along from a scraped source page. Applied to every free-text
+// field at the row→document boundary so the canonical (un-encoded)
+// form is what lands in Sanity — never `don&#039;t` again.
+function cleanText(value) {
+  return decodeHtmlEntities(typeof value === "string" ? value : value == null ? "" : String(value));
+}
 
 const ROOT = process.cwd();
 const DEFAULT_CSV_PATH = path.join(ROOT, "data", "import", "therapists.csv");
@@ -142,7 +151,10 @@ function splitList(value) {
   return String(value)
     .split("|")
     .map(function (item) {
-      return item.trim();
+      // Decode each item so list values like specialties or
+      // treatmentModalities can't carry entities through (e.g.
+      // "Couples &amp; Family" → "Couples & Family").
+      return decodeHtmlEntities(item.trim());
     })
     .filter(Boolean);
 }
@@ -216,26 +228,26 @@ function buildTherapistDocument(row) {
   return {
     _id: documentId,
     _type: "therapist",
-    name: row.name,
+    name: cleanText(row.name),
     slug: {
       _type: "slug",
       current: slug,
     },
-    credentials: row.credentials,
-    title: row.title || "",
-    bio: row.bio,
-    bioPreview: row.bioPreview || row.bio,
+    credentials: cleanText(row.credentials),
+    title: cleanText(row.title),
+    bio: cleanText(row.bio),
+    bioPreview: cleanText(row.bioPreview || row.bio),
     photoSourceType: parsePhotoSourceType(row.photoSourceType),
     photoReviewedAt: row.photoReviewedAt || "",
     photoUsagePermissionConfirmed: parseBoolean(row.photoUsagePermissionConfirmed, false),
-    practiceName: row.practiceName || "",
+    practiceName: cleanText(row.practiceName),
     email: row.email || "",
     phone: row.phone || "",
     website: row.website || "",
     preferredContactMethod: row.preferredContactMethod || "",
-    preferredContactLabel: row.preferredContactLabel || "",
-    contactGuidance: row.contactGuidance || "",
-    firstStepExpectation: row.firstStepExpectation || "",
+    preferredContactLabel: cleanText(row.preferredContactLabel),
+    contactGuidance: cleanText(row.contactGuidance),
+    firstStepExpectation: cleanText(row.firstStepExpectation),
     bookingUrl: row.bookingUrl || "",
     claimStatus: parseClaimStatus(row.claimStatus),
     claimedByEmail: row.claimedByEmail || "",
@@ -243,13 +255,13 @@ function buildTherapistDocument(row) {
     portalLastSeenAt: row.portalLastSeenAt || "",
     listingPauseRequestedAt: row.listingPauseRequestedAt || "",
     listingRemovalRequestedAt: row.listingRemovalRequestedAt || "",
-    city: row.city,
+    city: cleanText(row.city),
     state: row.state,
     zip: row.zip || "",
     country: row.country || "US",
     licenseState: row.licenseState || "",
     licenseNumber: row.licenseNumber || "",
-    careApproach: row.careApproach || "",
+    careApproach: cleanText(row.careApproach),
     treatmentModalities: splitList(row.treatmentModalities),
     clientPopulations: splitList(row.clientPopulations),
     specialties: splitList(row.specialties),
@@ -261,7 +273,7 @@ function buildTherapistDocument(row) {
     acceptsInPerson: parseBoolean(row.acceptsInPerson, true),
     acceptingNewPatients: parseBoolean(row.acceptingNewPatients, true),
     telehealthStates: splitList(row.telehealthStates),
-    estimatedWaitTime: row.estimatedWaitTime || "",
+    estimatedWaitTime: cleanText(row.estimatedWaitTime),
     medicationManagement: parseBoolean(row.medicationManagement, false),
     verificationStatus: row.verificationStatus || "under_review",
     sourceUrl: row.sourceUrl || row.website || "",

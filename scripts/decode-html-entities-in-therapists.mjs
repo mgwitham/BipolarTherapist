@@ -22,71 +22,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "@sanity/client";
 
+import { containsHtmlEntities, decodeHtmlEntities } from "../shared/html-entities.mjs";
+
 const APPLY = process.argv.includes("--apply");
-
-// Named HTML entities we'll see in bipolar-therapist scraped content.
-// Mapped to their canonical character. We intentionally decode &nbsp;
-// to a regular space so prose flows naturally — the bios are body
-// copy, not formatted markup where U+00A0 carries meaning.
-const NAMED_ENTITIES = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-  mdash: "—",
-  ndash: "–",
-  hellip: "…",
-  lsquo: "‘",
-  rsquo: "’",
-  ldquo: "“",
-  rdquo: "”",
-  copy: "©",
-  reg: "®",
-  trade: "™",
-  bull: "•",
-  middot: "·",
-  laquo: "«",
-  raquo: "»",
-  deg: "°",
-};
-
-function decodeOnce(input) {
-  return input
-    .replace(/&#x([0-9a-fA-F]+);/g, (_m, hex) => {
-      const code = parseInt(hex, 16);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : _m;
-    })
-    .replace(/&#(\d+);/g, (_m, dec) => {
-      const code = parseInt(dec, 10);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : _m;
-    })
-    .replace(/&([a-zA-Z]+);/g, (_m, name) => {
-      const repl = NAMED_ENTITIES[name.toLowerCase()];
-      return repl != null ? repl : _m;
-    });
-}
-
-// Decode iteratively until stable (handles &amp;#039; → &#039; → ').
-// Bounded to avoid pathological loops on hand-crafted inputs.
-function decodeEntitiesFully(input) {
-  let prev = input;
-  for (let i = 0; i < 5; i++) {
-    const next = decodeOnce(prev);
-    if (next === prev) return next;
-    prev = next;
-  }
-  return prev;
-}
-
-// Common-pattern entity detector. Same set used by the audit script —
-// keep them in sync.
-const ENTITY_RE = /&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/;
-
-function hasEntities(s) {
-  return typeof s === "string" && ENTITY_RE.test(s);
-}
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -114,8 +52,8 @@ function buildPatch(doc) {
   for (const [key, value] of Object.entries(doc)) {
     if (key.startsWith("_")) continue;
     if (typeof value !== "string") continue;
-    if (!hasEntities(value)) continue;
-    const decoded = decodeEntitiesFully(value);
+    if (!containsHtmlEntities(value)) continue;
+    const decoded = decodeHtmlEntities(value);
     if (decoded !== value) {
       changes[key] = { before: value, after: decoded };
     }

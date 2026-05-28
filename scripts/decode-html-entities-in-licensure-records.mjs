@@ -22,62 +22,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "@sanity/client";
 
+import { containsHtmlEntities, decodeHtmlEntities } from "../shared/html-entities.mjs";
+
 const APPLY = process.argv.includes("--apply");
-
-const NAMED_ENTITIES = {
-  amp: "&",
-  lt: "<",
-  gt: ">",
-  quot: '"',
-  apos: "'",
-  nbsp: " ",
-  mdash: "—",
-  ndash: "–",
-  hellip: "…",
-  lsquo: "‘",
-  rsquo: "’",
-  ldquo: "“",
-  rdquo: "”",
-  copy: "©",
-  reg: "®",
-  trade: "™",
-  bull: "•",
-  middot: "·",
-  laquo: "«",
-  raquo: "»",
-  deg: "°",
-};
-
-function decodeOnce(input) {
-  return input
-    .replace(/&#x([0-9a-fA-F]+);/g, (_m, hex) => {
-      const code = parseInt(hex, 16);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : _m;
-    })
-    .replace(/&#(\d+);/g, (_m, dec) => {
-      const code = parseInt(dec, 10);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : _m;
-    })
-    .replace(/&([a-zA-Z]+);/g, (_m, name) => {
-      const repl = NAMED_ENTITIES[name.toLowerCase()];
-      return repl != null ? repl : _m;
-    });
-}
-
-function decodeEntitiesFully(input) {
-  let prev = input;
-  for (let i = 0; i < 5; i++) {
-    const next = decodeOnce(prev);
-    if (next === prev) return next;
-    prev = next;
-  }
-  return prev;
-}
-
-const ENTITY_RE = /&(?:#\d+|#x[0-9a-fA-F]+|[a-zA-Z]+);/;
-function hasEntities(s) {
-  return typeof s === "string" && ENTITY_RE.test(s);
-}
 
 // Walk the document and emit { path, before, after } for every string
 // field (any depth) that contains entities. Arrays are skipped because
@@ -89,8 +36,8 @@ function findEntityFields(doc) {
   function walk(value, pathParts) {
     if (value == null) return;
     if (typeof value === "string") {
-      if (hasEntities(value)) {
-        const decoded = decodeEntitiesFully(value);
+      if (containsHtmlEntities(value)) {
+        const decoded = decodeHtmlEntities(value);
         if (decoded !== value) {
           out.push({ path: pathParts.join("."), before: value, after: decoded });
         }
