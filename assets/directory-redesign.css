@@ -315,6 +315,83 @@
   padding-right: 10px;
 }
 
+/* Anchor wrapper for chips that own their own popover (Insurance,
+   Gender). The chip + its panel sit inside the same wrap so the
+   panel can position itself relative to the chip rather than the
+   page. Without this the panel would float at the wrong column. */
+.dir-filter-dropdown-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.dir-filter-dropdown-wrap[data-open="true"] .dir-filter-chip--dropdown {
+  border-color: var(--teal, #1a7a8f);
+  background: #eaf3f5;
+}
+.dir-filter-dropdown-wrap[data-open="true"] .dir-filter-chip-caret {
+  transform: rotate(180deg);
+}
+.dir-filter-chip-caret {
+  transition: transform 0.15s ease;
+}
+
+/* The popover panel itself — minimal chrome, anchored just below
+   the chip. Stays narrow enough on desktop that it doesn't dominate
+   the row, but wide enough to fit the typeahead (search insurance)
+   without horizontal scroll. */
+.dir-filter-dropdown-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 30;
+  min-width: 260px;
+  max-width: min(90vw, 360px);
+  background: #ffffff;
+  border: 1px solid #c8d6da;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15, 50, 60, 0.15);
+  padding: 14px 14px 16px;
+}
+.dir-filter-dropdown-panel[hidden] {
+  display: none;
+}
+.dir-filter-dropdown-panel .filter-group {
+  margin: 0;
+}
+.dir-filter-dropdown-panel label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-mid, #3a5b65);
+}
+.dir-filter-dropdown-panel select {
+  width: 100%;
+}
+/* The insurance typeahead suggestion list lives inside the popover
+   too; keep it stretched to the panel width but capped so it
+   doesn't push the panel taller than the viewport. */
+.dir-filter-dropdown-panel .ins-ta-list {
+  max-height: 240px;
+  overflow-y: auto;
+}
+/* On narrow mobile (chip row wraps), align right edge to the
+   right side of the viewport for chips that sit at the row's right
+   edge — prevents popover overflow. The :nth-last-of-type heuristic
+   targets the last few wraps; for our current layout (Insurance is
+   second-to-last among chip-dropdowns, Gender is last) this keeps
+   them on-screen on smaller widths. */
+@media (max-width: 640px) {
+  .dir-filter-dropdown-panel {
+    left: auto;
+    right: 0;
+    min-width: 240px;
+    max-width: 90vw;
+  }
+}
+
 .dir-filter-more {
   display: inline-flex;
   align-items: center;
