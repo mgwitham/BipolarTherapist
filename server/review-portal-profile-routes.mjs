@@ -17,6 +17,7 @@ import {
   validatePublicContactPresence,
   validateWebsite,
 } from "../shared/contact-validation.mjs";
+import { formatPhoneUS } from "../shared/phone-format.mjs";
 
 // Shapes a therapist document into the portal /me + PATCH response
 // payload. Kept in one place so /portal/me and /portal/therapist
@@ -119,7 +120,7 @@ function validatePortalTherapistUpdates(body) {
     credentials: { max: 200 },
     title: { max: 120 },
     email: { max: 254, validator: validateEmail },
-    phone: { max: 40, validator: validatePhone },
+    phone: { max: 40, normalize: formatPhoneUS, validator: validatePhone },
     website: { max: 500, normalize: normalizeUrl, validator: validateWebsite },
     bookingUrl: {
       max: 500,

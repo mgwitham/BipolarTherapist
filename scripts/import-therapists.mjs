@@ -13,6 +13,7 @@ import {
 } from "../shared/contact-validation.mjs";
 import { resolvePreferredContactMethod } from "../shared/contact-modal-content.mjs";
 import { decodeHtmlEntities } from "../shared/html-entities.mjs";
+import { formatPhoneUS } from "../shared/phone-format.mjs";
 
 // Wrap a string-coercion that also strips any HTML entities that
 // rode along from a scraped source page. Applied to every free-text
@@ -242,7 +243,7 @@ function buildTherapistDocument(row) {
     photoUsagePermissionConfirmed: parseBoolean(row.photoUsagePermissionConfirmed, false),
     practiceName: cleanText(row.practiceName),
     email: row.email || "",
-    phone: row.phone || "",
+    phone: formatPhoneUS(row.phone),
     website: row.website || "",
     preferredContactMethod: row.preferredContactMethod || "",
     preferredContactLabel: cleanText(row.preferredContactLabel),

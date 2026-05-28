@@ -1,3 +1,5 @@
+import { formatPhoneUS } from "../shared/phone-format.mjs";
+
 export function splitList(value) {
   if (!Array.isArray(value)) {
     return [];
@@ -211,7 +213,7 @@ export async function buildApplicationDocument(client, input, deps) {
     photoUsagePermissionConfirmed: parseBoolean(input.photo_usage_permission_confirmed, false),
     practiceName: (input.practice_name || "").trim(),
     gender: normalizeGender(input.gender),
-    phone: (input.phone || "").trim(),
+    phone: formatPhoneUS(input.phone),
     website: (input.website || "").trim(),
     preferredContactMethod: (input.preferred_contact_method || "").trim(),
     preferredContactLabel: (input.preferred_contact_label || "").trim(),
@@ -280,7 +282,7 @@ export async function buildRevisionFieldUpdates(client, input, existingApplicati
       Boolean(existingApplication.photoUsagePermissionConfirmed),
     ),
     practiceName: String(input.practice_name || "").trim(),
-    phone: String(input.phone || "").trim(),
+    phone: formatPhoneUS(input.phone),
     website: String(input.website || "").trim(),
     preferredContactMethod: String(input.preferred_contact_method || "").trim(),
     preferredContactLabel: String(input.preferred_contact_label || "").trim(),

@@ -9,6 +9,7 @@ import {
   pickStrongestDuplicateMatch,
 } from "../shared/therapist-domain.mjs";
 import { decodeHtmlEntities } from "../shared/html-entities.mjs";
+import { formatPhoneUS } from "../shared/phone-format.mjs";
 
 // Wrap a string-coercion that strips any HTML entities baked into
 // scraped text (mirrors scripts/import-therapists.mjs).
@@ -548,7 +549,7 @@ function buildCandidateDocument(row, context, index) {
     licenseState: row.licenseState || "",
     licenseNumber: row.licenseNumber || "",
     email: row.email || "",
-    phone: row.phone || "",
+    phone: formatPhoneUS(row.phone),
     website: row.website || "",
     bookingUrl: row.bookingUrl || "",
     sourceType: parseSourceType(row.sourceType),
