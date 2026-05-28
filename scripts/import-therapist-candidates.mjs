@@ -8,6 +8,13 @@ import {
   normalizeLicense as normalizeLicenseShared,
   pickStrongestDuplicateMatch,
 } from "../shared/therapist-domain.mjs";
+import { decodeHtmlEntities } from "../shared/html-entities.mjs";
+
+// Wrap a string-coercion that strips any HTML entities baked into
+// scraped text (mirrors scripts/import-therapists.mjs).
+function cleanText(value) {
+  return decodeHtmlEntities(typeof value === "string" ? value : value == null ? "" : String(value));
+}
 
 const ROOT = process.cwd();
 const DEFAULT_CSV_PATH = path.join(ROOT, "data", "import", "therapist-candidates.csv");
@@ -147,7 +154,7 @@ function splitList(value) {
   return String(value)
     .split("|")
     .map(function (item) {
-      return item.trim();
+      return decodeHtmlEntities(item.trim());
     })
     .filter(Boolean);
 }
@@ -530,11 +537,11 @@ function buildCandidateDocument(row, context, index) {
     candidateId: candidateId,
     providerId: identity.providerId,
     providerFingerprint: buildProviderFingerprint(row),
-    name: row.name,
-    credentials: row.credentials || "",
-    title: row.title || "",
-    practiceName: row.practiceName || "",
-    city: row.city,
+    name: cleanText(row.name),
+    credentials: cleanText(row.credentials),
+    title: cleanText(row.title),
+    practiceName: cleanText(row.practiceName),
+    city: cleanText(row.city),
     state: row.state,
     zip: row.zip || "",
     country: row.country || "US",
@@ -547,12 +554,16 @@ function buildCandidateDocument(row, context, index) {
     sourceType: parseSourceType(row.sourceType),
     sourceUrl: row.sourceUrl || row.website || "",
     supportingSourceUrls: splitList(row.supportingSourceUrls),
+    // rawSourceSnapshot is the verbatim scrape — preserve raw bytes
+    // here so audits and re-extraction logic see exactly what came
+    // from the source. cleanText is applied to the downstream fields
+    // (careApproach, etc.) that actually surface to users.
     rawSourceSnapshot: row.rawSourceSnapshot || "",
     extractedAt: row.extractedAt || "",
     sourceReviewedAt: row.sourceReviewedAt || "",
     extractionVersion: row.extractionVersion || "manual-v1",
     extractionConfidence: extractionConfidence,
-    careApproach: row.careApproach || "",
+    careApproach: cleanText(row.careApproach),
     specialties: splitList(row.specialties),
     treatmentModalities: splitList(row.treatmentModalities),
     clientPopulations: splitList(row.clientPopulations),
@@ -562,7 +573,7 @@ function buildCandidateDocument(row, context, index) {
     acceptsInPerson: parseBoolean(row.acceptsInPerson, true),
     acceptingNewPatients: parseBoolean(row.acceptingNewPatients, false),
     telehealthStates: splitList(row.telehealthStates),
-    estimatedWaitTime: row.estimatedWaitTime || "",
+    estimatedWaitTime: cleanText(row.estimatedWaitTime),
     medicationManagement: parseBoolean(row.medicationManagement, false),
     sessionFeeMin: parseNumber(row.sessionFeeMin),
     sessionFeeMax: parseNumber(row.sessionFeeMax),
@@ -590,11 +601,11 @@ function buildCandidateDocument(row, context, index) {
     lastReviewedAt: row.lastReviewedAt || "",
     readinessScore: readinessScore,
     publishRecommendation: row.publishRecommendation || (hasDuplicate ? "hold" : ""),
-    notes: row.notes || "",
-    bipolarEvidenceQuote: row.bipolarEvidenceQuote || "",
+    notes: cleanText(row.notes),
+    bipolarEvidenceQuote: cleanText(row.bipolarEvidenceQuote),
     sourcingConfidence: (row.sourcingConfidence || "").toLowerCase() || "",
-    rejectionReason: row.rejectionReason || "",
-    rejectionNotes: row.rejectionNotes || "",
+    rejectionReason: cleanText(row.rejectionReason),
+    rejectionNotes: cleanText(row.rejectionNotes),
   };
 }
 
