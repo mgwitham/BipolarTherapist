@@ -25,21 +25,45 @@ import {
   syncZipResolvedLabel as syncZipResolvedLabelBase,
 } from "./match-intake.js";
 import { renderAdaptiveGuidanceSection, renderNoResultsStateSection } from "./match-results.js";
-import {
-  getCompareCostLabel,
-  getCompareFreshness,
-  getCompareRole,
-  getCompareTimingLabel,
-  getCompareTrustLabel,
-  renderCompareValue,
-  shortlistRowDiffers,
-} from "./match-compare.js";
+// ── Lazy-loaded modules ──────────────────────────────────────────────
+// match-compare.js: all exports below cascade from a single
+// renderComparison() entry, which is only reachable via a click on the
+// "Compare" CTA. Most users never open compare, so we defer this whole
+// module until first compare interaction. The symbols start undefined
+// and are populated by ensureCompareModule() before any compare helper
+// runs.
+let getCompareCostLabel;
+let getCompareFreshness;
+let getCompareRole;
+let getCompareTimingLabel;
+let getCompareTrustLabel;
+let renderCompareValue;
+let shortlistRowDiffers;
+let matchComparePromise = null;
+async function ensureCompareModule() {
+  if (!matchComparePromise) {
+    matchComparePromise = import("./match-compare.js").then(function (mod) {
+      getCompareCostLabel = mod.getCompareCostLabel;
+      getCompareFreshness = mod.getCompareFreshness;
+      getCompareRole = mod.getCompareRole;
+      getCompareTimingLabel = mod.getCompareTimingLabel;
+      getCompareTrustLabel = mod.getCompareTrustLabel;
+      renderCompareValue = mod.renderCompareValue;
+      shortlistRowDiffers = mod.shortlistRowDiffers;
+      return mod;
+    });
+  }
+  return matchComparePromise;
+}
 import {
   buildMatchOutreachDisclosure,
   buildPrimaryMatchCardsMarkup,
   countActiveRefinements,
 } from "./match-card-render.js";
-import { buildFeedbackInsightsMarkup } from "./match-feedback-insights.js";
+// match-feedback-insights.js: only used inside renderFeedbackInsights(),
+// which is a no-op for everyone except internal debug mode
+// (?internal=1). Lazy-import inside the function so 99%+ of users
+// never download this module.
 import { buildContactOrderPlan as buildContactOrderPlanBase } from "./match-followthrough.js";
 import {
   analyzeConciergePatterns,
@@ -2188,9 +2212,15 @@ function renderShortlistFullGrid(rows, topEntries) {
 // "where they differ" diff strip, full grid behind a disclosure, and
 // a single share affordance at the bottom. Keeps the same DOM target
 // (#matchCompare) so the existing caller is unchanged.
-function renderComparison(entries) {
+async function renderComparison(entries) {
   var root = document.getElementById("matchCompare");
   if (!root) return;
+  // Lazy-load match-compare.js the first time the user opens the
+  // compare view. Populates the module-level symbol holders so the
+  // synchronous helpers below (buildPartnerCompareSummary,
+  // renderShortlistSupporting, renderShortlistDiffStrip,
+  // renderShortlistFullGrid) can reference them as plain names.
+  await ensureCompareModule();
   var topEntries = entries.slice(0, PRIMARY_SHORTLIST_LIMIT);
   var profile = latestProfile;
   if (topEntries.length === 0) {
@@ -2555,7 +2585,7 @@ function getRouteLearningForProfile(profile, entry, outcomes) {
   });
 }
 
-function renderFeedbackInsights() {
+async function renderFeedbackInsights() {
   var root = document.getElementById("feedbackInsights");
   if (!root) {
     return;
@@ -2564,8 +2594,12 @@ function renderFeedbackInsights() {
     root.hidden = true;
     return;
   }
+  // Lazy-load the markup module only for internal-mode users. The
+  // module is ~6 KB of pure rendering code that 99%+ of users never
+  // see, so keeping it out of the initial bundle is a clean win.
+  var mod = await import("./match-feedback-insights.js");
   root.hidden = false;
-  root.innerHTML = buildFeedbackInsightsMarkup(readStoredFeedback(), readOutreachOutcomes(), {
+  root.innerHTML = mod.buildFeedbackInsightsMarkup(readStoredFeedback(), readOutreachOutcomes(), {
     therapists: therapists,
   });
 }
@@ -3573,9 +3607,12 @@ function renderPrimaryMatchCards(entries, profile) {
 
   var compareTrigger = document.getElementById("matchCompareTrigger");
   if (compareTrigger) {
-    compareTrigger.addEventListener("click", function () {
+    compareTrigger.addEventListener("click", async function () {
       trackFunnelEvent("match_compare_opened", { result_count: allEntries.length });
-      renderComparison(allEntries);
+      // renderComparison is async because it lazy-loads match-compare.js
+      // on first open. Await it so the scrollIntoView below targets the
+      // element after it's been populated.
+      await renderComparison(allEntries);
       var compareEl = document.getElementById("matchCompare");
       if (compareEl) {
         compareEl.scrollIntoView({ behavior: "smooth", block: "start" });
