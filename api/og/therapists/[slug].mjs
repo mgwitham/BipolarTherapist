@@ -43,26 +43,34 @@ const COLOR = {
 };
 
 // ─── Font loading ────────────────────────────────────────────────────
-// @vercel/og requires fonts to be passed explicitly — there's no
-// built-in fallback. Stable URLs on Google's font repo on GitHub
-// (the upstream of fonts.gstatic.com) so we don't depend on
-// gstatic's hash-rotated URLs which change between font versions.
-// Promises are cached at module scope; subsequent invocations on
-// a warm edge instance reuse the loaded font buffers.
-const DM_SANS_REGULAR_URL =
-  "https://github.com/google/fonts/raw/main/ofl/dmsans/DMSans%5Bopsz%2Cwght%5D.ttf";
-const DM_SERIF_DISPLAY_URL =
-  "https://github.com/google/fonts/raw/main/ofl/dmserifdisplay/DMSerifDisplay-Regular.ttf";
+// Satori needs static (non-variable) TTF instances. The previous code
+// pointed at the variable DM Sans file on github.com which can fail
+// silently in the edge runtime — Satori then renders nothing without
+// throwing a catchable error. jsDelivr serves the same Google Fonts
+// repo via CDN and is reliable from Vercel edge.
+const FONT_URLS = {
+  sans: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/dmsans/static/DMSans-Regular.ttf",
+  sansBold: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/dmsans/static/DMSans-Bold.ttf",
+  serif:
+    "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/dmserifdisplay/DMSerifDisplay-Regular.ttf",
+};
 
 let cachedFonts = null;
 async function loadFonts() {
   if (cachedFonts) return cachedFonts;
-  const [sans, serif] = await Promise.all([
-    fetch(DM_SANS_REGULAR_URL).then((r) => r.arrayBuffer()),
-    fetch(DM_SERIF_DISPLAY_URL).then((r) => r.arrayBuffer()),
+  const fetchFont = async (url) => {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`font fetch ${url} → ${r.status}`);
+    return r.arrayBuffer();
+  };
+  const [sans, sansBold, serif] = await Promise.all([
+    fetchFont(FONT_URLS.sans),
+    fetchFont(FONT_URLS.sansBold),
+    fetchFont(FONT_URLS.serif),
   ]);
   cachedFonts = [
     { name: "DM Sans", data: sans, weight: 400, style: "normal" },
+    { name: "DM Sans", data: sansBold, weight: 700, style: "normal" },
     { name: "DM Serif Display", data: serif, weight: 400, style: "normal" },
   ];
   return cachedFonts;
@@ -402,11 +410,22 @@ export default async function handler(request) {
 
   try {
     const fonts = await loadFonts();
-    return new ImageResponse(buildCard(therapist), {
+    const image = new ImageResponse(buildCard(therapist), {
       width: 1200,
       height: 630,
       fonts,
+    });
+    // Consume the body inside the try block. ImageResponse is lazy:
+    // Satori only runs when the body stream is read. If we return the
+    // ImageResponse directly, a render failure surfaces as an empty
+    // 200 *after* the handler returned, which Vercel then caches and
+    // our outer catch never sees. Reading the bytes here makes any
+    // Satori error throw synchronously so the catch can redirect.
+    const buf = await image.arrayBuffer();
+    return new Response(buf, {
+      status: 200,
       headers: {
+        "Content-Type": "image/png",
         // Long cache because the card is deterministic from the slug.
         // When a therapist updates their profile, the URL doesn't
         // change, so we'd want a way to invalidate — for now, an hour
