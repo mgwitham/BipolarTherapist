@@ -125,6 +125,7 @@
     "@sentry/node": "^10.53.1",
     "@upstash/redis": "^1.38.0",
     "@vercel/analytics": "^2.0.1",
+    "@vercel/og": "^0.11.1",
     "posthog-js": "^1.376.0",
     "stripe": "^22.1.1"
   }
