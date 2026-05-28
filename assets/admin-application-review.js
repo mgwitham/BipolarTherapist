@@ -3,6 +3,7 @@ import {
   getApplicationActionFlash,
   getRecentApplicationActionFlashes,
 } from "./admin-application-actions.js";
+import { requireEscapeHtml } from "./escape-html.js";
 
 function getApplicationStateMeta(config) {
   if (!config) {
@@ -312,6 +313,13 @@ function buildFilterCards(options, summaryCounts, applicationFilters) {
 }
 
 export function renderApplicationsPanel(options) {
+  // Fail-loud guard: every dynamic insert into root.innerHTML below
+  // depends on options.escapeHtml. If a caller forgets to wire it
+  // through (a typo, a refactor, a stubbed test double) the inserts
+  // would silently render unescaped Sanity content and create an
+  // XSS sink. Throwing here prevents the panel from rendering at
+  // all in that case, surfacing the wiring bug immediately.
+  requireEscapeHtml(options, "renderApplicationsPanel");
   const applications =
     options.dataMode === "sanity" ? options.remoteApplications : options.getApplications();
   const root = document.getElementById("applicationsList");
