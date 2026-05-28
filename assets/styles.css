@@ -44,6 +44,19 @@
   box-sizing: border-box;
 }
 
+/* iOS Safari zooms the viewport when a focused input's font-size is
+   below 16px, which breaks layout and traps scroll. Enforce 16px on
+   all form controls at mobile widths. !important is necessary because
+   many existing per-feature input rules (filter chips, search bars,
+   admin tables) set smaller sizes that would otherwise win. */
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
 html {
   scroll-behavior: smooth;
   overflow-x: clip;
