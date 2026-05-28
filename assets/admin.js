@@ -259,12 +259,46 @@ const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 const REVIEW_ACTIVITY_SAVED_VIEWS_KEY = "bth_review_activity_saved_views_v1";
 const COMMAND_PALETTE_RECENTS_KEY = "bth_admin_command_palette_recents_v1";
 const COMMAND_PALETTE_FAVORITES_KEY = "bth_admin_command_palette_favorites_v1";
+// Application filter state is persisted across sessions because the
+// founder's daily flow involves filtering the list, clicking into a
+// card to review, and returning to the list — without persistence
+// the filter resets on every navigation, and the founder loses the
+// context of "what queue was I working through?" The persistence
+// pattern is a direct localStorage read/write rather than the
+// adminStore.attachLocalStorage indirection because applicationFilters
+// is captured by reference at module load by downstream callers
+// (reviewModels), so we need to mutate the same object in place
+// rather than re-assigning a new one on hydration.
+const APPLICATION_FILTERS_STORAGE_KEY = "bth_admin_application_filters_v1";
 let applicationFilters = {
   q: "",
   status: "",
   focus: "",
   goal: "balanced",
 };
+try {
+  const raw = window.localStorage.getItem(APPLICATION_FILTERS_STORAGE_KEY);
+  if (raw) {
+    const parsed = JSON.parse(raw);
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+      // In-place merge preserves the reference captured by reviewModels.
+      Object.assign(applicationFilters, parsed);
+    }
+  }
+} catch (_error) {
+  // Corrupt JSON or storage disabled — fall through with defaults.
+}
+function persistApplicationFilters() {
+  try {
+    window.localStorage.setItem(
+      APPLICATION_FILTERS_STORAGE_KEY,
+      JSON.stringify(applicationFilters),
+    );
+  } catch (_error) {
+    // Storage quota / private-mode — silent skip. Worst case the
+    // founder loses persistence this session, not a functional break.
+  }
+}
 let candidateFilters = {
   q: "",
   review_status: "",
@@ -717,7 +751,17 @@ if (typeof window !== "undefined") {
         })
         .catch(function (error) {
           console.error("Inspector action failed:", error);
-          adminInspectorActionStatus = "Inspector action failed. Try the full card controls.";
+          // Surface the actual error reason so the founder can tell
+          // a network timeout from a permission error from a Sanity
+          // validation failure. The fallback "try the full card
+          // controls" stays as suffix because it's still good advice
+          // when the inspector itself is the broken path.
+          var detail =
+            (error && (error.message || error.error || error.detail)) ||
+            (typeof error === "string" ? error : "");
+          adminInspectorActionStatus = detail
+            ? "Inspector action failed: " + detail + ". Try the full card controls."
+            : "Inspector action failed. Try the full card controls.";
           renderAdminRecordInspector();
         })
         .finally(function () {
@@ -3442,8 +3486,12 @@ document.getElementById("navLogout").addEventListener("click", async function ()
 
 var applicationSearchEl = document.getElementById("applicationSearch");
 if (applicationSearchEl) {
+  // Restore persisted value on first paint so the input visibly
+  // reflects the active filter that was already applied by hydration.
+  if (applicationFilters.q) applicationSearchEl.value = applicationFilters.q;
   applicationSearchEl.addEventListener("input", function (event) {
     applicationFilters.q = event.target.value.trim();
+    persistApplicationFilters();
     trackFunnelEvent("admin_review_filter_changed", {
       filter: "search",
       value_present: Boolean(applicationFilters.q),
@@ -3454,9 +3502,11 @@ if (applicationSearchEl) {
 
 var applicationStatusFilterEl = document.getElementById("applicationStatusFilter");
 if (applicationStatusFilterEl) {
+  if (applicationFilters.status) applicationStatusFilterEl.value = applicationFilters.status;
   applicationStatusFilterEl.addEventListener("change", function (event) {
     applicationFilters.status = event.target.value;
     applicationFilters.focus = event.target.value === "on_hold" ? "active_review" : "";
+    persistApplicationFilters();
     trackFunnelEvent("admin_review_filter_changed", {
       filter: "status",
       value: applicationFilters.status || "all",
@@ -3467,16 +3517,20 @@ if (applicationStatusFilterEl) {
 
 var applicationFocusFilterEl = document.getElementById("applicationFocusFilter");
 if (applicationFocusFilterEl) {
+  if (applicationFilters.focus) applicationFocusFilterEl.value = applicationFilters.focus;
   applicationFocusFilterEl.addEventListener("change", function (event) {
     applicationFilters.focus = event.target.value;
+    persistApplicationFilters();
     renderApplications();
   });
 }
 
 var applicationReviewGoalEl = document.getElementById("applicationReviewGoal");
 if (applicationReviewGoalEl) {
+  if (applicationFilters.goal) applicationReviewGoalEl.value = applicationFilters.goal;
   applicationReviewGoalEl.addEventListener("change", function (event) {
     applicationFilters.goal = event.target.value || "balanced";
+    persistApplicationFilters();
     renderApplications();
   });
 }
@@ -3488,6 +3542,7 @@ if (applicationClearFiltersEl) {
     applicationFilters.status = "";
     applicationFilters.focus = "";
     applicationFilters.goal = "balanced";
+    persistApplicationFilters();
     var searchInput = document.getElementById("applicationSearch");
     if (searchInput) {
       searchInput.value = "";
@@ -3891,6 +3946,7 @@ profileSearch = initAdminProfileSearch({
       // Applications don't have a field-edit drawer; navigate to the review panel and pre-filter.
       setActiveAdminView("review");
       applicationFilters.q = result.record.name || result.record.email || "";
+      persistApplicationFilters();
       var searchEl = document.getElementById("applicationSearch");
       if (searchEl) searchEl.value = applicationFilters.q;
       renderApplications();
