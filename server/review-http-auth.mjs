@@ -176,11 +176,19 @@ function isSecureCookieRequest(request) {
 }
 
 export function buildSessionCookie(request, name, token, maxAgeSeconds) {
+  // SameSite=Strict for admin and portal sessions. Both are
+  // same-origin only — never linked from a third-party origin in a
+  // way that needs cookie delivery on the first hop. Strict
+  // eliminates the residual CSRF surface that Lax leaves on GET
+  // navigations. Minor UX cost: if a logged-in user follows a link
+  // from a third-party site (e.g. an email client) the first request
+  // arrives without the cookie, so they'll see a logged-out page
+  // until the next navigation or refresh.
   const parts = [
     `${name}=${encodeURIComponent(token || "")}`,
     "Path=/",
     "HttpOnly",
-    "SameSite=Lax",
+    "SameSite=Strict",
   ];
   if (Number.isFinite(maxAgeSeconds)) {
     parts.push(`Max-Age=${Math.max(0, Math.floor(maxAgeSeconds))}`);

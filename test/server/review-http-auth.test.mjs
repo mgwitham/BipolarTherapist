@@ -192,14 +192,15 @@ test("therapist session: admin cookie is not read from therapist cookie name", (
 
 // ─── Session cookie attributes ────────────────────────────────────────────────
 
-test("buildSessionCookie: sets HttpOnly and SameSite=Lax", () => {
+test("buildSessionCookie: sets HttpOnly and SameSite=Strict", () => {
   const request = {
     headers: { host: "localhost:8787" },
     socket: { remoteAddress: "127.0.0.1" },
   };
   const cookie = buildSessionCookie(request, ADMIN_SESSION_COOKIE, "token-value", 3600);
   assert.ok(cookie.includes("HttpOnly"), "expected HttpOnly");
-  assert.ok(cookie.includes("SameSite=Lax"), "expected SameSite=Lax");
+  assert.ok(cookie.includes("SameSite=Strict"), "expected SameSite=Strict");
+  assert.ok(!cookie.includes("SameSite=Lax"), "should not fall back to Lax");
   assert.ok(cookie.includes("Max-Age=3600"), "expected Max-Age");
   assert.ok(!cookie.includes("Secure"), "localhost should not set Secure");
 });
