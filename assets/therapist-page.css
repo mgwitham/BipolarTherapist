@@ -375,7 +375,9 @@ body {
   display: flex;
   align-items: center;
   gap: 0.6rem;
-  padding: 0.58rem 0.72rem;
+  /* 44px minimum tap target for iOS / WCAG. Patient-facing CTA. */
+  min-height: 44px;
+  padding: 0.75rem 0.9rem;
   border-radius: 14px;
   border: 1px solid rgba(26, 122, 143, 0.1);
   background: rgba(255, 255, 255, 0.78);
@@ -420,6 +422,13 @@ body {
 }
 .profile-contact-row:hover .profile-contact-copy-hint {
   opacity: 1;
+}
+/* Touch devices have no hover. Show the hint so patients know
+   the row is interactive. */
+@media (hover: none) {
+  .profile-contact-copy-hint {
+    opacity: 1;
+  }
 }
 .profile-contact-empty {
   font-size: 0.82rem;
