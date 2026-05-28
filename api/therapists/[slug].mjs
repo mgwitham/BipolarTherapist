@@ -620,7 +620,31 @@ function buildPage(t) {
   const seoTitle = `${nameWithCreds}, Bipolar Therapist in ${location} | BipolarTherapyHub`;
   const seoDescription = buildSeoDescription(t);
   const canonicalUrl = `${ORIGIN}/therapists/${encodeURIComponent(t.slug)}/`;
-  const ogImage = t.photo_url || `${ORIGIN}/og-image.png`;
+  // Twitter / Facebook large-card preview wants a 1.91:1 image
+  // (1200×630). Sanity-hosted photos are typically square or
+  // portrait headshots, so we transform the asset URL via Sanity's
+  // image API to crop to the social-card aspect. `crop=top` anchors
+  // to the upper portion so faces survive the crop (headshots get
+  // their bottom trimmed rather than the top). `fm=jpg` forces a
+  // format Twitter and LinkedIn both reliably render — auto=format
+  // could return WebP, which some social crawlers still don't fetch
+  // cleanly. q=80 keeps file size sane.
+  function buildOgImageFromSanity(url) {
+    if (!url) return null;
+    const hasQuery = url.indexOf("?") !== -1;
+    const sep = hasQuery ? "&" : "?";
+    return url + sep + "w=1200&h=630&fit=crop&crop=top&fm=jpg&q=80";
+  }
+  const ogImage = buildOgImageFromSanity(t.photo_url) || `${ORIGIN}/og-image.png`;
+  // Alt text for the share-card image. Mirrors the photo alt on the
+  // page itself — name + credentials + city — so accessibility tools
+  // and crawler indexing see consistent context for the same asset.
+  const ogImageAlt = (() => {
+    const parts = [nameWithCreds];
+    if (location) parts.push("Bipolar therapist in " + location);
+    return parts.join(" — ").replace(/—/g, "·"); // copy rule: no em-dashes
+  })();
+  const shareTitle = nameWithCreds + ", Bipolar Therapist in " + location;
   const jsonLd = buildJsonLd(t);
   const profileHtml = renderSSRProfile(t);
   const safeData = JSON.stringify(t).replace(/<\/script>/gi, "<\\/script>");
@@ -647,12 +671,21 @@ function buildPage(t) {
     <meta property="og:type" content="profile" />
     <meta property="og:site_name" content="BipolarTherapyHub" />
     <meta property="og:url" content="${esc(canonicalUrl)}" />
-    <meta property="og:title" content="${esc(nameWithCreds + ", Bipolar Therapist in " + location)}" />
+    <meta property="og:title" content="${esc(shareTitle)}" />
     <meta property="og:description" content="${esc(seoDescription)}" />
     <meta property="og:image" content="${esc(ogImage)}" />
-    <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="${esc(nameWithCreds + ", Bipolar Therapist in " + location)}" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="${esc(ogImageAlt)}" />
+    <!-- summary_large_image gives the big preview card on Twitter
+         instead of a tiny thumbnail. Requires a 1.91:1 image, which
+         buildOgImageFromSanity produces above. -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:url" content="${esc(canonicalUrl)}" />
+    <meta name="twitter:title" content="${esc(shareTitle)}" />
     <meta name="twitter:description" content="${esc(seoDescription)}" />
+    <meta name="twitter:image" content="${esc(ogImage)}" />
+    <meta name="twitter:image:alt" content="${esc(ogImageAlt)}" />
     ${jsonLd}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

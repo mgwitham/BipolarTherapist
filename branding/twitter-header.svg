@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1500 1500" width="1500" height="1500" role="img">
+  <title>BipolarTherapyHub Twitter header</title>
+  <desc>Header banner: wordmark + tagline centered in the upper-middle band, with the bottom-left quadrant deliberately left empty so the Twitter profile avatar overlay (which Twitter pins at the bottom-left of the header) has visual breathing room. Brand mark moved to upper-right as a balancing accent. Native viewBox is 1500x1500 because the macOS qlmanage rasterizer pads to square; the 1500x500 content lives in the middle band (y=500 to y=1000) so a centered sips crop yields the final 1500x500 PNG.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#FAF6F0"/>
+      <stop offset="100%" stop-color="#EAF3F5"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Full-canvas gradient background. -->
+  <rect width="1500" height="1500" fill="url(#bg)"/>
+
+  <!-- Content wrapper, translated down 500 so the natural 1500x500
+       layout lives in the middle band. The sips center-crop later
+       isolates that band as the final header. -->
+  <g transform="translate(0 500)">
+
+    <!-- Brand mark, upper-right. Smaller than v1 and pulled to the
+         corner so it doesn't compete with the wordmark or the
+         bottom-left avatar zone. The two-rect overlap mirrors the
+         favicon + avatar so the brand reads as one system. -->
+    <g transform="translate(1240 50)">
+      <rect x="0" y="0" width="120" height="104" rx="24" fill="#4A9B8E"/>
+      <rect x="70" y="50" width="120" height="104" rx="24" fill="#8B7BA3"/>
+    </g>
+
+    <!-- Wordmark + tagline + URL, centered horizontally. All
+         placed in the UPPER half (y=140 to y=290) so the lower
+         half (y=300 to y=500) stays empty for the Twitter avatar
+         overlay. text-anchor="middle" with x=750 keeps everything
+         on-axis regardless of length. -->
+    <g text-anchor="middle">
+      <g font-family="DM Serif Display, Georgia, 'Times New Roman', serif">
+        <text x="750" y="170" font-size="76" fill="#1C4D5C" font-weight="400">
+          BipolarTherapyHub
+        </text>
+      </g>
+      <g font-family="DM Sans, system-ui, sans-serif">
+        <text x="750" y="235" font-size="32" fill="#3A5B65" font-weight="400">
+          Not every therapist gets bipolar. These do.
+        </text>
+        <text x="750" y="288" font-size="22" fill="#26667A" font-weight="500" letter-spacing="0.02em">
+          bipolartherapyhub.com
+        </text>
+      </g>
+    </g>
+
+    <!-- The bottom band (y=300 to y=500) is intentionally empty.
+         Twitter overlays the profile avatar in the bottom-left
+         (~200px circle centered roughly at x=120, y=420) so any
+         content there would be hidden anyway. Empty cream
+         gradient also reads as visual breathing room rather than
+         under-designed space. -->
+
+  </g>
+</svg>
