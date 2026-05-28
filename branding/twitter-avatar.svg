@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 400" width="400" height="400" role="img">
+  <title>BipolarTherapyHub Twitter avatar</title>
+  <desc>Two overlapping rounded rectangles in teal and muted purple — the favicon mark, scaled and centered for use as a circular Twitter profile picture.</desc>
+
+  <!-- Solid cream background. Twitter renders avatars as a circle,
+       so a full-bleed square fill keeps the edge clean inside the
+       crop. Cream matches the site cream token (#F7F4EF). -->
+  <rect width="400" height="400" fill="#F7F4EF"/>
+
+  <!-- Two overlapping rounded-square marks. Identical proportions
+       to the favicon (viewBox 100×100, rects 56×48 with rx 12),
+       scaled to fill ~75% of the circle so the silhouette is
+       readable at small Twitter thumbnail sizes (40-50px in the
+       timeline). Each is centered on the canvas, offset so the
+       overlap sits visually balanced. -->
+  <g transform="translate(60 95)">
+    <rect x="0" y="0" width="170" height="146" rx="36" fill="#4A9B8E"/>
+    <rect x="110" y="60" width="170" height="146" rx="36" fill="#8B7BA3"/>
+  </g>
+</svg>
