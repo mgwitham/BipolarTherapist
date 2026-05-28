@@ -203,7 +203,13 @@ function buildCard(t) {
           "div",
           {
             style: {
-              display: "inline-flex",
+              // Satori (under @vercel/og) does not support inline-flex
+              // — using it throws inside the edge runtime and returns
+              // an empty 200, which Vercel then caches. Keep this flex
+              // and constrain width via alignSelf so the pill still
+              // hugs its content.
+              display: "flex",
+              alignSelf: "flex-start",
               alignItems: "center",
               gap: 10,
               padding: "10px 18px",
@@ -235,6 +241,7 @@ function buildCard(t) {
       "div",
       {
         style: {
+          display: "flex",
           fontSize: 22,
           fontFamily: "DM Sans",
           letterSpacing: "0.12em",
@@ -249,6 +256,7 @@ function buildCard(t) {
       "div",
       {
         style: {
+          display: "flex",
           fontSize: 62,
           fontFamily: "DM Serif Display",
           color: COLOR.navy,
@@ -264,6 +272,7 @@ function buildCard(t) {
           "div",
           {
             style: {
+              display: "flex",
               fontSize: 28,
               fontFamily: "DM Sans",
               color: COLOR.slate,
@@ -278,6 +287,7 @@ function buildCard(t) {
           "div",
           {
             style: {
+              display: "flex",
               fontSize: 30,
               fontFamily: "DM Sans",
               color: COLOR.slate,
@@ -333,6 +343,7 @@ function buildCard(t) {
     {
       style: {
         position: "absolute",
+        display: "flex",
         bottom: 48,
         left: 70,
         fontSize: 24,
@@ -389,18 +400,32 @@ export default async function handler(request) {
     return Response.redirect("https://www.bipolartherapyhub.com/og-image.png", 302);
   }
 
-  const fonts = await loadFonts();
-
-  return new ImageResponse(buildCard(therapist), {
-    width: 1200,
-    height: 630,
-    fonts,
-    headers: {
-      // Long cache because the card is deterministic from the slug.
-      // When a therapist updates their profile, the URL doesn't
-      // change, so we'd want a way to invalidate — for now, an hour
-      // is a sane balance between freshness and CDN load.
-      "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
-    },
-  });
+  try {
+    const fonts = await loadFonts();
+    return new ImageResponse(buildCard(therapist), {
+      width: 1200,
+      height: 630,
+      fonts,
+      headers: {
+        // Long cache because the card is deterministic from the slug.
+        // When a therapist updates their profile, the URL doesn't
+        // change, so we'd want a way to invalidate — for now, an hour
+        // is a sane balance between freshness and CDN load.
+        "Cache-Control": "public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400",
+      },
+    });
+  } catch (_err) {
+    // If Satori throws (e.g. on a future CSS rule it doesn't support)
+    // or the font fetch fails, the edge runtime can otherwise return
+    // an empty 200 that Vercel happily caches — that was the original
+    // bug that broke this endpoint at launch. Short cache so a fix
+    // propagates quickly when we ship one.
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: "https://www.bipolartherapyhub.com/og-image.png",
+        "Cache-Control": "public, max-age=60, s-maxage=60",
+      },
+    });
+  }
 }
