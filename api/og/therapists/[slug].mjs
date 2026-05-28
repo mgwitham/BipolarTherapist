@@ -48,11 +48,16 @@ const COLOR = {
 // silently in the edge runtime — Satori then renders nothing without
 // throwing a catchable error. jsDelivr serves the same Google Fonts
 // repo via CDN and is reliable from Vercel edge.
+// @fontsource on jsDelivr provides static WOFF instances of the same
+// Google Fonts families. DM Sans's repo on github.com/google/fonts is
+// variable-only; @fontsource pre-computes static cuts that Satori
+// renders reliably. WOFF (not WOFF2) because Satori parses WOFF
+// directly without needing brotli decompression in edge runtime.
 const FONT_URLS = {
-  sans: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/dmsans/static/DMSans-Regular.ttf",
-  sansBold: "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/dmsans/static/DMSans-Bold.ttf",
+  sans: "https://cdn.jsdelivr.net/npm/@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff",
+  sansBold: "https://cdn.jsdelivr.net/npm/@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff",
   serif:
-    "https://cdn.jsdelivr.net/gh/google/fonts@main/ofl/dmserifdisplay/DMSerifDisplay-Regular.ttf",
+    "https://cdn.jsdelivr.net/npm/@fontsource/dm-serif-display/files/dm-serif-display-latin-400-normal.woff",
 };
 
 let cachedFonts = null;
@@ -133,14 +138,13 @@ function buildCard(t) {
     ? `${t.photoUrl}?w=${avatarSize * 2}&h=${avatarSize * 2}&fit=crop&crop=top&fm=jpg&q=85`
     : null;
 
-  // No-photo fallback: a branded "monogram tile" that echoes the
-  // two-overlapping-rounded-squares motif from the favicon and site
-  // header. Reads as intentional brand art rather than a missing-photo
-  // placeholder. The purple square sits behind, the teal square holds
-  // the therapist's initials in the display serif.
-  const tileSize = Math.round(avatarSize * 0.78); // 296
-  const tileOffset = Math.round(avatarSize * 0.22); // 84
-
+  // No-photo fallback: a single rounded-square brand tile with a teal
+  // → purple linear gradient and the therapist's initials in the
+  // display serif. The earlier two-square monogram (#925) tripped
+  // Satori — overlapping position:absolute children inside a flex
+  // parent rendered as an empty PNG. This single-element tile keeps
+  // the brand palette and reads as intentional art, without any
+  // Satori-fragile layout.
   const avatar = hasPhoto
     ? el("img", {
         src: photoSrc,
@@ -158,49 +162,21 @@ function buildCard(t) {
         "div",
         {
           style: {
-            position: "relative",
             width: `${avatarSize}px`,
             height: `${avatarSize}px`,
+            borderRadius: 64,
+            background: `linear-gradient(135deg, ${COLOR.markTeal} 0%, ${COLOR.markPurple} 100%)`,
+            color: "#fff",
             display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 170,
+            fontFamily: "DM Serif Display",
+            letterSpacing: "-0.02em",
+            boxShadow: "0 12px 32px rgba(15, 50, 60, 0.22)",
           },
         },
-        // Purple square — back layer, bottom-right.
-        el("div", {
-          style: {
-            position: "absolute",
-            top: `${tileOffset}px`,
-            left: `${tileOffset}px`,
-            width: `${tileSize}px`,
-            height: `${tileSize}px`,
-            borderRadius: 56,
-            background: COLOR.markPurple,
-            boxShadow: "0 12px 32px rgba(15, 50, 60, 0.18)",
-          },
-        }),
-        // Teal square — front layer, top-left, holds the monogram.
-        el(
-          "div",
-          {
-            style: {
-              position: "absolute",
-              top: 0,
-              left: 0,
-              width: `${tileSize}px`,
-              height: `${tileSize}px`,
-              borderRadius: 56,
-              background: COLOR.markTeal,
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 150,
-              fontFamily: "DM Serif Display",
-              letterSpacing: "-0.02em",
-              boxShadow: "0 12px 32px rgba(15, 50, 60, 0.22)",
-            },
-          },
-          initialsOf(t.name),
-        ),
+        initialsOf(t.name),
       );
 
   // Right column: eyebrow, name, credentials, location, optional
