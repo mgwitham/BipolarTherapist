@@ -41,6 +41,44 @@ function countEventsWithin(events, millisAgo, type) {
   }).length;
 }
 
+// Count events of `type` that occurred in the window between two
+// ms-ago offsets (older bound first, e.g. countEventsBetween(48h, 24h)
+// gets "yesterday's 24-hour bucket"). Used for delta-vs-yesterday on
+// the headline columns — the founder's morning workflow is "what
+// changed since I last checked," and a static count answers that
+// only by mental arithmetic.
+function countEventsBetween(events, olderMillisAgo, newerMillisAgo, type) {
+  const now = Date.now();
+  const startCutoff = now - olderMillisAgo;
+  const endCutoff = now - newerMillisAgo;
+  return events.filter(function (event) {
+    if (event.type !== type) return false;
+    const at = new Date(event.occurredAt || 0).getTime();
+    return Number.isFinite(at) && at >= startCutoff && at < endCutoff;
+  }).length;
+}
+
+// Render a "+N / −N" pill compared to the equivalent prior window.
+// Only emit when there's a non-zero delta — equal-to-yesterday counts
+// add visual noise without information. Returns an empty string when
+// no signal.
+function renderHeadlineDelta(events, windowMs, type) {
+  const todayCount = countEventsWithin(events, windowMs, type);
+  const yesterdayCount = countEventsBetween(events, windowMs * 2, windowMs, type);
+  const delta = todayCount - yesterdayCount;
+  if (delta === 0) return "";
+  const dir = delta > 0 ? "up" : "down";
+  const sign = delta > 0 ? "+" : "−";
+  return (
+    '<span class="admin-funnel-headline-delta admin-funnel-headline-delta-' +
+    dir +
+    '" title="Vs the prior equivalent window">' +
+    sign +
+    Math.abs(delta) +
+    "</span>"
+  );
+}
+
 function countEventsBySurface(events, millisAgo, type, surface) {
   const cutoff = Date.now() - millisAgo;
   return events.filter(function (event) {
@@ -279,8 +317,15 @@ function renderHeadlineCounts(events) {
           keyEvents
             .map(function (key) {
               const count = countEventsWithin(events, window.ms, key);
+              const delta = renderHeadlineDelta(events, window.ms, key);
               return (
-                "<dt>" + escapeHtml(key.replace(/_/g, " ")) + "</dt>" + "<dd>" + count + "</dd>"
+                "<dt>" +
+                escapeHtml(key.replace(/_/g, " ")) +
+                "</dt>" +
+                "<dd>" +
+                count +
+                delta +
+                "</dd>"
               );
             })
             .join("") +

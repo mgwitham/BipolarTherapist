@@ -946,6 +946,29 @@
         margin: 0;
         font-weight: 700;
         color: var(--navy, #1d3a4a);
+        display: flex;
+        align-items: baseline;
+        gap: 0.35rem;
+        justify-content: flex-end;
+      }
+      /* Delta pill next to each headline count — answers "what
+         changed since yesterday?" without mental arithmetic. Only
+         rendered when non-zero, so the row stays clean on quiet
+         days. Up/down get separate colors. */
+      .admin-funnel-headline-delta {
+        font-size: 0.72rem;
+        font-weight: 600;
+        padding: 0.05rem 0.4rem;
+        border-radius: 999px;
+        line-height: 1.3;
+      }
+      .admin-funnel-headline-delta-up {
+        background: #e3f3ec;
+        color: #14704c;
+      }
+      .admin-funnel-headline-delta-down {
+        background: #fde9e2;
+        color: #b8431f;
       }
       .admin-funnel-table {
         width: 100%;
