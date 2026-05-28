@@ -2,6 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <style>
+      /* FOUC guard: hide the body until directory-redesign.css loads
+         (it sets visibility:visible). 2s animation is a safety net so a
+         hung stylesheet can never leave the page stuck blank. */
+      body.dir-vb {
+        visibility: hidden;
+        animation: dirFoucReveal 0s linear 2s forwards;
+      }
+      @keyframes dirFoucReveal {
+        to {
+          visibility: visible;
+        }
+      }
+    </style>
     <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />

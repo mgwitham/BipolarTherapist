@@ -6,6 +6,14 @@
  * bar, pagination, and empty state come in subsequent steps.
  */
 
+/* Pair to the inline FOUC guard in directory.html: once this stylesheet
+   is parsed, reveal the body. Same selector specificity as the inline
+   rule, and this comes later in source order so it wins. */
+body.dir-vb {
+  visibility: visible;
+  animation: none;
+}
+
 .dir-card {
   position: relative;
   background: #fff;
