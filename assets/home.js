@@ -1011,13 +1011,28 @@ function initHomeSearchForm() {
 
   initHeroCareDropdown();
   initHeroZipFocusRow();
-  preloadZipcodes().catch(function () {
-    return null;
-  });
+  // ca-zipcodes.json is ~198 KB. Most home visitors never type a
+  // location, so defer the fetch until they focus or start typing in
+  // the location field. preloadZipcodes() is idempotent — calling it
+  // twice is free.
   var locationInput = document.getElementById("location");
   if (locationInput) {
+    var triggerZipPreload = function () {
+      preloadZipcodes().catch(function () {
+        return null;
+      });
+    };
+    locationInput.addEventListener("focus", triggerZipPreload, { once: true });
+    locationInput.addEventListener("input", triggerZipPreload, { once: true });
     locationInput.addEventListener("input", syncHeroSearchState);
     locationInput.addEventListener("change", syncHeroSearchState);
+  } else {
+    // No location input on this layout — preload eagerly so downstream
+    // pages that depend on warmed cache (e.g. quick zip checks) still
+    // get the benefit. Negligible impact since this branch is rare.
+    preloadZipcodes().catch(function () {
+      return null;
+    });
   }
   var interestInput = document.getElementById("homepage_interest");
   if (interestInput) {
