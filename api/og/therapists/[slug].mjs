@@ -125,6 +125,14 @@ function buildCard(t) {
     ? `${t.photoUrl}?w=${avatarSize * 2}&h=${avatarSize * 2}&fit=crop&crop=top&fm=jpg&q=85`
     : null;
 
+  // No-photo fallback: a branded "monogram tile" that echoes the
+  // two-overlapping-rounded-squares motif from the favicon and site
+  // header. Reads as intentional brand art rather than a missing-photo
+  // placeholder. The purple square sits behind, the teal square holds
+  // the therapist's initials in the display serif.
+  const tileSize = Math.round(avatarSize * 0.78); // 296
+  const tileOffset = Math.round(avatarSize * 0.22); // 84
+
   const avatar = hasPhoto
     ? el("img", {
         src: photoSrc,
@@ -142,20 +150,49 @@ function buildCard(t) {
         "div",
         {
           style: {
+            position: "relative",
             width: `${avatarSize}px`,
             height: `${avatarSize}px`,
-            borderRadius: "50%",
-            background: COLOR.markTeal,
-            color: "#fff",
             display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 160,
-            fontFamily: "DM Serif Display",
-            boxShadow: "0 8px 28px rgba(15, 50, 60, 0.18)",
           },
         },
-        initialsOf(t.name),
+        // Purple square — back layer, bottom-right.
+        el("div", {
+          style: {
+            position: "absolute",
+            top: `${tileOffset}px`,
+            left: `${tileOffset}px`,
+            width: `${tileSize}px`,
+            height: `${tileSize}px`,
+            borderRadius: 56,
+            background: COLOR.markPurple,
+            boxShadow: "0 12px 32px rgba(15, 50, 60, 0.18)",
+          },
+        }),
+        // Teal square — front layer, top-left, holds the monogram.
+        el(
+          "div",
+          {
+            style: {
+              position: "absolute",
+              top: 0,
+              left: 0,
+              width: `${tileSize}px`,
+              height: `${tileSize}px`,
+              borderRadius: 56,
+              background: COLOR.markTeal,
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 150,
+              fontFamily: "DM Serif Display",
+              letterSpacing: "-0.02em",
+              boxShadow: "0 12px 32px rgba(15, 50, 60, 0.22)",
+            },
+          },
+          initialsOf(t.name),
+        ),
       );
 
   // Right column: eyebrow, name, credentials, location, optional
