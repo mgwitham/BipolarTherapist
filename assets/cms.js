@@ -43,7 +43,14 @@ const cmsState = {
   error: null,
 };
 const PUBLIC_THERAPISTS_CACHE_KEY = "bth_public_therapists_cache_v1";
-const PUBLIC_THERAPISTS_CACHE_TTL_MS = 60 * 1000;
+// 30-minute session-storage cache. Was 60 s, which meant every
+// inter-page navigation (home → directory → therapist) re-fetched the
+// full therapist list (~80 KB JSON). The directory data changes a
+// handful of times per day at most, so 30 min is safely fresh and
+// saves multiple round trips per session. Cache is keyed in
+// sessionStorage so it dies when the tab closes; that's the freshness
+// floor for users who leave a tab open all day.
+const PUBLIC_THERAPISTS_CACHE_TTL_MS = 30 * 60 * 1000;
 let publicTherapistsMemoryCache = null;
 let publicTherapistsPromise = null;
 
