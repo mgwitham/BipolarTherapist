@@ -196,17 +196,26 @@ function buildPortalProgressData(application) {
   ];
 
   var nextAction = "Use the update flow if you need to change any operational details.";
+  // Each in-review state explains: what's happening, how long it
+  // usually takes, and whether the therapist can keep editing. Without
+  // that context, a generic "your profile is in review" leaves the
+  // therapist guessing whether they should wait, follow up, or do
+  // anything at all.
   if (portalState === "claimed_ready_for_profile") {
-    nextAction = "Complete your fuller profile so we can review trust, fit, and listing readiness.";
+    nextAction =
+      "Complete your fuller profile so we can review trust, fit, and listing readiness. You can save changes one field at a time.";
   } else if (portalState === "profile_submitted_after_claim") {
-    nextAction = "Your fuller profile is submitted. We are preparing it for review.";
+    nextAction =
+      "Your fuller profile is submitted. We are preparing it for review, usually within 1 business day. Edits you make here will roll into the review.";
   } else if (portalState === "profile_in_review_after_claim") {
     nextAction =
-      "Your fuller profile is in review. We are checking trust, fit, and publish readiness.";
+      "Your fuller profile is in review. We typically wrap reviews within 2 business days and will email you when it's live. Keep editing in the meantime; changes are included.";
   } else if (portalState === "claim_pending_review" || portalState === "claim_in_review") {
-    nextAction = "We are still verifying ownership and your core profile details.";
+    nextAction =
+      "We are verifying ownership and your core profile details. Most claims clear within 1-2 business days. We'll email when verification is complete.";
   } else if (portalState === "claim_needs_attention") {
-    nextAction = "Review the requested fixes so we can finish verifying your claim.";
+    nextAction =
+      "Review the requested fixes so we can finish verifying your claim. Make the change here, then we'll re-review.";
   }
 
   return {
@@ -2525,7 +2534,7 @@ function renderPortal(therapist, options) {
     tdHeader +
     welcomeUpsellBanner +
     (sessionMode === "claim_token"
-      ? '<section class="portal-card" style="margin-bottom:1rem"><h2>Verify claim</h2><p class="portal-subtle">This secure link matched the public profile email. Confirm the claim to unlock lightweight self-serve management for this profile.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Claim this profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
+      ? '<section class="portal-card" style="margin-bottom:1rem"><h2>You\'re in</h2><p class="portal-subtle">Your secure link matched the email on this profile. Confirm to start editing.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Continue to your profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
       : "") +
     '<div id="portalTdCompletenessMount"></div>' +
     photoZone +

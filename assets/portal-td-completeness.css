@@ -2,6 +2,46 @@
    Score header + four sectioned accordions of fields, with a sticky
    patient preview in the right column. */
 
+/* ─── Save toast ──────────────────────────────────────────────────────
+   Fixed-position confirmation that fades in after a successful field
+   save. The existing in-row save indicator ("Saved ✓" on the button
+   plus the row flash) is invisible if the therapist has already
+   scrolled away from the field, so this surfaces a viewport-pinned
+   confirmation that's visible regardless of scroll position. */
+.portal-save-toast {
+  position: fixed;
+  bottom: 1.25rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(0.5rem);
+  background: #0f6e56;
+  color: #fff;
+  font-family: var(--sans, "DM Sans", system-ui, sans-serif);
+  font-size: 0.92rem;
+  font-weight: 600;
+  padding: 0.7rem 1.15rem;
+  border-radius: 10px;
+  box-shadow: 0 10px 28px rgba(15, 110, 86, 0.28);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.22s ease,
+    transform 0.22s ease;
+  z-index: 9999;
+}
+.portal-save-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .portal-save-toast {
+    transition: opacity 0.05s ease;
+    transform: translateX(-50%);
+  }
+  .portal-save-toast.is-visible {
+    transform: translateX(-50%);
+  }
+}
+
 .td-completeness {
   padding: 1.5rem 1.6rem 1.6rem;
   margin-bottom: 1rem;
@@ -143,6 +183,55 @@
   color: #6b8189;
   line-height: 1.4;
   font-style: italic;
+}
+
+/* "Next up" CTA — sits under the band label and points the
+   therapist to the most-valuable incomplete field. Clicking scrolls
+   to + opens that row. The button styling is intentionally calmer
+   than primary CTAs (it's a navigation aid, not a save action) but
+   prominent enough that a glance picks it out. */
+.td-completeness-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+  padding: 0.4rem 0.65rem 0.4rem 0.75rem;
+  background: #eaf3f5;
+  border: 1px solid #c5d8dd;
+  border-radius: 999px;
+  color: var(--navy, #1d3a4a);
+  font: inherit;
+  font-size: 0.84rem;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.td-completeness-next:hover,
+.td-completeness-next:focus-visible {
+  background: #def0f3;
+  border-color: #a8c8d0;
+  box-shadow: 0 2px 8px rgba(26, 122, 143, 0.12);
+  outline: none;
+}
+.td-completeness-next-label {
+  font-weight: 600;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5d7a84;
+}
+.td-completeness-next-target {
+  font-weight: 600;
+}
+.td-completeness-next-arrow {
+  font-weight: 600;
+  color: #1a7a8f;
+}
+.td-completeness-next.is-empty {
+  display: none;
 }
 
 /* ─── Sections (Section 7 visual hierarchy) ───────────────────────── */
@@ -752,7 +841,12 @@
   }
   .td-completeness-preview-column {
     position: static;
-    order: -1;
+    /* Keep the preview in document order on phones. Previously
+       `order: -1` forced the preview card above the form, which
+       meant a therapist who opened the page on mobile had to
+       scroll past a static feedback card before they could touch
+       any of the fields they were there to edit. Form-first
+       lowers the time-to-first-edit. */
   }
   .td-row-body {
     padding-left: 1rem;
