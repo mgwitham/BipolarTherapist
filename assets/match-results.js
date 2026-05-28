@@ -14,6 +14,11 @@ export function renderNoResultsStateSection(options) {
     '<button type="button" class="match-empty-primary" data-empty-action="open-refine">Adjust filters</button>' +
     '<a href="/match?mode=form" class="match-empty-secondary">Reset answers and start over</a>' +
     "</div>" +
+    // Escape hatch for patients whose real constraints (rural ZIP,
+    // niche language, narrow insurance) mean no filter loosening
+    // will surface a fit. Without this, the empty state implies the
+    // patient is the problem and offers no other path forward.
+    '<p class="match-empty-support">Still nothing fits? <a href="mailto:support@bipolartherapyhub.com">Email us</a> and we will help you find someone.</p>' +
     "</div>";
 }
 
