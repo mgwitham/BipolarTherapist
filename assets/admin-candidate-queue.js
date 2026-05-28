@@ -8,6 +8,7 @@ import {
 import { createActionFlashStore } from "./admin-action-flash.js";
 import { createCandidateCompareModal } from "./admin-candidate-compare-modal.js";
 import { reapplyFocusAfterRender, toggleFocusMode } from "./admin-triage-focus.js";
+import { requireEscapeHtml } from "./escape-html.js";
 
 export { toggleFocusMode as toggleTriageFocusMode } from "./admin-triage-focus.js";
 
@@ -342,6 +343,13 @@ function bindQueueCardDetailToggles(root) {
 }
 
 export function renderCandidateQueuePanel(options) {
+  // Fail-loud guard: candidate cards interpolate Sanity-sourced
+  // fields (name, credentials, dedupeReasons, notes…) into innerHTML
+  // strings via options.escapeHtml. A missing or non-callable
+  // escapeHtml would silently render those fields unescaped. Throw
+  // here so the wiring bug surfaces immediately instead of as a
+  // latent XSS sink.
+  requireEscapeHtml(options, "renderCandidateQueuePanel");
   const root = options.root;
   const countEl = options.countEl;
   if (!root || !countEl) {
