@@ -2633,6 +2633,16 @@ function renderPortal(therapist, options) {
     // profile" button, especially when that button can get stuck on
     // replayed / used tokens and leave the user with no way forward.
     renderPortalWelcomeUpsell(null, therapist.slug || slug, therapist.email || "");
+    // Measure the email-click step of the claim funnel. This was a
+    // dark transition before — we knew when the email was sent
+    // (`claim_link_sent`) and when the claim was finalized, but the
+    // step in between (user actually opens the magic link) had no
+    // event, so we couldn't separate "email never delivered" from
+    // "delivered but they didn't click" from "clicked but bounced
+    // off the claim card."
+    trackFunnelEvent("claim_link_opened", {
+      therapist_slug: therapist.slug || slug || "",
+    });
   }
 
   // ─── TD-A accepting-patients toggle ─────────────────────────────────
@@ -2701,7 +2711,7 @@ function renderPortal(therapist, options) {
     signOutButton.addEventListener("click", async function () {
       signOutButton.disabled = true;
       signOutButton.textContent = "Signing out...";
-      trackFunnelEvent("portal_signed_out", { slug: therapist.slug || slug });
+      trackFunnelEvent("portal_signed_out", { therapist_slug: therapist.slug || slug });
       // Fire-and-forget: the server endpoint is an instrumentation hook,
       // not a revocation step. Stateless tokens mean the client clear
       // below is the actual sign-out.
@@ -2725,6 +2735,13 @@ function renderPortal(therapist, options) {
       feedback.textContent = "Claiming profile...";
       try {
         var result = await acceptTherapistClaim(token);
+        // Conversion event for the claim funnel — marks the
+        // transition from "clicked the magic link" to "owns the
+        // listing." Pairs with claim_link_opened above so the admin
+        // dashboard can measure the drop-off between the two steps.
+        trackFunnelEvent("claim_accepted", {
+          therapist_slug: therapist.slug || slug || "",
+        });
         feedback.textContent = "Profile claimed. Loading your manage view...";
         claimSessionState = {
           therapist: {
@@ -2795,7 +2812,9 @@ function renderPortal(therapist, options) {
       var session = await fetchTherapistClaimSession(token);
       claimSessionState = session;
       if (session.therapist && session.therapist.claim_status === "claimed") {
-        trackFunnelEvent("portal_signin_completed", { slug: session.therapist.slug || "" });
+        trackFunnelEvent("portal_signin_completed", {
+          therapist_slug: session.therapist.slug || "",
+        });
       }
       applyResolvedSlug((session.therapist && session.therapist.slug) || "");
       token = "";

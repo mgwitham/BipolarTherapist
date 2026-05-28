@@ -2289,6 +2289,17 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       if (!wasLive && nowLive) {
         wasLive = true;
         triggerGoingLiveMoment(container, localTherapist, newScore);
+        // The supply-funnel conversion event: the listing has now
+        // met both required fields (card bio + contact route) and
+        // is visible to patients for the first time in this
+        // session. The portalFirstSaveAt field on the document is
+        // a server-side timestamp, but the FUNNEL needs a
+        // client-side event to correlate with claim_accepted →
+        // first-save timing in the admin dashboard.
+        trackFunnelEvent("portal_first_save", {
+          therapist_slug: localTherapist.slug || "",
+          completeness_score: newScore,
+        });
       } else {
         refreshNotLiveBar();
       }
