@@ -61,7 +61,10 @@
   // and so the crisis 988 link is always one tap from inside the menu.
   try {
     var sheet = document.querySelector(".public-mobile-nav");
-    if (sheet && !sheet.querySelector(".public-mobile-nav-footer")) {
+    // The 988 crisis line is patient-facing; skip it in the therapist
+    // zone (the light mobile drawer), where it's out of place.
+    var isTherapistZone = sheet && sheet.classList.contains("public-mobile-nav--light");
+    if (sheet && !isTherapistZone && !sheet.querySelector(".public-mobile-nav-footer")) {
       var footer = document.createElement("div");
       footer.className = "public-mobile-nav-footer";
       footer.innerHTML =
