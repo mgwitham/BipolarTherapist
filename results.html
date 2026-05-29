@@ -18,7 +18,7 @@
   </head>
   <body>
     <nav aria-label="Main navigation" class="nav-dark">
-      <a href="/" class="nav-logo" aria-label="BipolarTherapyHub home">
+      <a href="/" class="nav-logo">
         <img
           class="logo-mark"
           src="/favicon.svg"
@@ -40,31 +40,26 @@
         <span></span>
       </button>
       <ul class="nav-links">
-        <li><a href="/directory">Browse Directory</a></li>
         <li>
-          <!-- nav-saved + data-saved-count preserved so results-analytics.js
-               (.nav-saved click tracking) and results-save.js (badge updates
-               on save) keep working alongside the unified nav-shortlist
-               wiring used elsewhere. -->
-          <a href="/directory" class="nav-shortlist nav-saved" data-shortlist-link
-            >Saved
-            <span class="nav-shortlist-count" data-shortlist-count data-saved-count hidden
-              >0</span
-            ></a
+          <a
+            href="tel:988"
+            class="nav-crisis-link"
+            aria-label="In crisis? Call or text the Suicide and Crisis Lifeline at 988"
+            >In crisis? Call or text 988</a
           >
         </li>
+        <li><a href="/#startMatch" id="navBrowseLink">Get matched</a></li>
+        <li><a href="/directory">Browse directory</a></li>
         <li><a href="/about">About</a></li>
-        <li>
-          <a href="tel:988" class="nav-crisis-link">In crisis? Call or text 988</a>
-        </li>
+        <li><a href="/signup" id="navCtaLink" class="nav-zone-switch">For therapists →</a></li>
       </ul>
     </nav>
     <div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
-      <a href="/#startMatch" class="public-mobile-nav-link is-current">
+      <a href="/#startMatch" class="public-mobile-nav-link" id="navBrowseLinkMobile">
         <span class="public-mobile-nav-title">Get matched</span>
       </a>
       <a href="/directory" class="public-mobile-nav-link">
-        <span class="public-mobile-nav-title">Find a therapist</span>
+        <span class="public-mobile-nav-title">Browse directory</span>
       </a>
       <a href="/directory" class="public-mobile-nav-link mobile-shortlist-nav" data-shortlist-link>
         <span class="public-mobile-nav-title"
@@ -72,10 +67,10 @@
         >
       </a>
       <a href="/about" class="public-mobile-nav-link">
-        <span class="public-mobile-nav-title">About this site</span>
+        <span class="public-mobile-nav-title">About</span>
       </a>
-      <a href="/" class="public-mobile-nav-link">
-        <span class="public-mobile-nav-title">Homepage</span>
+      <a href="/signup" class="public-mobile-nav-link nav-zone-switch">
+        <span class="public-mobile-nav-title">For therapists →</span>
       </a>
     </div>
 

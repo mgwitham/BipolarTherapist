@@ -10,6 +10,7 @@
     "build": "npm run build:sitemap && vite build && npm run build:seo-pages && npm run build:og-cards && npm run build:seo-city-pages && npm run build:seo-insurance-pages && npm run build:seo-directory-page && npm run build:resource-pages && npm run cms:snapshot:emails",
     "build:sitemap": "node scripts/generate-sitemap.mjs",
     "build:seo-pages": "node scripts/generate-seo-profile-pages.mjs",
+    "nav:sync": "node scripts/sync-site-nav.mjs",
     "build:og-cards": "node scripts/generate-og-cards.mjs",
     "build:seo-city-pages": "node scripts/generate-seo-city-pages.mjs",
     "build:seo-insurance-pages": "node scripts/generate-seo-insurance-pages.mjs",
