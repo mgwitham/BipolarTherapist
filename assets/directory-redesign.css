@@ -1085,3 +1085,39 @@ body.dir-vb .dir-vb-modal-apply:hover {
     font-size: 19px;
   }
 }
+
+/* ── Tactile press feedback ───────────────────────────────────────────
+   These controls had :hover states but no :active, so on touch (where
+   hover doesn't apply) a tap gave no physical response. A quick scale-
+   down on press makes them feel responsive. Honoured only when the user
+   hasn't asked to reduce motion. */
+.dir-card-cta:active,
+.dir-filter-chip:active,
+.dir-filter-more:active,
+.dir-filter-clear:active,
+.dir-drawer-chip:active,
+.dir-pagination-step:active:not([disabled]),
+.dir-pagination-num:active,
+.dir-card-save:active,
+.dir-match-nudge-cta:active,
+.dir-empty-state-cta:active {
+  transform: scale(0.96);
+}
+.dir-card:active {
+  transform: scale(0.995);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dir-card-cta:active,
+  .dir-filter-chip:active,
+  .dir-filter-more:active,
+  .dir-filter-clear:active,
+  .dir-drawer-chip:active,
+  .dir-pagination-step:active:not([disabled]),
+  .dir-pagination-num:active,
+  .dir-card-save:active,
+  .dir-match-nudge-cta:active,
+  .dir-empty-state-cta:active,
+  .dir-card:active {
+    transform: none;
+  }
+}
