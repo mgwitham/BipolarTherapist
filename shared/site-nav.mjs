@@ -85,7 +85,7 @@ export const THERAPIST_NAV = `<nav aria-label="Main navigation" class="nav-light
       </ul>
     </nav>`;
 
-export const THERAPIST_MOBILE_NAV = `<div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+export const THERAPIST_MOBILE_NAV = `<div class="public-mobile-nav public-mobile-nav--light" id="mobileNav" aria-label="Mobile navigation">
       <a href="/signup" class="public-mobile-nav-link">
         <span class="public-mobile-nav-title">List your practice</span>
       </a>
