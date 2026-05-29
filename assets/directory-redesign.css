@@ -987,13 +987,16 @@ body.dir-vb .dir-vb-modal-apply:hover {
   line-height: 1;
 }
 @media (max-width: 480px) {
+  /* Keep pagination comfortably tappable on the smallest screens — these
+     previously shrank to ~33px (steps) and 32px (numbers), below the ~44px
+     touch-target guideline. Hold them at ~40px instead. */
   .dir-pagination-step {
-    padding: 7px 10px;
+    padding: 10px 14px;
     font-size: 12.5px;
   }
   .dir-pagination-num {
-    width: 32px;
-    height: 32px;
+    width: 40px;
+    height: 40px;
     font-size: 12.5px;
   }
 }

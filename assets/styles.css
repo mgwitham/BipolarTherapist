@@ -4101,6 +4101,14 @@ body.dir-vb .dir-vb-modal-close:hover {
   background: rgba(26, 122, 143, 0.07);
 }
 
+/* On touch screens, grow the filter-modal close from 34px to a 44px target. */
+@media (max-width: 640px) {
+  body.dir-vb .dir-vb-modal-close {
+    width: 44px;
+    height: 44px;
+  }
+}
+
 body.dir-vb .dir-vb-modal-clear {
   border: none;
   background: transparent;
