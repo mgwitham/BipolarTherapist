@@ -451,6 +451,19 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
   .public-mobile-nav-footer a:active {
     color: #fff;
   }
+
+  /* Light mobile drawer (therapist zone) — matches the .nav-light bar so
+     the menu doesn't revert to the dark patient look on mobile. */
+  .public-mobile-nav--light.is-open {
+    background: #ffffff !important;
+  }
+  .public-mobile-nav--light .public-mobile-nav-link {
+    border-bottom-color: rgba(26, 77, 92, 0.1) !important;
+    color: #1c4d5c !important;
+  }
+  .public-mobile-nav--light .public-mobile-nav-link:active {
+    background: rgba(26, 77, 92, 0.05) !important;
+  }
 }
 
 /* ============================================================
