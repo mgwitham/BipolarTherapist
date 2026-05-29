@@ -3143,26 +3143,171 @@ function renderAdminSection(label, renderFn) {
   }
 }
 
-function renderAll() {
-  renderAdminSection("home dashboard", function () {
-    renderAdminHome({
-      applications: remoteApplications,
-      candidates: remoteCandidates,
-      portalRequests: remotePortalRequests,
-    });
+// The dashboard's tab panels all live in the DOM at once; switching tabs is
+// pure CSS show/hide (see admin-view-tabs.js), so historically renderAll()
+// built every panel up front — including ~9 hidden ones, each pulling in its
+// own lazy module. That made first paint wait on work for tabs the reviewer
+// may never open.
+//
+// Now renderAll() renders only the sections in the active view synchronously,
+// then renders the rest during idle time after first paint. A section's view
+// group is read from the live DOM (its anchor element's nearest
+// [data-view-group]) so the mapping can never drift from the markup — a wrong
+// or missing anchor only changes WHEN a section renders (it falls into the
+// synchronous batch), never whether it renders. On a tab switch, any of that
+// view's sections not yet rendered are flushed immediately (see
+// onAdminViewChange) so switching never shows an empty panel.
+function getAdminRenderSections() {
+  return [
+    {
+      label: "home dashboard",
+      anchor: "adminHomeQueueList",
+      render: function () {
+        renderAdminHome({
+          applications: remoteApplications,
+          candidates: remoteCandidates,
+          portalRequests: remotePortalRequests,
+        });
+      },
+    },
+    {
+      label: "ingestion scorecard",
+      anchor: "ingestionScorecard",
+      render: renderIngestionScorecard,
+    },
+    {
+      label: "coverage intelligence",
+      anchor: "coverageIntelligence",
+      render: renderCoverageIntelligence,
+    },
+    { label: "unmet demand", anchor: "unmetDemand", render: renderUnmetDemand },
+    { label: "funnel insights", anchor: "funnelInsights", render: renderFunnelInsights },
+    { label: "needs attention", anchor: "needsAttentionSection", render: renderNeedsAttention },
+    { label: "licensure activity", anchor: "licensureActivity", render: renderLicensureActivity },
+    {
+      label: "portal requests queue",
+      anchor: "portalRequestsQueue",
+      render: renderPortalRequestsQueue,
+    },
+    { label: "review activity", anchor: "reviewActivityFeed", render: renderReviewActivity },
+    { label: "add new listings", anchor: "candidateQueue", render: renderCandidateQueue },
+    { label: "review parked listings", anchor: "reviewQueue", render: renderReviewQueue },
+    { label: "review applications", anchor: "applicationsList", render: renderApplications },
+    {
+      label: "record inspector",
+      anchor: "adminRecordInspectorContent",
+      render: renderAdminRecordInspector,
+    },
+  ];
+}
+
+function getAdminViewGroupForAnchor(anchorId) {
+  if (typeof document === "undefined" || !anchorId) {
+    return null;
+  }
+  var el = document.getElementById(anchorId);
+  var host = el && typeof el.closest === "function" ? el.closest("[data-view-group]") : null;
+  return host ? host.getAttribute("data-view-group") : null;
+}
+
+function getActiveAdminView() {
+  if (typeof document !== "undefined" && document.body) {
+    return document.body.getAttribute("data-admin-view") || "home";
+  }
+  return "home";
+}
+
+// Sections rendered since the current renderAll() pass, plus the queue still
+// waiting on idle time. Used by the tab-switch fast-path to avoid empty panels.
+var adminRenderedSectionLabels = new Set();
+var adminDeferredRenderQueue = [];
+var adminDeferredRenderHandle = null;
+
+function cancelAdminDeferredRender() {
+  if (!adminDeferredRenderHandle) {
+    return;
+  }
+  try {
+    if (adminDeferredRenderHandle.idle && typeof window.cancelIdleCallback === "function") {
+      window.cancelIdleCallback(adminDeferredRenderHandle.id);
+    } else {
+      clearTimeout(adminDeferredRenderHandle.id);
+    }
+  } catch (_error) {
+    /* noop */
+  }
+  adminDeferredRenderHandle = null;
+}
+
+function scheduleAdminDeferredRenderStep() {
+  var schedule =
+    typeof window !== "undefined" && typeof window.requestIdleCallback === "function"
+      ? function (fn) {
+          return { idle: true, id: window.requestIdleCallback(fn, { timeout: 1000 }) };
+        }
+      : function (fn) {
+          return { idle: false, id: setTimeout(fn, 0) };
+        };
+  adminDeferredRenderHandle = schedule(function step() {
+    adminDeferredRenderHandle = null;
+    var section = adminDeferredRenderQueue.shift();
+    if (!section) {
+      return;
+    }
+    renderAdminSection(section.label, section.render);
+    adminRenderedSectionLabels.add(section.label);
+    if (adminDeferredRenderQueue.length) {
+      adminDeferredRenderHandle = schedule(step);
+    }
   });
-  renderAdminSection("ingestion scorecard", renderIngestionScorecard);
-  renderAdminSection("coverage intelligence", renderCoverageIntelligence);
-  renderAdminSection("unmet demand", renderUnmetDemand);
-  renderAdminSection("funnel insights", renderFunnelInsights);
-  renderAdminSection("needs attention", renderNeedsAttention);
-  renderAdminSection("licensure activity", renderLicensureActivity);
-  renderAdminSection("portal requests queue", renderPortalRequestsQueue);
-  renderAdminSection("review activity", renderReviewActivity);
-  renderAdminSection("add new listings", renderCandidateQueue);
-  renderAdminSection("review parked listings", renderReviewQueue);
-  renderAdminSection("review applications", renderApplications);
-  renderAdminSection("record inspector", renderAdminRecordInspector);
+}
+
+function renderAll() {
+  var activeView = getActiveAdminView();
+  cancelAdminDeferredRender();
+  adminRenderedSectionLabels = new Set();
+  adminDeferredRenderQueue = [];
+
+  getAdminRenderSections().forEach(function (section) {
+    var group = getAdminViewGroupForAnchor(section.anchor);
+    // Render the active view now; also render now anything whose group can't
+    // be resolved from the DOM (defensive — never leave a section unrendered).
+    if (group === null || group === activeView) {
+      renderAdminSection(section.label, section.render);
+      adminRenderedSectionLabels.add(section.label);
+    } else {
+      adminDeferredRenderQueue.push(section);
+    }
+  });
+
+  if (adminDeferredRenderQueue.length) {
+    scheduleAdminDeferredRenderStep();
+  }
+}
+
+// Tab-switch fast-path: when the reviewer opens a view whose sections haven't
+// rendered yet (still in the idle queue), flush them synchronously so the
+// panel is never momentarily empty.
+function onAdminViewChange(event) {
+  var nextView = event && event.detail ? event.detail.view : getActiveAdminView();
+  if (!adminDeferredRenderQueue.length) {
+    return;
+  }
+  var remaining = [];
+  adminDeferredRenderQueue.forEach(function (section) {
+    var group = getAdminViewGroupForAnchor(section.anchor);
+    if (group === nextView) {
+      renderAdminSection(section.label, section.render);
+      adminRenderedSectionLabels.add(section.label);
+    } else {
+      remaining.push(section);
+    }
+  });
+  adminDeferredRenderQueue = remaining;
+}
+
+if (typeof document !== "undefined") {
+  document.addEventListener("admin:view-change", onAdminViewChange);
 }
 
 function setAuthUiState() {

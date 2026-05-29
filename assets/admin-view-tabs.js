@@ -49,6 +49,19 @@ export function setActiveView(view) {
     tab.classList.toggle("is-active", isActive);
     tab.setAttribute("aria-selected", isActive ? "true" : "false");
   });
+
+  // Notify admin.js so it can flush any of this view's panels that were
+  // deferred to idle time and haven't rendered yet (avoids an empty panel on
+  // a fast tab switch). Decoupled via a DOM event so this module stays
+  // standalone.
+  try {
+    document.dispatchEvent(
+      new window.CustomEvent("admin:view-change", { detail: { view: normalized } }),
+    );
+  } catch (_error) {
+    /* CustomEvent unavailable (very old engine) — the deferred render still
+       completes on its own during idle time. */
+  }
 }
 
 function handleAnchorNavigation(event) {
