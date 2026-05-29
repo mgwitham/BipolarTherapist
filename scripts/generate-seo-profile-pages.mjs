@@ -105,6 +105,10 @@ const ZIP_GEO = {
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const SITE_URL = "https://www.bipolartherapyhub.com";
+// Cache-bust token appended to og:image URLs so social crawlers
+// re-fetch the share card. Bump (v2 → v3 …) whenever the card art
+// changes or a crawler is stuck on a stale/broken cached image.
+const OG_CARD_VERSION = "v2";
 const DIST_DIR = path.join(ROOT, "dist");
 const TEMPLATE_PATH = path.join(DIST_DIR, "therapist.html");
 const PROFILE_OUTPUT_DIR = path.join(DIST_DIR, "therapists");
@@ -551,7 +555,16 @@ export function buildHeadTags(therapist) {
   // summary card, which is the card that actually shipped to X — the
   // dynamic-handler meta tags never ran because these pre-built static
   // pages take routing precedence on Vercel.)
-  const image = `${SITE_URL}/api/og/therapists/${encodeURIComponent(therapist.slug)}.png`;
+  // Version the image URL itself. Social crawlers (X especially) cache
+  // og:image by its exact URL, independent of the page URL — so a `?v=`
+  // cache-buster on the *page* doesn't help if the image URL is
+  // unchanged. The endpoint was returning empty PNGs for hours before
+  // it was fixed, and X cached that broken image against the bare URL.
+  // Bumping OG_CARD_VERSION forces every crawler to treat the card as a
+  // brand-new asset. The edge function parses the slug from the path and
+  // ignores query params, so this is inert server-side. Bump on any
+  // visual change to the card you want crawlers to re-fetch.
+  const image = `${SITE_URL}/api/og/therapists/${encodeURIComponent(therapist.slug)}.png?${OG_CARD_VERSION}`;
   const imageAlt = `${buildTitle(therapist)} — bipolar-informed therapist on BipolarTherapyHub`;
   return [
     `<title>${escapeHtml(title)}</title>`,
