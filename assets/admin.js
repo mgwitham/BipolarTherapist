@@ -3231,12 +3231,20 @@ async function loadData() {
   if (typeof document !== "undefined" && document.documentElement) {
     document.documentElement.setAttribute("data-admin-boot", "loadData-start");
   }
-  const generatedArtifacts = await loadGeneratedAdminArtifacts();
-  applyAdminRuntimeState(generatedArtifacts);
+  // Kick off the static generated-artifact fetches without awaiting them
+  // here. They feed the reports/portal tabs (not the home dashboard), so
+  // overlapping them with the health check + main snapshot — rather than
+  // running serially before both — keeps them off the first-paint path.
+  const generatedArtifactsPromise = loadGeneratedAdminArtifacts();
+  let signedInSnapshotLoaded = false;
 
   const reviewApiAvailable = await checkAdminReviewApiAvailability(checkReviewApiHealth);
 
   if (reviewApiAvailable && !getAdminSessionToken()) {
+    const generatedArtifacts = await generatedArtifactsPromise;
+    // Seed all five artifact fields first; createRemoteAuthRequiredState
+    // re-supplies only three, and applyAdminRuntimeState merges per-key.
+    applyAdminRuntimeState(generatedArtifacts);
     applyAdminRuntimeState(
       createRemoteAuthRequiredState({
         ingestionAutomationHistory: generatedArtifacts.ingestionAutomationHistory,
@@ -3262,6 +3270,9 @@ async function loadData() {
       fetchAdminSession,
       fetchPublicTherapists,
     });
+    // Artifacts were fetched in parallel with the snapshot above; this
+    // await resolves immediately if they finished first.
+    const generatedArtifacts = await generatedArtifactsPromise;
     applyAdminRuntimeState(
       createRemoteSignedInState({
         remoteApplications: remoteSnapshot.applications,
@@ -3280,7 +3291,9 @@ async function loadData() {
         profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
       }),
     );
-    await loadReviewActivityFeed({ reset: true, limit: 12 });
+    // Review-activity feed is loaded after first paint (see end of
+    // loadData) so it no longer blocks the dashboard from rendering.
+    signedInSnapshotLoaded = true;
     // Clear the stale-chunk reload flag on a successful snapshot so a
     // future genuine stale-chunk situation can still prompt.
     try {
@@ -3289,6 +3302,11 @@ async function loadData() {
       /* noop */
     }
   } catch (error) {
+    // Seed artifact state before the branch-specific applies below; some
+    // branches re-supply only three of the five artifact fields and rely
+    // on this merge for the rest (matches the original pre-try ordering).
+    const generatedArtifacts = await generatedArtifactsPromise;
+    applyAdminRuntimeState(generatedArtifacts);
     const message = error && error.message ? String(error.message) : "";
     const isStaleChunk =
       /dynamically imported module|Failed to fetch dynamically|Importing a module script failed|ChunkLoadError/i.test(
@@ -3389,6 +3407,21 @@ async function loadData() {
   renderAll();
   if (typeof document !== "undefined" && document.documentElement) {
     document.documentElement.setAttribute("data-admin-boot", "rendered");
+  }
+
+  // Load the review-activity feed after the dashboard has painted. It only
+  // feeds the (initially hidden) Review Activity tab, so blocking first
+  // paint on it was wasted latency. Re-render just that section when it
+  // arrives. Only meaningful on the signed-in path; loadReviewActivityFeed
+  // no-ops in auth-required / non-sanity modes.
+  if (signedInSnapshotLoaded) {
+    loadReviewActivityFeed({ reset: true, limit: 12 })
+      .then(function () {
+        renderAdminSection("review activity", renderReviewActivity);
+      })
+      .catch(function () {
+        /* feed failure is non-fatal; the section stays in its empty state */
+      });
   }
 }
 
