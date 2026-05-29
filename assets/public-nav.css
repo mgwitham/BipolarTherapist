@@ -277,10 +277,19 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
      room for the pill + Menu button. */
   nav[aria-label="Main navigation"] .nav-logo {
     gap: 6px;
+    /* Let the logo yield space (wordmark truncates) before it could ever
+       collide with the pill + Menu cluster pushed to the right. */
+    margin-right: auto;
+    min-width: 0;
+    flex-shrink: 1;
+    overflow: hidden;
   }
   nav[aria-label="Main navigation"] .logo-wordmark {
     font-size: 12px;
     letter-spacing: -0.015em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   /* Collapse the inline desktop link list. Items live in the sheet now. */
@@ -288,16 +297,26 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
     display: none !important;
   }
 
-  /* Promote #navBrowseLink ("Get Matched") into a pill on the right.
-     Position absolutely so it escapes its hidden <ul> wrapper. */
+  /* Promote #navBrowseLink ("Get matched" / "Your matches") into a pill that
+     lives in normal flex flow, just left of the Menu button. It used to be
+     absolutely positioned at a fixed `right: 92px`, which made it overlap the
+     wordmark once nav.js widened the label to "Your matches". Dissolving the
+     <ul>/<li> wrappers with display:contents turns the pill into a direct flex
+     child of the nav, so flexbox keeps it from ever colliding with the logo or
+     the Menu button. */
+  nav[aria-label="Main navigation"] .nav-links:has(#navBrowseLink),
+  nav[aria-label="Main navigation"] .nav-links li:has(#navBrowseLink) {
+    display: contents !important;
+  }
+  nav[aria-label="Main navigation"] .nav-links li {
+    display: none !important;
+  }
   nav[aria-label="Main navigation"] .nav-links #navBrowseLink {
+    order: 2; /* logo (auto-margin) | pill | Menu */
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
-    position: absolute;
-    right: 92px;
-    top: 50%;
-    transform: translateY(-50%);
+    flex-shrink: 0;
     min-height: 36px;
     padding: 0 14px;
     border-radius: 999px;
@@ -313,27 +332,6 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
       0 1px 0 rgba(255, 255, 255, 0.18) inset,
       0 2px 6px rgba(0, 0, 0, 0.18);
   }
-  /* Take the <ul> out of flex flow so the hamburger right-aligns naturally,
-     but keep it rendered as a positioning anchor for the absolute pill. */
-  nav[aria-label="Main navigation"] .nav-links:has(#navBrowseLink) {
-    display: block !important;
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    padding: 0;
-    margin: 0;
-    list-style: none;
-    width: auto;
-    height: auto;
-    overflow: visible;
-  }
-  nav[aria-label="Main navigation"] .nav-links li {
-    display: none !important;
-  }
-  nav[aria-label="Main navigation"] .nav-links li:has(#navBrowseLink) {
-    display: block !important;
-    pointer-events: auto;
-  }
 
   /* --- Menu button (reuses .nav-hamburger). Hide the 3 bars,
        render "Menu" via ::after. aria-label keeps SR users covered. --- */
@@ -341,6 +339,8 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
+    order: 3; /* always the rightmost item in the flex row */
+    flex-shrink: 0;
     width: auto;
     height: 36px;
     min-height: 36px;
