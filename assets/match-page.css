@@ -5289,6 +5289,28 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
     text-align: center;
     width: 100%;
   }
+  /* Sort / care-type / format / gender rows pack up to 4 options into one
+     row. Long labels ("Medication support", "Experienced", "Non-binary")
+     overflow a ~70px segment on narrow phones and get clipped by the row's
+     overflow:hidden. Allow them to wrap to two lines (and hyphenate the rare
+     unbreakable word) and to shrink below content width, so nothing is cut
+     off. Stretch the span to fill the cell so the selected highlight still
+     covers the full height even when a neighbour wraps to two lines. */
+  .refine-sort-seg .refine-seg-opt {
+    min-width: 0;
+    align-items: stretch;
+  }
+  .refine-sort-seg .refine-seg-opt span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    white-space: normal;
+    line-height: 1.12;
+    font-size: 0.72rem;
+    padding: 0.34rem 0.16rem;
+    -webkit-hyphens: auto;
+    hyphens: auto;
+  }
   .refine-adv-grid {
     grid-template-columns: 1fr 1fr;
   }
