@@ -292,6 +292,8 @@ async function bootstrap() {
 
   try {
     window.sessionStorage.setItem("matchResultsUrl", window.location.href);
+    // Timestamp drives the 24h expiry of the "Your matches" nav link (nav.js).
+    window.sessionStorage.setItem("matchResultsAt", String(Date.now()));
   } catch (_e) {
     /* ignore */
   }

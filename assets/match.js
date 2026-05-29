@@ -144,6 +144,9 @@ var MATCH_FEEDBACK_KEY = "bth_match_feedback_v1";
 var CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
 var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 var MATCH_RESULTS_URL_KEY = "matchResultsUrl";
+// Timestamp (ms) the resume link was last saved. nav.js expires the
+// "Your matches" link 24h after this, reverting to "Get matched".
+var MATCH_RESULTS_AT_KEY = "matchResultsAt";
 var zipcodesPreloadPromise = null;
 var activeSecondPassMode = "balanced";
 var activeMatchExperimentVariant = "control";
@@ -167,6 +170,7 @@ function getActiveExperimentContext() {
 function clearStoredMatchResultsUrl() {
   try {
     window.sessionStorage.removeItem(MATCH_RESULTS_URL_KEY);
+    window.sessionStorage.removeItem(MATCH_RESULTS_AT_KEY);
   } catch (_error) {
     /* ignore */
   }
@@ -183,8 +187,10 @@ function rememberMatchResultsUrl(profile, entries) {
   try {
     if (hasPersonalizedResults) {
       window.sessionStorage.setItem(MATCH_RESULTS_URL_KEY, window.location.href);
+      window.sessionStorage.setItem(MATCH_RESULTS_AT_KEY, String(Date.now()));
     } else {
       window.sessionStorage.removeItem(MATCH_RESULTS_URL_KEY);
+      window.sessionStorage.removeItem(MATCH_RESULTS_AT_KEY);
     }
   } catch (_error) {
     /* ignore */
@@ -4653,6 +4659,7 @@ function refreshIntakeUiFromForm() {
     if (href.indexOf("/therapists/") !== -1 && href.indexOf("ref=match") !== -1) {
       try {
         window.sessionStorage.setItem(MATCH_RESULTS_URL_KEY, window.location.href);
+        window.sessionStorage.setItem(MATCH_RESULTS_AT_KEY, String(Date.now()));
       } catch (_) {}
     }
   });

@@ -104,6 +104,7 @@ test("nav state: rendered match results can be resumed as Your matches", () => {
     session: {
       matchResultsUrl:
         "https://www.bipolartherapyhub.com/match.html?care_intent=Therapy&location_query=90019",
+      matchResultsAt: String(Date.now()),
     },
   });
 
@@ -118,11 +119,39 @@ test("nav state: unsafe stored results URLs fall back to a fresh match", () => {
   const { desktopLink, mobileLink, mobileTitle } = runNav({
     session: {
       matchResultsUrl: "https://example.test/match.html?care_intent=Therapy&location_query=90019",
+      matchResultsAt: String(Date.now()),
     },
   });
 
   assert.equal(desktopLink.textContent, "Get matched");
   assert.equal(desktopLink.href, "/#startMatch");
   assert.equal(mobileLink.href, "/#startMatch");
+  assert.equal(mobileTitle.textContent, "Get matched");
+});
+
+test("nav state: a resume link older than 24h reverts to a fresh match", () => {
+  const { desktopLink, mobileLink, mobileTitle } = runNav({
+    session: {
+      matchResultsUrl:
+        "https://www.bipolartherapyhub.com/match.html?care_intent=Therapy&location_query=90019",
+      matchResultsAt: String(Date.now() - 25 * 60 * 60 * 1000),
+    },
+  });
+
+  assert.equal(desktopLink.textContent, "Get matched");
+  assert.equal(desktopLink.href, "/#startMatch");
+  assert.equal(mobileLink.href, "/#startMatch");
+  assert.equal(mobileTitle.textContent, "Get matched");
+});
+
+test("nav state: a resume link with no saved timestamp is treated as expired", () => {
+  const { desktopLink, mobileTitle } = runNav({
+    session: {
+      matchResultsUrl:
+        "https://www.bipolartherapyhub.com/match.html?care_intent=Therapy&location_query=90019",
+    },
+  });
+
+  assert.equal(desktopLink.textContent, "Get matched");
   assert.equal(mobileTitle.textContent, "Get matched");
 });
