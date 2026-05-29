@@ -28,7 +28,7 @@
 // ─── Patient zone ────────────────────────────────────────────────────
 
 export const PATIENT_NAV = `<nav aria-label="Main navigation" class="nav-dark">
-      <a href="/" class="nav-logo">
+      <a href="/" class="nav-logo" aria-label="BipolarTherapyHub, home">
         <img class="logo-mark" src="/favicon.svg" alt="" aria-hidden="true" width="32" height="32" />
         <span class="logo-wordmark">BipolarTherapy<span>Hub</span></span>
       </a>
@@ -47,6 +47,9 @@ export const PATIENT_NAV = `<nav aria-label="Main navigation" class="nav-dark">
     </nav>`;
 
 export const PATIENT_MOBILE_NAV = `<div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+      <a href="/" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">Home</span>
+      </a>
       <a href="/#startMatch" class="public-mobile-nav-link" id="navBrowseLinkMobile">
         <span class="public-mobile-nav-title">Get matched</span>
       </a>
@@ -67,7 +70,7 @@ export const PATIENT_MOBILE_NAV = `<div class="public-mobile-nav" id="mobileNav"
 // ─── Therapist zone ──────────────────────────────────────────────────
 
 export const THERAPIST_NAV = `<nav aria-label="Main navigation" class="nav-light">
-      <a href="/" class="nav-logo">
+      <a href="/" class="nav-logo" aria-label="BipolarTherapyHub, home">
         <img class="logo-mark" src="/favicon.svg" alt="" aria-hidden="true" width="32" height="32" />
         <span class="logo-wordmark">BipolarTherapy<span>Hub</span></span>
       </a>
