@@ -2898,6 +2898,8 @@ img.bth-avatar {
 .mobile-sticky-cta {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: 0.55rem 1rem;
   background: #1a7a8f;
   color: #fff;
@@ -2914,6 +2916,8 @@ img.bth-avatar {
 .mobile-sticky-secondary {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  min-height: 44px;
   padding: 0.55rem 0.85rem;
   background: #eef3f5;
   color: #1d3a4a;
