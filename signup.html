@@ -34,6 +34,7 @@
     <meta name="twitter:image" content="https://www.bipolartherapyhub.com/og-image.png" />
     <link rel="stylesheet" href="assets/fonts.css" />
     <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/public-nav.css" />
     <style>
       *,
       *::before,
@@ -63,75 +64,8 @@
         color: var(--navy);
         line-height: 1.6;
       }
-      nav {
-        background: var(--white);
-        border-bottom: 1px solid var(--border);
-        padding: 0 1.5rem;
-        height: 64px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-      }
-      .nav-logo {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-      }
-      .nav-name {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #000;
-      }
-      .nav-name span {
-        color: var(--teal);
-      }
-      .nav-links {
-        display: flex;
-        gap: 1.5rem;
-        align-items: center;
-        list-style: none;
-      }
-      .nav-links a {
-        font-family: var(--sans);
-        color: var(--navy);
-        text-decoration: none;
-        font-weight: 500;
-        font-size: 0.875rem;
-      }
-      .nav-links a:hover {
-        color: var(--teal);
-      }
-      .nav-link-current {
-        color: var(--teal) !important;
-      }
-      .nav-signin-link {
-        color: var(--muted) !important;
-      }
-      .nav-signin-link:hover {
-        color: var(--teal) !important;
-      }
-      .nav-zone-switch-item {
-        margin-left: auto;
-      }
-      .nav-zone-switch {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3rem;
-        padding: 0.35rem 0.75rem !important;
-        color: var(--muted) !important;
-        border: 1px solid transparent;
-        border-radius: 999px;
-      }
-      .nav-zone-switch:hover {
-        color: var(--teal-dark) !important;
-        border-color: rgba(26, 122, 143, 0.22);
-        background: rgba(26, 122, 143, 0.06);
-      }
+      /* Nav styling now comes from the shared assets/public-nav.css
+         (.nav-light variant) — see shared/site-nav.mjs. */
 
       /* =========================
          Hero band
@@ -1261,19 +1195,53 @@
     </style>
   </head>
   <body>
-    <nav>
+    <nav aria-label="Main navigation" class="nav-light">
       <a href="/" class="nav-logo">
-        <span class="nav-name">BipolarTherapy<span>Hub</span></span>
+        <img
+          class="logo-mark"
+          src="/favicon.svg"
+          alt=""
+          aria-hidden="true"
+          width="32"
+          height="32"
+        />
+        <span class="logo-wordmark">BipolarTherapy<span>Hub</span></span>
       </a>
+      <button
+        class="nav-hamburger"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobileNav"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
       <ul class="nav-links">
-        <li><a href="/signup" class="nav-link-current">List Your Practice</a></li>
+        <li><a href="/signup">List your practice</a></li>
         <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/portal" class="nav-signin-link">Sign In</a></li>
-        <li class="nav-zone-switch-item">
-          <a href="/" class="nav-zone-switch">← For patients</a>
-        </li>
+        <li><a href="/claim">Claim a listing</a></li>
+        <li><a href="/portal" class="nav-signin-link">Sign in</a></li>
+        <li><a href="/" id="navCtaLink" class="nav-zone-switch">← For patients</a></li>
       </ul>
     </nav>
+    <div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+      <a href="/signup" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">List your practice</span>
+      </a>
+      <a href="/pricing" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">Pricing</span>
+      </a>
+      <a href="/claim" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">Claim a listing</span>
+      </a>
+      <a href="/portal" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">Sign in</span>
+      </a>
+      <a href="/" class="public-mobile-nav-link nav-zone-switch">
+        <span class="public-mobile-nav-title">← For patients</span>
+      </a>
+    </div>
 
     <div class="signup-hero-band">
       <main class="signup-main">
@@ -1581,6 +1549,7 @@
     </footer>
 
     <script type="module" src="assets/signup-new-listing.js"></script>
+    <script type="module" src="assets/nav.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
     <script type="module" src="assets/register-sw.js"></script>
   </body>

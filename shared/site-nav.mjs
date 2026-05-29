@@ -66,7 +66,7 @@ export const PATIENT_MOBILE_NAV = `<div class="public-mobile-nav" id="mobileNav"
 
 // ─── Therapist zone ──────────────────────────────────────────────────
 
-export const THERAPIST_NAV = `<nav aria-label="Main navigation" class="nav-dark">
+export const THERAPIST_NAV = `<nav aria-label="Main navigation" class="nav-light">
       <a href="/" class="nav-logo">
         <img class="logo-mark" src="/favicon.svg" alt="" aria-hidden="true" width="32" height="32" />
         <span class="logo-wordmark">BipolarTherapy<span>Hub</span></span>

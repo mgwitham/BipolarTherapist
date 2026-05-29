@@ -33,6 +33,7 @@
     <meta name="twitter:image" content="https://www.bipolartherapyhub.com/og-image.png" />
     <link rel="stylesheet" href="assets/fonts.css" />
     <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/public-nav.css" />
     <style>
       *,
       *::before,
@@ -829,20 +830,53 @@
     </style>
   </head>
   <body>
-    <nav>
+    <nav aria-label="Main navigation" class="nav-light">
       <a href="/" class="nav-logo">
-        <span class="nav-name">BipolarTherapy<span>Hub</span></span>
+        <img
+          class="logo-mark"
+          src="/favicon.svg"
+          alt=""
+          aria-hidden="true"
+          width="32"
+          height="32"
+        />
+        <span class="logo-wordmark">BipolarTherapy<span>Hub</span></span>
       </a>
+      <button
+        class="nav-hamburger"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobileNav"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
       <ul class="nav-links">
-        <li><a href="/signup">List Your Practice</a></li>
+        <li><a href="/signup">List your practice</a></li>
         <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/claim" class="nav-link-current">Claim My Listing</a></li>
-        <li><a href="/portal" class="nav-signin-link">Sign In</a></li>
-        <li class="nav-zone-switch-item">
-          <a href="/directory" class="nav-zone-switch">← For patients</a>
-        </li>
+        <li><a href="/claim">Claim a listing</a></li>
+        <li><a href="/portal" class="nav-signin-link">Sign in</a></li>
+        <li><a href="/" id="navCtaLink" class="nav-zone-switch">← For patients</a></li>
       </ul>
     </nav>
+    <div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+      <a href="/signup" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">List your practice</span>
+      </a>
+      <a href="/pricing" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">Pricing</span>
+      </a>
+      <a href="/claim" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">Claim a listing</span>
+      </a>
+      <a href="/portal" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">Sign in</span>
+      </a>
+      <a href="/" class="public-mobile-nav-link nav-zone-switch">
+        <span class="public-mobile-nav-title">← For patients</span>
+      </a>
+    </div>
 
     <!-- Thin session banner (shown only when therapist is already signed in) -->
     <div id="claimThinBanner" class="claim-thin-banner" hidden aria-live="polite" role="status">
@@ -1089,6 +1123,7 @@
     </footer>
 
     <script type="module" src="assets/signup-quick-claim.js"></script>
+    <script type="module" src="assets/nav.js"></script>
     <script type="module" src="assets/shortlist-nav.js"></script>
   </body>
 </html>

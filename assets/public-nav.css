@@ -164,6 +164,36 @@ nav[aria-label="Main navigation"] .nav-hamburger[aria-expanded="true"] span:nth-
   transform: translateY(-8px) rotate(-45deg);
 }
 
+/* ── Light variant (therapist zone) ──────────────────────────────────
+   Same component/structure as the patient nav, on a light surface. The
+   tonal shift signals the user has crossed into their therapist
+   "workspace" while staying the same brand. Selectors include .nav-light
+   to outrank the base dark rules (which use !important). */
+nav[aria-label="Main navigation"].nav-light {
+  background: rgba(255, 255, 255, 0.96);
+  border-bottom: 1px solid rgba(26, 77, 92, 0.1);
+}
+nav[aria-label="Main navigation"].nav-light .logo-wordmark {
+  color: #1c4d5c;
+}
+nav[aria-label="Main navigation"].nav-light .logo-wordmark span {
+  color: #347f96;
+}
+nav[aria-label="Main navigation"].nav-light .nav-links a,
+nav[aria-label="Main navigation"].nav-light .nav-links a.nav-zone-switch {
+  color: #3a5b65 !important;
+}
+nav[aria-label="Main navigation"].nav-light .nav-links a:hover,
+nav[aria-label="Main navigation"].nav-light .nav-links a.nav-zone-switch:hover {
+  color: #1c4d5c !important;
+}
+nav[aria-label="Main navigation"].nav-light .nav-signin-link {
+  color: #5d7a84 !important;
+}
+nav[aria-label="Main navigation"].nav-light .nav-hamburger {
+  color: #1c4d5c;
+}
+
 /* ============================================================
    Tablet (641–768px): still keep the inline desktop nav, just
    tighten padding. Mobile-specific layout starts at ≤640px.

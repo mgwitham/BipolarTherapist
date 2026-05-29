@@ -14,11 +14,11 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 
-import { ZONE_NAV, PATIENT_PAGES } from "../shared/site-nav.mjs";
+import { ZONE_NAV, PATIENT_PAGES, THERAPIST_PAGES } from "../shared/site-nav.mjs";
 
 const ROOT = process.cwd();
 
-const DESKTOP_RE = /<nav\b[^>]*class="nav-dark"[^>]*>[\s\S]*?<\/nav>/;
+const DESKTOP_RE = /<nav\b[^>]*class="nav-(?:dark|light)"[^>]*>[\s\S]*?<\/nav>/;
 const MOBILE_RE = /<div\b[^>]*class="public-mobile-nav"[^>]*>[\s\S]*?<\/div>/;
 
 function syncFile(fileName, zone) {
@@ -50,19 +50,25 @@ function syncFile(fileName, zone) {
 
 let changed = 0;
 let skipped = 0;
-for (const fileName of PATIENT_PAGES) {
-  const result = syncFile(fileName, "patient");
-  if (result.status === "updated") {
-    changed += 1;
-    console.log(`  ✓ ${fileName}`);
-  } else if (result.status === "unchanged") {
-    console.log(`  · ${fileName} (already in sync)`);
-  } else {
-    skipped += 1;
-    console.warn(
-      `  ⚠ ${fileName}: ${result.problems ? result.problems.join(", ") : result.status}`,
-    );
+const zones = [
+  { zone: "patient", pages: PATIENT_PAGES },
+  { zone: "therapist", pages: THERAPIST_PAGES },
+];
+for (const { zone, pages } of zones) {
+  for (const fileName of pages) {
+    const result = syncFile(fileName, zone);
+    if (result.status === "updated") {
+      changed += 1;
+      console.log(`  ✓ ${fileName} (${zone})`);
+    } else if (result.status === "unchanged") {
+      console.log(`  · ${fileName} (${zone}, already in sync)`);
+    } else {
+      skipped += 1;
+      console.warn(
+        `  ⚠ ${fileName} (${zone}): ${result.problems ? result.problems.join(", ") : result.status}`,
+      );
+    }
   }
 }
-console.log(`[nav:sync] patient zone — ${changed} updated, ${skipped} skipped`);
+console.log(`[nav:sync] ${changed} updated, ${skipped} skipped`);
 if (skipped > 0) process.exit(1);
