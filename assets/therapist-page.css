@@ -4061,6 +4061,22 @@ img.bth-avatar {
   font-size: 13px;
   line-height: 1.5;
 }
+/* Email row is click-to-copy: address fills the row, the "Copy" hint
+   sits at the end and reveals on hover (always shown on touch, which
+   has no hover). Hint styling is shared with .profile-contact-copy-hint. */
+.profile-side-item a.profile-side-email {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.profile-side-item:hover .profile-contact-copy-hint {
+  opacity: 1;
+}
+@media (hover: none) {
+  .profile-side-item .profile-contact-copy-hint {
+    opacity: 1;
+  }
+}
 .profile-side-item--preferred {
   background: #f7fbfc;
   margin: 0 -10px;
