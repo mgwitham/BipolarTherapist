@@ -1,0 +1,332 @@
+/**
+ * Branded social share-card renderer for therapist profiles.
+ *
+ * Produces a 1200×630 RGB PNG: photo (or gradient monogram tile when
+ * there's no headshot), name, credentials, location, accepting pill,
+ * and brand mark. Used at BUILD time by scripts/generate-og-cards.mjs
+ * to pre-render static images into dist/og/therapists/<slug>.png.
+ *
+ * Why build-time + static (not an edge/serverless function):
+ *  - X/Twitter will not render alpha-channel (RGBA) PNGs for cards, and
+ *    @vercel/og only emits RGBA. We need sharp to flatten to RGB — and
+ *    sharp is a native module that fails Vercel's serverless function
+ *    bundling, but works fine at build time on Linux. Pre-rendering
+ *    also removes cold-start font fetches and matches how the rest of
+ *    the site is generated (everything is static).
+ *
+ * Satori (under @vercel/og) is strict: every <div> with more than one
+ * child needs an explicit `display`, `inline-flex` is unsupported, and
+ * any glyph outside the loaded font's subset triggers a failing dynamic
+ * font fetch. The tree below is built to respect all of that.
+ */
+
+import { ImageResponse } from "@vercel/og";
+import sharp from "sharp";
+
+// Brand palette — sampled from the site CSS tokens and the favicon.
+export const COLOR = {
+  bgTop: "#FAF6F0",
+  bgBottom: "#EAF3F5",
+  navy: "#1C4D5C",
+  slate: "#3A5B65",
+  textMid: "#5D7A84",
+  teal: "#26667A",
+  markTeal: "#4A9B8E",
+  markPurple: "#8B7BA3",
+  acceptingBg: "#E3F3EC",
+  acceptingFg: "#14704C",
+  acceptingBorder: "#B8E0C9",
+};
+
+// Static (non-variable) WOFF instances from @fontsource on jsDelivr.
+// DM Sans on github.com/google/fonts is variable-only, which Satori
+// renders unreliably; @fontsource ships pre-computed static cuts.
+const FONT_URLS = {
+  sans: "https://cdn.jsdelivr.net/npm/@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff",
+  sansBold: "https://cdn.jsdelivr.net/npm/@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff",
+  serif:
+    "https://cdn.jsdelivr.net/npm/@fontsource/dm-serif-display/files/dm-serif-display-latin-400-normal.woff",
+};
+
+let cachedFonts = null;
+export async function loadFonts() {
+  if (cachedFonts) return cachedFonts;
+  const fetchFont = async (url) => {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`font fetch ${url} → ${r.status}`);
+    return r.arrayBuffer();
+  };
+  const [sans, sansBold, serif] = await Promise.all([
+    fetchFont(FONT_URLS.sans),
+    fetchFont(FONT_URLS.sansBold),
+    fetchFont(FONT_URLS.serif),
+  ]);
+  cachedFonts = [
+    { name: "DM Sans", data: sans, weight: 400, style: "normal" },
+    { name: "DM Sans", data: sansBold, weight: 700, style: "normal" },
+    { name: "DM Serif Display", data: serif, weight: 400, style: "normal" },
+  ];
+  return cachedFonts;
+}
+
+// type + props + children is the shape Satori expects (post-JSX).
+function el(type, props, ...children) {
+  return { type, props: { ...props, children: children.flat().filter(Boolean) } };
+}
+
+function initialsOf(name) {
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+
+export function buildCard(t) {
+  const location = [t.city, t.state].filter(Boolean).join(", ");
+  const hasPhoto = Boolean(t.photoUrl);
+
+  const avatarSize = 380;
+  const photoSrc = hasPhoto
+    ? `${t.photoUrl}?w=${avatarSize * 2}&h=${avatarSize * 2}&fit=crop&crop=top&fm=jpg&q=85`
+    : null;
+
+  // No-photo fallback: a single rounded-square tile with a teal→purple
+  // gradient and the therapist's initials. One element, no overlapping
+  // absolute children (which Satori can't render).
+  const avatar = hasPhoto
+    ? el("img", {
+        src: photoSrc,
+        width: avatarSize,
+        height: avatarSize,
+        style: {
+          width: `${avatarSize}px`,
+          height: `${avatarSize}px`,
+          borderRadius: "50%",
+          objectFit: "cover",
+          boxShadow: "0 8px 28px rgba(15, 50, 60, 0.18)",
+        },
+      })
+    : el(
+        "div",
+        {
+          style: {
+            width: `${avatarSize}px`,
+            height: `${avatarSize}px`,
+            borderRadius: 64,
+            background: `linear-gradient(135deg, ${COLOR.markTeal} 0%, ${COLOR.markPurple} 100%)`,
+            color: "#fff",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 170,
+            fontFamily: "DM Serif Display",
+            letterSpacing: "-0.02em",
+            boxShadow: "0 12px 32px rgba(15, 50, 60, 0.22)",
+          },
+        },
+        initialsOf(t.name),
+      );
+
+  const acceptingPill =
+    t.acceptingNewPatients === true
+      ? el(
+          "div",
+          {
+            style: {
+              // Dot is a child div, not a `●` glyph (not in DM Sans's
+              // Latin subset → would trigger a failing dynamic fetch).
+              display: "flex",
+              alignSelf: "flex-start",
+              alignItems: "center",
+              gap: 10,
+              padding: "10px 18px",
+              background: COLOR.acceptingBg,
+              border: `1px solid ${COLOR.acceptingBorder}`,
+              borderRadius: 999,
+              color: COLOR.acceptingFg,
+              fontSize: 22,
+              fontFamily: "DM Sans",
+              marginTop: 18,
+            },
+          },
+          el("div", {
+            style: {
+              display: "flex",
+              width: 12,
+              height: 12,
+              borderRadius: "50%",
+              background: COLOR.acceptingFg,
+            },
+          }),
+          el("div", { style: { display: "flex" } }, "Accepting new patients"),
+        )
+      : null;
+
+  const rightColumn = el(
+    "div",
+    {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        paddingLeft: 56,
+        flex: 1,
+      },
+    },
+    el(
+      "div",
+      {
+        style: {
+          display: "flex",
+          fontSize: 22,
+          fontFamily: "DM Sans",
+          letterSpacing: "0.12em",
+          textTransform: "uppercase",
+          color: COLOR.teal,
+          marginBottom: 14,
+        },
+      },
+      "Bipolar-informed therapist",
+    ),
+    el(
+      "div",
+      {
+        style: {
+          display: "flex",
+          fontSize: 62,
+          fontFamily: "DM Serif Display",
+          color: COLOR.navy,
+          lineHeight: 1.05,
+          letterSpacing: "-0.01em",
+          marginBottom: 8,
+        },
+      },
+      t.name,
+    ),
+    t.credentials
+      ? el(
+          "div",
+          {
+            style: {
+              display: "flex",
+              fontSize: 28,
+              fontFamily: "DM Sans",
+              color: COLOR.slate,
+              marginBottom: 18,
+            },
+          },
+          t.credentials,
+        )
+      : null,
+    location
+      ? el(
+          "div",
+          {
+            style: {
+              display: "flex",
+              fontSize: 30,
+              fontFamily: "DM Sans",
+              color: COLOR.slate,
+            },
+          },
+          location,
+        )
+      : null,
+    acceptingPill,
+  );
+
+  // Brand mark in the top-right (two overlapping rounded squares).
+  const brandMark = el(
+    "div",
+    {
+      style: {
+        position: "absolute",
+        top: 50,
+        right: 70,
+        width: 140,
+        height: 124,
+        display: "flex",
+      },
+    },
+    el("div", {
+      style: {
+        display: "flex",
+        position: "absolute",
+        top: 0,
+        left: 0,
+        width: 90,
+        height: 78,
+        borderRadius: 18,
+        background: COLOR.markTeal,
+      },
+    }),
+    el("div", {
+      style: {
+        display: "flex",
+        position: "absolute",
+        top: 46,
+        left: 50,
+        width: 90,
+        height: 78,
+        borderRadius: 18,
+        background: COLOR.markPurple,
+      },
+    }),
+  );
+
+  const footer = el(
+    "div",
+    {
+      style: {
+        position: "absolute",
+        display: "flex",
+        bottom: 48,
+        left: 70,
+        fontSize: 24,
+        fontFamily: "DM Sans",
+        color: COLOR.teal,
+        letterSpacing: "0.02em",
+      },
+    },
+    "bipolartherapyhub.com",
+  );
+
+  return el(
+    "div",
+    {
+      style: {
+        width: "100%",
+        height: "100%",
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "center",
+        background: `linear-gradient(180deg, ${COLOR.bgTop} 0%, ${COLOR.bgBottom} 100%)`,
+        padding: "60px 70px",
+        position: "relative",
+        fontFamily: "DM Sans",
+      },
+    },
+    brandMark,
+    avatar,
+    rightColumn,
+    footer,
+  );
+}
+
+/**
+ * Render a therapist card to an RGB PNG Buffer (no alpha channel).
+ * `therapist` needs: name, credentials, city, state, acceptingNewPatients,
+ * photoUrl. `fonts` is the array from loadFonts().
+ */
+export async function renderCardPng(therapist, fonts) {
+  const image = new ImageResponse(buildCard(therapist), { width: 1200, height: 630, fonts });
+  const rgba = await image.arrayBuffer();
+  // Flatten RGBA → RGB. X/Twitter fails to render alpha-channel PNGs;
+  // the card art is fully opaque so this is a pure format change.
+  return sharp(Buffer.from(rgba))
+    .flatten({ background: COLOR.bgBottom })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+}
