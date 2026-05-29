@@ -57,6 +57,18 @@
   }
 }
 
+/* Buttery taps: touch-action: manipulation removes the browser's
+   ~300ms wait-for-double-tap delay on interactive controls, so taps
+   register instantly. It still allows scroll and pinch-zoom — it only
+   drops the double-tap-to-zoom gesture, which these controls never need. */
+a,
+button,
+[role="button"],
+label,
+summary {
+  touch-action: manipulation;
+}
+
 html {
   scroll-behavior: smooth;
   overflow-x: clip;
