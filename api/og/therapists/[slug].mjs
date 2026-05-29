@@ -17,8 +17,17 @@
  */
 
 import { ImageResponse } from "@vercel/og";
+import sharp from "sharp";
 
-export const config = { runtime: "edge" };
+// This function runs on Vercel's Node runtime (the default for /api
+// functions — note we deliberately do NOT export the edge config that
+// was here before). We post-process @vercel/og's output with sharp to
+// strip the alpha channel: @vercel/og always emits an RGBA PNG
+// (colorType 6), and X/Twitter's image pipeline fails to render
+// alpha-channel PNGs for share cards — it downgrades to the small
+// summary layout with a broken image slot. Flattening to RGB
+// (colorType 2) is what makes the card actually show on X. sharp is a
+// native module, so this can't run on the edge runtime anyway.
 
 // ─── Config ─────────────────────────────────────────────────────────
 
@@ -410,7 +419,16 @@ export default async function handler(request) {
     // our outer catch never sees. Reading the bytes here makes any
     // Satori error throw synchronously so the catch can redirect.
     const buf = await image.arrayBuffer();
-    return new Response(buf, {
+    // Flatten RGBA → RGB. @vercel/og emits an alpha-channel PNG, which
+    // X fails to render (it falls back to the small summary card with a
+    // broken image). Compositing over the card's bottom gradient stop
+    // removes the alpha channel; the card art is already fully opaque,
+    // so this is purely a format change, not a visual one.
+    const rgbPng = await sharp(Buffer.from(buf))
+      .flatten({ background: COLOR.bgBottom })
+      .png({ compressionLevel: 9 })
+      .toBuffer();
+    return new Response(rgbPng, {
       status: 200,
       headers: {
         "Content-Type": "image/png",

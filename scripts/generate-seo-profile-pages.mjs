@@ -108,7 +108,7 @@ const SITE_URL = "https://www.bipolartherapyhub.com";
 // Cache-bust token appended to og:image URLs so social crawlers
 // re-fetch the share card. Bump (v2 → v3 …) whenever the card art
 // changes or a crawler is stuck on a stale/broken cached image.
-const OG_CARD_VERSION = "v2";
+const OG_CARD_VERSION = "v3";
 const DIST_DIR = path.join(ROOT, "dist");
 const TEMPLATE_PATH = path.join(DIST_DIR, "therapist.html");
 const PROFILE_OUTPUT_DIR = path.join(DIST_DIR, "therapists");
