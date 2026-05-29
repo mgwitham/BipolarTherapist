@@ -542,9 +542,17 @@ export function buildHeadTags(therapist) {
   const canonicalUrl = buildCanonicalUrl(therapist);
   const title = `${buildTitle(therapist)} - BipolarTherapyHub`;
   const description = buildDescription(therapist);
-  const image = therapist.photo_url
-    ? optimizeSanityImage(therapist.photo_url)
-    : `${SITE_URL}/og-image.png`;
+  // Always use the dynamic branded share card. The edge function at
+  // /api/og/therapists/<slug>.png renders the full 1200x630 card —
+  // photo (or gradient monogram tile when there's no headshot), name,
+  // credentials, location, accepting pill, and brand mark. It's a
+  // large-image card, so twitter:card must be summary_large_image.
+  // (Previously this pointed at the static /og-image.png with a small
+  // summary card, which is the card that actually shipped to X — the
+  // dynamic-handler meta tags never ran because these pre-built static
+  // pages take routing precedence on Vercel.)
+  const image = `${SITE_URL}/api/og/therapists/${encodeURIComponent(therapist.slug)}.png`;
+  const imageAlt = `${buildTitle(therapist)} — bipolar-informed therapist on BipolarTherapyHub`;
   return [
     `<title>${escapeHtml(title)}</title>`,
     `<meta name="description" content="${escapeAttribute(description)}" />`,
@@ -555,9 +563,14 @@ export function buildHeadTags(therapist) {
     `<meta property="og:title" content="${escapeAttribute(buildTitle(therapist))}" />`,
     `<meta property="og:description" content="${escapeAttribute(description)}" />`,
     `<meta property="og:image" content="${escapeAttribute(image)}" />`,
-    `<meta name="twitter:card" content="summary" />`,
+    `<meta property="og:image:width" content="1200" />`,
+    `<meta property="og:image:height" content="630" />`,
+    `<meta property="og:image:alt" content="${escapeAttribute(imageAlt)}" />`,
+    `<meta name="twitter:card" content="summary_large_image" />`,
     `<meta name="twitter:title" content="${escapeAttribute(buildTitle(therapist))}" />`,
     `<meta name="twitter:description" content="${escapeAttribute(description)}" />`,
+    `<meta name="twitter:image" content="${escapeAttribute(image)}" />`,
+    `<meta name="twitter:image:alt" content="${escapeAttribute(imageAlt)}" />`,
     ...(() => {
       const ids = [
         "therapist-jsonld",
