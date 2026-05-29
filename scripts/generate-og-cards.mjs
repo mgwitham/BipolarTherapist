@@ -14,11 +14,76 @@ import path from "node:path";
 import process from "node:process";
 import { createClient } from "@sanity/client";
 
-import { loadFonts, renderCardPng } from "../shared/og-card.mjs";
+import { loadFonts, renderCardPng, renderPageCardPng } from "../shared/og-card.mjs";
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const OUTPUT_DIR = path.join(ROOT, "dist", "og", "therapists");
+
+// Promotable page share cards — one brand-consistent template, page-
+// specific copy. `out` is relative to dist/. Home overrides the static
+// og-image.png fallback. Keep copy punchy; no em-dashes.
+const PAGE_CARDS = [
+  {
+    out: "og-image.png",
+    card: {
+      lines: ["Not every therapist", "gets bipolar.", { text: "These do.", accent: true }],
+      subtitle: "A calmer way to find bipolar care.",
+      footnote: "Free  ·  No account  ·  No insurance needed",
+    },
+  },
+  {
+    out: "og/directory.png",
+    card: {
+      lines: ["Browse California's", { text: "bipolar specialists.", accent: true }],
+      subtitle: "Filter by insurance, fees, telehealth, and approach.",
+      footnote: "Free  ·  No account  ·  No insurance needed",
+    },
+  },
+  {
+    out: "og/about.png",
+    card: {
+      lines: ["Why we built", { text: "BipolarTherapyHub.", accent: true }],
+      subtitle: "How every therapist is verified and ranked by fit, not payment.",
+    },
+  },
+  {
+    out: "og/signup.png",
+    card: {
+      kicker: "For California clinicians",
+      lines: ["Get found by patients", { text: "searching for bipolar care.", accent: true }],
+      subtitle: "List your practice free. Instant license verification.",
+    },
+  },
+  {
+    out: "og/pricing.png",
+    card: {
+      kicker: "For California clinicians",
+      lines: ["Know where your", { text: "next patient came from.", accent: true }],
+      subtitle: "Free listing for every therapist. $19/mo for visibility analytics.",
+    },
+  },
+  {
+    out: "og/claim.png",
+    card: {
+      kicker: "For California clinicians",
+      lines: ["Claim your free", { text: "directory listing.", accent: true }],
+      subtitle: "Built from public California license records. Take ownership in minutes.",
+    },
+  },
+];
+
+async function generatePageCards(fonts) {
+  let written = 0;
+  for (const { out, card } of PAGE_CARDS) {
+    const target = path.join(ROOT, "dist", out);
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    const png = await renderPageCardPng(card, fonts);
+    fs.writeFileSync(target, png);
+    written += 1;
+  }
+  console.log(`[og-cards] Wrote ${written} page share cards`);
+}
 
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
@@ -76,9 +141,15 @@ async function fetchTherapists(config) {
 }
 
 async function main() {
+  const fonts = await loadFonts();
+
+  // Page cards first — they don't need Sanity, so they're generated even
+  // if therapist data is unavailable.
+  await generatePageCards(fonts);
+
   const config = getConfig();
   if (!config.projectId || !config.dataset) {
-    console.error("[og-cards] Missing Sanity project/dataset config — skipping.");
+    console.error("[og-cards] Missing Sanity project/dataset config — skipping therapist cards.");
     process.exit(0);
   }
 
@@ -89,7 +160,6 @@ async function main() {
   }
 
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-  const fonts = await loadFonts();
 
   let written = 0;
   const failures = [];

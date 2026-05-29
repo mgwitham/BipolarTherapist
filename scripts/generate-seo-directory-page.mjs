@@ -165,13 +165,13 @@ function buildHeadTags() {
     '<meta property="og:url" content="' + CANONICAL_URL + '" />',
     '<meta property="og:title" content="' + escapeAttribute(OG_TITLE) + '" />',
     '<meta property="og:description" content="' + escapeAttribute(OG_DESCRIPTION) + '" />',
-    '<meta property="og:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta property="og:image" content="' + SITE_URL + '/og/directory.png?v2" />',
     '<meta property="og:image:width" content="1200" />',
     '<meta property="og:image:height" content="630" />',
     '<meta name="twitter:card" content="summary_large_image" />',
     '<meta name="twitter:title" content="' + escapeAttribute(OG_TITLE) + '" />',
     '<meta name="twitter:description" content="' + escapeAttribute(OG_DESCRIPTION) + '" />',
-    '<meta name="twitter:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta name="twitter:image" content="' + SITE_URL + '/og/directory.png?v2" />',
   ].join("\n    ");
 }
 
