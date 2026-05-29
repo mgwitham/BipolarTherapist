@@ -14,6 +14,87 @@ body.dir-vb {
   animation: none;
 }
 
+/* ─── Skeleton loading cards ──────────────────────────────────────────
+ * Shown (as static HTML in directory.html) until directory.js paints
+ * real cards. Mirrors .dir-card geometry so the swap to real content
+ * doesn't shift layout. The shimmer is paused under
+ * prefers-reduced-motion. */
+.dir-skel-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.dir-skel-card {
+  pointer-events: none;
+}
+.dir-skel {
+  position: relative;
+  overflow: hidden;
+  background: #eef3f4;
+  border-radius: 6px;
+}
+.dir-skel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  animation: dirSkelShimmer 1.3s ease-in-out infinite;
+}
+@keyframes dirSkelShimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+.dir-skel-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+.dir-skel-line {
+  height: 12px;
+  margin-bottom: 10px;
+}
+.dir-skel-line--name {
+  width: 60%;
+  height: 16px;
+  margin-bottom: 8px;
+}
+.dir-skel-line--creds {
+  width: 40%;
+  height: 11px;
+  margin-bottom: 0;
+}
+.dir-skel-line--short {
+  width: 75%;
+}
+.dir-skel-block {
+  height: 40px;
+  margin: 14px 0;
+  border-radius: 8px;
+}
+.dir-skel-cta {
+  height: 38px;
+  border-radius: 999px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .dir-skel::after {
+    animation: none;
+  }
+}
+
 .dir-card {
   position: relative;
   background: #fff;
