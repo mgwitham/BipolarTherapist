@@ -108,7 +108,7 @@ const SITE_URL = "https://www.bipolartherapyhub.com";
 // Cache-bust token appended to og:image URLs so social crawlers
 // re-fetch the share card. Bump (v2 → v3 …) whenever the card art
 // changes or a crawler is stuck on a stale/broken cached image.
-const OG_CARD_VERSION = "v2";
+const OG_CARD_VERSION = "v4";
 const DIST_DIR = path.join(ROOT, "dist");
 const TEMPLATE_PATH = path.join(DIST_DIR, "therapist.html");
 const PROFILE_OUTPUT_DIR = path.join(DIST_DIR, "therapists");
@@ -546,25 +546,22 @@ export function buildHeadTags(therapist) {
   const canonicalUrl = buildCanonicalUrl(therapist);
   const title = `${buildTitle(therapist)} - BipolarTherapyHub`;
   const description = buildDescription(therapist);
-  // Always use the dynamic branded share card. The edge function at
-  // /api/og/therapists/<slug>.png renders the full 1200x630 card —
-  // photo (or gradient monogram tile when there's no headshot), name,
-  // credentials, location, accepting pill, and brand mark. It's a
-  // large-image card, so twitter:card must be summary_large_image.
-  // (Previously this pointed at the static /og-image.png with a small
-  // summary card, which is the card that actually shipped to X — the
-  // dynamic-handler meta tags never ran because these pre-built static
-  // pages take routing precedence on Vercel.)
+  // Branded share card: a static RGB PNG pre-rendered at build time by
+  // scripts/generate-og-cards.mjs into dist/og/therapists/<slug>.png
+  // (photo or gradient monogram tile, name, credentials, location,
+  // accepting pill, brand mark). It's a large-image card, so
+  // twitter:card must be summary_large_image.
+  //
+  // Why a static file and not /api/og/...: X rejects alpha-channel
+  // (RGBA) PNGs, @vercel/og only emits RGBA, and flattening to RGB
+  // needs sharp — which fails Vercel's serverless function bundling but
+  // works at build time. See shared/og-card.mjs.
+  //
   // Version the image URL itself. Social crawlers (X especially) cache
   // og:image by its exact URL, independent of the page URL — so a `?v=`
-  // cache-buster on the *page* doesn't help if the image URL is
-  // unchanged. The endpoint was returning empty PNGs for hours before
-  // it was fixed, and X cached that broken image against the bare URL.
-  // Bumping OG_CARD_VERSION forces every crawler to treat the card as a
-  // brand-new asset. The edge function parses the slug from the path and
-  // ignores query params, so this is inert server-side. Bump on any
-  // visual change to the card you want crawlers to re-fetch.
-  const image = `${SITE_URL}/api/og/therapists/${encodeURIComponent(therapist.slug)}.png?${OG_CARD_VERSION}`;
+  // buster on the *page* doesn't help. Bump OG_CARD_VERSION on any card
+  // art change to force crawlers to re-fetch.
+  const image = `${SITE_URL}/og/therapists/${encodeURIComponent(therapist.slug)}.png?${OG_CARD_VERSION}`;
   const imageAlt = `${buildTitle(therapist)} — bipolar-informed therapist on BipolarTherapyHub`;
   return [
     `<title>${escapeHtml(title)}</title>`,
