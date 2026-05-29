@@ -99,28 +99,59 @@
   try {
     var DEFAULT_MATCH_HREF = "/#startMatch";
     var MATCH_RESULTS_URL_KEY = "matchResultsUrl";
+    var MATCH_RESULTS_AT_KEY = "matchResultsAt";
+    // The "Your matches" resume link expires this long after it was saved.
+    // Past that we fall back to "Get matched", so a forgotten week-old search
+    // doesn't linger in the nav. Results recompute live from the URL params on
+    // click, so this only bounds the *saved query*, not any cached data.
+    var MATCH_RESULTS_TTL_MS = 24 * 60 * 60 * 1000;
     var storedResultsUrl = "";
+    var storedResultsAt = "";
     try {
       // sessionStorage is the original source (written by match.js), but it
       // dies when the tab closes, leaving "Your matches" stranded the next
-      // day. Mirror into localStorage on read so the link survives tab
-      // restarts. Reads fall back to localStorage when sessionStorage is empty.
+      // day. Mirror into localStorage so the link survives tab restarts, and
+      // fall back to localStorage when sessionStorage is empty.
       storedResultsUrl = window.sessionStorage.getItem(MATCH_RESULTS_URL_KEY) || "";
-      if (storedResultsUrl) {
-        try {
-          window.localStorage.setItem(MATCH_RESULTS_URL_KEY, storedResultsUrl);
-        } catch (_mirrorError) {
-          // localStorage full or unavailable, keep sessionStorage value.
-        }
-      } else {
+      storedResultsAt = window.sessionStorage.getItem(MATCH_RESULTS_AT_KEY) || "";
+      if (!storedResultsUrl) {
         try {
           storedResultsUrl = window.localStorage.getItem(MATCH_RESULTS_URL_KEY) || "";
+          storedResultsAt = window.localStorage.getItem(MATCH_RESULTS_AT_KEY) || "";
         } catch (_fallbackError) {
           storedResultsUrl = "";
+          storedResultsAt = "";
         }
       }
     } catch (_storageError) {
       storedResultsUrl = "";
+      storedResultsAt = "";
+    }
+
+    // Expire stale resume links. A missing or unparseable timestamp counts as
+    // expired (e.g. links saved before this field existed).
+    var savedAt = parseInt(storedResultsAt, 10);
+    var isExpired =
+      !storedResultsUrl || !(savedAt > 0) || Date.now() - savedAt > MATCH_RESULTS_TTL_MS;
+    if (isExpired) {
+      storedResultsUrl = "";
+      try {
+        window.sessionStorage.removeItem(MATCH_RESULTS_URL_KEY);
+        window.sessionStorage.removeItem(MATCH_RESULTS_AT_KEY);
+        window.localStorage.removeItem(MATCH_RESULTS_URL_KEY);
+        window.localStorage.removeItem(MATCH_RESULTS_AT_KEY);
+      } catch (_cleanupError) {
+        // Non-fatal — the link just reverts to "Get matched" on next load.
+      }
+    } else {
+      // Still fresh — mirror both keys into localStorage so the link and its
+      // age survive a tab restart.
+      try {
+        window.localStorage.setItem(MATCH_RESULTS_URL_KEY, storedResultsUrl);
+        window.localStorage.setItem(MATCH_RESULTS_AT_KEY, String(savedAt));
+      } catch (_mirrorError) {
+        // localStorage full or unavailable, keep sessionStorage value.
+      }
     }
 
     function getSafeMatchResultsHref(value) {
