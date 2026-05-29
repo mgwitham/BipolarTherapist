@@ -330,3 +330,221 @@ export async function renderCardPng(therapist, fonts) {
     .png({ compressionLevel: 9 })
     .toBuffer();
 }
+
+// ─── Page cards (home + promotable nav pages) ────────────────────────
+// One dark, brand-consistent template for every promotable page's share
+// card. Differs only in copy, so all the marketing surfaces look like
+// one family on X/LinkedIn. Used by scripts/generate-og-cards.mjs.
+
+const PAGE = {
+  bgA: "#0c2830",
+  bgB: "#1a5663",
+  bgC: "#27707f",
+  white: "#ffffff",
+  teal: "#7ccbdd",
+};
+
+function pageDecoCircle(size, top, right) {
+  return el("div", {
+    style: {
+      display: "flex",
+      position: "absolute",
+      top: `${top}px`,
+      right: `${right}px`,
+      width: `${size}px`,
+      height: `${size}px`,
+      borderRadius: "50%",
+      border: "1px solid rgba(255,255,255,0.07)",
+    },
+  });
+}
+
+/**
+ * Build a page share card.
+ * opts: {
+ *   kicker?: string,                       // small eyebrow (e.g. zone label)
+ *   lines: Array<string | {text, accent}>, // serif headline, one entry per line
+ *   subtitle?: string,
+ *   footnote?: string,                     // small trust line, bottom-left
+ * }
+ */
+export function buildPageCard(opts) {
+  const lines = (opts.lines || []).map((line) => {
+    const isAccent = typeof line === "object" && line.accent;
+    const text = typeof line === "object" ? line.text : line;
+    return el(
+      "div",
+      {
+        style: {
+          display: "flex",
+          fontSize: 68,
+          fontFamily: "DM Serif Display",
+          color: isAccent ? PAGE.teal : PAGE.white,
+          lineHeight: 1.05,
+          letterSpacing: "-0.015em",
+        },
+      },
+      text,
+    );
+  });
+
+  const brandRow = el(
+    "div",
+    {
+      style: {
+        display: "flex",
+        position: "absolute",
+        top: "54px",
+        left: "70px",
+        alignItems: "center",
+        gap: 16,
+      },
+    },
+    el(
+      "div",
+      { style: { display: "flex", position: "relative", width: "58px", height: "50px" } },
+      el("div", {
+        style: {
+          display: "flex",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          width: 38,
+          height: 33,
+          borderRadius: 9,
+          background: COLOR.markTeal,
+        },
+      }),
+      el("div", {
+        style: {
+          display: "flex",
+          position: "absolute",
+          top: 19,
+          left: 21,
+          width: 38,
+          height: 33,
+          borderRadius: 9,
+          background: COLOR.markPurple,
+        },
+      }),
+    ),
+    el(
+      "div",
+      {
+        style: {
+          display: "flex",
+          fontSize: 30,
+          fontFamily: "DM Sans",
+          fontWeight: 700,
+          letterSpacing: "-0.01em",
+        },
+      },
+      el("span", { style: { color: PAGE.white } }, "BipolarTherapy"),
+      el("span", { style: { color: PAGE.teal } }, "Hub"),
+    ),
+  );
+
+  const kicker = opts.kicker
+    ? el(
+        "div",
+        {
+          style: {
+            display: "flex",
+            fontSize: 21,
+            fontFamily: "DM Sans",
+            fontWeight: 700,
+            letterSpacing: "0.13em",
+            textTransform: "uppercase",
+            color: PAGE.teal,
+            marginBottom: 18,
+          },
+        },
+        opts.kicker,
+      )
+    : null;
+
+  const headline = el("div", { style: { display: "flex", flexDirection: "column" } }, ...lines);
+
+  const subtitle = opts.subtitle
+    ? el(
+        "div",
+        {
+          style: {
+            display: "flex",
+            fontSize: 28,
+            fontFamily: "DM Sans",
+            color: "rgba(255,255,255,0.82)",
+            marginTop: 26,
+            maxWidth: "900px",
+          },
+        },
+        opts.subtitle,
+      )
+    : null;
+
+  const footer = el(
+    "div",
+    {
+      style: {
+        display: "flex",
+        position: "absolute",
+        bottom: "52px",
+        left: "70px",
+        right: "70px",
+        alignItems: "center",
+        justifyContent: "space-between",
+      },
+    },
+    el(
+      "div",
+      {
+        style: {
+          display: "flex",
+          fontSize: 23,
+          fontFamily: "DM Sans",
+          color: "rgba(255,255,255,0.8)",
+        },
+      },
+      opts.footnote || "",
+    ),
+    el(
+      "div",
+      { style: { display: "flex", fontSize: 23, fontFamily: "DM Sans", color: PAGE.teal } },
+      "bipolartherapyhub.com",
+    ),
+  );
+
+  return el(
+    "div",
+    {
+      style: {
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "center",
+        width: "100%",
+        height: "100%",
+        position: "relative",
+        padding: "70px",
+        background: `linear-gradient(125deg, ${PAGE.bgA} 0%, ${PAGE.bgB} 58%, ${PAGE.bgC} 100%)`,
+        fontFamily: "DM Sans",
+      },
+    },
+    pageDecoCircle(520, -160, -120),
+    pageDecoCircle(360, -80, -40),
+    brandRow,
+    kicker,
+    headline,
+    subtitle,
+    footer,
+  );
+}
+
+/** Render a page card to an RGB PNG Buffer. */
+export async function renderPageCardPng(opts, fonts) {
+  const image = new ImageResponse(buildPageCard(opts), { width: 1200, height: 630, fonts });
+  const rgba = await image.arrayBuffer();
+  return sharp(Buffer.from(rgba))
+    .flatten({ background: PAGE.bgA })
+    .png({ compressionLevel: 9 })
+    .toBuffer();
+}
