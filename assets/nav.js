@@ -151,7 +151,7 @@
     var desktopLink = document.getElementById("navBrowseLink");
     if (desktopLink) {
       desktopLink.href = matchHref;
-      desktopLink.textContent = hasMatchResults ? "Your Matches" : "Get Matched";
+      desktopLink.textContent = hasMatchResults ? "Your matches" : "Get matched";
       desktopLink.dataset.matchNavManaged = hasMatchResults ? "results" : "start";
     }
 

@@ -50,8 +50,8 @@ function createElement(textContent = "") {
 }
 
 function runNav({ local = {}, session = {} } = {}) {
-  const desktopLink = createElement("Get Matched");
-  const mobileTitle = createElement("Get Matched");
+  const desktopLink = createElement("Get matched");
+  const mobileTitle = createElement("Get matched");
   const mobileCopy = createElement("Top matches");
   const mobileLink = createElement("");
   mobileLink._children[".public-mobile-nav-title"] = mobileTitle;
@@ -90,16 +90,16 @@ test("nav state: a stored homepage ZIP does not imply matches exist", () => {
     },
   });
 
-  // No results URL stored, so Get Matched routes to the homepage form
+  // No results URL stored, so Get matched routes to the homepage form
   // anchor. The homepage reads bth_last_search itself to prefill location.
-  assert.equal(desktopLink.textContent, "Get Matched");
+  assert.equal(desktopLink.textContent, "Get matched");
   assert.equal(desktopLink.href, "/#startMatch");
   assert.equal(mobileLink.href, "/#startMatch");
   assert.equal(mobileTitle.textContent, "Get matched");
   assert.equal(mobileCopy.textContent, "Start guided match");
 });
 
-test("nav state: rendered match results can be resumed as Your Matches", () => {
+test("nav state: rendered match results can be resumed as Your matches", () => {
   const { desktopLink, mobileLink, mobileTitle, mobileCopy } = runNav({
     session: {
       matchResultsUrl:
@@ -107,7 +107,7 @@ test("nav state: rendered match results can be resumed as Your Matches", () => {
     },
   });
 
-  assert.equal(desktopLink.textContent, "Your Matches");
+  assert.equal(desktopLink.textContent, "Your matches");
   assert.equal(desktopLink.href, "/match.html?care_intent=Therapy&location_query=90019");
   assert.equal(mobileLink.href, "/match.html?care_intent=Therapy&location_query=90019");
   assert.equal(mobileTitle.textContent, "Your matches");
@@ -121,7 +121,7 @@ test("nav state: unsafe stored results URLs fall back to a fresh match", () => {
     },
   });
 
-  assert.equal(desktopLink.textContent, "Get Matched");
+  assert.equal(desktopLink.textContent, "Get matched");
   assert.equal(desktopLink.href, "/#startMatch");
   assert.equal(mobileLink.href, "/#startMatch");
   assert.equal(mobileTitle.textContent, "Get matched");

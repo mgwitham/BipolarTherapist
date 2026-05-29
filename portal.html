@@ -24,6 +24,7 @@
     <meta name="twitter:title" content="Your Profile Portal · BipolarTherapyHub" />
     <link rel="stylesheet" href="assets/fonts.css" />
     <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/public-nav.css" />
     <link rel="stylesheet" href="assets/portal-card-preview.css" />
     <link rel="stylesheet" href="assets/portal-td-header.css" />
     <link rel="stylesheet" href="assets/portal-td-completeness.css" />
@@ -889,19 +890,18 @@
     </style>
   </head>
   <body>
-    <nav>
+    <nav aria-label="Main navigation" class="nav-light">
       <a href="/" class="nav-logo">
-        <span class="nav-name">BipolarTherapy<span>Hub</span></span>
+        <img
+          class="logo-mark"
+          src="/favicon.svg"
+          alt=""
+          aria-hidden="true"
+          width="32"
+          height="32"
+        />
+        <span class="logo-wordmark">BipolarTherapy<span>Hub</span></span>
       </a>
-      <ul class="nav-links">
-        <li><a href="/signup">List Your Practice</a></li>
-        <li><a href="/pricing">Pricing</a></li>
-        <li><a href="/claim">Claim a Listing</a></li>
-        <li><a href="/portal" class="nav-link-current">Sign In</a></li>
-        <li class="nav-zone-switch-item">
-          <a href="/" class="nav-zone-switch">← For patients</a>
-        </li>
-      </ul>
       <button
         class="nav-hamburger"
         aria-label="Open menu"
@@ -912,27 +912,29 @@
         <span></span>
         <span></span>
       </button>
+      <ul class="nav-links">
+        <li><a href="/signup">List your practice</a></li>
+        <li><a href="/pricing">Pricing</a></li>
+        <li><a href="/claim">Claim a listing</a></li>
+        <li><a href="/portal" class="nav-signin-link">Sign in</a></li>
+        <li><a href="/" id="navCtaLink" class="nav-zone-switch">← For patients</a></li>
+      </ul>
     </nav>
     <div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
-      <a href="/portal" class="public-mobile-nav-link is-current">
-        <span class="public-mobile-nav-kicker">Dashboard</span>
-        <span class="public-mobile-nav-title">Sign In</span>
-        <span class="public-mobile-nav-copy">Manage your profile</span>
-      </a>
       <a href="/signup" class="public-mobile-nav-link">
-        <span class="public-mobile-nav-kicker">Apply</span>
-        <span class="public-mobile-nav-title">List Your Practice</span>
-        <span class="public-mobile-nav-copy">Join the directory</span>
+        <span class="public-mobile-nav-title">List your practice</span>
+      </a>
+      <a href="/pricing" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">Pricing</span>
       </a>
       <a href="/claim" class="public-mobile-nav-link">
-        <span class="public-mobile-nav-kicker">Claim</span>
-        <span class="public-mobile-nav-title">Claim a Listing</span>
-        <span class="public-mobile-nav-copy">Take ownership</span>
+        <span class="public-mobile-nav-title">Claim a listing</span>
       </a>
-      <a href="/" class="public-mobile-nav-link">
-        <span class="public-mobile-nav-kicker">Patients</span>
-        <span class="public-mobile-nav-title">For Patients</span>
-        <span class="public-mobile-nav-copy">Patient-facing site</span>
+      <a href="/portal" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">Sign in</span>
+      </a>
+      <a href="/" class="public-mobile-nav-link nav-zone-switch">
+        <span class="public-mobile-nav-title">← For patients</span>
       </a>
     </div>
     <!-- Two post-checkout banners. Which one shows depends on whether
