@@ -124,62 +124,8 @@
         border: 0;
       }
 
-      /* ---- NAV ---- */
-      nav {
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        background: #fff;
-        border-bottom: 1px solid var(--slate-100);
-        height: 60px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0 1.5rem;
-      }
-      .nav-logo {
-        text-decoration: none;
-      }
-      .nav-name {
-        font-family: var(--sans);
-        font-size: 17px;
-        font-weight: 600;
-        color: var(--slate-900);
-        letter-spacing: -0.01em;
-      }
-      .nav-name span {
-        color: #1a7a8f;
-      }
-      .nav-links {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        display: flex;
-        align-items: center;
-        gap: 1.25rem;
-      }
-      .nav-links a {
-        font-family: var(--sans);
-        font-size: 0.875rem;
-        font-weight: 500;
-        color: var(--slate-700);
-        text-decoration: none;
-      }
-      .nav-links a:hover {
-        color: var(--teal-600);
-      }
-      .nav-link-current {
-        color: var(--teal-600) !important;
-      }
-      .nav-signin-link {
-        color: var(--slate-500) !important;
-      }
-      .nav-signin-link:hover {
-        color: var(--teal-600) !important;
-      }
-      .nav-zone-switch {
-        color: var(--slate-500) !important;
-      }
+      /* Nav styling comes from the shared assets/public-nav.css
+         (.nav-light variant) — see shared/site-nav.mjs. */
 
       /* ---- SECTION LABEL UTILITY ---- */
       .section-label {
