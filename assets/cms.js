@@ -138,6 +138,73 @@ function clearPublicTherapistsCache() {
   }
 }
 
+// Directory page payload cache. The /directory endpoint ships the full
+// active therapist list and changes only a handful of times per day, so
+// a 30-minute sessionStorage cache (matching the /therapists cache TTL)
+// makes repeat visits and back-button navigation near-instant. The KEY
+// string and TTL are mirrored by the inline early-fetch script in
+// directory.html — keep them in sync.
+const DIRECTORY_CONTENT_CACHE_KEY = "bth_directory_content_cache_v1";
+const DIRECTORY_CONTENT_CACHE_TTL_MS = 30 * 60 * 1000;
+let directoryContentMemoryCache = null;
+
+function readDirectoryContentCache() {
+  if (
+    directoryContentMemoryCache &&
+    Date.now() - directoryContentMemoryCache.timestamp < DIRECTORY_CONTENT_CACHE_TTL_MS
+  ) {
+    return cloneCachedValue(directoryContentMemoryCache.value);
+  }
+
+  if (!canUseSessionStorage()) {
+    return null;
+  }
+
+  try {
+    const raw = window.sessionStorage.getItem(DIRECTORY_CONTENT_CACHE_KEY);
+    if (!raw) {
+      return null;
+    }
+
+    const parsed = JSON.parse(raw);
+    if (
+      !parsed ||
+      !parsed.value ||
+      typeof parsed.timestamp !== "number" ||
+      Date.now() - parsed.timestamp >= DIRECTORY_CONTENT_CACHE_TTL_MS
+    ) {
+      window.sessionStorage.removeItem(DIRECTORY_CONTENT_CACHE_KEY);
+      return null;
+    }
+
+    directoryContentMemoryCache = parsed;
+    return cloneCachedValue(parsed.value);
+  } catch (_error) {
+    return null;
+  }
+}
+
+function writeDirectoryContentCache(value) {
+  if (!value) {
+    return;
+  }
+  const entry = {
+    timestamp: Date.now(),
+    value: cloneCachedValue(value),
+  };
+  directoryContentMemoryCache = entry;
+
+  if (!canUseSessionStorage()) {
+    return;
+  }
+
+  try {
+    window.sessionStorage.setItem(DIRECTORY_CONTENT_CACHE_KEY, JSON.stringify(entry));
+  } catch (_error) {
+    // Ignore cache write failures and continue with the live response.
+  }
+}
+
 function normalizeSiteSettings(doc) {
   if (!doc) {
     return null;
@@ -584,7 +651,42 @@ export async function fetchDirectoryPageContent() {
   }
 
   try {
-    const result = await fetchPublicContentJson("/directory");
+    let result = null;
+    let fromCache = false;
+
+    // 1. Consume the early-start fetch promise kicked off inline in
+    //    directory.html's <head>, if present. This overlaps the network
+    //    request with stylesheet/script download instead of starting it
+    //    only after the module graph executes.
+    const earlyPromise = typeof window !== "undefined" ? window.__bthDirectoryContentPromise : null;
+    if (earlyPromise && typeof earlyPromise.then === "function") {
+      try {
+        result = await earlyPromise;
+      } catch (_earlyError) {
+        result = null;
+      }
+    }
+
+    // 2. Fall back to a fresh sessionStorage cache (repeat visits / back
+    //    button) before hitting the network.
+    if (!result) {
+      const cached = readDirectoryContentCache();
+      if (cached) {
+        result = cached;
+        fromCache = true;
+      }
+    }
+
+    // 3. Live fetch as the final fallback.
+    if (!result) {
+      result = await fetchPublicContentJson("/directory");
+    }
+
+    // Cache the raw payload unless it came from the cache itself (so the
+    // TTL reflects when we last fetched, not the last read).
+    if (result && !fromCache) {
+      writeDirectoryContentCache(result);
+    }
 
     setCmsState("sanity", null);
     return {

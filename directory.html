@@ -16,6 +16,56 @@
         }
       }
     </style>
+    <script>
+      /* Early-start the directory data fetch during HTML parse so the
+         network request overlaps stylesheet/script download instead of
+         waiting behind the module graph (directory.js only reaches its
+         fetch after all five module scripts download + execute). cms.js
+         consumes window.__bthDirectoryContentPromise; if a fresh cached
+         payload already exists it skips the network entirely. Classic
+         inline script (not type=module) so Vite leaves it inline and it
+         runs synchronously while the head is still parsing.
+         Cache key + TTL are kept in sync with assets/cms.js. */
+      (function () {
+        try {
+          var KEY = "bth_directory_content_cache_v1";
+          var TTL = 30 * 60 * 1000;
+          try {
+            var raw = window.sessionStorage.getItem(KEY);
+            if (raw) {
+              var parsed = JSON.parse(raw);
+              if (
+                parsed &&
+                typeof parsed.timestamp === "number" &&
+                Date.now() - parsed.timestamp < TTL
+              ) {
+                return; /* fresh cache hit — cms.js reads it, no network */
+              }
+            }
+          } catch (_cacheError) {
+            /* sessionStorage blocked — fall through to the live fetch */
+          }
+          var host = window.location.hostname;
+          var base =
+            host === "localhost" || host === "127.0.0.1"
+              ? "http://localhost:8787/api/public"
+              : "/api/public";
+          window.__bthDirectoryContentPromise = fetch(base + "/directory", {
+            method: "GET",
+            headers: { Accept: "application/json" },
+          })
+            .then(function (response) {
+              return response.ok ? response.json() : null;
+            })
+            .catch(function () {
+              return null;
+            });
+        } catch (_error) {
+          /* Any failure here is non-fatal: cms.js falls back to its own
+             cache/fetch path when the promise is absent or resolves null. */
+        }
+      })();
+    </script>
     <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -441,10 +491,110 @@
           aria-live="polite"
           aria-label="Therapist results"
         >
-          <div class="loading" role="status" aria-live="polite">
-            <div class="spinner"></div>
-            <p>Finding bipolar informed options...</p>
-          </div>
+          <!-- Skeleton placeholders shown until directory.js paints real
+               cards. Static markup so the page structure renders on the
+               first CSS paint (before JS executes) instead of a lone
+               spinner. Dimensions mirror .dir-card to minimise layout
+               shift when real cards replace them. -->
+          <p class="dir-skel-status" role="status" aria-live="polite">
+            Finding bipolar informed options...
+          </p>
+          <article class="dir-card dir-skel-card" aria-hidden="true">
+            <div class="dir-card-body">
+              <div class="dir-card-head">
+                <div class="dir-skel dir-skel-avatar"></div>
+                <div class="dir-card-id">
+                  <div class="dir-skel dir-skel-line dir-skel-line--name"></div>
+                  <div class="dir-skel dir-skel-line dir-skel-line--creds"></div>
+                </div>
+              </div>
+              <div class="dir-skel dir-skel-line"></div>
+              <div class="dir-skel dir-skel-line dir-skel-line--short"></div>
+              <div class="dir-skel dir-skel-block"></div>
+              <div class="dir-card-spacer"></div>
+              <div class="dir-skel dir-skel-cta"></div>
+            </div>
+          </article>
+          <article class="dir-card dir-skel-card" aria-hidden="true">
+            <div class="dir-card-body">
+              <div class="dir-card-head">
+                <div class="dir-skel dir-skel-avatar"></div>
+                <div class="dir-card-id">
+                  <div class="dir-skel dir-skel-line dir-skel-line--name"></div>
+                  <div class="dir-skel dir-skel-line dir-skel-line--creds"></div>
+                </div>
+              </div>
+              <div class="dir-skel dir-skel-line"></div>
+              <div class="dir-skel dir-skel-line dir-skel-line--short"></div>
+              <div class="dir-skel dir-skel-block"></div>
+              <div class="dir-card-spacer"></div>
+              <div class="dir-skel dir-skel-cta"></div>
+            </div>
+          </article>
+          <article class="dir-card dir-skel-card" aria-hidden="true">
+            <div class="dir-card-body">
+              <div class="dir-card-head">
+                <div class="dir-skel dir-skel-avatar"></div>
+                <div class="dir-card-id">
+                  <div class="dir-skel dir-skel-line dir-skel-line--name"></div>
+                  <div class="dir-skel dir-skel-line dir-skel-line--creds"></div>
+                </div>
+              </div>
+              <div class="dir-skel dir-skel-line"></div>
+              <div class="dir-skel dir-skel-line dir-skel-line--short"></div>
+              <div class="dir-skel dir-skel-block"></div>
+              <div class="dir-card-spacer"></div>
+              <div class="dir-skel dir-skel-cta"></div>
+            </div>
+          </article>
+          <article class="dir-card dir-skel-card" aria-hidden="true">
+            <div class="dir-card-body">
+              <div class="dir-card-head">
+                <div class="dir-skel dir-skel-avatar"></div>
+                <div class="dir-card-id">
+                  <div class="dir-skel dir-skel-line dir-skel-line--name"></div>
+                  <div class="dir-skel dir-skel-line dir-skel-line--creds"></div>
+                </div>
+              </div>
+              <div class="dir-skel dir-skel-line"></div>
+              <div class="dir-skel dir-skel-line dir-skel-line--short"></div>
+              <div class="dir-skel dir-skel-block"></div>
+              <div class="dir-card-spacer"></div>
+              <div class="dir-skel dir-skel-cta"></div>
+            </div>
+          </article>
+          <article class="dir-card dir-skel-card" aria-hidden="true">
+            <div class="dir-card-body">
+              <div class="dir-card-head">
+                <div class="dir-skel dir-skel-avatar"></div>
+                <div class="dir-card-id">
+                  <div class="dir-skel dir-skel-line dir-skel-line--name"></div>
+                  <div class="dir-skel dir-skel-line dir-skel-line--creds"></div>
+                </div>
+              </div>
+              <div class="dir-skel dir-skel-line"></div>
+              <div class="dir-skel dir-skel-line dir-skel-line--short"></div>
+              <div class="dir-skel dir-skel-block"></div>
+              <div class="dir-card-spacer"></div>
+              <div class="dir-skel dir-skel-cta"></div>
+            </div>
+          </article>
+          <article class="dir-card dir-skel-card" aria-hidden="true">
+            <div class="dir-card-body">
+              <div class="dir-card-head">
+                <div class="dir-skel dir-skel-avatar"></div>
+                <div class="dir-card-id">
+                  <div class="dir-skel dir-skel-line dir-skel-line--name"></div>
+                  <div class="dir-skel dir-skel-line dir-skel-line--creds"></div>
+                </div>
+              </div>
+              <div class="dir-skel dir-skel-line"></div>
+              <div class="dir-skel dir-skel-line dir-skel-line--short"></div>
+              <div class="dir-skel dir-skel-block"></div>
+              <div class="dir-card-spacer"></div>
+              <div class="dir-skel dir-skel-cta"></div>
+            </div>
+          </article>
         </div>
 
         <!-- Load more, rendered by JS -->
