@@ -19,7 +19,9 @@ import { ZONE_NAV, PATIENT_PAGES, THERAPIST_PAGES } from "../shared/site-nav.mjs
 const ROOT = process.cwd();
 
 const DESKTOP_RE = /<nav\b[^>]*class="nav-(?:dark|light)"[^>]*>[\s\S]*?<\/nav>/;
-const MOBILE_RE = /<div\b[^>]*class="public-mobile-nav"[^>]*>[\s\S]*?<\/div>/;
+// Match the mobile sheet whether or not it carries extra classes (e.g.
+// the therapist zone's `public-mobile-nav--light`), so sync is idempotent.
+const MOBILE_RE = /<div\b[^>]*class="public-mobile-nav[^"]*"[^>]*>[\s\S]*?<\/div>/;
 
 function syncFile(fileName, zone) {
   const filePath = path.join(ROOT, fileName);
