@@ -2702,9 +2702,11 @@ function renderProfile(t, therapistDirectory) {
     var external = opts && opts.external ? ' target="_blank" rel="noopener noreferrer"' : "";
     var anchorCls = opts && opts.cls ? ' class="' + opts.cls + '"' : "";
     var preferred = route === prefRoute;
-    var preferredBadge = preferred
-      ? '<span class="profile-side-preferred-tag">Preferred</span>'
-      : "";
+    // No "Preferred" badge here: the primary CTA above already states
+    // the preferred channel loudly, so the badge duplicated it — and
+    // its fixed width crowded long emails into an ugly two-line wrap.
+    // The tinted --preferred row background carries the signal on its
+    // own and gives the value the full row width.
     return (
       '<div class="profile-side-item' +
       (preferred ? " profile-side-item--preferred" : "") +
@@ -2718,7 +2720,6 @@ function renderProfile(t, therapistDirectory) {
       ">" +
       escapeHtml(label) +
       "</a>" +
-      preferredBadge +
       "</div>"
     );
   }
