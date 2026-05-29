@@ -64,76 +64,8 @@
         color: var(--navy);
         line-height: 1.6;
       }
-      nav {
-        background: rgba(255, 255, 255, 0.92);
-        backdrop-filter: blur(10px);
-        border-bottom: 1px solid var(--border);
-        padding: 0 1.5rem;
-        height: 64px;
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
-      }
-      .nav-logo {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-      }
-      .nav-name {
-        font-size: 1rem;
-        font-weight: 700;
-        color: #000;
-      }
-      .nav-name span {
-        color: var(--teal);
-      }
-      .nav-links {
-        display: flex;
-        gap: 1.5rem;
-        align-items: center;
-        list-style: none;
-      }
-      .nav-links a {
-        font-family: var(--sans);
-        color: var(--navy);
-        text-decoration: none;
-        font-weight: 500;
-        font-size: 0.875rem;
-      }
-      .nav-links a:hover {
-        color: var(--teal);
-      }
-      .nav-link-current {
-        color: var(--teal) !important;
-      }
-      .nav-signin-link {
-        color: var(--muted) !important;
-      }
-      .nav-signin-link:hover {
-        color: var(--teal) !important;
-      }
-      .nav-zone-switch-item {
-        margin-left: auto;
-      }
-      .nav-zone-switch {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.3rem;
-        padding: 0.35rem 0.75rem !important;
-        color: var(--muted) !important;
-        border: 1px solid transparent;
-        border-radius: 999px;
-      }
-      .nav-zone-switch:hover {
-        color: var(--teal-dark) !important;
-        border-color: rgba(26, 122, 143, 0.22);
-        background: rgba(26, 122, 143, 0.06);
-      }
+      /* Nav styling comes from the shared assets/public-nav.css
+         (.nav-light variant) — see shared/site-nav.mjs. */
 
       /* Thin session banner */
       .claim-thin-banner {
@@ -804,16 +736,6 @@
         }
       }
       @media (max-width: 640px) {
-        nav {
-          padding: 0 1rem;
-          height: 56px;
-        }
-        .nav-name {
-          font-size: 0.95rem;
-        }
-        .nav-zone-switch {
-          padding: 0.3rem 0.7rem !important;
-        }
         .claim-result-card {
           grid-template-columns: 40px 1fr;
         }
