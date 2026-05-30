@@ -74,6 +74,7 @@ const PROFILE_THERAPIST = {
   acceptsInPerson: true,
   acceptingNewPatients: true,
   licenseNumber: "LMFT12345",
+  _updatedAt: "2026-05-10T00:00:00Z",
 };
 
 function extractJsonLd(html, id) {
@@ -132,6 +133,33 @@ test("city SEO generator emits one city canonical and no directory canonical", (
   assert.match(canonicals[0], /\/bipolar-therapists\/los-angeles-ca\//);
   assert.doesNotMatch(html, /href="https:\/\/www\.bipolartherapyhub\.com\/directory"/);
   assert.doesNotMatch(html, /id="dirJsonLd"/);
+});
+
+test("profile SEO generator emits a ProfilePage with a dateModified freshness signal", () => {
+  const headTags = buildProfileHeadTags(PROFILE_THERAPIST);
+  const profileJsonLd = extractJsonLd(headTags, "therapist-jsonld-profile");
+
+  assert.equal(profileJsonLd["@type"], "ProfilePage");
+  assert.equal(profileJsonLd.dateModified, PROFILE_THERAPIST._updatedAt);
+});
+
+test("city SEO generator stamps the CollectionPage with the most recent provider update", () => {
+  const html = injectSeo(
+    DIRECTORY_TEMPLATE,
+    "Los Angeles",
+    "CA",
+    "los-angeles-ca",
+    [
+      { name: "Dr. Older", credentials: "LMFT", slug: "a", _updatedAt: "2026-05-01T00:00:00Z" },
+      { name: "Dr. Newer", credentials: "PhD", slug: "b", _updatedAt: "2026-05-09T00:00:00Z" },
+    ],
+    {},
+  );
+
+  const cityJsonLd = extractJsonLd(html, "city-jsonld");
+  const collectionPage = cityJsonLd[0];
+  assert.equal(collectionPage["@type"], "CollectionPage");
+  assert.equal(collectionPage.dateModified, "2026-05-09T00:00:00Z");
 });
 
 test("profile SEO generator breadcrumbs use clean directory URL", async () => {
