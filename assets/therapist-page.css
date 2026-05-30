@@ -1220,6 +1220,14 @@ body {
   background: var(--teal-dark);
   transform: translateY(-1px);
 }
+/* Brief post-tap state on any contact CTA: dims the control and blocks a
+   second tap while the first click's navigation kicks in, so slow-network
+   double-taps don't fire duplicate analytics. Paired with the is-loading
+   guard in therapist-page.js. */
+[data-profile-contact-route].is-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
 .btn-contact-secondary {
   background: var(--teal-dark);
 }

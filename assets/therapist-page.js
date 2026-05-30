@@ -3003,6 +3003,19 @@ function renderProfile(t, therapistDirectory) {
     .call(document.querySelectorAll("[data-profile-contact-route]"))
     .forEach(function (link) {
       link.addEventListener("click", function () {
+        // Ignore rapid repeat taps on the same CTA: on a slow network a user
+        // double-taps before navigation kicks in, which fires duplicate
+        // analytics and inflates the measured CTA click-rate. A brief
+        // is-loading window grays the control (pointer-events:none in CSS)
+        // and short-circuits the second event without ever blocking the
+        // first click's navigation.
+        if (link.dataset.ctaLoading === "1") return;
+        link.dataset.ctaLoading = "1";
+        link.classList.add("is-loading");
+        window.setTimeout(function () {
+          link.classList.remove("is-loading");
+          delete link.dataset.ctaLoading;
+        }, 600);
         var route = link.getAttribute("data-profile-contact-route") || "";
         rememberTherapistContactRoute(t.slug, route, "profile");
         recordCtaClickSafely(t.slug, route);
