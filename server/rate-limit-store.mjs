@@ -21,8 +21,31 @@
 // algorithm the in-memory implementation used; just persisted.
 
 import { Redis } from "@upstash/redis";
+import { log } from "./logger.mjs";
+import { Sentry } from "./sentry.mjs";
 
 let cachedClient = null;
+
+// Throttle Redis-outage alerting so a sustained outage logs/reports once a
+// minute per limiter rather than on every request. Keyed by limiter name.
+const lastAlertAt = new Map();
+function alertRedisFailure(name, err) {
+  const now = Date.now();
+  const last = lastAlertAt.get(name) || 0;
+  if (now - last < 60_000) return;
+  lastAlertAt.set(name, now);
+  log.warn("[ratelimit] redis unavailable, falling back to in-memory limiter", {
+    limiter: name,
+    error: err && err.message ? err.message : String(err),
+  });
+  try {
+    Sentry.captureException(err instanceof Error ? err : new Error(String(err)), {
+      tags: { subsystem: "rate-limit", limiter: name },
+    });
+  } catch (_err) {
+    // never let alerting throw and break the rate-limit path
+  }
+}
 
 function getRedisClient(config) {
   if (!config || !config.upstashRedisRestUrl || !config.upstashRedisRestToken) {
@@ -84,8 +107,13 @@ function makeInMemoryLimiter(name, windowMs, maxAttempts) {
   };
 }
 
-function makeRedisLimiter(name, windowMs, maxAttempts, client) {
+export function makeRedisLimiter(name, windowMs, maxAttempts, client) {
   const ttlSeconds = Math.max(1, Math.ceil(windowMs / 1000));
+  // Per-instance fallback used only when Redis is unreachable. It can't see
+  // attempts that landed on Redis before the outage, so it starts cold — but
+  // it still bounds abuse to maxAttempts per window per serverless instance,
+  // which is far safer than the old fail-open behavior (unlimited attempts).
+  const fallback = makeInMemoryLimiter(name, windowMs, maxAttempts);
   // Bucket key by the window start so a single bucket only ever
   // tracks a single window's attempts. Avoids the need to clear
   // expired keys manually — Redis TTL does it for us.
@@ -101,10 +129,11 @@ function makeRedisLimiter(name, windowMs, maxAttempts, client) {
         const count = await client.get(bucketKey(key));
         const n = typeof count === "number" ? count : parseInt(count || "0", 10) || 0;
         return n < maxAttempts;
-      } catch (_err) {
-        // Fail-open on Redis errors. Better to let a real user through
-        // than to lock everyone out during an Upstash outage.
-        return true;
+      } catch (err) {
+        // Fail-closed-ish: defer to an in-memory limiter rather than letting
+        // every request through. Alert so we notice the outage.
+        alertRedisFailure(name, err);
+        return fallback.canAttempt(key);
       }
     },
     async record(key) {
@@ -114,9 +143,11 @@ function makeRedisLimiter(name, windowMs, maxAttempts, client) {
         if (count === 1) {
           await client.expire(k, ttlSeconds);
         }
-      } catch (_err) {
-        // Fail-silent on record errors. The next canAttempt will
-        // re-evaluate; this attempt just doesn't get persisted.
+      } catch (err) {
+        // Mirror the attempt into the in-memory limiter so the fallback
+        // canAttempt path can enforce the cap during the outage.
+        alertRedisFailure(name, err);
+        await fallback.record(key);
       }
     },
     async clear(key) {
@@ -125,6 +156,7 @@ function makeRedisLimiter(name, windowMs, maxAttempts, client) {
       } catch (_err) {
         // Best-effort.
       }
+      await fallback.clear(key);
     },
   };
 }
@@ -145,4 +177,5 @@ export function getRateLimiter(name, windowMs, maxAttempts, config) {
 export function resetRateLimitStateForTests() {
   cachedClient = null;
   inMemoryStores.clear();
+  lastAlertAt.clear();
 }

@@ -1022,6 +1022,11 @@ export function createReviewApiHandler(configOverride, clientOverride) {
       token: config.token,
       useCdn: false,
       perspective: "raw",
+      // Cap any single Sanity request below Vercel's function timeout (30s)
+      // so a slow query can't hang a serverless invocation indefinitely and
+      // starve concurrent execution slots. @sanity/client still retries
+      // transient failures up to its default maxRetries.
+      timeout: 25000,
     });
   const routeModules = createReviewRouteModules();
 
