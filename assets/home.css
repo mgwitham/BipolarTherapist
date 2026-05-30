@@ -1655,3 +1655,22 @@ footer {
     max-width: 100%;
   }
 }
+
+/* Tactile press feedback on primary CTAs — instant physical response on
+   tap, matching the directory. Neutralized under reduced-motion. */
+.btn-p:active,
+.btn-s:active,
+.btn-white:active,
+.btn-cta-white:active,
+.waitlist-panel-submit:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-p:active,
+  .btn-s:active,
+  .btn-white:active,
+  .btn-cta-white:active,
+  .waitlist-panel-submit:active {
+    transform: none;
+  }
+}

@@ -4142,3 +4142,20 @@ img.bth-avatar {
   grid-template-columns: none;
   gap: 0;
 }
+
+/* Tactile press feedback on contact CTAs — instant physical response on
+   tap, matching the directory. Neutralized under reduced-motion. */
+.mobile-sticky-cta:active,
+.mobile-sticky-secondary:active,
+.profile-reach-call-cta:active,
+.ts-claim-banner-cta:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .mobile-sticky-cta:active,
+  .mobile-sticky-secondary:active,
+  .profile-reach-call-cta:active,
+  .ts-claim-banner-cta:active {
+    transform: none;
+  }
+}

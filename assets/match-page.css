@@ -8213,3 +8213,31 @@ img.bth-avatar {
     overflow-x: auto;
   }
 }
+
+/* Tactile press feedback on the match-funnel CTAs — instant physical
+   response on tap, matching the directory. Neutralized under
+   reduced-motion. */
+.result-cta-primary:active,
+.result-cta-secondary:active,
+.result-cta-sm:active,
+.match-card-cta:active,
+.refine-bottom-submit:active,
+.refine-more-btn:active,
+.mx-refine-sticky-btn:active,
+.bth-modal-cta:active,
+.mx-no-fit-submit:active {
+  transform: scale(0.97);
+}
+@media (prefers-reduced-motion: reduce) {
+  .result-cta-primary:active,
+  .result-cta-secondary:active,
+  .result-cta-sm:active,
+  .match-card-cta:active,
+  .refine-bottom-submit:active,
+  .refine-more-btn:active,
+  .mx-refine-sticky-btn:active,
+  .bth-modal-cta:active,
+  .mx-no-fit-submit:active {
+    transform: none;
+  }
+}
