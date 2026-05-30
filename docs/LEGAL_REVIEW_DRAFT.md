@@ -35,16 +35,21 @@ about it. These are the literal, code-level meanings as implemented today.
 ### "License verified" badge
 
 - **Rendered when:** the therapist record has `verificationStatus === "editorially_verified"` **and** a non-empty `licenseNumber`.
-- **What "editorially_verified" means in practice:** an internal reviewer marked
-  the listing as editorially reviewed (it is set at publish time / on source
-  review). **Confirm with the team:** does the review process include an actual
-  check against the state licensing board (e.g. CA DCA / BreEZe lookup), or is
-  it an editorial judgment that a license number was present and plausible?
-  The badge wording should not promise more than the process delivers.
-- **Risk if overstated:** "Verified" implies an affirmative, current check. If a
-  license is lapsed, suspended, or the number is wrong, a patient who relied on
-  the badge and was harmed could point to it. The definition below is written
-  conservatively; counsel should tighten it to match reality.
+- **What backs it (confirmed by the team):** license numbers **are checked
+  against the California DCA license lookup** (the state board registry) before
+  publication. `scripts/verify-candidate-licenses.mjs` confirms the license
+  number, the provider name, and the **license status** against the public DCA
+  registry and writes a structured `licensureVerification` result onto the
+  record. So "License verified" reflects an actual state-board check, not merely
+  an editorial judgment that a number was present — the claim is substantiated.
+- **Residual nuance for counsel (point-in-time vs. ongoing):** the check is
+  performed at verification time. A license can later lapse, be suspended, or be
+  restricted between the check and a patient's visit. The badge is therefore
+  accurate as "verified against the board as of the review," but should still
+  disclaim _ongoing/real-time_ status and encourage independent confirmation —
+  not because the check is weak, but because licensing status is not static.
+  **Confirm the re-verification cadence** (how often `verify-candidate-licenses`
+  is re-run against live listings) so the wording matches reality.
 
 ### "Bipolar specialist" badge
 
@@ -74,15 +79,15 @@ counsel should know the real refresh cadence.)
 > before publishing.**
 
 **About the "License verified" badge.** When a profile shows "License verified,"
-it means our editorial team reviewed the provider's listing and recorded a
-professional license number associated with that provider at the time of
-review. It does **not** guarantee that the license is currently active, in good
-standing, or free of restrictions, and it is not a substitute for confirming a
-provider's license directly with the relevant state licensing board. Licensing
-status can change at any time. We encourage you to independently verify any
-provider's license before beginning care. [Attorney: align with actual review
-process — if a board check IS performed, this can be stated more strongly; if
-not, keep it conservative.]
+it means we checked the provider's license number, name, and license status
+against the California state licensing board's (DCA) public registry at the time
+of review and confirmed a match. Because licensing status can change after a
+check — a license may later lapse, be suspended, or be restricted — this badge
+reflects the provider's status as of our review and is not a guarantee of
+current, real-time standing. We encourage you to independently confirm any
+provider's license with the state board before beginning care. [Attorney:
+wording reflects the confirmed DCA-registry check; align the "as of review"
+framing with the actual re-verification cadence.]
 
 **About the "Bipolar specialist" badge.** This badge reflects that a provider
 has indicated bipolar-disorder experience or lists bipolar disorder among their
@@ -138,10 +143,14 @@ engage any provider is yours.
 
 ## Part D — Open questions for the attorney & founder
 
-- Does the editorial "verified" step include a **board/license-database check**,
-  or is it an internal editorial judgment? (Drives Part A/B wording — this is
-  the single most important factual input.)
-- What is the real **re-verification cadence** for live listings?
+- ~~Does the "verified" step include a board/license-database check?~~
+  **Answered: yes.** Licenses are checked against the California DCA registry
+  (number, name, and status) via `scripts/verify-candidate-licenses.mjs`. Part
+  A/B now state this as fact.
+- What is the real **re-verification cadence** for live listings — i.e. how
+  often is the DCA check re-run after initial publication? (Now the key
+  remaining input: it determines how strongly the "as of review" framing must
+  be qualified.)
 - Is there an existing **Privacy Policy**? Does the site collect intake/match
   data, run analytics, or use cookies in a way that triggers CCPA/CPRA notice
   obligations?
