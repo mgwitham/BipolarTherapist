@@ -5,6 +5,7 @@
 
 import { fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
+import { sanityImageUrl } from "./sanity-image.js";
 import {
   readList,
   removeFromList,
@@ -453,7 +454,9 @@ function renderCard(entry, therapist) {
   var slug = entry.slug;
   var noteValue = entry.note || "";
   var avatar = photo
-    ? '<img src="' + escapeHtml(photo) + '" alt="" loading="lazy" />'
+    ? '<img src="' +
+      escapeHtml(sanityImageUrl(photo, { width: 112, height: 112 })) +
+      '" alt="" width="56" height="56" loading="lazy" decoding="async" />'
     : '<span class="saved-list-card-initials" aria-hidden="true">' +
       escapeHtml(getInitials(name)) +
       "</span>";

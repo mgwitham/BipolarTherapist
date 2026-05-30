@@ -1,6 +1,7 @@
 import { renderRoundAvatar } from "./card-content.js";
 import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
 import { escapeHtml } from "./escape-html.js";
+import { sanityImageUrl } from "./sanity-image.js";
 
 function buildTherapistProfileHref(slug, source) {
   var cleanSlug = String(slug || "").trim();
@@ -426,10 +427,10 @@ export function renderDirectoryDetailsMarkup(options) {
     .toUpperCase();
   var avatarHtml = therapist.photo_url
     ? '<img class="dir-panel-avatar-img" src="' +
-      escapeHtml(therapist.photo_url) +
+      escapeHtml(sanityImageUrl(therapist.photo_url, { width: 112, height: 112 })) +
       '" alt="' +
       escapeHtml(therapist.name) +
-      '" loading="lazy" decoding="async" />'
+      '" width="56" height="56" loading="lazy" decoding="async" />'
     : '<div class="dir-panel-avatar-initials" aria-hidden="true">' +
       escapeHtml(initials) +
       "</div>";
@@ -716,10 +717,10 @@ export function renderBottomSheetMarkup(options) {
     .toUpperCase();
   var avatarInner = therapist.photo_url
     ? '<img class="bsh-avatar-img" src="' +
-      escapeHtml(therapist.photo_url) +
+      escapeHtml(sanityImageUrl(therapist.photo_url, { width: 104, height: 104 })) +
       '" alt="' +
       escapeHtml(therapist.name) +
-      '" loading="lazy" decoding="async" />'
+      '" width="52" height="52" loading="lazy" decoding="async" />'
     : '<div class="bsh-avatar-initials" aria-hidden="true">' + escapeHtml(initials) + "</div>";
 
   // Credential line
