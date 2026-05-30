@@ -4,6 +4,21 @@
 **Founder pain:** "Long and confusing. I don't know what each button does or why it's there."
 **Target outcome:** A clean page where the next action is always obvious, and every button's purpose is clear from its label alone.
 
+## Implementation status — updated 2026-05-30
+
+All eight friction points below have shipped. This audit is **closed**; it is kept for context and rationale.
+
+| #   | Recommendation                                       | Status                                                                           |
+| --- | ---------------------------------------------------- | -------------------------------------------------------------------------------- |
+| 1   | "Start here" card / orientation on load              | ✅ Shipped (`assets/admin-action-first.js`)                                      |
+| 2   | Three-view structure (Today / Listings / Reports)    | ✅ Shipped (`assets/admin-view-tabs.js`)                                         |
+| 3   | Strip SOP + Playbook boxes to a one-sentence purpose | ✅ Shipped (panels use a one-line `panel-intro`; the legacy SOP block is hidden) |
+| 4   | Rename lanes to plain English                        | ✅ Shipped (On hold / Awaiting reply / Inbox; no user-facing jargon remains)     |
+| 5   | Collapse redundant filters into one "View" preset    | ✅ Shipped (View presets + an "Advanced filters" disclosure)                     |
+| 6   | Inline rejection-reason picker                       | ✅ Shipped (`assets/admin-rejection-reason-picker.js`)                           |
+| 7   | Move Reports / Activity into the Reports view        | ✅ Shipped (folded into the three-view structure)                                |
+| 8   | Visible review-session progress                      | ✅ Shipped — PR #970 (focus-mode HUD shows "Reviewed N · M left · Xs avg")       |
+
 ## What the page is today
 
 One scrolling page with **9 top-level regions**, **30+ sub-panels**, and a command palette. Every panel carries a verbose "Purpose / Use This When / Done Means / Operator Playbook" block. Total: ~5,000 lines of HTML, ~24,000 lines across 34 JS modules.
