@@ -284,6 +284,7 @@ export function buildTherapistDocumentFromCandidate(candidate, existingId, helpe
     estimatedWaitTime: candidate.estimatedWaitTime || "",
     careApproach: candidate.careApproach || "",
     bipolarEvidenceQuote: candidate.bipolarEvidenceQuote || "",
+    trainingAffiliations: helpers.splitList(candidate.trainingAffiliations),
     medicationManagement: helpers.parseBoolean(candidate.medicationManagement, false),
     verificationStatus:
       candidate.sourceReviewedAt || candidate.reviewStatus === "published"
@@ -365,6 +366,7 @@ export function buildCandidateMergeFillFields(therapist, candidate, helpers) {
   takeList("insuranceAccepted", incoming.insuranceAccepted);
   takeList("languages", incoming.languages);
   takeList("telehealthStates", incoming.telehealthStates);
+  takeList("trainingAffiliations", incoming.trainingAffiliations);
 
   return fill;
 }

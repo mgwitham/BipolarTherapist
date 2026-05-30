@@ -604,6 +604,7 @@ function buildCandidateDocument(row, context, index) {
     publishRecommendation: row.publishRecommendation || (hasDuplicate ? "hold" : ""),
     notes: cleanText(row.notes),
     bipolarEvidenceQuote: cleanText(row.bipolarEvidenceQuote),
+    trainingAffiliations: splitList(row.trainingAffiliations),
     sourcingConfidence: (row.sourcingConfidence || "").toLowerCase() || "",
     rejectionReason: cleanText(row.rejectionReason),
     rejectionNotes: cleanText(row.rejectionNotes),

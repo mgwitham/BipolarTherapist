@@ -3767,6 +3767,21 @@ img.bth-avatar {
   color: #17323b;
   line-height: 1.4;
 }
+.profile-affiliation-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.profile-affiliation-tag {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #1c4d5c;
+  background: #ebf7fb;
+  border: 1px solid #6dbdd4;
+  border-radius: 8px;
+  padding: 3px 10px;
+  line-height: 1.4;
+}
 .profile-detail-sub {
   font-size: 12.5px;
   color: #566f78;

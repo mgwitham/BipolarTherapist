@@ -2451,8 +2451,29 @@ function renderProfile(t, therapistDirectory) {
     }
     insuranceHtml = '<div class="profile-detail-pills">' + pillHtml + "</div>";
   }
+  // Training & affiliations (STEP-BD, UCLA Mood Disorders, DBSA, NAMI, …) —
+  // the kind of specific credential that separates a specialist from a
+  // generalist. Rendered as chips; degrades to nothing when unset.
+  var trainingAffiliations = (
+    Array.isArray(t.training_affiliations) ? t.training_affiliations : []
+  ).filter(Boolean);
+  var trainingAffiliationsHtml = "";
+  if (trainingAffiliations.length) {
+    trainingAffiliationsHtml =
+      '<div class="profile-detail-row profile-detail-row--full">' +
+      '<div class="profile-detail-label">Training &amp; affiliations</div>' +
+      '<div class="profile-affiliation-tags">' +
+      trainingAffiliations
+        .map(function (a) {
+          return '<span class="profile-affiliation-tag">' + escapeHtml(a) + "</span>";
+        })
+        .join("") +
+      "</div>" +
+      "</div>";
+  }
+
   var practiceDetailsHtml = "";
-  if (practiceRows.length || insuranceHtml) {
+  if (practiceRows.length || insuranceHtml || trainingAffiliationsHtml) {
     var rowsHtml = practiceRows
       .map(function (row) {
         return (
@@ -2476,6 +2497,7 @@ function renderProfile(t, therapistDirectory) {
         insuranceHtml +
         "</div>";
     }
+    rowsHtml += trainingAffiliationsHtml;
     practiceDetailsHtml =
       '<div class="card profile-section-card">' +
       '<div class="profile-section-eyebrow">Practice details</div>' +
