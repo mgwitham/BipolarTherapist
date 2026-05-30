@@ -2149,7 +2149,7 @@ function renderProfile(t, therapistDirectory) {
   var heroAvatarHtml = heroPhotoUrl
     ? '<img src="' +
       escapeHtml(sanityImageUrl(heroPhotoUrl, { width: 144, height: 144 })) +
-      '" alt="" width="72" height="72" class="profile-hero-avatar" loading="lazy" decoding="async" />'
+      '" alt="" width="72" height="72" class="profile-hero-avatar" fetchpriority="high" decoding="async" />'
     : '<span class="profile-hero-avatar profile-hero-avatar--tone-' +
       heroAvatarTone(t.slug) +
       '">' +

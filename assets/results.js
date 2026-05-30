@@ -14,6 +14,7 @@ import {
 } from "./match-intake.js";
 import { getCardLocationLabel, getFeeLabel, getInsuranceLabel } from "./card-content.js";
 import { escapeHtml } from "./escape-html.js";
+import { sanityImageUrl } from "./sanity-image.js";
 
 const FEATURED_RANK = 1;
 const PRIMARY_LIMIT = 8;
@@ -136,7 +137,10 @@ function hasRenderableTherapist(entry) {
 function renderAvatar(t, sizeClass) {
   const cls = sizeClass ? `card-avatar ${sizeClass}` : "card-avatar";
   if (t.photo_url) {
-    return `<div class="${cls}"><img class="card-avatar-img" src="${escapeHtml(t.photo_url)}" alt="${escapeHtml(t.name || "")}" loading="lazy" decoding="async" /></div>`;
+    // card-avatar is 48px, card-avatar-sm is 36px; request 2x for retina.
+    const px = sizeClass === "card-avatar-sm" ? 36 : 48;
+    const src = sanityImageUrl(t.photo_url, { width: px * 2, height: px * 2 });
+    return `<div class="${cls}"><img class="card-avatar-img" src="${escapeHtml(src)}" alt="${escapeHtml(t.name || "")}" width="${px}" height="${px}" loading="lazy" decoding="async" /></div>`;
   }
   return `<div class="${cls}" aria-hidden="true">${escapeHtml(getInitials(t.name))}</div>`;
 }
