@@ -17,7 +17,11 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
-import { submitTherapistCtaClick, submitTherapistProfileView } from "./review-api.js";
+import {
+  submitMatchOutcome,
+  submitTherapistCtaClick,
+  submitTherapistProfileView,
+} from "./review-api.js";
 import { buildOutreachScript } from "./outreach-scripts.js";
 import { isSaved, toggleSaved, subscribe } from "./saved-list.js";
 import { initValuePillPopover } from "./therapist-pills.js";
@@ -1159,7 +1163,7 @@ function recordProfileOutreachOutcome(therapist, outcome) {
   var now = new Date().toISOString();
   var entryIndex = shortlistSlugs.indexOf(therapist.slug);
 
-  existing.unshift({
+  var entry = {
     recorded_at: now,
     journey_id: ["profile", now, shortlistSlugs.join("-") || therapist.slug].join(":"),
     therapist_slug: therapist.slug,
@@ -1179,13 +1183,21 @@ function recordProfileOutreachOutcome(therapist, outcome) {
       profile: null,
       therapist_slugs: shortlistSlugs,
     },
-  });
+  };
+  existing.unshift(entry);
 
   try {
     window.localStorage.setItem(OUTREACH_OUTCOMES_KEY, JSON.stringify(existing.slice(0, 150)));
   } catch (_error) {
     return null;
   }
+
+  // Mirror the outcome to the Review API so the outreach funnel
+  // (reached_out → booked_consult) is queryable as durable history, not
+  // just this browser's 7-day localStorage cache. Fire-and-forget: a
+  // failed POST must never block the local UI update. The server reuses
+  // the same snake_case shape via normalizePortableMatchOutcome.
+  submitMatchOutcome(entry).catch(function () {});
 
   return getLatestOutreachOutcomeForSlug(therapist.slug);
 }
