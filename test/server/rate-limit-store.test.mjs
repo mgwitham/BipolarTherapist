@@ -1,7 +1,11 @@
 import { describe, it, beforeEach } from "node:test";
 import assert from "node:assert/strict";
 
-import { getRateLimiter, resetRateLimitStateForTests } from "../../server/rate-limit-store.mjs";
+import {
+  getRateLimiter,
+  makeRedisLimiter,
+  resetRateLimitStateForTests,
+} from "../../server/rate-limit-store.mjs";
 
 describe("getRateLimiter (in-memory fallback)", function () {
   beforeEach(function () {
@@ -71,9 +75,28 @@ describe("getRateLimiter (Redis backend)", function () {
     assert.equal(limiter.backend, "redis");
   });
 
-  // Fail-open behavior on Redis errors is covered by a one-line catch
-  // block in rate-limit-store.mjs (canAttempt + record both catch and
-  // return true / no-op). Not unit-tested here because the Upstash SDK's
-  // built-in retry policy makes the "network failure" stub take seconds
-  // even with fetch monkey-patched. Trust the code; verify in staging.
+  it("falls back to an in-memory limiter (not fail-open) when Redis errors", async function () {
+    // Stub client whose every op rejects, simulating an Upstash outage.
+    const failingClient = {
+      get: async () => {
+        throw new Error("redis down");
+      },
+      incr: async () => {
+        throw new Error("redis down");
+      },
+      expire: async () => {
+        throw new Error("redis down");
+      },
+      del: async () => {
+        throw new Error("redis down");
+      },
+    };
+    const limiter = makeRedisLimiter("outage", 60_000, 2, failingClient);
+    // Under the cap, attempts are allowed via the in-memory fallback...
+    assert.equal(await limiter.canAttempt("ip"), true);
+    await limiter.record("ip");
+    await limiter.record("ip");
+    // ...and the cap is still enforced, rather than failing open forever.
+    assert.equal(await limiter.canAttempt("ip"), false);
+  });
 });
