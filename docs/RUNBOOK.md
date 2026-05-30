@@ -156,9 +156,31 @@ Sanity is the only "lose it and the business is gone" store. Backups are
 **Backups (automated):** the `Sanity Backup Weekly` GitHub Action
 (`.github/workflows/sanity-backup-weekly.yml`) runs Mondays 12:00 UTC and
 on `workflow_dispatch`. It runs `sanity dataset export production` and
-uploads the `.tar.gz` as a workflow artifact with 90-day retention. So at
-any time you have ~12 weekly snapshots. Each snapshot is a standard Sanity
-export: `data.ndjson` (all docs) + `assets.json` + `images/` + `files/`.
+stores the `.tar.gz` in **two independent failure domains**:
+
+1. A **GitHub Actions artifact** (90-day retention) — so at any time you
+   have ~12 weekly snapshots.
+2. An **off-site Cloudflare R2 bucket** at `r2://<bucket>/sanity/<file>` —
+   survives loss of the GitHub account/repo. The upload is byte-size
+   verified before the run is considered good.
+
+Each snapshot is a standard Sanity export: `data.ndjson` (all docs) +
+`assets.json` + `images/` + `files/`.
+
+**One-time R2 setup** (until done, the R2 step skips and the run prints a
+warning; the GitHub artifact still works):
+
+1. Cloudflare dashboard → R2 → **Create bucket** (e.g. `bth-sanity-backups`,
+   any region). Optional: add a **lifecycle rule** to expire objects older
+   than e.g. 365 days so storage stays trivial.
+2. R2 → **Manage R2 API Tokens** → create a token scoped to that bucket
+   with **Object Read & Write**. Note the Access Key ID + Secret.
+3. Your R2 **Account ID** is in the R2 overview URL / "Account details".
+4. Add these GitHub repo secrets (Settings → Secrets and variables →
+   Actions): `R2_BUCKET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`,
+   `R2_SECRET_ACCESS_KEY`.
+5. Trigger a manual run (`gh workflow run sanity-backup-weekly.yml`) and
+   confirm the run summary shows the `Off-site:` line.
 
 **To grab the latest backup:**
 
@@ -166,6 +188,18 @@ export: `data.ndjson` (all docs) + `assets.json` + `images/` + `files/`.
 RUNID=$(gh run list --workflow="sanity-backup-weekly.yml" --limit 1 --json databaseId --jq '.[0].databaseId')
 gh run download "$RUNID" --dir ./restore
 # tarball lands at ./restore/sanity-backup-YYYY-MM-DD/sanity-production-YYYY-MM-DD.tar.gz
+```
+
+**Or pull it from off-site R2** (works even if GitHub is unavailable —
+needs the R2 token from setup, exported as `AWS_ACCESS_KEY_ID` /
+`AWS_SECRET_ACCESS_KEY`, plus `AWS_DEFAULT_REGION=auto`):
+
+```sh
+ENDPOINT="https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com"
+# list snapshots, newest last:
+aws s3 ls "s3://<R2_BUCKET>/sanity/" --endpoint-url "$ENDPOINT"
+# download one:
+aws s3 cp "s3://<R2_BUCKET>/sanity/sanity-production-YYYY-MM-DD.tar.gz" . --endpoint-url "$ENDPOINT"
 ```
 
 **To verify a backup is complete (no live writes needed):**
