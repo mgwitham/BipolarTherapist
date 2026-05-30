@@ -521,6 +521,18 @@ export const therapistCandidateType = defineType({
       group: "review",
     }),
     defineField({
+      name: "trainingAffiliations",
+      title: "Training & affiliations",
+      description:
+        "Specific bipolar-relevant training programs or affiliations listed on the clinician's own site (e.g. STEP-BD, UCLA Mood Disorders Program, DBSA, NAMI). Captured at discovery time; carried onto the published therapist.",
+      type: "array",
+      of: [defineArrayMember({ type: "string" })],
+      options: {
+        layout: "tags",
+      },
+      group: "review",
+    }),
+    defineField({
       name: "sourcingConfidence",
       title: "Sourcing confidence",
       description:

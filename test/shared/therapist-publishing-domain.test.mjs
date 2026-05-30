@@ -147,3 +147,40 @@ test("buildCandidateMergeFillFields fills the evidence quote only when the thera
   );
   assert.equal(preserved.bipolarEvidenceQuote, undefined);
 });
+
+test("buildTherapistDocumentFromCandidate carries training affiliations onto the published doc", function () {
+  const doc = buildTherapistDocumentFromCandidate(
+    {
+      name: "Dana Rivers",
+      city: "Oakland",
+      state: "CA",
+      trainingAffiliations: ["STEP-BD", "UCLA Mood Disorders Program"],
+    },
+    undefined,
+    publishHelpers,
+  );
+  assert.deepEqual(doc.trainingAffiliations, ["STEP-BD", "UCLA Mood Disorders Program"]);
+});
+
+test("buildTherapistDocumentFromCandidate defaults training affiliations to an empty array", function () {
+  const doc = buildTherapistDocumentFromCandidate(
+    { name: "Dana Rivers", city: "Oakland", state: "CA" },
+    undefined,
+    publishHelpers,
+  );
+  assert.deepEqual(doc.trainingAffiliations, []);
+});
+
+test("buildCandidateMergeFillFields fills training affiliations only when the therapist has none", function () {
+  const candidate = { trainingAffiliations: ["DBSA", "NAMI"] };
+
+  const filled = buildCandidateMergeFillFields({}, candidate, publishHelpers);
+  assert.deepEqual(filled.trainingAffiliations, ["DBSA", "NAMI"]);
+
+  const preserved = buildCandidateMergeFillFields(
+    { trainingAffiliations: ["Human-curated affiliation"] },
+    candidate,
+    publishHelpers,
+  );
+  assert.equal(preserved.trainingAffiliations, undefined);
+});

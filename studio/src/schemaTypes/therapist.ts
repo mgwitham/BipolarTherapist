@@ -374,6 +374,18 @@ export const therapistType = defineType({
       validation: (Rule) => Rule.max(280),
     }),
     defineField({
+      name: "trainingAffiliations",
+      title: "Training & affiliations",
+      description:
+        "Specific bipolar-relevant training programs or affiliations the clinician lists on their own site (e.g. STEP-BD, UCLA Mood Disorders Program, DBSA, NAMI). Carried over from the candidate at publish time and rendered as credential chips on the public profile.",
+      type: "array",
+      group: "trust",
+      of: [defineArrayMember({ type: "string" })],
+      options: {
+        layout: "tags",
+      },
+    }),
+    defineField({
       name: "treatmentModalities",
       title: "Treatment modalities",
       type: "array",
