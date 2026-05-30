@@ -2748,6 +2748,11 @@ function renderProfile(t, therapistDirectory) {
     // [data-copy-email] handler + .profile-contact-copy-hint styling.
     var copyEmail = opts && opts.copyEmail ? opts.copyEmail : "";
     var copyAttr = copyEmail ? ' data-copy-email="' + escapeHtml(copyEmail) + '"' : "";
+    // Action-oriented accessible name so a screen reader announces "Call
+    // Dana" rather than reading the raw phone digits or URL aloud. The
+    // visible value still carries the literal number/address for sighted users.
+    var ariaLabel = opts && opts.ariaLabel ? opts.ariaLabel : "";
+    var ariaAttr = ariaLabel ? ' aria-label="' + escapeHtml(ariaLabel) + '"' : "";
     var inner = copyEmail
       ? '<span class="profile-contact-value">' +
         escapeHtml(label) +
@@ -2764,6 +2769,7 @@ function renderProfile(t, therapistDirectory) {
       external +
       anchorCls +
       copyAttr +
+      ariaAttr +
       ">" +
       inner +
       "</a>" +
@@ -2778,6 +2784,7 @@ function renderProfile(t, therapistDirectory) {
     sideContactItems += sideContactRow("email", "ti-mail", "mailto:" + t.email, t.email, {
       cls: "profile-side-email",
       copyEmail: t.email,
+      ariaLabel: "Email " + therapistFirstName,
     });
   }
   if (sideHasPhone) {
@@ -2786,11 +2793,13 @@ function renderProfile(t, therapistDirectory) {
       "ti-phone",
       "tel:" + normalizeTelUri(t.phone),
       t.phone,
+      { ariaLabel: "Call " + therapistFirstName + " at " + t.phone },
     );
   }
   if (sideHasWebsite) {
     sideContactItems += sideContactRow("website", "ti-world", websiteUrl, "Practice website →", {
       external: true,
+      ariaLabel: "Visit " + therapistFirstName + "'s practice website (opens in a new tab)",
     });
   }
   if (sideHasBooking) {
@@ -2799,7 +2808,10 @@ function renderProfile(t, therapistDirectory) {
       "ti-calendar",
       bookingUrl,
       "Book a consultation →",
-      { external: true },
+      {
+        external: true,
+        ariaLabel: "Book a consultation with " + therapistFirstName + " (opens in a new tab)",
+      },
     );
   }
 
