@@ -2156,15 +2156,49 @@ function renderProfile(t, therapistDirectory) {
       escapeHtml(heroInitials(t.name)) +
       "</span>";
 
+  // A profile earns the stronger "Bipolar specialist" label when it has any
+  // years treating bipolar on file, or lists bipolar among its specialties.
+  // Otherwise it falls back to the generic "Bipolar-informed profile" badge.
+  var isBipolarSpecialist =
+    bipolarYears >= 1 ||
+    (Array.isArray(t.specialties) &&
+      t.specialties.some(function (s) {
+        return /bipolar/i.test(String(s || ""));
+      }));
+  var isLicenseVerified =
+    t.verification_status === "editorially_verified" && Boolean(t.license_number);
+
   var heroStatusRow =
     '<div class="profile-hero-status">' +
-    '<span class="profile-hero-badge profile-hero-badge--bp">Bipolar-informed profile</span>' +
+    (isBipolarSpecialist
+      ? '<span class="profile-hero-badge profile-hero-badge--bp">Bipolar specialist</span>'
+      : '<span class="profile-hero-badge profile-hero-badge--bp">Bipolar-informed profile</span>') +
+    (isLicenseVerified
+      ? '<span class="profile-hero-badge profile-hero-badge--verified">License verified</span>'
+      : "") +
     (t.accepting_new_patients === true
       ? '<span class="profile-hero-badge profile-hero-badge--accepting">Accepting new patients</span>'
       : t.accepting_new_patients === false
         ? '<span class="profile-hero-badge profile-hero-badge--closed">Not currently accepting</span>'
         : "") +
     "</div>";
+
+  // The single fastest trust signal: verbatim language from the clinician's
+  // own site proving bipolar specialization, rendered as a hero pull-quote.
+  // Degrades to nothing when the field is absent (older published profiles).
+  var heroEvidenceQuote = String(t.bipolar_evidence_quote || "").trim();
+  var heroEvidenceHtml = "";
+  if (heroEvidenceQuote) {
+    heroEvidenceHtml =
+      '<figure class="profile-hero-evidence">' +
+      '<blockquote class="profile-hero-evidence-quote">' +
+      escapeHtml(heroEvidenceQuote) +
+      "</blockquote>" +
+      '<figcaption class="profile-hero-evidence-cite">From ' +
+      escapeHtml(therapistFirstName) +
+      "&rsquo;s practice site</figcaption>" +
+      "</figure>";
+  }
 
   var heroTelehealthStates = Array.isArray(t.telehealth_states)
     ? t.telehealth_states.filter(Boolean)
@@ -2834,6 +2868,7 @@ function renderProfile(t, therapistDirectory) {
       : "") +
     "</div>" +
     "</div>" +
+    heroEvidenceHtml +
     heroYearsHtml +
     heroTagsHtml +
     "</div>" +
