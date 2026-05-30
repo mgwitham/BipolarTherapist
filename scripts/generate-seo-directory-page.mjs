@@ -17,6 +17,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
 const ROOT = process.cwd();
@@ -175,6 +176,29 @@ function buildHeadTags() {
   ].join("\n    ");
 }
 
+// Apply one string replacement and fail loudly if the anchor is missing.
+// A no-op replace here means directory.html drifted from what this script
+// targets (e.g. a page redesign), and we'd otherwise rewrite the file with
+// no changes while still logging "Pre-rendered ... cards" — shipping a
+// crawler-blind /directory that looks done. That exact silent regression is
+// what this guards against. The throw propagates to main().catch, which sets
+// a non-zero exit code and fails the build. Sanity-unreachable stays soft
+// (see main()): an infra blip must not block deploys, but template drift is a
+// code bug that must.
+function applyAnchoredReplace(html, label, pattern, replacement) {
+  // Pass replacement as a function so $-sequences in dynamic content are
+  // treated literally rather than as String.replace substitution patterns.
+  const next = html.replace(pattern, () => replacement);
+  if (next === html) {
+    throw new Error(
+      `[seo-directory] injection anchor not found: ${label}. directory.html changed — ` +
+        `update injectSeo() in scripts/generate-seo-directory-page.mjs. Refusing to ship a ` +
+        `/directory page that silently lost its crawlable ${label}.`,
+    );
+  }
+  return next;
+}
+
 function injectSeo(html, providers) {
   const headBlock = buildHeadTags();
   const jsonLd = JSON.stringify(buildJsonLd(providers));
@@ -183,18 +207,41 @@ function injectSeo(html, providers) {
     buildProviderCardsHtml(providers) +
     "</div>";
 
-  return (
-    html
-      // OG/Twitter tags + city card styles, before </head>.
-      .replace(/<\/head>/i, "    " + headBlock + "\n    " + CITY_STYLESHEET_LINK + "\n  </head>")
-      // Fill the empty JSON-LD placeholder with a real CollectionPage.
-      .replace(
-        /<script type="application\/ld\+json" id="dirJsonLd">\s*<\/script>/i,
-        '<script type="application/ld+json" id="dirJsonLd">' + jsonLd + "</script>",
-      )
-      // Swap the loading spinner for the static provider grid.
-      .replace(/<div class="loading"[\s\S]*?<\/p>\s*<\/div>/i, cardsHtml)
+  let out = html;
+
+  // OG/Twitter tags + city card styles, before </head>.
+  out = applyAnchoredReplace(
+    out,
+    "head tags",
+    /<\/head>/i,
+    "    " + headBlock + "\n    " + CITY_STYLESHEET_LINK + "\n  </head>",
   );
+
+  // Replace the shell's placeholder JSON-LD (a bare ItemList stub) with a
+  // richer CollectionPage built from the live provider list. Keyed on the
+  // unique #dirJsonLd id so it never touches other ld+json blocks.
+  out = applyAnchoredReplace(
+    out,
+    "JSON-LD (#dirJsonLd)",
+    /<script type="application\/ld\+json" id="dirJsonLd">[\s\S]*?<\/script>/i,
+    '<script type="application/ld+json" id="dirJsonLd">' + jsonLd + "</script>",
+  );
+
+  // Swap the skeleton placeholders inside #resultsGrid for real, crawlable
+  // provider cards. directory.js repaints #resultsGrid on load, so this
+  // static list is purely for crawlers and no-JS visitors. The lookahead
+  // pins the match to the grid's own closing tag (the one followed by
+  // #dirLoadMoreWrap), never a nested card's </div>.
+  out = applyAnchoredReplace(
+    out,
+    "results grid (#resultsGrid)",
+    /<div[^>]*id="resultsGrid"[^>]*>[\s\S]*?<\/div>(?=\s*(?:<!--[\s\S]*?-->\s*)?<div[^>]*id="dirLoadMoreWrap")/i,
+    '<div class="therapist-grid dir-vb-grid" id="resultsGrid" aria-live="polite" aria-label="Therapist results">' +
+      cardsHtml +
+      "</div>",
+  );
+
+  return out;
 }
 
 async function fetchTherapists(config) {
@@ -243,7 +290,15 @@ async function main() {
   );
 }
 
-main().catch(function (error) {
-  console.error("[seo-directory] Unexpected error:", error);
-  process.exitCode = 1;
-});
+// Only run the build when invoked directly (node scripts/...). Importing the
+// module — e.g. from tests that exercise injectSeo — must not trigger a real
+// Sanity fetch and file write.
+const invokedDirectly = process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href;
+if (invokedDirectly) {
+  main().catch(function (error) {
+    console.error("[seo-directory] Unexpected error:", error);
+    process.exitCode = 1;
+  });
+}
+
+export { injectSeo, buildJsonLd, buildProviderCardsHtml };

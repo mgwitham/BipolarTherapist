@@ -22,6 +22,7 @@ import {
   buildSitemapXml,
   STATIC_ROUTES,
 } from "../../scripts/generate-sitemap.mjs";
+import { injectSeo as injectDirectorySeo } from "../../scripts/generate-seo-directory-page.mjs";
 
 const ROOT = process.cwd();
 
@@ -332,4 +333,83 @@ test("Vercel adds X-Robots-Tag headers to non-indexable HTML app surfaces", asyn
       block.headers.some((header) => header.key === "X-Robots-Tag" && /noindex/.test(header.value)),
     );
   }
+});
+
+// Mirrors the real (redesigned) dist/directory.html shell: a NON-empty
+// #dirJsonLd stub and a #resultsGrid full of dir-skel-card skeletons, closed
+// just before #dirLoadMoreWrap. The pre-redesign generator anchored on an
+// empty <script id="dirJsonLd"></script> and a <div class="loading"> spinner —
+// neither survives in this shell, so it silently injected nothing while still
+// logging success. These tests fail against that buggy version.
+const DIRECTORY_SHELL = `<!doctype html>
+<html lang="en">
+  <head>
+    <title id="dirPageTitle">Browse Bipolar-Informed Therapists in California</title>
+    <script type="application/ld+json" id="dirJsonLd">
+      { "@context": "https://schema.org", "@type": "ItemList", "itemListElement": [] }
+    </script>
+  </head>
+  <body>
+    <main class="dir-vb-main">
+      <div
+        class="therapist-grid dir-vb-grid"
+        id="resultsGrid"
+        aria-live="polite"
+        aria-label="Therapist results"
+      >
+        <p class="dir-skel-status">Finding bipolar informed options...</p>
+        <article class="dir-card dir-skel-card" aria-hidden="true">
+          <div class="dir-card-body"><div class="dir-card-head"></div></div>
+        </article>
+      </div>
+      <!-- Load more, rendered by JS -->
+      <div class="dir-load-more-wrap" id="dirLoadMoreWrap"></div>
+    </main>
+  </body>
+</html>`;
+
+const DIRECTORY_PROVIDERS = [
+  {
+    slug: "jane-doe-los-angeles-ca",
+    name: "Jane Doe",
+    credentials: "LMFT",
+    title: "Therapist",
+    city: "Los Angeles",
+  },
+  {
+    slug: "alex-rivera-fresno-ca",
+    name: "Alex Rivera",
+    credentials: "PsyD",
+    title: "Psychologist",
+    city: "Fresno",
+  },
+];
+
+test("directory SEO generator injects CollectionPage JSON-LD and crawlable provider cards", () => {
+  const html = injectDirectorySeo(DIRECTORY_SHELL, DIRECTORY_PROVIDERS);
+  // CollectionPage replaces the bare ItemList stub inside #dirJsonLd.
+  assert.match(html, /"@type":"CollectionPage"/);
+  // Real, linked provider cards land in the grid in place of the skeletons.
+  assert.match(html, /data-static-seo-directory/);
+  assert.match(html, /href="\/therapists\/jane-doe-los-angeles-ca\/"/);
+  assert.match(html, /href="\/therapists\/alex-rivera-fresno-ca\/"/);
+  assert.doesNotMatch(html, /dir-skel-card/);
+  // Open Graph tags the SPA shell lacks.
+  assert.match(html, /property="og:title"/);
+});
+
+test("directory SEO generator fails loudly when the #resultsGrid anchor drifts", () => {
+  const drifted = DIRECTORY_SHELL.replace('id="resultsGrid"', 'id="renamedGrid"');
+  assert.throws(
+    () => injectDirectorySeo(drifted, DIRECTORY_PROVIDERS),
+    /injection anchor not found: results grid/,
+  );
+});
+
+test("directory SEO generator fails loudly when the #dirJsonLd anchor drifts", () => {
+  const drifted = DIRECTORY_SHELL.replace('id="dirJsonLd"', 'id="renamedJsonLd"');
+  assert.throws(
+    () => injectDirectorySeo(drifted, DIRECTORY_PROVIDERS),
+    /injection anchor not found: JSON-LD/,
+  );
 });
