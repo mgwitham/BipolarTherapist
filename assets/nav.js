@@ -206,6 +206,50 @@
         break;
       }
     }
+
+    // When already on the homepage, "Get matched" should focus the
+    // intake form's first field — not just scroll to a section that's
+    // often already in view, which feels like nothing happened. On other
+    // pages the link still navigates to the homepage form (/#startMatch).
+    // Only the form link is enhanced; the "Your matches" results link
+    // (no #startMatch) navigates normally.
+    function enhanceStartMatchLink(linkEl) {
+      if (!linkEl) return;
+      linkEl.addEventListener("click", function (evt) {
+        var href = linkEl.getAttribute("href") || "";
+        if (href.indexOf("#startMatch") === -1) return;
+        var onHome = window.location.pathname === "/" || window.location.pathname === "/index.html";
+        if (!onHome) return;
+        var form = document.getElementById("startMatch");
+        if (!form) return;
+        evt.preventDefault();
+        // Close the mobile sheet (if open) so the form is visible.
+        var sheet = document.querySelector(".public-mobile-nav");
+        if (sheet && sheet.classList.contains("is-open")) {
+          sheet.classList.remove("is-open");
+          var ham = document.querySelector(".nav-hamburger");
+          if (ham) ham.setAttribute("aria-expanded", "false");
+          document.body.style.overflow = "";
+        }
+        form.scrollIntoView({ behavior: "smooth", block: "start" });
+        var field =
+          document.getElementById("homepage_interest") ||
+          form.querySelector("select, input, textarea, button");
+        if (field) {
+          // Delay so focus doesn't fight the smooth scroll; preventScroll
+          // keeps the browser from jumping past the smooth animation.
+          window.setTimeout(function () {
+            try {
+              field.focus({ preventScroll: true });
+            } catch (_focusErr) {
+              field.focus();
+            }
+          }, 400);
+        }
+      });
+    }
+    enhanceStartMatchLink(desktopLink);
+    enhanceStartMatchLink(document.getElementById("navBrowseLinkMobile"));
   } catch (_e) {
     // localStorage unavailable, keep static defaults
   }
