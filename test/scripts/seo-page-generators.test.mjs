@@ -162,6 +162,26 @@ test("city SEO generator stamps the CollectionPage with the most recent provider
   assert.equal(collectionPage.dateModified, "2026-05-09T00:00:00Z");
 });
 
+test("profile SEO generator types non-prescribers as MedicalBusiness and lists modalities", () => {
+  const headTags = buildProfileHeadTags(PROFILE_THERAPIST);
+  const business = extractJsonLd(headTags, "therapist-jsonld-business");
+
+  assert.equal(business["@type"], "MedicalBusiness");
+  assert.equal(business.medicalSpecialty, undefined);
+  assert.deepEqual(
+    (business.availableService || []).map((s) => s.name),
+    ["CBT", "DBT"],
+  );
+});
+
+test("profile SEO generator types prescribers as Physician with a psychiatric specialty", () => {
+  const headTags = buildProfileHeadTags({ ...PROFILE_THERAPIST, credentials: "MD" });
+  const business = extractJsonLd(headTags, "therapist-jsonld-business");
+
+  assert.equal(business["@type"], "Physician");
+  assert.equal(business.medicalSpecialty, "Psychiatric");
+});
+
 test("profile SEO generator breadcrumbs use clean directory URL", async () => {
   const source = await readFile(
     path.join(ROOT, "scripts", "generate-seo-profile-pages.mjs"),

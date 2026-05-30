@@ -75,6 +75,39 @@ async function fetchSanity(query, params = {}) {
   }
 }
 
+// Like fetchSanity, but distinguishes "Sanity answered (possibly with no
+// match)" from "couldn't reach Sanity at all." The handler needs this to
+// tell a genuinely-missing profile (→ 404, so search engines de-index)
+// apart from a transient backend outage (→ keep the resilient SPA fallback
+// rather than 404 a real profile).
+async function fetchSanityResult(query, params = {}) {
+  const client = getSanityClient();
+  if (!client) return { reached: false, data: null };
+  try {
+    return { reached: true, data: await client.fetch(query, params) };
+  } catch (_err) {
+    return { reached: false, data: null };
+  }
+}
+
+// Minimal, noindex 404 body for a slug that has no active listed profile.
+function buildNotFoundPage() {
+  return [
+    "<!doctype html>",
+    '<html lang="en"><head><meta charset="utf-8" />',
+    '<meta name="viewport" content="width=device-width, initial-scale=1" />',
+    '<meta name="robots" content="noindex, follow" />',
+    "<title>Profile not available · BipolarTherapyHub</title>",
+    '<link rel="stylesheet" href="/assets/styles.css" />',
+    "</head><body>",
+    '<main style="max-width:640px;margin:4rem auto;padding:0 1.25rem;text-align:center;font-family:system-ui,sans-serif">',
+    "<h1>This profile isn’t available</h1>",
+    "<p>This therapist may no longer be listed. Browse the directory to find bipolar-informed care.</p>",
+    '<p><a href="/directory">Back to the directory →</a></p>',
+    "</main></body></html>",
+  ].join("");
+}
+
 // ─── Normalization ────────────────────────────────────────────────────────────
 
 function normalizeDoc(doc, subscription = null) {
@@ -787,13 +820,25 @@ export default async function handler(req, res) {
 
   // Fetch therapist + subscription in parallel
   const subscriptionId = `therapistSubscription-${slug.trim().toLowerCase()}`;
-  const [doc, subscription] = await Promise.all([
-    fetchSanity(THERAPIST_GROQ, { slug }),
+  const [therapistResult, subscription] = await Promise.all([
+    fetchSanityResult(THERAPIST_GROQ, { slug }),
     fetchSanity(`*[_id == $id][0]{_id, plan, status}`, { id: subscriptionId }),
   ]);
+  const doc = therapistResult.data;
 
   if (!doc) {
-    // Not found or Sanity unavailable — fall through to Vite SPA
+    if (therapistResult.reached) {
+      // Sanity answered and there is no active, listed profile for this slug
+      // (delisted, unlisted, or never existed). Return 404 so search engines
+      // de-index the URL instead of seeing a soft-404 via the SPA shell.
+      res.statusCode = 404;
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      res.setHeader("X-Robots-Tag", "noindex");
+      res.end(buildNotFoundPage());
+      return;
+    }
+    // Sanity unreachable (missing env or transient outage) — fall through to
+    // the Vite SPA, which retries client-side, rather than 404 a real profile.
     res.writeHead(302, { Location: `/therapist?slug=${encodeURIComponent(slug)}` });
     res.end();
     return;

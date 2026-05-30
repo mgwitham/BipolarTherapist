@@ -298,6 +298,13 @@ function buildJsonLd(therapist) {
     postalCode: therapist.zip || undefined,
     addressCountry: "US",
   };
+  const isPhysician = /\b(MD|DO)\b/i.test(String(therapist.credentials || ""));
+  const modalities = Array.isArray(therapist.treatmentModalities)
+    ? therapist.treatmentModalities.filter(Boolean)
+    : [];
+  const specialties = Array.isArray(therapist.specialties)
+    ? therapist.specialties.filter(Boolean)
+    : [];
   return [
     {
       "@context": "https://schema.org",
@@ -312,7 +319,9 @@ function buildJsonLd(therapist) {
       name: nameWithCreds,
       url: canonicalUrl,
       jobTitle: therapist.title || "Therapist",
-      knowsAbout: ["Bipolar disorder", "Psychotherapy", "Mental health"],
+      knowsAbout: Array.from(
+        new Set(["Bipolar disorder", "Psychotherapy", "Mental health", ...specialties]),
+      ),
       address,
       image: therapist.photo_url ? optimizeSanityImage(therapist.photo_url) : undefined,
       telephone: therapist.phone || undefined,
@@ -332,13 +341,26 @@ function buildJsonLd(therapist) {
     },
     {
       "@context": "https://schema.org",
-      "@type": "MedicalBusiness",
+      "@type": isPhysician ? "Physician" : "MedicalBusiness",
       name: therapist.practiceName || nameWithCreds,
       url: canonicalUrl,
       address,
+      areaServed: therapist.city
+        ? { "@type": "City", name: `${therapist.city}, ${therapist.state || "CA"}` }
+        : { "@type": "AdministrativeArea", name: "California" },
       telephone: therapist.phone || undefined,
       priceRange: "$$",
-      medicalSpecialty: "Psychiatric",
+      // "Psychiatric" specialty only applies to prescribers (MD/DO); don't
+      // mislabel non-prescribing therapists (LMFT/LCSW/etc.).
+      ...(isPhysician ? { medicalSpecialty: "Psychiatric" } : {}),
+      ...(modalities.length
+        ? {
+            availableService: modalities.map((m) => ({
+              "@type": "MedicalTherapy",
+              name: m,
+            })),
+          }
+        : {}),
       ...(ZIP_GEO[therapist.zip]
         ? {
             geo: {
