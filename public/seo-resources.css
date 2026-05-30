@@ -255,6 +255,29 @@
   margin: 0;
 }
 
+/* ---- MEDICAL DISCLAIMER ---- */
+.res-disclaimer {
+  max-width: 760px;
+  margin: 3rem auto 0;
+  padding: 1.1rem 1.5rem;
+  border-top: 1px solid var(--res-border);
+  font-family: var(--res-sans);
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--res-muted);
+}
+.res-disclaimer p {
+  margin: 0 0 0.6rem;
+}
+.res-disclaimer p:last-child {
+  margin-bottom: 0;
+}
+.res-disclaimer a {
+  color: var(--res-teal-dark);
+  font-weight: 600;
+  text-decoration: underline;
+}
+
 /* ---- ARTICLE FOOTER NAV ---- */
 .res-back {
   max-width: 760px;

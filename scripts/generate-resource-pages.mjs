@@ -352,7 +352,22 @@ function buildArticleBody(article, minutes) {
         "</section>"
       : "";
 
+  // Site-wide medical disclaimer + crisis line, folded into the end-of-guide
+  // block so it renders on every guide. These pages give bipolar-care
+  // guidance written from lived experience, not by a clinician, so each one
+  // must state plainly that it is general information, not medical advice —
+  // both to be honest with readers in crisis and to avoid implying clinical
+  // authority the byline does not claim.
   const back =
+    '<aside class="res-disclaimer" role="note" aria-label="Medical disclaimer">' +
+    "<p><strong>This guide is general information, not medical advice.</strong> " +
+    "It is written from lived experience, not by a licensed clinician, and is not a " +
+    "substitute for professional diagnosis or treatment. Always consult a qualified " +
+    "mental-health professional or your prescriber about your own care.</p>" +
+    "<p>In crisis or thinking about suicide? Call or text " +
+    '<a href="tel:988">988</a>, the Suicide &amp; Crisis Lifeline (US), available ' +
+    'around the clock. If you are in immediate danger, call <a href="tel:911">911</a>.</p>' +
+    "</aside>" +
     '<div class="res-back"><a href="/resources/">&larr; All guides</a> &nbsp;&middot;&nbsp; ' +
     '<a href="/directory">Browse the directory</a></div>';
 
