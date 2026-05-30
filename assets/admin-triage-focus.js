@@ -12,6 +12,10 @@ const CURRENT_CLASS = "is-focus-current";
 const KEY_HANDLER_PROP = "__focusModeKeyHandler";
 const STATE_PROP = "__focusModeState";
 const CONFIG_PROP = "__focusModeConfig";
+// Per-session review tally, so the HUD can show "Reviewed N · M left · Xs avg"
+// instead of only a bottomless position counter. Lives on the panel root so it
+// survives the innerHTML rebuilds that happen after every decision.
+const SESSION_PROP = "__focusModeSession";
 
 const TRIAGE_CONFIG = {
   cardSelector: "[data-candidate-card-id]",
@@ -84,6 +88,29 @@ const SIGNUPS_CONFIG = {
   },
 };
 
+function startSession(root) {
+  root[SESSION_PROP] = { reviewed: 0, totalMs: 0, lastMark: Date.now() };
+}
+
+function markReviewed(root) {
+  const session = root[SESSION_PROP];
+  if (!session) return;
+  const now = Date.now();
+  session.totalMs += Math.max(0, now - session.lastMark);
+  session.lastMark = now;
+  session.reviewed += 1;
+}
+
+function buildSessionLabel(root, remaining) {
+  const session = root[SESSION_PROP] || { reviewed: 0, totalMs: 0 };
+  let label = "Reviewed " + session.reviewed + " · " + remaining + " left";
+  if (session.reviewed > 0) {
+    const avgSeconds = Math.round(session.totalMs / session.reviewed / 1000);
+    label += " · " + avgSeconds + "s avg";
+  }
+  return label;
+}
+
 function isTypingInInput(target) {
   if (!target || !target.tagName) return false;
   const tag = target.tagName.toLowerCase();
@@ -131,6 +158,9 @@ function updateHud(root, index, total, card) {
     " of " +
     total +
     "</div>" +
+    '<div class="triage-focus-hud-progress" aria-live="polite">' +
+    escapeHtml(buildSessionLabel(root, total)) +
+    "</div>" +
     '<div class="triage-focus-hud-name">' +
     escapeHtml(name.trim()) +
     "</div>" +
@@ -160,7 +190,9 @@ function attachKeyHandler(root) {
     } else if (key === "escape") {
       exitFocusMode(root);
     } else if (config.keys[key]) {
-      config.keys[key].action(cards[state.index]);
+      if (config.keys[key].action(cards[state.index])) {
+        markReviewed(root);
+      }
     } else {
       handled = false;
     }
@@ -197,6 +229,7 @@ export function enterFocusMode(root, config) {
   const cards = getCards(root);
   if (!cards.length) return;
   root.classList.add(FOCUS_CLASS);
+  startSession(root);
   ensureHud(root);
   attachKeyHandler(root);
   focusCardAt(root, cards, 0);
@@ -211,6 +244,7 @@ export function exitFocusMode(root) {
   removeHud(root);
   detachKeyHandler(root);
   root[STATE_PROP] = null;
+  root[SESSION_PROP] = null;
 }
 
 // Reapply focus after a re-render (panel rebuilds innerHTML on every data load).
