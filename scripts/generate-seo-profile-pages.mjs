@@ -301,6 +301,13 @@ function buildJsonLd(therapist) {
   return [
     {
       "@context": "https://schema.org",
+      "@type": "ProfilePage",
+      url: canonicalUrl,
+      ...(therapist._updatedAt ? { dateModified: therapist._updatedAt } : {}),
+      mainEntity: { "@type": "Person", name: nameWithCreds, url: canonicalUrl },
+    },
+    {
+      "@context": "https://schema.org",
       "@type": "Person",
       name: nameWithCreds,
       url: canonicalUrl,
@@ -583,6 +590,7 @@ export function buildHeadTags(therapist) {
     `<meta name="twitter:image:alt" content="${escapeAttribute(imageAlt)}" />`,
     ...(() => {
       const ids = [
+        "therapist-jsonld-profile",
         "therapist-jsonld",
         "therapist-jsonld-business",
         "therapist-jsonld-breadcrumb",

@@ -135,12 +135,21 @@ function buildDescription(city, state, count) {
 function buildJsonLd(city, state, slug, providers) {
   const canonicalUrl = buildCanonicalUrl(slug);
   const stats = computeCityStats(providers);
+  // Freshness signal: the most recent provider update on this city page.
+  const lastModified = (providers || [])
+    .map(function (p) {
+      return p && p._updatedAt;
+    })
+    .filter(Boolean)
+    .sort()
+    .pop();
   return [
     {
       "@context": "https://schema.org",
       "@type": "CollectionPage",
       name: "Bipolar Therapists in " + city + ", " + state,
       url: canonicalUrl,
+      ...(lastModified ? { dateModified: lastModified } : {}),
       about: {
         "@type": "MedicalCondition",
         name: "Bipolar disorder",
@@ -840,7 +849,7 @@ async function fetchTherapists(config) {
   });
   return client.fetch(
     `*[_type == "therapist" && listingActive == true && status == "active" && defined(slug.current) && defined(city)] | order(name asc) {
-       "slug": slug.current, name, credentials, title, city, state,
+       _updatedAt, "slug": slug.current, name, credentials, title, city, state,
        sessionFeeMin, sessionFeeMax, acceptsTelehealth, acceptsInPerson,
        acceptingNewPatients, treatmentModalities, specialties
      }`,
