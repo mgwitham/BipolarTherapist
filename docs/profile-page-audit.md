@@ -5,6 +5,23 @@
 **Files in scope:** [therapist.html](../therapist.html), [assets/therapist-page.js](../assets/therapist-page.js), related CSS.
 **Out of scope:** Admin, matching model, signup, schema additions.
 
+## Implementation status — updated 2026-05-30
+
+Most of this audit has shipped. Remaining open items are the low-priority tail (#8–#10).
+
+| #   | Recommendation                                     | Status                                                                                                                                                                             |
+| --- | -------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | Render `bipolarEvidenceQuote` as a hero pull-quote | ✅ Shipped — PR #969 (field added to the published `therapist` schema + carried through the publish pipeline; backfill in `scripts/backfill-therapist-bipolar-evidence-quote.mjs`) |
+| 2   | Never let the primary CTA be empty                 | ✅ Resolved differently — the contact ladder intentionally never promotes an external practice site to the primary CTA, by design ("per spec")                                     |
+| 3   | "Bipolar specialist" hero pill                     | ✅ Shipped — PR #969                                                                                                                                                               |
+| 4   | "✓ License verified" hero pill                     | ✅ Shipped — PR #969                                                                                                                                                               |
+| 5   | "Waitlist only" three-state logic                  | ✅ Shipped (hero shows Accepting / Not currently accepting / nothing; the binary "Waitlist only" badge is gone)                                                                    |
+| 6   | Render `telehealthStates`                          | ✅ Shipped (`heroTelehealthStates` in `assets/therapist-page.js`)                                                                                                                  |
+| 7   | Tighten the placeholder-email filter               | ✅ Shipped (`isRealEmail()` predicate rejects `@example.*` and known stubs)                                                                                                        |
+| 8   | ARIA labels on icon-only contact links             | ⬜ Open                                                                                                                                                                            |
+| 9   | Disabled / loading state on CTA click              | ⬜ Open (cosmetic)                                                                                                                                                                 |
+| 10  | Surface training credentials (STEP-BD, UCLA, etc.) | ⬜ Deferred to Phase 2 (needs schema + base-rate data)                                                                                                                             |
+
 ## Method
 
 Static analysis of `therapist.html` (3,248 lines) + `therapist-page.js` (2,943 lines) + `studio/src/schemaTypes/therapist.ts` against the known schema surface. Rendering logic and CTA wiring mapped by line number. I did **not** interact with a live profile in a real mobile browser — that validation should happen alongside your review of this audit, before the fixes ship. If anything below turns out to be theoretical, we swap priorities.
