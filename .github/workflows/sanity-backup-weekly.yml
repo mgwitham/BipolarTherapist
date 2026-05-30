@@ -1,9 +1,13 @@
 name: Sanity Backup Weekly
 
-# Weekly snapshot of the Sanity dataset, uploaded as a GitHub Actions
-# artifact (90-day retention on free tier). This is the only "lose it
-# and the business is gone" data store, so we capture it out-of-band
-# from Sanity's own history retention.
+# Weekly snapshot of the Sanity dataset. This is the only "lose it and the
+# business is gone" data store, so we capture it out-of-band from Sanity's
+# own history retention, into two independent failure domains:
+#   1. A GitHub Actions artifact (90-day retention).
+#   2. An off-site Cloudflare R2 bucket (survives loss of the GitHub account
+#      / repo). The R2 step is skipped automatically until the R2_* secrets
+#      are configured, so this workflow keeps working before setup.
+# See docs/RUNBOOK.md §8 for one-time R2 setup + restore instructions.
 
 on:
   schedule:
@@ -22,6 +26,17 @@ jobs:
     timeout-minutes: 30
     env:
       SANITY_AUTH_TOKEN: ${{ secrets.SANITY_API_TOKEN }}
+      # Off-site backup target (Cloudflare R2, S3-compatible). When R2_BUCKET
+      # is empty (secrets not yet configured) the R2 steps skip themselves.
+      R2_BUCKET: ${{ secrets.R2_BUCKET }}
+      R2_ACCOUNT_ID: ${{ secrets.R2_ACCOUNT_ID }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+      AWS_DEFAULT_REGION: auto
+      # R2 ignores the AWS default integrity checksums and rejects requests
+      # that carry them on some SDK/CLI versions; disable to stay compatible.
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
 
     steps:
       - name: Compute snapshot metadata
@@ -57,3 +72,36 @@ jobs:
           path: ${{ steps.meta.outputs.filename }}
           retention-days: 90
           if-no-files-found: error
+
+      - name: Upload to off-site R2 bucket
+        # Skips until the R2_* secrets are configured (see RUNBOOK §8).
+        if: ${{ env.R2_BUCKET != '' }}
+        env:
+          FILE: ${{ steps.meta.outputs.filename }}
+        run: |
+          set -euo pipefail
+          ENDPOINT="https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com"
+          KEY="sanity/${FILE}"
+          echo "Uploading $FILE to r2://${R2_BUCKET}/${KEY}"
+          aws s3 cp "$FILE" "s3://${R2_BUCKET}/${KEY}" --endpoint-url "$ENDPOINT"
+
+          # Verify the object landed with the expected byte size before we
+          # call the backup good — a silent partial upload is worse than none.
+          LOCAL_SIZE=$(stat -c%s "$FILE")
+          REMOTE_SIZE=$(aws s3api head-object \
+            --bucket "$R2_BUCKET" --key "$KEY" \
+            --endpoint-url "$ENDPOINT" \
+            --query ContentLength --output text)
+          echo "local=$LOCAL_SIZE remote=$REMOTE_SIZE"
+          if [ "$LOCAL_SIZE" != "$REMOTE_SIZE" ]; then
+            echo "::error::R2 upload size mismatch (local=$LOCAL_SIZE remote=$REMOTE_SIZE)"
+            exit 1
+          fi
+          {
+            echo "- Off-site: \`r2://${R2_BUCKET}/${KEY}\` ($REMOTE_SIZE bytes, verified)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Warn if off-site backup is not configured
+        if: ${{ env.R2_BUCKET == '' }}
+        run: |
+          echo "::warning::Off-site R2 backup is NOT configured — this snapshot exists only as a GitHub artifact. See docs/RUNBOOK.md §8 to set up R2_* secrets."
