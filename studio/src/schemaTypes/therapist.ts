@@ -364,6 +364,16 @@ export const therapistType = defineType({
       validation: (Rule) => Rule.max(280),
     }),
     defineField({
+      name: "bipolarEvidenceQuote",
+      title: "Bipolar evidence quote",
+      description:
+        "Verbatim sentence from the clinician's own site proving bipolar specialization. Carried over from the candidate at publish time and rendered as a hero pull-quote on the public profile (max 280 chars).",
+      type: "text",
+      rows: 3,
+      group: "trust",
+      validation: (Rule) => Rule.max(280),
+    }),
+    defineField({
       name: "treatmentModalities",
       title: "Treatment modalities",
       type: "array",

@@ -3470,6 +3470,42 @@ img.bth-avatar {
   border: 1px solid #d0dfe5;
   color: #566f78;
 }
+.profile-hero-badge--verified {
+  background: #e4f3ee;
+  border: 1px solid #6cb79b;
+  color: #1c5440;
+}
+.profile-hero-badge--verified::before {
+  content: "\2713";
+  font-weight: 700;
+}
+.profile-hero-evidence {
+  margin: 14px 0 0;
+  padding: 12px 16px;
+  border-left: 3px solid #6dbdd4;
+  background: #f6fbfc;
+  border-radius: 0 8px 8px 0;
+}
+.profile-hero-evidence-quote {
+  margin: 0;
+  font-style: italic;
+  font-size: 15px;
+  line-height: 1.5;
+  color: #21434c;
+}
+.profile-hero-evidence-quote::before {
+  content: "\201C";
+}
+.profile-hero-evidence-quote::after {
+  content: "\201D";
+}
+.profile-hero-evidence-cite {
+  margin-top: 6px;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #5d7882;
+}
 .profile-hero-name {
   font-family: "DM Serif Display", Georgia, serif;
   font-size: 28px;

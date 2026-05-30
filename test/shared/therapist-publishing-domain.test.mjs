@@ -3,12 +3,27 @@ import assert from "node:assert/strict";
 
 import {
   buildApplicationReviewEvent,
+  buildCandidateMergeFillFields,
   buildCandidateReviewEvent,
   buildPublishEventId,
+  buildTherapistDocumentFromCandidate,
   buildTherapistOpsEvent,
   isIntakeStub,
   scrubIntakeStub,
 } from "../../shared/therapist-publishing-domain.mjs";
+import {
+  normalizeLicensureVerification,
+  parseBoolean,
+  parseNumber,
+  splitList,
+} from "../../server/review-application-support.mjs";
+
+const publishHelpers = {
+  splitList,
+  parseBoolean,
+  parseNumber,
+  normalizeLicensureVerification,
+};
 
 // Sanity's document ID ceiling. Any builder that composes an _id from an
 // entity slug risks blowing past this for long-slug records.
@@ -94,4 +109,41 @@ test("scrubIntakeStub strips stubs but leaves real content intact", function () 
   assert.equal(scrubIntakeStub(""), "");
   assert.equal(scrubIntakeStub(null), "");
   assert.equal(scrubIntakeStub(undefined), "");
+});
+
+test("buildTherapistDocumentFromCandidate carries the bipolar evidence quote onto the published doc", function () {
+  const candidate = {
+    name: "Dana Rivers",
+    city: "Oakland",
+    state: "CA",
+    bipolarEvidenceQuote: "I have specialized in bipolar disorder treatment for over a decade.",
+  };
+  const doc = buildTherapistDocumentFromCandidate(candidate, undefined, publishHelpers);
+  assert.equal(
+    doc.bipolarEvidenceQuote,
+    "I have specialized in bipolar disorder treatment for over a decade.",
+  );
+});
+
+test("buildTherapistDocumentFromCandidate defaults the evidence quote to an empty string", function () {
+  const doc = buildTherapistDocumentFromCandidate(
+    { name: "Dana Rivers", city: "Oakland", state: "CA" },
+    undefined,
+    publishHelpers,
+  );
+  assert.equal(doc.bipolarEvidenceQuote, "");
+});
+
+test("buildCandidateMergeFillFields fills the evidence quote only when the therapist lacks one", function () {
+  const candidate = { bipolarEvidenceQuote: "Verbatim bipolar proof from the clinician site." };
+
+  const filled = buildCandidateMergeFillFields({}, candidate, publishHelpers);
+  assert.equal(filled.bipolarEvidenceQuote, "Verbatim bipolar proof from the clinician site.");
+
+  const preserved = buildCandidateMergeFillFields(
+    { bipolarEvidenceQuote: "Human-edited quote that should win." },
+    candidate,
+    publishHelpers,
+  );
+  assert.equal(preserved.bipolarEvidenceQuote, undefined);
 });
