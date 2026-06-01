@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 import {
   compareTherapistsWithFilters,
+  getMatchScore,
   matchesDirectoryFilters,
 } from "../../assets/directory-logic.js";
 import { insuranceMatches, resolveInsuranceName } from "../../shared/therapist-picker-options.mjs";
@@ -313,4 +314,59 @@ test("insuranceMatches directory filter: exact plan still works", function () {
   const filters = { insurance: "Aetna" };
   assert.equal(matchesDirectoryFilters(filters, { insurance_accepted: ["Aetna"] }), true);
   assert.equal(matchesDirectoryFilters(filters, { insurance_accepted: ["Cigna"] }), false);
+});
+
+// getMatchScore is memoized per sort pass (keyed by therapist, invalidated when
+// the filterState object identity changes). These tests pin that the memo
+// returns stable scores within a filter set and never leaks a score across
+// different filter sets — the correctness contract the optimization relies on.
+test("getMatchScore returns a stable score on repeated calls with the same filter set", function () {
+  const filters = { specialty: "Bipolar II", sortBy: "best_match" };
+  const therapist = {
+    name: "Casey Lin",
+    slug: "casey-lin",
+    specialties: ["Bipolar II"],
+    treatment_modalities: [],
+    client_populations: [],
+    insurance_accepted: [],
+    state: "CA",
+    field_review_states: {},
+  };
+
+  const first = getMatchScore(filters, therapist);
+  const second = getMatchScore(filters, therapist);
+  const third = getMatchScore(filters, therapist);
+  assert.equal(first, second);
+  assert.equal(second, third);
+});
+
+test("getMatchScore does not leak a cached score across different filter sets", function () {
+  const therapist = {
+    name: "Casey Lin",
+    slug: "casey-lin",
+    specialties: ["Bipolar II"],
+    treatment_modalities: [],
+    client_populations: [],
+    insurance_accepted: [],
+    state: "CA",
+    field_review_states: {},
+  };
+
+  // Distinct filter objects: one selects the matching specialty, one does not.
+  const withSpecialty = { specialty: "Bipolar II", sortBy: "best_match" };
+  const withoutSpecialty = { specialty: "", sortBy: "best_match" };
+
+  const scoredWithSpecialty = getMatchScore(withSpecialty, therapist);
+  // A different filterState object must invalidate the memo and recompute.
+  const scoredWithoutSpecialty = getMatchScore(withoutSpecialty, therapist);
+  // The specialty match is worth +26, so dropping it must lower the score —
+  // proving the second call recomputed against the new filters rather than
+  // returning the cached value from the first call.
+  assert.ok(
+    scoredWithoutSpecialty < scoredWithSpecialty,
+    "expected the specialty match to raise the score; memo leaked across filter sets",
+  );
+
+  // Re-scoring with the original filter object recomputes to the same value.
+  assert.equal(getMatchScore(withSpecialty, therapist), scoredWithSpecialty);
 });

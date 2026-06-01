@@ -48,6 +48,19 @@ var freshnessRankCache = new WeakMap();
 var decisionReadyScoreCache = new WeakMap();
 var merchandisingQualityCache = new WeakMap();
 
+// Per-sort memo for getMatchScore. The function is invoked from the sort
+// comparator (compareTherapistsWithFilters), so each therapist is scored
+// O(log n) times during a single sort. The therapist-derived signals it uses
+// are already WeakMap-cached above, but the filter-derived work (specialty /
+// modality / insurance matching) is not. The score depends on filterState, so
+// the cache is keyed by therapist and invalidated wholesale whenever the
+// filterState object identity changes. Callers build a fresh filters object
+// per sort (directory.js getFilters() returns a new object each call), so the
+// identity guard resets the memo exactly when the active filters change and
+// never returns a score computed against a different filter set.
+var matchScoreCache = new WeakMap();
+var matchScoreCacheFilterRef = null;
+
 function normalizePublicHttpUrl(value) {
   var raw = String(value || "").trim();
   if (!raw) {
@@ -707,6 +720,18 @@ export function buildCardFitSummary(filterState, therapist) {
 }
 
 export function getMatchScore(filterState, therapist) {
+  if (filterState !== matchScoreCacheFilterRef) {
+    matchScoreCache = new WeakMap();
+    matchScoreCacheFilterRef = filterState;
+  }
+  var canCache = therapist !== null && typeof therapist === "object";
+  if (canCache) {
+    var cachedScore = matchScoreCache.get(therapist);
+    if (cachedScore !== undefined) {
+      return cachedScore;
+    }
+  }
+
   var score = 0;
   var quality = getCachedMerchandisingQuality(therapist);
   var responsivenessRank = getResponsivenessRank(therapist);
@@ -764,6 +789,9 @@ export function getMatchScore(filterState, therapist) {
     score += 1;
   }
 
+  if (canCache) {
+    matchScoreCache.set(therapist, score);
+  }
   return score;
 }
 
