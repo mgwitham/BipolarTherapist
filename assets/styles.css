@@ -3606,8 +3606,17 @@ body.dir-vb .t-card {
     border-color 180ms ease;
 }
 
+/* Directory cards (rendered as `t-card dir-card`) get hover feedback via
+   shadow + border only — never a translate. A vertical lift on the hover
+   target itself moves the card's bottom edge above the pointer, ending the
+   hover, which lets the card drop back under the pointer and re-trigger it:
+   an infinite hover-jitter loop that reads on desktop as the cursor
+   "refreshing" constantly. This rule is the highest-specificity hover for
+   the directory card, so `transform: none` here also neutralises the lifts
+   declared by the lower-specificity `.dir-card:hover` and global
+   `.t-card:hover`. */
 body.dir-vb .t-card:hover {
-  transform: translateY(-4px);
+  transform: none;
   box-shadow:
     0 4px 10px rgba(40, 25, 10, 0.11),
     0 16px 36px rgba(40, 25, 10, 0.1);
