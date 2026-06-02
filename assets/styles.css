@@ -955,21 +955,6 @@ nav {
   width: auto;
 }
 
-.directory-results-shell {
-  display: grid;
-  gap: 1.05rem;
-  padding: 1.1rem;
-  border-radius: 30px;
-  border: 1px solid rgba(26, 122, 143, 0.12);
-  background:
-    radial-gradient(circle at top right, rgba(26, 122, 143, 0.065), transparent 26%),
-    radial-gradient(circle at bottom left, rgba(90, 182, 201, 0.045), transparent 24%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(246, 247, 247, 0.97));
-  box-shadow:
-    0 22px 46px rgba(14, 77, 95, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.76);
-}
-
 .results-header {
   display: flex;
   align-items: center;
@@ -2727,11 +2712,6 @@ footer a:active {
     padding: 1rem;
   }
 
-  .directory-results-shell {
-    padding: 0.9rem;
-    border-radius: 22px;
-  }
-
   .results-tools .btn-secondary,
   .results-tools select {
     width: 100%;
@@ -3188,120 +3168,6 @@ footer a:active {
   color: var(--navy);
 }
 
-.directory-results .directory-results-shell {
-  display: grid;
-  gap: 1rem;
-  padding: 1.1rem 1.2rem 1.2rem;
-  border-radius: 22px;
-  border: 1px solid rgba(26, 122, 143, 0.12);
-  background: #ffffff;
-  box-shadow:
-    0 18px 36px rgba(14, 77, 95, 0.05),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-}
-
-.directory-results .results-focus-banner {
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  padding: 0.7rem 0.85rem;
-  margin-bottom: 0;
-  border-radius: 16px;
-  background: linear-gradient(180deg, #f7fbfc 0%, #ffffff 100%);
-  border-color: rgba(26, 122, 143, 0.1);
-  box-shadow: none;
-}
-
-.directory-results .results-focus-banner-label {
-  font-size: 0.62rem;
-  padding: 0.42rem 0.7rem;
-  background: #ffffff;
-}
-
-.directory-results .results-focus-banner-copy {
-  font-size: 0.92rem;
-  line-height: 1.3;
-}
-
-.directory-results .results-header {
-  align-items: center;
-  gap: 0.9rem;
-  padding: 0.1rem 0.25rem 0;
-  margin: 0;
-}
-
-.directory-results .results-count {
-  font-size: 1rem;
-  font-weight: 800;
-  color: var(--navy);
-  letter-spacing: -0.01em;
-}
-
-.directory-results .results-tools {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-}
-
-.directory-results .results-tools label {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.directory-results .results-tools select {
-  padding: 0.5rem 2rem 0.5rem 0.75rem;
-  border-radius: 10px;
-  border: 1px solid rgba(26, 122, 143, 0.16);
-  background: #ffffff;
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--navy);
-  min-height: 38px;
-}
-
-.directory-results .therapist-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 1.1rem;
-}
-
-.directory-results .t-card {
-  border-radius: 24px;
-  padding: 1.4rem;
-  border: 1px solid rgba(26, 122, 143, 0.12);
-  background:
-    radial-gradient(circle at top, rgba(26, 122, 143, 0.05), transparent 42%),
-    linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%);
-  box-shadow:
-    0 16px 32px rgba(14, 77, 95, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.65);
-  transition:
-    transform 180ms ease,
-    box-shadow 180ms ease,
-    border-color 180ms ease;
-}
-
-.directory-results .t-card::before {
-  inset: 0 auto auto 1.4rem;
-  width: 64px;
-  height: 3px;
-  background: linear-gradient(90deg, var(--teal) 0%, rgba(90, 182, 201, 0.35) 100%);
-}
-
-.directory-results .t-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 26px 48px rgba(14, 77, 95, 0.13);
-  border-color: rgba(26, 122, 143, 0.24);
-}
-
-.directory-results .t-name {
-  font-size: clamp(1.08rem, 1.1vw, 1.2rem);
-  letter-spacing: -0.015em;
-  line-height: 1.1;
-  font-weight: 800;
-}
-
 @media (max-width: 960px) {
   .dir-hero-trust {
     grid-template-columns: 1fr;
@@ -3324,10 +3190,6 @@ footer a:active {
   .dir-header h1 {
     font-size: clamp(1.7rem, 6vw, 2.1rem);
   }
-  .directory-results .results-header {
-    flex-direction: column;
-    align-items: flex-start;
-  }
   /* iOS Safari auto-zooms text-entry controls below 16px on focus,
      which yanks the layout. Force 16px on the directory filter
      controls (both the legacy sidebar layout and the dir-vb modal
@@ -3335,7 +3197,6 @@ footer a:active {
      trigger a zoom. */
   .directory-sidebar-shell .filter-group select,
   .directory-sidebar-shell .filter-group input[type="text"],
-  .directory-results .results-tools select,
   .dir-vb-modal-body .filter-group select,
   .dir-vb-modal-body .filter-group input[type="text"],
   .dir-vb-canvas .results-tools select {
