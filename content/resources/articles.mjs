@@ -19,6 +19,129 @@
 
 export const articles = [
   {
+    slug: "what-to-expect-first-bipolar-therapy-session",
+    title: "What to Expect in Your First Bipolar Therapy Session",
+    metaTitle: "What to Expect in Your First Bipolar Therapy Session",
+    description:
+      "Nervous about your first appointment? Here is what actually happens in a first bipolar therapy session, what they ask, and how to prepare.",
+    datePublished: "2026-05-22",
+    dateModified: "2026-05-22",
+    keywords: [
+      "first bipolar therapy session",
+      "what to expect first therapy session",
+      "bipolar intake appointment",
+      "preparing for therapy",
+      "first therapy appointment bipolar",
+    ],
+    heroEyebrow: "Guide",
+    heroSubtitle:
+      "Walking into a first appointment can feel daunting. Knowing what actually happens takes a lot of the pressure off.",
+    sections: [
+      {
+        type: "p",
+        html: "If you have a first therapy appointment coming up, some nerves are normal. The good news is that a first session is rarely the deep, raw conversation people brace for. It is mostly about getting to know each other and building a picture of what you need. Knowing that ahead of time makes it far easier to walk in.",
+      },
+      {
+        type: "p",
+        html: "Here is what usually happens in a first bipolar therapy session, what a good therapist will ask, and a few simple things you can do to prepare.",
+      },
+      {
+        type: "h2",
+        text: "What the first session is actually for",
+      },
+      {
+        type: "p",
+        html: "The first session is an intake, not a deep dive. The therapist is gathering background, you are both checking the fit, and together you start to shape what the work will focus on. You are not expected to unload your whole history or solve anything in that hour.",
+      },
+      {
+        type: "callout",
+        title: "You are also interviewing them",
+        html: "A first session goes both ways. You are deciding whether this person understands bipolar disorder and feels right to work with. It is completely okay to treat it as a two-way fit check.",
+      },
+      {
+        type: "h2",
+        text: "What a good therapist will ask",
+      },
+      {
+        type: "p",
+        html: "A clinician who understands bipolar disorder will ask about more than your low moods. Expect questions like these:",
+      },
+      {
+        type: "ul",
+        items: [
+          "What brought you in now, and what you are hoping for.",
+          "Your mood history, including elevated or hypomanic periods, not only depression.",
+          "Your sleep and daily routine, which are central to bipolar stability.",
+          "Any medications you take and who prescribes them.",
+          "Family history of mood disorders.",
+          "Safety, including any thoughts of self-harm. This is routine and asked with care, not alarm.",
+        ],
+      },
+      {
+        type: "p",
+        html: "If a therapist asks only about depression and never about the highs, that is worth noting. Our guide on <a href='/resources/signs-your-therapist-understands-bipolar/'>signs your therapist understands bipolar</a> covers what strong, bipolar-aware questions look like.",
+      },
+      {
+        type: "h2",
+        text: "How to prepare",
+      },
+      {
+        type: "p",
+        html: "You do not need to prepare much, but a few things make the session smoother:",
+      },
+      {
+        type: "ul",
+        items: [
+          "Bring a list of your current medications and the name of your prescriber.",
+          "Jot down a rough timeline of your mood history, including any hypomanic or manic periods, so you do not have to recall it on the spot.",
+          "Think about one or two things you want help with, even loosely.",
+          "Write down any questions you have for the therapist.",
+        ],
+      },
+      {
+        type: "h2",
+        text: "What good looks like in session one",
+      },
+      {
+        type: "p",
+        html: "A strong first session leaves you feeling heard, not rushed. The therapist asks about the full range of your moods, shows interest in coordinating with your prescriber, and starts to map your early warning signs rather than promising fast fixes. You should leave with a basic sense of where this is headed.",
+      },
+      {
+        type: "h2",
+        text: "It is okay if it takes a couple of sessions",
+      },
+      {
+        type: "p",
+        html: "You will not know everything after one hour, and that is fine. Fit usually becomes clear within two to four sessions. If it does not feel right after a fair chance, switching is normal and not a setback. When you are ready to compare options, browse <a href='/directory'>the directory</a> or read our guide on <a href='/resources/how-to-find-a-bipolar-therapist/'>how to find a bipolar therapist</a>.",
+      },
+      {
+        type: "cta",
+        title: "Find the right therapist to start with",
+        html: "Two questions and we shortlist bipolar specialists who fit you, so your first session is with the right person. No account, no insurance required.",
+        href: "/match",
+        label: "Get matched",
+      },
+    ],
+    faqs: [
+      {
+        q: "What happens in the first bipolar therapy session?",
+        a: "The first session is usually an intake. The therapist gathers your background, including your mood history, sleep, medications, and goals, while you both assess whether it is a good fit. It is rarely a deep emotional dive, so there is little to brace for.",
+      },
+      {
+        q: "What should I bring to my first therapy appointment?",
+        a: "Bring a list of your current medications and your prescriber's name, a rough timeline of your mood history including any hypomanic or manic periods, one or two goals, and any questions you have for the therapist.",
+      },
+      {
+        q: "Do I have to talk about everything in the first session?",
+        a: "No. You set the pace. A first session is about building a picture and checking fit, not unloading your whole history. Share what feels manageable, and the deeper work comes later.",
+      },
+      {
+        q: "How will I know if the therapist is a good fit?",
+        a: "Notice whether they ask about the full range of your moods, take your sleep and routine seriously, and want to coordinate with your prescriber. Fit usually becomes clear within two to four sessions, and switching is normal if it is not right.",
+      },
+    ],
+  },
+  {
     slug: "how-to-find-a-bipolar-therapist",
     title: "How to Find a Bipolar Disorder Therapist (and What Makes One Qualified)",
     // Used for the <title> tag and og:title. Keep under ~60 chars of
@@ -450,129 +573,6 @@ export const articles = [
       {
         q: "Can a good therapist help with bipolar even if they are not a specialist?",
         a: "Sometimes, but specificity matters for bipolar disorder. A therapist who explicitly works with bipolar clients and understands the distinction between mania and hypomania is far more likely to give you care that fits.",
-      },
-    ],
-  },
-  {
-    slug: "what-to-expect-first-bipolar-therapy-session",
-    title: "What to Expect in Your First Bipolar Therapy Session",
-    metaTitle: "What to Expect in Your First Bipolar Therapy Session",
-    description:
-      "Nervous about your first appointment? Here is what actually happens in a first bipolar therapy session, what they ask, and how to prepare.",
-    datePublished: "2026-05-22",
-    dateModified: "2026-05-22",
-    keywords: [
-      "first bipolar therapy session",
-      "what to expect first therapy session",
-      "bipolar intake appointment",
-      "preparing for therapy",
-      "first therapy appointment bipolar",
-    ],
-    heroEyebrow: "Guide",
-    heroSubtitle:
-      "Walking into a first appointment can feel daunting. Knowing what actually happens takes a lot of the pressure off.",
-    sections: [
-      {
-        type: "p",
-        html: "If you have a first therapy appointment coming up, some nerves are normal. The good news is that a first session is rarely the deep, raw conversation people brace for. It is mostly about getting to know each other and building a picture of what you need. Knowing that ahead of time makes it far easier to walk in.",
-      },
-      {
-        type: "p",
-        html: "Here is what usually happens in a first bipolar therapy session, what a good therapist will ask, and a few simple things you can do to prepare.",
-      },
-      {
-        type: "h2",
-        text: "What the first session is actually for",
-      },
-      {
-        type: "p",
-        html: "The first session is an intake, not a deep dive. The therapist is gathering background, you are both checking the fit, and together you start to shape what the work will focus on. You are not expected to unload your whole history or solve anything in that hour.",
-      },
-      {
-        type: "callout",
-        title: "You are also interviewing them",
-        html: "A first session goes both ways. You are deciding whether this person understands bipolar disorder and feels right to work with. It is completely okay to treat it as a two-way fit check.",
-      },
-      {
-        type: "h2",
-        text: "What a good therapist will ask",
-      },
-      {
-        type: "p",
-        html: "A clinician who understands bipolar disorder will ask about more than your low moods. Expect questions like these:",
-      },
-      {
-        type: "ul",
-        items: [
-          "What brought you in now, and what you are hoping for.",
-          "Your mood history, including elevated or hypomanic periods, not only depression.",
-          "Your sleep and daily routine, which are central to bipolar stability.",
-          "Any medications you take and who prescribes them.",
-          "Family history of mood disorders.",
-          "Safety, including any thoughts of self-harm. This is routine and asked with care, not alarm.",
-        ],
-      },
-      {
-        type: "p",
-        html: "If a therapist asks only about depression and never about the highs, that is worth noting. Our guide on <a href='/resources/signs-your-therapist-understands-bipolar/'>signs your therapist understands bipolar</a> covers what strong, bipolar-aware questions look like.",
-      },
-      {
-        type: "h2",
-        text: "How to prepare",
-      },
-      {
-        type: "p",
-        html: "You do not need to prepare much, but a few things make the session smoother:",
-      },
-      {
-        type: "ul",
-        items: [
-          "Bring a list of your current medications and the name of your prescriber.",
-          "Jot down a rough timeline of your mood history, including any hypomanic or manic periods, so you do not have to recall it on the spot.",
-          "Think about one or two things you want help with, even loosely.",
-          "Write down any questions you have for the therapist.",
-        ],
-      },
-      {
-        type: "h2",
-        text: "What good looks like in session one",
-      },
-      {
-        type: "p",
-        html: "A strong first session leaves you feeling heard, not rushed. The therapist asks about the full range of your moods, shows interest in coordinating with your prescriber, and starts to map your early warning signs rather than promising fast fixes. You should leave with a basic sense of where this is headed.",
-      },
-      {
-        type: "h2",
-        text: "It is okay if it takes a couple of sessions",
-      },
-      {
-        type: "p",
-        html: "You will not know everything after one hour, and that is fine. Fit usually becomes clear within two to four sessions. If it does not feel right after a fair chance, switching is normal and not a setback. When you are ready to compare options, browse <a href='/directory'>the directory</a> or read our guide on <a href='/resources/how-to-find-a-bipolar-therapist/'>how to find a bipolar therapist</a>.",
-      },
-      {
-        type: "cta",
-        title: "Find the right therapist to start with",
-        html: "Two questions and we shortlist bipolar specialists who fit you, so your first session is with the right person. No account, no insurance required.",
-        href: "/match",
-        label: "Get matched",
-      },
-    ],
-    faqs: [
-      {
-        q: "What happens in the first bipolar therapy session?",
-        a: "The first session is usually an intake. The therapist gathers your background, including your mood history, sleep, medications, and goals, while you both assess whether it is a good fit. It is rarely a deep emotional dive, so there is little to brace for.",
-      },
-      {
-        q: "What should I bring to my first therapy appointment?",
-        a: "Bring a list of your current medications and your prescriber's name, a rough timeline of your mood history including any hypomanic or manic periods, one or two goals, and any questions you have for the therapist.",
-      },
-      {
-        q: "Do I have to talk about everything in the first session?",
-        a: "No. You set the pace. A first session is about building a picture and checking fit, not unloading your whole history. Share what feels manageable, and the deeper work comes later.",
-      },
-      {
-        q: "How will I know if the therapist is a good fit?",
-        a: "Notice whether they ask about the full range of your moods, take your sleep and routine seriously, and want to coordinate with your prescriber. Fit usually becomes clear within two to four sessions, and switching is normal if it is not right.",
       },
     ],
   },
