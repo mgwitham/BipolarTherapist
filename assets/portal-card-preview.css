@@ -17,11 +17,6 @@
   letter-spacing: 0.02em;
   user-select: none;
 }
-.bth-avatar-card {
-  width: 56px;
-  height: 56px;
-  font-size: 1.05rem;
-}
 img.bth-avatar {
   object-fit: cover;
   background: #eef3f5;
@@ -129,15 +124,6 @@ img.bth-avatar {
   gap: 0.4rem;
   font-weight: 500;
 }
-.bth-avail-now {
-  color: #0f6e56;
-}
-.bth-avail-wait {
-  color: #ba7517;
-}
-.bth-avail-full {
-  color: #6f8089;
-}
 .bth-avail-dot {
   width: 7px;
   height: 7px;
@@ -234,19 +220,8 @@ img.bth-avatar {
 
 /* Sticky desktop / stacked mobile placement — consumer (portal.js) wraps
    the preview in `.portal-preview-column` to control layout. */
-.portal-preview-column {
-  position: sticky;
-  top: 1.25rem;
-  width: 100%;
-  max-width: 280px;
-  align-self: flex-start;
-}
 
 @media (max-width: 640px) {
-  .portal-preview-column {
-    position: static;
-    max-width: 100%;
-  }
   .bth-card-preview {
     margin-bottom: 1rem;
   }

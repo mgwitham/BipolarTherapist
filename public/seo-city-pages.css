@@ -279,24 +279,6 @@
   flex-shrink: 0;
   letter-spacing: 0.02em;
 }
-.seo-city-fallback .city-provider-avatar--tone-0 {
-  background: linear-gradient(135deg, #347f96, #1c4d5c);
-}
-.seo-city-fallback .city-provider-avatar--tone-1 {
-  background: linear-gradient(135deg, #c94a2a, #b8431f);
-}
-.seo-city-fallback .city-provider-avatar--tone-2 {
-  background: linear-gradient(135deg, #4a9db5, #26667a);
-}
-.seo-city-fallback .city-provider-avatar--tone-3 {
-  background: linear-gradient(135deg, #3aaa7a, #1f8060);
-}
-.seo-city-fallback .city-provider-avatar--tone-4 {
-  background: linear-gradient(135deg, #6dbdd4, #347f96);
-}
-.seo-city-fallback .city-provider-avatar--tone-5 {
-  background: linear-gradient(135deg, #1d3a4a, #143a46);
-}
 .seo-city-fallback .city-provider-body {
   flex: 1 1 auto;
   min-width: 0;
