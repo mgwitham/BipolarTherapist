@@ -141,7 +141,20 @@ async function fetchTherapists(config) {
 }
 
 async function main() {
-  const fonts = await loadFonts();
+  // Fonts are fetched from a CDN; a restricted/offline environment (e.g. a
+  // local build without network, or a sandboxed CI) can't reach it. Treat
+  // that like the Sanity-not-configured case below: warn and skip rather than
+  // failing the whole `npm run build`. OG cards aren't committed, so they
+  // simply regenerate on the next build that has network access.
+  let fonts;
+  try {
+    fonts = await loadFonts();
+  } catch (err) {
+    console.warn(
+      `[og-cards] Could not load fonts (${String(err?.message || err)}) — skipping OG card generation.`,
+    );
+    process.exit(0);
+  }
 
   // Page cards first — they don't need Sanity, so they're generated even
   // if therapist data is unavailable.
