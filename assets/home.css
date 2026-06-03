@@ -109,25 +109,6 @@ nav[aria-label="Main navigation"] {
 .nav-zone-switch:hover {
   color: #fff !important;
 }
-.nav-cta {
-  display: inline-block !important;
-  background: var(--coral) !important;
-  color: #fff !important;
-  padding: 8px 18px !important;
-  border-radius: 8px !important;
-  font-weight: 600 !important;
-  font-size: 13.5px !important;
-  transition:
-    background 0.2s,
-    transform 0.15s !important;
-  text-decoration: none !important;
-  white-space: nowrap;
-}
-.nav-cta:hover {
-  background: var(--coral-dark) !important;
-  transform: translateY(-1px);
-  color: #fff !important;
-}
 .skip-link {
   position: absolute;
   top: -100%;
@@ -444,11 +425,6 @@ h2 {
   color: var(--navy);
   margin-bottom: 0.4rem;
 }
-.step-desc {
-  font-size: 0.83rem;
-  color: var(--slate);
-  line-height: 1.6;
-}
 .therapist-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -463,35 +439,6 @@ h2 {
   border-radius: 14px;
   border: 1px solid var(--border);
   background: linear-gradient(180deg, #ffffff 0%, #f4fafb 100%);
-}
-.ranking-note-title {
-  font-size: 0.74rem;
-  font-weight: 700;
-  color: var(--muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin-bottom: 0.55rem;
-}
-.ranking-note-copy {
-  font-size: 0.86rem;
-  color: var(--slate);
-  line-height: 1.65;
-}
-.ranking-note-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.45rem;
-  margin-top: 0.75rem;
-}
-.ranking-note-pill {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.38rem 0.6rem;
-  border-radius: 999px;
-  background: var(--white);
-  border: 1px solid var(--border);
-  font-size: 0.76rem;
-  color: var(--slate);
 }
 .t-card {
   background: var(--white);
@@ -510,11 +457,6 @@ h2 {
   box-shadow: 0 6px 20px rgba(26, 122, 143, 0.12);
   transform: translateY(-2px);
   border-color: var(--teal-light);
-}
-.t-card-top {
-  display: flex;
-  gap: 0.9rem;
-  margin-bottom: 0.9rem;
 }
 .t-avatar {
   width: 54px;
@@ -535,52 +477,15 @@ h2 {
   height: 100%;
   object-fit: cover;
 }
-.t-info {
-  flex: 1;
-  min-width: 0;
-}
 .t-name {
   font-size: 0.95rem;
   font-weight: 700;
   color: var(--navy);
 }
-.t-creds {
-  font-size: 0.76rem;
-  color: var(--teal);
-  font-weight: 600;
-  margin-top: 0.1rem;
-}
 .t-loc {
   font-size: 0.76rem;
   color: var(--muted);
   margin-top: 0.15rem;
-}
-.t-bio {
-  font-size: 0.83rem;
-  color: var(--slate);
-  line-height: 1.55;
-  margin-bottom: 0.9rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.card-fit-note,
-.card-contact-detail {
-  font-size: 0.8rem;
-  line-height: 1.6;
-  color: var(--slate);
-  margin-bottom: 0.7rem;
-}
-.card-fit-note strong,
-.card-contact-detail strong {
-  color: var(--navy);
-}
-.card-contact-detail {
-  padding: 0.75rem 0.85rem;
-  border-radius: 12px;
-  background: #f7fbfc;
-  border: 1px solid var(--border);
 }
 .tags {
   display: flex;
@@ -599,17 +504,6 @@ h2 {
 .tag.tele {
   background: #e8f5ee;
   color: #2a7a52;
-}
-.tag.inperson {
-  background: #fef3e2;
-  color: #8a5a00;
-}
-.t-footer {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-top: 0.7rem;
-  border-top: 1px solid var(--border);
 }
 .accepting {
   font-size: 0.73rem;
@@ -631,11 +525,6 @@ h2 {
 }
 .not-acc::before {
   background: var(--muted);
-}
-.view-link {
-  font-size: 0.78rem;
-  font-weight: 600;
-  color: var(--teal);
 }
 .testimonials {
   display: grid;
@@ -670,30 +559,6 @@ h2 {
 .t-role {
   font-size: 0.72rem;
   color: var(--muted);
-}
-.cta-sect {
-  background: linear-gradient(135deg, var(--navy) 0%, #2d5a70 100%);
-  padding: 4.5rem 1.5rem;
-  text-align: center;
-  color: white;
-}
-.cta-sect h2 {
-  font-family: "Lora", serif;
-  color: white;
-  font-size: clamp(1.6rem, 3vw, 2.3rem);
-  margin-bottom: 0.7rem;
-}
-.cta-sect p {
-  opacity: 0.85;
-  font-size: 1rem;
-  max-width: 480px;
-  margin: 0 auto 2rem;
-}
-.cta-btns {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
 }
 .btn-p {
   background: var(--teal-light);

@@ -62,22 +62,6 @@
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
-.td-score-needs,
-.td-score-fair {
-  background: #faece7;
-  color: #712b13;
-  border: 1px solid #f0997b;
-}
-.td-score-good {
-  background: #e1f5ee;
-  color: #085041;
-  border: 1px solid #9fe1cb;
-}
-.td-score-complete {
-  background: #0f6e56;
-  color: #ffffff;
-  border: 1px solid #0f6e56;
-}
 .td-view-public {
   display: inline-flex;
   align-items: center;

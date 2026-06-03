@@ -70,15 +70,6 @@ a {
   padding: 28px 20px 0;
 }
 
-.results-eyebrow {
-  margin: 0 0 8px;
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--teal-500);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-}
-
 .results-h1 {
   margin: 0 0 6px;
   font-family: "DM Serif Display", Georgia, serif;
@@ -240,10 +231,7 @@ a {
 .card-avatar,
 .avatar-teal,
 .avatar-purple,
-.avatar-amber,
-.avatar-blue,
-.avatar-sage,
-.avatar-coral {
+.avatar-amber {
   background: var(--teal-100);
   color: var(--teal-700);
 }
@@ -577,14 +565,6 @@ a {
 
 .card-name-sm {
   font-size: 14px;
-}
-
-.bipolar-years-badge-sm .bipolar-years-num {
-  font-size: 12px;
-}
-
-.bipolar-years-badge-sm .bipolar-years-label {
-  font-size: 10px;
 }
 
 .card-meta-sm {
