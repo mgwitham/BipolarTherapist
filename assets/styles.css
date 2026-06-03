@@ -509,21 +509,6 @@ nav {
   color: var(--slate);
 }
 
-.filter-workspace {
-  display: grid;
-  gap: 1rem;
-  padding: 1.05rem;
-  border-radius: 30px;
-  border: 1px solid rgba(26, 122, 143, 0.14);
-  background:
-    radial-gradient(circle at top left, rgba(26, 122, 143, 0.07), transparent 32%),
-    radial-gradient(circle at bottom right, rgba(90, 182, 201, 0.04), transparent 28%),
-    linear-gradient(180deg, rgba(255, 255, 255, 0.99), rgba(246, 247, 247, 0.97));
-  box-shadow:
-    0 24px 48px rgba(14, 77, 95, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.78);
-}
-
 .directory-section-heading {
   display: grid;
   gap: 0.18rem;
@@ -815,8 +800,7 @@ nav {
   gap: 0.35rem;
 }
 
-.filter-group label,
-.meta-label {
+.filter-group label {
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--muted);
@@ -856,40 +840,6 @@ nav {
   background: var(--white);
 }
 
-.check-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.42rem;
-}
-
-.check-label {
-  display: flex;
-  align-items: center;
-  gap: 0.56rem;
-  font-size: 0.82rem;
-  color: var(--slate);
-  cursor: pointer;
-  padding: 0.42rem 0.45rem;
-  border-radius: 14px;
-  transition:
-    background 0.16s ease,
-    color 0.16s ease,
-    transform 0.16s ease;
-}
-
-.check-label:hover {
-  background: rgba(26, 122, 143, 0.05);
-  color: var(--navy);
-  transform: translateX(1px);
-}
-
-.check-label input[type="checkbox"] {
-  accent-color: var(--teal);
-  width: 17px;
-  height: 17px;
-  flex: 0 0 auto;
-}
-
 .btn-filter,
 .btn-primary {
   background: var(--coral);
@@ -917,7 +867,6 @@ nav {
   transform: translateY(-1px);
 }
 
-.btn-reset,
 .btn-secondary {
   background: transparent;
   color: var(--muted);
@@ -939,7 +888,6 @@ nav {
   background: rgba(255, 255, 255, 0.72);
 }
 
-.btn-reset:hover,
 .btn-secondary:hover {
   border-color: var(--slate);
   color: var(--slate);
@@ -2619,16 +2567,6 @@ footer a:active {
     scrollbar-gutter: auto;
   }
 
-  .filter-workspace {
-    position: static;
-    max-height: none;
-    padding: 0;
-    border: none;
-    background: transparent;
-    box-shadow: none;
-    overflow: visible;
-  }
-
   .results-tools {
     align-items: stretch;
   }
@@ -2867,7 +2805,7 @@ footer a:active {
 /* ============================================================
    Directory page — polished design system (v2)
    Appended last so it wins the cascade against earlier
-   .dir-header / .dir-hero-shell / .filter-panel rules above.
+   .dir-header / .dir-hero-shell rules above.
    Mirrors the match page's hero + card language, normalized
    to a 1080px canvas so both flows feel like one product.
    ============================================================ */
@@ -2963,67 +2901,6 @@ footer a:active {
   font-size: 0.82rem;
   line-height: 1.56;
   color: var(--slate);
-}
-
-.filter-shell-header {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 0.75rem;
-  padding: 1.05rem 1.15rem 0.85rem;
-  border-bottom: 1px solid rgba(26, 122, 143, 0.08);
-}
-
-.filter-shell-header h2 {
-  margin: 0;
-  font-size: 0.95rem;
-  font-weight: 800;
-  color: var(--navy);
-  letter-spacing: -0.01em;
-}
-
-.filter-shell-count {
-  font-size: 0.7rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--teal-dark);
-}
-
-.filter-action-bar {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 0.5rem;
-  padding: 0.85rem 1.15rem 1rem;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.6), #ffffff 40%);
-  border-top: 1px solid rgba(26, 122, 143, 0.08);
-}
-
-.filter-action-bar .btn-filter {
-  padding: 0.72rem 0.95rem;
-  border-radius: 12px;
-  font-size: 0.82rem;
-  font-weight: 800;
-  width: auto;
-  background: linear-gradient(180deg, rgba(20, 123, 146, 0.98), rgba(33, 143, 166, 0.96));
-  box-shadow:
-    0 12px 22px rgba(20, 123, 146, 0.2),
-    inset 0 1px 0 rgba(255, 255, 255, 0.22);
-}
-
-.filter-action-bar .btn-filter:hover {
-  background: linear-gradient(180deg, rgba(16, 105, 126, 0.98), rgba(24, 128, 150, 0.96));
-}
-
-.filter-action-bar .btn-reset {
-  padding: 0.72rem 0.9rem;
-  border-radius: 12px;
-  font-size: 0.78rem;
-  font-weight: 700;
-  width: auto;
-  background: #ffffff;
-  border: 1px solid rgba(26, 122, 143, 0.16);
-  color: var(--navy);
 }
 
 @media (max-width: 960px) {
