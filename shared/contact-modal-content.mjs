@@ -8,6 +8,8 @@
 // Callers that work in snake_case (the frontend match viewmodel)
 // should normalize at the boundary.
 
+import { phoneHref, emailHref, publicHttpUrl as normalizeUrlHref } from "./contact-href.mjs";
+
 const HONORIFIC_PATTERN = /^(dr|mr|mrs|ms|mx|prof|professor)\.?$/i;
 const CREDENTIAL_PATTERN = /^(phd|psyd|md|lcsw|lmft|mft|lpcc|mscp|msw|ma|ms)\.?$/i;
 
@@ -55,26 +57,12 @@ export function formatPhoneDisplay(phone) {
   return String(phone || "").trim();
 }
 
-function phoneHref(phone) {
-  return "tel:" + String(phone || "").replace(/[^\d+]/g, "");
-}
-
-function normalizeUrlHref(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  return /^https?:\/\//i.test(raw) ? raw : "https://" + raw.replace(/^\/+/, "");
-}
-
 function getDomainFromUrl(url) {
   try {
     return new URL(url).host.replace(/^www\./, "");
   } catch (_e) {
     return "";
   }
-}
-
-function hasValue(value) {
-  return typeof value === "string" && value.trim().length > 0;
 }
 
 // Resolves the preferredContactMethod for a therapist. If an explicit
@@ -84,11 +72,15 @@ function hasValue(value) {
 // four contact methods (caller should not render a modal in that case).
 export function resolvePreferredContactMethod(therapist) {
   const t = therapist || {};
+  // Validated presence: a field only counts as a usable contact method if it
+  // produces a real, clickable href. This keeps the picker from selecting a
+  // method (e.g. a junk phone like "+") whose layout would then render a dead
+  // link instead of falling through to a method that actually works.
   const has = {
-    booking: hasValue(t.bookingUrl),
-    website: hasValue(t.website),
-    phone: hasValue(t.phone),
-    email: hasValue(t.email),
+    booking: normalizeUrlHref(t.bookingUrl) !== "",
+    website: normalizeUrlHref(t.website) !== "",
+    phone: phoneHref(t.phone) !== "",
+    email: emailHref(t.email) !== "",
   };
   const explicit = String(t.preferredContactMethod || "").trim();
   if (explicit && has[explicit]) {

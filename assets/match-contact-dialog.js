@@ -1,4 +1,5 @@
 import { buildContactModalContent } from "../shared/contact-modal-content.mjs";
+import { phoneHref, emailHref } from "../shared/contact-href.mjs";
 
 export function getDomainFromUrl(url) {
   try {
@@ -22,24 +23,27 @@ export function formatPhoneDisplay(phone) {
 export function getContactRoutes(entry) {
   var therapist = (entry && entry.therapist) || {};
   var routes = [];
-  var phoneDigits = String(therapist.phone || "").replace(/[^\d+]/g, "");
-  if (phoneDigits) {
+  var telLink = phoneHref(therapist.phone);
+  if (telLink) {
     routes.push({
       type: "phone",
       label: "Phone",
       display: formatPhoneDisplay(therapist.phone),
-      href: "tel:" + phoneDigits,
+      href: telLink,
       raw: therapist.phone,
     });
   }
   if (therapist.email && therapist.email !== "contact@example.com") {
-    routes.push({
-      type: "email",
-      label: "Email",
-      display: therapist.email,
-      href: "mailto:" + therapist.email,
-      raw: therapist.email,
-    });
+    var mailLink = emailHref(therapist.email);
+    if (mailLink) {
+      routes.push({
+        type: "email",
+        label: "Email",
+        display: therapist.email,
+        href: mailLink,
+        raw: therapist.email,
+      });
+    }
   }
   if (therapist.booking_url) {
     var bookingHref = /^(https?:)/i.test(therapist.booking_url)

@@ -1,5 +1,6 @@
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 import { insuranceMatches } from "../shared/therapist-picker-options.mjs";
+import { phoneHref as normalizeTelHref } from "../shared/contact-href.mjs";
 
 export const FEEDBACK_REASON_OPTIONS = [
   "Insurance mismatch",
@@ -16,13 +17,6 @@ function normalizeExternalUrl(value) {
   if (/^(https?:|mailto:|tel:)/i.test(raw)) return raw;
   if (/^\/\//.test(raw)) return "https:" + raw;
   return "https://" + raw.replace(/^\/+/, "");
-}
-
-function normalizeTelHref(value) {
-  var raw = String(value || "").trim();
-  if (!raw) return "";
-  var cleaned = raw.replace(/[^\d+]/g, "");
-  return cleaned ? "tel:" + cleaned : "";
 }
 
 function buildRouteLearningMap(outcomes, buildLearningSegments) {

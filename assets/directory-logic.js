@@ -11,6 +11,11 @@ import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js"
 import { getInPersonProximityBonus, getZipDistanceMiles } from "./zip-lookup.js";
 import { insuranceMatches } from "../shared/therapist-picker-options.mjs";
 import { toFilterArray } from "./directory-filters.js";
+import {
+  phoneHref as normalizePhoneHref,
+  emailHref as normalizeEmailHref,
+  publicHttpUrl as normalizePublicHttpUrl,
+} from "../shared/contact-href.mjs";
 
 // Multi-select filter helper, "any selected value of the filter set
 // is present in the therapist's list". Used by specialty / modality /
@@ -60,46 +65,6 @@ var merchandisingQualityCache = new WeakMap();
 // never returns a score computed against a different filter set.
 var matchScoreCache = new WeakMap();
 var matchScoreCacheFilterRef = null;
-
-function normalizePublicHttpUrl(value) {
-  var raw = String(value || "").trim();
-  if (!raw) {
-    return "";
-  }
-  var withProtocol = /^https?:\/\//i.test(raw) ? raw : "https://" + raw;
-  try {
-    var url = new URL(withProtocol);
-    if (url.protocol !== "http:" && url.protocol !== "https:") {
-      return "";
-    }
-    if (!url.hostname || url.hostname.indexOf(".") === -1 || /\s/.test(url.hostname)) {
-      return "";
-    }
-    return url.href;
-  } catch (_error) {
-    return "";
-  }
-}
-
-function normalizePhoneHref(value) {
-  var phone = String(value || "").trim();
-  if (!phone) {
-    return "";
-  }
-  var normalized = phone.replace(/[^\d+]/g, "");
-  var digitCount = normalized.replace(/\D/g, "").length;
-  return digitCount >= 7 ? "tel:" + normalized : "";
-}
-
-function normalizeEmailHref(value) {
-  var email = String(value || "")
-    .trim()
-    .toLowerCase();
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return "";
-  }
-  return "mailto:" + email;
-}
 
 function getRankingZip(filterState) {
   var rankingZip = String(
