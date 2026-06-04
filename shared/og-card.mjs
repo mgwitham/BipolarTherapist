@@ -22,6 +22,8 @@
 
 import { ImageResponse } from "@vercel/og";
 import sharp from "sharp";
+import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 
 // Brand palette — sampled from the site CSS tokens and the favicon.
 export const COLOR = {
@@ -38,33 +40,24 @@ export const COLOR = {
   acceptingBorder: "#B8E0C9",
 };
 
-// Static (non-variable) WOFF instances from @fontsource on jsDelivr.
-// DM Sans on github.com/google/fonts is variable-only, which Satori
-// renders unreliably; @fontsource ships pre-computed static cuts.
-const FONT_URLS = {
-  sans: "https://cdn.jsdelivr.net/npm/@fontsource/dm-sans/files/dm-sans-latin-400-normal.woff",
-  sansBold: "https://cdn.jsdelivr.net/npm/@fontsource/dm-sans/files/dm-sans-latin-700-normal.woff",
-  serif:
-    "https://cdn.jsdelivr.net/npm/@fontsource/dm-serif-display/files/dm-serif-display-latin-400-normal.woff",
-};
+// Brand fonts, self-hosted as static TTF cuts next to this module
+// (shared/og-fonts/). Read from disk instead of a CDN fetch: there's no
+// network round trip (so og-card generation works offline / in a sandboxed
+// CI), and Satori renders these static instances reliably (it handles
+// variable fonts poorly). Hanken Grotesk ships 400 + 700; Fraunces is the
+// 600 display cut (high optical size), which Satori nearest-matches for the
+// serif headings that request the default weight. OFL-licensed, so bundling
+// is the intended use.
+const FONT_DIR = fileURLToPath(new URL("./og-fonts/", import.meta.url));
 
 let cachedFonts = null;
 export async function loadFonts() {
   if (cachedFonts) return cachedFonts;
-  const fetchFont = async (url) => {
-    const r = await fetch(url);
-    if (!r.ok) throw new Error(`font fetch ${url} → ${r.status}`);
-    return r.arrayBuffer();
-  };
-  const [sans, sansBold, serif] = await Promise.all([
-    fetchFont(FONT_URLS.sans),
-    fetchFont(FONT_URLS.sansBold),
-    fetchFont(FONT_URLS.serif),
-  ]);
+  const read = (file) => fs.readFileSync(FONT_DIR + file);
   cachedFonts = [
-    { name: "DM Sans", data: sans, weight: 400, style: "normal" },
-    { name: "DM Sans", data: sansBold, weight: 700, style: "normal" },
-    { name: "DM Serif Display", data: serif, weight: 400, style: "normal" },
+    { name: "Hanken Grotesk", data: read("hanken-grotesk-400.ttf"), weight: 400, style: "normal" },
+    { name: "Hanken Grotesk", data: read("hanken-grotesk-700.ttf"), weight: 700, style: "normal" },
+    { name: "Fraunces", data: read("fraunces-600.ttf"), weight: 600, style: "normal" },
   ];
   return cachedFonts;
 }
@@ -121,7 +114,7 @@ export function buildCard(t) {
             alignItems: "center",
             justifyContent: "center",
             fontSize: 170,
-            fontFamily: "DM Serif Display",
+            fontFamily: "Fraunces",
             letterSpacing: "-0.02em",
             boxShadow: "0 12px 32px rgba(15, 50, 60, 0.22)",
           },
@@ -135,7 +128,7 @@ export function buildCard(t) {
           "div",
           {
             style: {
-              // Dot is a child div, not a `●` glyph (not in DM Sans's
+              // Dot is a child div, not a `●` glyph (not in Hanken Grotesk's
               // Latin subset → would trigger a failing dynamic fetch).
               display: "flex",
               alignSelf: "flex-start",
@@ -147,7 +140,7 @@ export function buildCard(t) {
               borderRadius: 999,
               color: COLOR.acceptingFg,
               fontSize: 22,
-              fontFamily: "DM Sans",
+              fontFamily: "Hanken Grotesk",
               marginTop: 18,
             },
           },
@@ -181,7 +174,7 @@ export function buildCard(t) {
         style: {
           display: "flex",
           fontSize: 22,
-          fontFamily: "DM Sans",
+          fontFamily: "Hanken Grotesk",
           letterSpacing: "0.12em",
           textTransform: "uppercase",
           color: COLOR.teal,
@@ -196,7 +189,7 @@ export function buildCard(t) {
         style: {
           display: "flex",
           fontSize: 62,
-          fontFamily: "DM Serif Display",
+          fontFamily: "Fraunces",
           color: COLOR.navy,
           lineHeight: 1.05,
           letterSpacing: "-0.01em",
@@ -212,7 +205,7 @@ export function buildCard(t) {
             style: {
               display: "flex",
               fontSize: 28,
-              fontFamily: "DM Sans",
+              fontFamily: "Hanken Grotesk",
               color: COLOR.slate,
               marginBottom: 18,
             },
@@ -227,7 +220,7 @@ export function buildCard(t) {
             style: {
               display: "flex",
               fontSize: 30,
-              fontFamily: "DM Sans",
+              fontFamily: "Hanken Grotesk",
               color: COLOR.slate,
             },
           },
@@ -285,7 +278,7 @@ export function buildCard(t) {
         bottom: 48,
         left: 70,
         fontSize: 24,
-        fontFamily: "DM Sans",
+        fontFamily: "Hanken Grotesk",
         color: COLOR.teal,
         letterSpacing: "0.02em",
       },
@@ -305,7 +298,7 @@ export function buildCard(t) {
         background: `linear-gradient(180deg, ${COLOR.bgTop} 0%, ${COLOR.bgBottom} 100%)`,
         padding: "60px 70px",
         position: "relative",
-        fontFamily: "DM Sans",
+        fontFamily: "Hanken Grotesk",
       },
     },
     brandMark,
@@ -378,7 +371,7 @@ export function buildPageCard(opts) {
         style: {
           display: "flex",
           fontSize: 68,
-          fontFamily: "DM Serif Display",
+          fontFamily: "Fraunces",
           color: isAccent ? PAGE.teal : PAGE.white,
           lineHeight: 1.05,
           letterSpacing: "-0.015em",
@@ -434,7 +427,7 @@ export function buildPageCard(opts) {
         style: {
           display: "flex",
           fontSize: 30,
-          fontFamily: "DM Sans",
+          fontFamily: "Hanken Grotesk",
           fontWeight: 700,
           letterSpacing: "-0.01em",
         },
@@ -451,7 +444,7 @@ export function buildPageCard(opts) {
           style: {
             display: "flex",
             fontSize: 21,
-            fontFamily: "DM Sans",
+            fontFamily: "Hanken Grotesk",
             fontWeight: 700,
             letterSpacing: "0.13em",
             textTransform: "uppercase",
@@ -472,7 +465,7 @@ export function buildPageCard(opts) {
           style: {
             display: "flex",
             fontSize: 28,
-            fontFamily: "DM Sans",
+            fontFamily: "Hanken Grotesk",
             color: "rgba(255,255,255,0.82)",
             marginTop: 26,
             maxWidth: "900px",
@@ -501,7 +494,7 @@ export function buildPageCard(opts) {
         style: {
           display: "flex",
           fontSize: 23,
-          fontFamily: "DM Sans",
+          fontFamily: "Hanken Grotesk",
           color: "rgba(255,255,255,0.8)",
         },
       },
@@ -509,7 +502,7 @@ export function buildPageCard(opts) {
     ),
     el(
       "div",
-      { style: { display: "flex", fontSize: 23, fontFamily: "DM Sans", color: PAGE.teal } },
+      { style: { display: "flex", fontSize: 23, fontFamily: "Hanken Grotesk", color: PAGE.teal } },
       "bipolartherapyhub.com",
     ),
   );
@@ -526,7 +519,7 @@ export function buildPageCard(opts) {
         position: "relative",
         padding: "70px",
         background: `linear-gradient(125deg, ${PAGE.bgA} 0%, ${PAGE.bgB} 58%, ${PAGE.bgC} 100%)`,
-        fontFamily: "DM Sans",
+        fontFamily: "Hanken Grotesk",
       },
     },
     pageDecoCircle(520, -160, -120),
