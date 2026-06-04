@@ -13,8 +13,8 @@
   --res-slate: #4a6572;
   --res-muted: #5a727f;
   --res-border: #d4e4e9;
-  --res-serif: "DM Serif Display", Georgia, "Times New Roman", serif;
-  --res-sans: "DM Sans", system-ui, -apple-system, Segoe UI, sans-serif;
+  --res-serif: "Fraunces", Georgia, "Times New Roman", serif;
+  --res-sans: "Hanken Grotesk", system-ui, -apple-system, Segoe UI, sans-serif;
 }
 
 /* ---- HERO ---- */

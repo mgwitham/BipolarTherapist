@@ -52,7 +52,7 @@ html {
 }
 body {
   font-family:
-    "DM Sans",
+    "Hanken Grotesk",
     system-ui,
     -apple-system,
     "Segoe UI",
@@ -395,7 +395,7 @@ body {
    name/credential header. Quotation marks are added inline by the JS only
    when the clinician is claimed (it's their voice). */
 .profile-main h1 {
-  font-family: "Lora", serif;
+  font-family: "Fraunces", serif;
   font-size: 2.3rem;
   font-weight: 600;
   color: var(--navy);
@@ -1167,7 +1167,7 @@ footer a:active {
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 600;
   letter-spacing: 0.02em;
   user-select: none;
@@ -1471,7 +1471,7 @@ img.bth-avatar {
 }
 
 .report-issue-title {
-  font-family: "Lora", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
@@ -1849,7 +1849,7 @@ img.bth-avatar {
   color: #5d7882;
 }
 .profile-hero-name {
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-size: 28px;
   color: #17323b;
   line-height: 1.15;
@@ -1902,7 +1902,7 @@ img.bth-avatar {
   margin-bottom: 18px;
 }
 .profile-hero-years-num {
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-size: 30px;
   font-weight: 400;
   color: #1c4d5c;
@@ -1913,7 +1913,7 @@ img.bth-avatar {
   gap: 6px;
 }
 .profile-hero-years-unit {
-  font-family: "DM Sans", system-ui, sans-serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 13px;
   font-weight: 500;
   color: #347f96;
@@ -2013,7 +2013,7 @@ img.bth-avatar {
   margin-bottom: 6px;
 }
 .profile-section-h2 {
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-size: 20px;
   color: #17323b;
   margin: 0 0 14px;

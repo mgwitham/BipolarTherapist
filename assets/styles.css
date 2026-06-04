@@ -17,8 +17,8 @@
   --coral-dark: #b8431f;
   --coral-light: #fbe9e3;
   --cream: #f7f4ef;
-  --serif: "DM Serif Display", Georgia, serif;
-  --sans: "DM Sans", system-ui, sans-serif;
+  --serif: "Fraunces", Georgia, serif;
+  --sans: "Hanken Grotesk", system-ui, sans-serif;
   --text-dark: #17323b;
   --text-mid: #3a5b65;
   --text-light: #5d7a84;
@@ -77,7 +77,7 @@ html {
 
 body {
   margin: 0;
-  font-family: "DM Sans", system-ui, sans-serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
   background: var(--bg);
   color: var(--navy);
@@ -90,7 +90,7 @@ body {
 h1,
 h2,
 h3 {
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   letter-spacing: -0.02em;
 }
 
@@ -252,7 +252,7 @@ nav {
 .nav-links a.nav-signin-link,
 .nav-links a.nav-zone-switch,
 .nav-links a.nav-shortlist {
-  font-family: "Inter", sans-serif !important;
+  font-family: "Hanken Grotesk", sans-serif !important;
   font-size: 0.875rem !important;
   font-weight: 500 !important;
   letter-spacing: 0 !important;
@@ -452,7 +452,7 @@ nav {
 
 .dir-header h1,
 .hero h1 {
-  font-family: "Lora", serif;
+  font-family: "Fraunces", serif;
   font-size: clamp(2rem, 4.4vw, 3rem);
   font-weight: 600;
   line-height: 1.12;
@@ -496,7 +496,7 @@ nav {
 }
 
 .dir-hero-panel-title {
-  font-family: "Lora", serif;
+  font-family: "Fraunces", serif;
   font-size: 1.12rem;
   line-height: 1.16;
   color: var(--navy);
@@ -1068,7 +1068,7 @@ nav {
 }
 
 .directory-decision-preview-title {
-  font-family: "Lora", serif;
+  font-family: "Fraunces", serif;
   font-size: 1.8rem;
   line-height: 0.98;
   letter-spacing: -0.02em;
@@ -2846,7 +2846,7 @@ footer a:active {
 }
 
 .dir-header h1 {
-  font-family: "Inter", sans-serif;
+  font-family: "Hanken Grotesk", sans-serif;
   font-weight: 700;
   font-size: clamp(1.9rem, 3.6vw, 2.6rem);
   line-height: 1.1;
@@ -3296,7 +3296,7 @@ body.dir-vb .t-card::before {
 
 .directory-recommendations h2 {
   margin: 0.2rem 0 0;
-  font-family: "Lora", serif;
+  font-family: "Fraunces", serif;
   font-size: clamp(1.5rem, 3vw, 2.1rem);
   line-height: 1.08;
   color: var(--navy);
@@ -3575,7 +3575,7 @@ body.dir-vb .t-card::before {
 
 .directory-details-name {
   margin: 0.2rem 0 0;
-  font-family: "Lora", serif;
+  font-family: "Fraunces", serif;
   font-size: clamp(1.6rem, 3vw, 2.2rem);
   line-height: 1.05;
   color: var(--navy);
@@ -3681,7 +3681,7 @@ body.dir-vb .dir-vb-modal-head {
 body.dir-vb .dir-vb-modal-head h2 {
   margin: 0;
   text-align: center;
-  font-family: "Lora", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--navy);
@@ -4126,7 +4126,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
   color: var(--text-primary, #1f2a33);
 }
 .dataset-empty-state-heading {
-  font-family: "Lora", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-size: 1.55rem;
   font-weight: 600;
   line-height: 1.3;
@@ -4176,7 +4176,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
 }
 
 .dir-intro h1 {
-  font-family: "Lora", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-size: clamp(1.5rem, 3vw, 2rem);
   font-weight: 600;
   color: var(--navy);
@@ -4887,7 +4887,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
 }
 
 .dir-panel-name {
-  font-family: "Lora", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-size: 1.35rem;
   font-weight: 600;
   color: var(--navy);

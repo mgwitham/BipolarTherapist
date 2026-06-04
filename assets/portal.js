@@ -1203,7 +1203,7 @@ function renderAnalyticsBreakdownCard(title, breakdown, emptyCopy, insightCopy) 
     '<section aria-label="' +
     escapeAttr(title) +
     '" style="padding:0.95rem;border:1px solid var(--border);border-radius:16px;background:#fbfefe">' +
-    '<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;margin-bottom:0.65rem"><h3 style="font-family:Lora,serif;font-size:1.02rem;margin:0;color:var(--navy)">' +
+    '<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;margin-bottom:0.65rem"><h3 style="font-family:Fraunces,serif;font-size:1.02rem;margin:0;color:var(--navy)">' +
     escapeHtml(title) +
     '</h3><span style="font-size:0.78rem;color:var(--muted)">ranked by volume</span></div>' +
     (breakdown.total
@@ -1317,7 +1317,7 @@ function buildAnalyticsRecommendations(data) {
 function renderAnalyticsRecommendations(actions) {
   return (
     '<section aria-label="Top actions this week" style="grid-column:1 / -1;padding:1rem;border:1px solid rgba(31,122,143,0.24);border-radius:18px;background:linear-gradient(135deg,#e8f5f8 0%,#fff 78%)">' +
-    '<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;margin-bottom:0.75rem"><h3 style="font-family:Lora,serif;font-size:1.08rem;margin:0;color:var(--navy)">Top actions this week</h3><span style="font-size:0.78rem;color:var(--muted)">ranked by likely impact</span></div>' +
+    '<div style="display:flex;justify-content:space-between;gap:1rem;align-items:baseline;margin-bottom:0.75rem"><h3 style="font-family:Fraunces,serif;font-size:1.08rem;margin:0;color:var(--navy)">Top actions this week</h3><span style="font-size:0.78rem;color:var(--muted)">ranked by likely impact</span></div>' +
     '<div style="display:grid;gap:0.65rem">' +
     actions
       .map(function (action) {
@@ -1485,7 +1485,7 @@ function renderListingReadiness(readiness, therapist) {
   return (
     '<section aria-label="Profile strength" style="grid-column:1 / -1;padding:1rem;border:1px solid rgba(21,95,112,0.18);border-radius:18px;background:#fff">' +
     '<div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:0.8rem">' +
-    '<div><p class="portal-eyebrow" style="margin:0 0 0.35rem">Profile strength</p><h3 style="font-family:Lora,serif;font-size:1.15rem;margin:0;color:var(--navy)">Listing readiness</h3>' +
+    '<div><p class="portal-eyebrow" style="margin:0 0 0.35rem">Profile strength</p><h3 style="font-family:Fraunces,serif;font-size:1.15rem;margin:0;color:var(--navy)">Listing readiness</h3>' +
     '<p style="margin:0.4rem 0 0;color:var(--slate);font-size:0.9rem;line-height:1.5">' +
     escapeHtml(readiness.summary) +
     '</p><div class="portal-actions" style="margin-top:0.75rem">' +
@@ -1542,7 +1542,7 @@ function renderAnalyticsWatchModule(action) {
   return (
     '<section aria-label="What to watch next week" style="grid-column:1 / -1;padding:0.95rem;border:1px solid var(--border);border-radius:16px;background:#fbfefe">' +
     '<p class="portal-eyebrow" style="margin:0 0 0.35rem">What to watch next week</p>' +
-    '<h3 style="font-family:Lora,serif;font-size:1.02rem;margin:0;color:var(--navy)">' +
+    '<h3 style="font-family:Fraunces,serif;font-size:1.02rem;margin:0;color:var(--navy)">' +
     escapeHtml(action.title) +
     "</h3>" +
     '<p style="margin:0.45rem 0 0;color:var(--slate);font-size:0.9rem;line-height:1.55">' +
@@ -1794,7 +1794,7 @@ function renderAnalyticsBlock(payload, subscription, therapist) {
 
   grid.innerHTML =
     '<section aria-label="Top insight" style="grid-column:1 / -1;padding:1rem;border:1px solid rgba(31,122,143,0.28);border-radius:18px;background:#fff">' +
-    '<div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap"><div><p class="portal-eyebrow" style="margin:0 0 0.35rem">Most important takeaway</p><h3 style="font-family:Lora,serif;font-size:1.25rem;margin:0;color:var(--navy)">' +
+    '<div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap"><div><p class="portal-eyebrow" style="margin:0 0 0.35rem">Most important takeaway</p><h3 style="font-family:Fraunces,serif;font-size:1.25rem;margin:0;color:var(--navy)">' +
     escapeHtml(topTakeaway) +
     '</h3></div><span style="border:1px solid #b8dfe7;border-radius:999px;background:#e8f5f8;color:var(--teal-dark,#155f70);font-size:0.78rem;font-weight:800;padding:0.35rem 0.55rem">' +
     escapeHtml(signalLabel) +
@@ -1841,7 +1841,7 @@ function renderAnalyticsBlock(payload, subscription, therapist) {
       contactInsight,
     ) +
     '<section aria-label="12-week trend" style="grid-column:1 / -1;padding:0.95rem;border:1px solid var(--border);border-radius:16px;background:#fbfefe">' +
-    '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:0.4rem"><h3 style="font-family:Lora,serif;font-size:1.02rem;margin:0;color:var(--navy)">12-week profile-view trend</h3>' +
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:1rem;margin-bottom:0.4rem"><h3 style="font-family:Fraunces,serif;font-size:1.02rem;margin:0;color:var(--navy)">12-week profile-view trend</h3>' +
     '<span style="font-size:0.78rem;color:var(--muted)">current ' +
     escapeHtml(String(latestWeeklyViews || views)) +
     " / previous " +

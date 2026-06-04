@@ -47,7 +47,7 @@ test("signup page: client-side submit throttle matches the documented window", (
 });
 
 test("signup page: only declares fonts that are actually loaded", () => {
-  // The page must inherit the global stack (DM Serif Display / DM Sans via
+  // The page must inherit the global stack (Fraunces / Hanken Grotesk via
   // CSS vars) rather than declaring Lora/Inter, which are never loaded and
   // silently fall back to Times/system-sans.
   assert.doesNotMatch(signupHtml, /font-family:\s*"Lora"/);
