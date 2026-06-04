@@ -418,6 +418,14 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
     color: #6dbdd4 !important;
     font-weight: 600;
   }
+  /* "For therapists →" is a .nav-zone-switch, and the global zone-switch
+     rule paints it var(--muted) — illegible on the dark sheet. Two-class
+     specificity wins decisively and restores a readable (slightly secondary)
+     white. The title span uses color:inherit, so it follows the link — which
+     the light therapist-zone sheet overrides to dark teal below. */
+  .public-mobile-nav-link.nav-zone-switch {
+    color: rgba(255, 255, 255, 0.82) !important;
+  }
   /* Hide kicker + copy spans — sheet is a clean text list. */
   .public-mobile-nav-link .public-mobile-nav-kicker,
   .public-mobile-nav-link .public-mobile-nav-copy {
