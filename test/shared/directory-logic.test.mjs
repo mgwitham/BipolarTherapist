@@ -370,3 +370,71 @@ test("getMatchScore does not leak a cached score across different filter sets", 
   // Re-scoring with the original filter object recomputes to the same value.
   assert.equal(getMatchScore(withSpecialty, therapist), scoredWithSpecialty);
 });
+
+// ── Sort-mode coverage + the lowest_fee NaN guard ────────────────
+function baseTherapist(overrides) {
+  return Object.assign(
+    {
+      name: "Test Provider",
+      slug: "test-provider",
+      specialties: [],
+      treatment_modalities: [],
+      client_populations: [],
+      insurance_accepted: [],
+      state: "CA",
+      city: "Los Angeles",
+      verification_status: "",
+      field_review_states: {},
+      bipolar_years_experience: 0,
+      bio_preview: "",
+    },
+    overrides,
+  );
+}
+
+test("compareTherapistsWithFilters lowest_fee sorts ascending; unknown/non-numeric fees sort last", () => {
+  const filters = { sortBy: "lowest_fee" };
+  const cheap = baseTherapist({ name: "Zara Cheap", slug: "cheap", session_fee_min: 90 });
+  const pricey = baseTherapist({ name: "Aaron Pricey", slug: "pricey", session_fee_min: 200 });
+  // Non-numeric fee: Number("sliding scale") is NaN. Before the guard this
+  // poisoned the comparison and scattered the provider unpredictably.
+  const sliding = baseTherapist({
+    name: "Mara Sliding",
+    slug: "sliding",
+    session_fee_min: "sliding scale",
+  });
+  const missing = baseTherapist({ name: "Noah Missing", slug: "missing" });
+
+  const order = [pricey, sliding, missing, cheap]
+    .sort((a, b) => compareTherapistsWithFilters(filters, a, b))
+    .map((t) => t.slug);
+
+  assert.equal(order[0], "cheap", "lowest valid fee first");
+  assert.equal(order[1], "pricey", "next valid fee second");
+  // Both unknown-fee providers land in the last two slots, not ahead of a real fee.
+  assert.deepEqual(order.slice(2).sort(), ["missing", "sliding"]);
+});
+
+test("compareTherapistsWithFilters most_experienced ranks higher bipolar experience first", () => {
+  const filters = { sortBy: "most_experienced" };
+  const veteran = baseTherapist({ slug: "veteran", bipolar_years_experience: 12 });
+  const newer = baseTherapist({ slug: "newer", bipolar_years_experience: 3 });
+  assert.ok(compareTherapistsWithFilters(filters, veteran, newer) < 0);
+  assert.ok(compareTherapistsWithFilters(filters, newer, veteran) > 0);
+});
+
+test("compareTherapistsWithFilters soonest_availability ranks shorter waits first", () => {
+  const filters = { sortBy: "soonest_availability" };
+  const soon = baseTherapist({ slug: "soon", estimated_wait_time: "Immediate availability" });
+  const later = baseTherapist({ slug: "later", estimated_wait_time: "1-2 months" });
+  assert.ok(compareTherapistsWithFilters(filters, soon, later) < 0);
+  assert.ok(compareTherapistsWithFilters(filters, later, soon) > 0);
+});
+
+test("matchesDirectoryFilters tolerates a null specialties field without throwing", () => {
+  const provider = baseTherapist({ slug: "x", specialties: null });
+  // Specialty filter + provider missing the field => excluded, no throw.
+  assert.equal(matchesDirectoryFilters({ specialty: "Bipolar II" }, provider), false);
+  // No meaningful filter => included.
+  assert.equal(matchesDirectoryFilters({}, provider), true);
+});
