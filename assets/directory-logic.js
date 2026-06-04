@@ -773,6 +773,19 @@ function getCompletenessTier(therapist) {
   return 0;
 }
 
+// Fee used for "lowest fee" sorting. A missing fee already falls back to a
+// large sentinel, but a non-numeric value (e.g. a "sliding scale" string)
+// makes Number(...) return NaN, and `aFee - bFee` then yields NaN — which is
+// falsy, so the comparison silently falls through and scatters those
+// providers unpredictably instead of sorting them last. Treat any
+// non-finite fee as unknown so it sorts to the bottom, like a missing fee.
+function feeSortValue(therapist) {
+  var fee = Number(
+    (therapist && (therapist.session_fee_min || therapist.session_fee_max)) || 999999,
+  );
+  return Number.isFinite(fee) ? fee : 999999;
+}
+
 export function compareTherapistsWithFilters(filterState, a, b) {
   if (filterState.sortBy === "stable_random" || filterState.sortBy === "near_zip") {
     if (filterState.sortBy === "near_zip") {
@@ -830,8 +843,8 @@ export function compareTherapistsWithFilters(filterState, a, b) {
   }
 
   if (filterState.sortBy === "lowest_fee") {
-    var aFee = Number(a.session_fee_min || a.session_fee_max || 999999);
-    var bFee = Number(b.session_fee_min || b.session_fee_max || 999999);
+    var aFee = feeSortValue(a);
+    var bFee = feeSortValue(b);
 
     return (
       aFee - bFee ||
