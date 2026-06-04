@@ -178,7 +178,7 @@ body.match-refine-drawer-open .refine-foot {
   text-transform: uppercase;
 }
 .match-tool-title {
-  font-family: "Lora", serif;
+  font-family: "Fraunces", serif;
   font-size: clamp(1.35rem, 2.7vw, 1.72rem);
   line-height: 1.18;
   color: var(--navy);
@@ -981,7 +981,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
   margin: 0;
   padding: 1rem;
   white-space: pre-wrap;
-  font-family: "Inter", sans-serif;
+  font-family: "Hanken Grotesk", sans-serif;
   font-size: 0.83rem;
   line-height: 1.7;
   color: var(--slate);
@@ -2480,7 +2480,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
   margin-bottom: 0.35rem;
 }
 .mx-loading-title {
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-weight: 500;
   font-size: clamp(1.4rem, 2.4vw, 1.75rem);
   line-height: 1.2;
@@ -2540,7 +2540,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
   letter-spacing: 0.08em;
 }
 .mx-results-title {
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-weight: 500;
   font-size: clamp(1.4rem, 2.4vw, 1.75rem);
   line-height: 1.2;
@@ -3204,7 +3204,7 @@ body.match-refine-drawer-open .mx-refine-sticky {
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 600;
   letter-spacing: 0.02em;
   user-select: none;
@@ -3256,7 +3256,7 @@ img.bth-avatar {
   min-width: 0;
 }
 .bth-card-name {
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-weight: 500;
   font-size: 1.15rem;
   line-height: 1.2;
@@ -3344,7 +3344,7 @@ img.bth-avatar {
 
 /* Zone 2 — voice cascade */
 .bth-voice {
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-size: 14px;
   line-height: 1.55;
   color: #4d6671;
@@ -3520,7 +3520,7 @@ img.bth-avatar {
   gap: 0.55rem;
 }
 .bth-modal-name {
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-weight: 500;
   font-size: 1.45rem;
   line-height: 1.2;
@@ -3597,7 +3597,7 @@ img.bth-avatar {
 }
 .bth-modal-section-label {
   margin: 0;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 0.78rem;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -4136,7 +4136,7 @@ img.bth-avatar {
   color: var(--teal-dark);
 }
 .mx-outreach-expanded-label {
-  font-family: "Lora", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--slate);
@@ -4310,7 +4310,7 @@ img.bth-avatar {
 }
 .mx-sl-page-title {
   margin: 0;
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-weight: 500;
   font-size: 1.6rem;
   line-height: 1.2;
@@ -4372,7 +4372,7 @@ img.bth-avatar {
   object-fit: cover;
 }
 .mx-sl-hero-photo-fill {
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-size: 1.6rem;
   color: #1a7a8f;
 }
@@ -4381,7 +4381,7 @@ img.bth-avatar {
   min-width: 0;
 }
 .mx-sl-hero-name {
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-weight: 500;
   font-size: 1.4rem;
   line-height: 1.15;
@@ -4389,7 +4389,7 @@ img.bth-avatar {
   margin-bottom: 0.2rem;
 }
 .mx-sl-hero-cred {
-  font-family: "Inter", sans-serif;
+  font-family: "Hanken Grotesk", sans-serif;
   font-size: 0.82rem;
   font-weight: 500;
   color: #5a727f;
@@ -4504,14 +4504,14 @@ img.bth-avatar {
   border-radius: 999px;
 }
 .mx-sl-card-name {
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-weight: 500;
   font-size: 1.1rem;
   line-height: 1.2;
   color: #0f1f28;
 }
 .mx-sl-card-cred {
-  font-family: "Inter", sans-serif;
+  font-family: "Hanken Grotesk", sans-serif;
   font-size: 0.78rem;
   font-weight: 500;
   color: #5a727f;
@@ -4582,7 +4582,7 @@ img.bth-avatar {
   font-size: 0.8rem;
 }
 .mx-sl-diff-head-name {
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-weight: 500;
   font-size: 0.95rem;
   color: #0f1f28;

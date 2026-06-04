@@ -12,7 +12,7 @@
   flex-shrink: 0;
   border-radius: 50%;
   overflow: hidden;
-  font-family: "Inter", system-ui, sans-serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 600;
   letter-spacing: 0.02em;
   user-select: none;
@@ -47,7 +47,7 @@ img.bth-avatar {
   min-width: 0;
 }
 .bth-card-name {
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-weight: 500;
   font-size: 1.15rem;
   line-height: 1.2;
@@ -88,7 +88,7 @@ img.bth-avatar {
 }
 
 .bth-voice {
-  font-family: "Fraunces", "Inter", serif;
+  font-family: "Fraunces", "Hanken Grotesk", serif;
   font-size: 14px;
   line-height: 1.55;
   color: #4d6671;

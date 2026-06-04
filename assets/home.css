@@ -19,7 +19,7 @@
   --green: #3aaa7a;
 }
 body {
-  font-family: "Inter", sans-serif;
+  font-family: "Hanken Grotesk", sans-serif;
   background: var(--bg);
   color: var(--navy);
   line-height: 1.6;
@@ -163,7 +163,7 @@ nav[aria-label="Main navigation"] {
   box-shadow: 0 24px 50px rgba(3, 25, 31, 0.35);
 }
 .waitlist-panel-title {
-  font-family: "Lora", serif;
+  font-family: "Fraunces", serif;
   font-size: 1.2rem;
   font-weight: 600;
   color: var(--navy);
@@ -337,7 +337,7 @@ section {
   margin-bottom: 0.4rem;
 }
 h2 {
-  font-family: "Lora", serif;
+  font-family: "Fraunces", serif;
   font-size: clamp(1.6rem, 3vw, 2.1rem);
   font-weight: 600;
   color: var(--navy);

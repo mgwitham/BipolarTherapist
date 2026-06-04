@@ -36,7 +36,7 @@ body {
   background: var(--cream);
   color: var(--text-dark);
   font-family:
-    "DM Sans",
+    "Hanken Grotesk",
     system-ui,
     -apple-system,
     sans-serif;
@@ -72,7 +72,7 @@ a {
 
 .results-h1 {
   margin: 0 0 6px;
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-weight: 400;
   font-size: 26px;
   line-height: 1.2;
@@ -244,7 +244,7 @@ a {
 
 .card-name {
   margin: 0 0 2px;
-  font-family: "DM Sans", system-ui, sans-serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 16px;
   font-weight: 600;
   color: var(--text-dark);
@@ -803,7 +803,7 @@ a {
 
 .results-empty-h {
   margin: 0 0 10px;
-  font-family: "DM Serif Display", Georgia, serif;
+  font-family: "Fraunces", Georgia, serif;
   font-weight: 400;
   font-size: 24px;
   color: var(--text-dark);
