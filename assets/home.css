@@ -1338,7 +1338,9 @@ footer {
   font-weight: 600;
 }
 .hero-h1 em {
-  font-style: italic;
+  /* Upright, not italic: Fraunces' calligraphic italic reads as decorative
+     and hard to parse at hero size. The teal color carries the accent. */
+  font-style: normal;
   color: var(--teal-300);
 }
 .hero-sub {

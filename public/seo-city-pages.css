@@ -132,7 +132,9 @@
 }
 .seo-city-fallback .city-hero-h1 em,
 .seo-city-hub .city-hero-h1 em {
-  font-style: italic;
+  /* Upright, not italic: Fraunces' calligraphic italic reads as decorative
+     and hard to parse at hero size. The teal color carries the accent. */
+  font-style: normal;
   color: var(--teal-300);
 }
 .seo-city-fallback .city-hero-sub,
