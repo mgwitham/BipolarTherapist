@@ -182,6 +182,7 @@ body.match-refine-drawer-open .refine-foot {
   font-size: clamp(1.35rem, 2.7vw, 1.72rem);
   line-height: 1.18;
   color: var(--navy);
+  font-weight: 600;
 }
 .match-tool-copy {
   color: var(--slate);
@@ -4375,6 +4376,7 @@ img.bth-avatar {
   font-family: "Fraunces", "Hanken Grotesk", serif;
   font-size: 1.6rem;
   color: #1a7a8f;
+  font-weight: 600;
 }
 .mx-sl-hero-ident {
   flex: 1;

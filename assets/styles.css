@@ -92,6 +92,7 @@ h2,
 h3 {
   font-family: "Fraunces", Georgia, serif;
   letter-spacing: -0.02em;
+  font-weight: 600;
 }
 
 .btn-primary {
@@ -500,6 +501,7 @@ nav {
   font-size: 1.12rem;
   line-height: 1.16;
   color: var(--navy);
+  font-weight: 600;
 }
 
 .dir-hero-panel-copy {
@@ -1073,6 +1075,7 @@ nav {
   line-height: 0.98;
   letter-spacing: -0.02em;
   color: var(--navy);
+  font-weight: 600;
 }
 
 .directory-decision-preview-creds {
@@ -3300,6 +3303,7 @@ body.dir-vb .t-card::before {
   font-size: clamp(1.5rem, 3vw, 2.1rem);
   line-height: 1.08;
   color: var(--navy);
+  font-weight: 600;
 }
 
 .directory-recommendations-copy,
@@ -3579,6 +3583,7 @@ body.dir-vb .t-card::before {
   font-size: clamp(1.6rem, 3vw, 2.2rem);
   line-height: 1.05;
   color: var(--navy);
+  font-weight: 600;
 }
 
 .directory-details-actions {

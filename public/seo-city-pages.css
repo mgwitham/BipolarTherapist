@@ -45,7 +45,7 @@
 .seo-city-fallback .city-section-h2,
 .seo-city-hub .city-section-h2 {
   font-family: var(--serif);
-  font-weight: 400;
+  font-weight: 600;
   font-size: clamp(28px, 3.2vw, 40px);
   line-height: 1.15;
   letter-spacing: -0.015em;
@@ -125,7 +125,7 @@
   font-size: clamp(40px, 5.4vw, 64px);
   line-height: 1.05;
   letter-spacing: -0.02em;
-  font-weight: 400;
+  font-weight: 600;
   color: #fff;
   margin: 0 0 24px;
   max-width: 760px;
@@ -344,6 +344,7 @@
   letter-spacing: -0.02em;
   flex-shrink: 0;
   width: 48px;
+  font-weight: 600;
 }
 .seo-city-fallback .city-criteria-title {
   font-family: var(--sans);
@@ -406,7 +407,7 @@
   font-size: clamp(28px, 3.4vw, 42px);
   line-height: 1.1;
   letter-spacing: -0.015em;
-  font-weight: 400;
+  font-weight: 600;
   color: #fff;
   margin: 0 0 16px;
 }
