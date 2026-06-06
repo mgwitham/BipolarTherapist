@@ -42,6 +42,12 @@ export const PROFILE_GAP_SUBJECT = "BipolarTherapyHub | Complete Your Profile";
 // catch" that stalls a claim after three touches.
 export const REASSURANCE_SUBJECT = "BipolarTherapyHub | No catch, two minutes";
 
+// Single-ask "add your photo" reach-out. Standalone subject (not
+// threaded) — it's a focused, one-thing email, so it earns its own inbox
+// entry. Sharper than profile_gap, which bundles photo + experience; this
+// one asks for the photo only.
+export const ADD_PHOTO_SUBJECT = "BipolarTherapyHub | Add your photo";
+
 // The body is identical for the initial email and the follow-up. The
 // messaging is doing the work; we just want the second message in the
 // same thread.
@@ -121,6 +127,33 @@ export function buildReassuranceBody({ name, profileUrl }) {
   ].join("\n");
 }
 
+// Single-ask photo angle: assumes the profile is already live and asks
+// for the one thing that most moves contact rate — a face. Leads with the
+// concrete payoff (3x more contact clicks) rather than a generic "complete
+// your profile". Standalone, not threaded, so it reads as its own focused
+// request. Points to the same claim/profile URL as the other touches; the
+// photo upload lives behind claiming.
+export function buildAddPhotoBody({ name, profileUrl }) {
+  const first = firstName(name);
+  const url = profileUrl || "";
+  return [
+    `Hi ${first},`,
+    "",
+    "One quick thing that makes a real difference: add a photo to your BipolarTherapyHub listing.",
+    "",
+    "Listings with a headshot get about 3x more contact clicks than those without. Patients searching for a bipolar specialist have usually been through a few therapists who didn't get it — seeing a face before they reach out lowers the bar to that first message.",
+    "",
+    "It takes under a minute. Claim your profile and upload a JPG, PNG, or WebP:",
+    "",
+    url,
+    "",
+    "It's your photo, shown only on your listing, and you can swap it anytime.",
+    "",
+    "Michael",
+    "bipolartherapyhub.com",
+  ].join("\n");
+}
+
 // Convenience for the client composer: returns the { subject, body }
 // pair for a given template. Server consumers use INITIAL_SUBJECT and
 // buildOutreachBody directly because they wrap them in their own
@@ -131,6 +164,12 @@ export function getOutreachTemplate(template, { name, profileUrl }) {
     return {
       subject: PROFILE_GAP_SUBJECT,
       body: buildProfileGapBody({ name, profileUrl: refUrl }),
+    };
+  }
+  if (template === "add_photo") {
+    return {
+      subject: ADD_PHOTO_SUBJECT,
+      body: buildAddPhotoBody({ name, profileUrl: refUrl }),
     };
   }
   if (template === "reassurance") {
