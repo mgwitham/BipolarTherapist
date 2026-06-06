@@ -1440,3 +1440,92 @@ export async function sendPortalCompletenessNudge(config, therapist, portalBaseU
     text: rendered.text,
   });
 }
+
+// Focused single-ask "add your photo" email. Distinct from the
+// completeness nudge (which lists every missing field at once); a one-ask
+// campaign converts better. Targets claimed therapists who have no
+// headshot on file. The portal upload it points to is consent-based:
+// the therapist uploads their own photo, which is the only way a photo
+// reaches a listing (we never scrape headshots from third parties).
+export function renderTherapistPhotoRequest(config, therapist, portalBaseUrl) {
+  const toEmail = String((therapist && therapist.email) || "")
+    .trim()
+    .toLowerCase();
+  // First name for the greeting. CA listings are frequently "Dr. First
+  // Last", so strip a leading honorific before taking the first token —
+  // otherwise the email greets "Hi Dr.,".
+  const name =
+    String((therapist && therapist.name) || "")
+      .trim()
+      .replace(/^(dr|mr|mrs|ms|mx|prof)\.?\s+/i, "")
+      .split(" ")[0] || "there";
+
+  // Accept both the Sanity slug object { current } and the flat string the
+  // server-side GROQ projection returns, mirroring the completeness nudge.
+  const slugRaw =
+    (therapist && therapist.slug && therapist.slug.current) || (therapist && therapist.slug) || "";
+  const slug = String(slugRaw || "").trim();
+  const base = String(
+    portalBaseUrl || (config && config.portalBaseUrl) || "https://www.bipolartherapyhub.com",
+  ).replace(/\/+$/, "");
+  const portalUrl = slug ? `${base}/portal?slug=${encodeURIComponent(slug)}` : `${base}/portal`;
+
+  const heading = "Add your photo, earn more patient trust";
+  const bodyHtml =
+    '<p style="margin:0 0 14px 0;">Patients choosing a bipolar specialist want to see who they’d be talking to. Listings with a headshot earn roughly <strong>3× more contact clicks</strong> than those without one.</p>' +
+    '<p style="margin:0 0 14px 0;">Adding yours takes under a minute, upload a JPG, PNG, or WebP straight from your portal. It’s <strong>your</strong> photo, shown only on your listing, and you can replace it anytime.</p>' +
+    '<p style="margin:0 0 4px 0;font-size:13px;color:#6b8189;">A clear, front-facing headshot with your eyes visible works best.</p>';
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+    preheader:
+      "Listings with a photo get about 3× more patient clicks. Adding yours takes a minute.",
+    primaryCta: { label: "Add my photo →", url: portalUrl },
+    footerLinesHtml: [
+      "You’re receiving this because you have a claimed listing on BipolarTherapyHub.",
+      'Questions? Email <a href="mailto:support@bipolartherapyhub.com" style="color:#155f70;">support@bipolartherapyhub.com</a>.',
+    ],
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "Patients choosing a bipolar specialist want to see who they'd be talking to. " +
+      "Listings with a headshot earn roughly 3x more contact clicks than those without one." +
+      "\n\nAdding yours takes under a minute, upload a JPG, PNG, or WebP straight from your portal. " +
+      "It's your photo, shown only on your listing, and you can replace it anytime." +
+      "\n\nA clear, front-facing headshot with your eyes visible works best.",
+    primaryCta: { label: "Add my photo", url: portalUrl },
+    footerLines: [
+      "You're receiving this because you have a claimed listing on BipolarTherapyHub.",
+      "Questions? Email support@bipolartherapyhub.com",
+    ],
+  });
+
+  return {
+    subject: "Add your photo to your BipolarTherapyHub listing",
+    html,
+    text,
+    toEmail,
+    portalUrl,
+  };
+}
+
+// Thin wrapper: render then send. Skips when there's no email config or no
+// recipient on file, matching the completeness-nudge sender's gating.
+export async function sendTherapistPhotoRequest(config, therapist, portalBaseUrl) {
+  if (!hasEmailConfig(config)) return;
+  const rendered = renderTherapistPhotoRequest(config, therapist, portalBaseUrl);
+  if (!rendered.toEmail) return;
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [rendered.toEmail],
+    reply_to: "support@bipolartherapyhub.com",
+    subject: rendered.subject,
+    html: rendered.html,
+    text: rendered.text,
+  });
+}

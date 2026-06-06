@@ -9,6 +9,7 @@ import {
 } from "./admin-candidate-edit.js";
 import { mountEditDrawer } from "./edit-drawer-shell.js";
 import { renderPortalCompletenessPanel } from "./admin-portal-completeness.js";
+import { renderPhotoCampaignPanel } from "./admin-photo-campaign.js";
 
 const API = "/api/admin";
 
@@ -550,6 +551,9 @@ function renderDashboard() {
     // lifecycle now lives entirely in Outreach. Async; fills #portalCompleteness
     // when its summary fetch resolves.
     renderPortalCompletenessPanel();
+    // Photo campaign — claimed listings missing a headshot. Async; fills
+    // #photoCampaign when its summary fetch resolves.
+    renderPhotoCampaignPanel();
   } else {
     refreshTable();
     setupDashboardListeners();
@@ -682,6 +686,11 @@ function renderLiveView() {
         Profile completeness · nudge claimed therapists to fill gaps
       </div>
       <div id="portalCompleteness"></div>
+
+      <div style="font-size:11px;font-weight:600;color:#9ca3af;letter-spacing:0.5px;text-transform:uppercase;margin:24px 0 6px;">
+        Photo campaign · ask claimed therapists missing a headshot to add one
+      </div>
+      <div id="photoCampaign"></div>
     </div>
   `;
 }

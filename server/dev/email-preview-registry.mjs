@@ -20,6 +20,7 @@ import {
   sendPortalCompletenessNudge,
   sendPortalContactEmail,
   sendPortalWelcomeEmail,
+  sendTherapistPhotoRequest,
   sendRecoveryApprovedEmail,
   sendRecoveryConfirmationEmail,
   sendRecoveryConfirmationHeadsUp,
@@ -434,6 +435,20 @@ export const EMAIL_TEMPLATES = [
           }),
           sampleLinks.portalBaseUrl,
         );
+      });
+    },
+  },
+  {
+    id: "therapist-photo-request",
+    name: "Therapist: add your photo",
+    trigger: "Manual admin campaign (Outreach → Live tab) for claimed listings with no headshot.",
+    recipient: "therapist",
+    source: "server/review-email.mjs (renderTherapistPhotoRequest)",
+    preheader:
+      "Listings with a photo get about 3× more patient clicks. Adding yours takes a minute.",
+    invoke: async function (config) {
+      return captureFromSender(function () {
+        return sendTherapistPhotoRequest(config, sampleTherapist, sampleLinks.portalBaseUrl);
       });
     },
   },

@@ -35,3 +35,4 @@ and [`server/dev/email-sample-data.mjs`](../../server/dev/email-sample-data.mjs)
 | Therapist: CA license expiring | therapist | Vercel cron daily 16:00 UTC (/api/cron/license-expiration-warnings); 60/30/14 day thresholds. | [`license-expiration-warning.html`](./license-expiration-warning.html) |
 | Admin: portal contact form submission | admin | Therapist submits the in-portal contact form (POST /portal/contact). | [`portal-contact-form.html`](./portal-contact-form.html) |
 | Therapist: portal completeness nudge | therapist | Manual trigger (no cron yet) when profile completeness is low. | [`portal-completeness-nudge.html`](./portal-completeness-nudge.html) |
+| Therapist: add your photo | therapist | Manual admin campaign (Outreach → Live tab) for claimed listings with no headshot. | [`therapist-photo-request.html`](./therapist-photo-request.html) |
