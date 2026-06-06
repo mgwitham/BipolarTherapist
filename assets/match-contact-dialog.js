@@ -1,5 +1,5 @@
 import { buildContactModalContent } from "../shared/contact-modal-content.mjs";
-import { phoneHref, emailHref } from "../shared/contact-href.mjs";
+import { phoneHref, emailHref, publicHttpUrl } from "../shared/contact-href.mjs";
 
 export function getDomainFromUrl(url) {
   try {
@@ -45,10 +45,8 @@ export function getContactRoutes(entry) {
       });
     }
   }
-  if (therapist.booking_url) {
-    var bookingHref = /^(https?:)/i.test(therapist.booking_url)
-      ? therapist.booking_url
-      : "https://" + therapist.booking_url.replace(/^\/+/, "");
+  var bookingHref = publicHttpUrl(therapist.booking_url);
+  if (bookingHref) {
     routes.push({
       type: "booking",
       label: "Book online",
@@ -57,10 +55,8 @@ export function getContactRoutes(entry) {
       raw: bookingHref,
     });
   }
-  if (therapist.website) {
-    var siteHref = /^(https?:)/i.test(therapist.website)
-      ? therapist.website
-      : "https://" + therapist.website.replace(/^\/+/, "");
+  var siteHref = publicHttpUrl(therapist.website);
+  if (siteHref) {
     routes.push({
       type: "website",
       label: "Website",
