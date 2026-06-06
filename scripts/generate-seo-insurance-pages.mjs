@@ -307,9 +307,13 @@ function buildHeadTags(bucket) {
     '<meta property="og:title" content="' + escapeAttribute(title) + '" />',
     '<meta property="og:description" content="' + escapeAttribute(description) + '" />',
     '<meta property="og:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta property="og:image:width" content="1200" />',
+    '<meta property="og:image:height" content="630" />',
+    '<meta property="og:image:alt" content="BipolarTherapyHub — California bipolar-informed therapist directory" />',
     '<meta name="twitter:card" content="summary_large_image" />',
     '<meta name="twitter:title" content="' + escapeAttribute(title) + '" />',
     '<meta name="twitter:description" content="' + escapeAttribute(description) + '" />',
+    '<meta name="twitter:image" content="' + SITE_URL + '/og-image.png" />',
     '<script type="application/ld+json" id="insurance-jsonld">' +
       JSON.stringify(buildJsonLd(bucket)).replace(/<\/script>/gi, "<\\/script>") +
       "</script>",

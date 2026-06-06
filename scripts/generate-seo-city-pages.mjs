@@ -581,6 +581,16 @@ function buildHeadTags(city, state, slug, providers) {
       escapeAttribute(buildTitle(city, state, providers.length)) +
       '" />',
     '<meta property="og:description" content="' + escapeAttribute(description) + '" />',
+    '<meta property="og:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta property="og:image:width" content="1200" />',
+    '<meta property="og:image:height" content="630" />',
+    '<meta property="og:image:alt" content="BipolarTherapyHub — California bipolar-informed therapist directory" />',
+    '<meta name="twitter:card" content="summary_large_image" />',
+    '<meta name="twitter:title" content="' +
+      escapeAttribute(buildTitle(city, state, providers.length)) +
+      '" />',
+    '<meta name="twitter:description" content="' + escapeAttribute(description) + '" />',
+    '<meta name="twitter:image" content="' + SITE_URL + '/og-image.png" />',
     '<script type="application/ld+json" id="city-jsonld">' +
       JSON.stringify(buildJsonLd(city, state, slug, providers)) +
       "</script>",
@@ -661,6 +671,29 @@ function buildHubHeadTags() {
     '<meta property="og:url" content="' + escapeAttribute(canonicalUrl) + '" />',
     '<meta property="og:title" content="' + escapeAttribute(title) + '" />',
     '<meta property="og:description" content="' + escapeAttribute(description) + '" />',
+    '<meta property="og:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta property="og:image:width" content="1200" />',
+    '<meta property="og:image:height" content="630" />',
+    '<meta property="og:image:alt" content="BipolarTherapyHub — California bipolar-informed therapist directory" />',
+    '<meta name="twitter:card" content="summary_large_image" />',
+    '<meta name="twitter:title" content="' + escapeAttribute(title) + '" />',
+    '<meta name="twitter:description" content="' + escapeAttribute(description) + '" />',
+    '<meta name="twitter:image" content="' + SITE_URL + '/og-image.png" />',
+    '<script type="application/ld+json" id="city-hub-jsonld">' +
+      JSON.stringify({
+        "@context": "https://schema.org",
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: SITE_URL + "/" },
+          {
+            "@type": "ListItem",
+            position: 2,
+            name: "Bipolar therapists by city",
+            item: canonicalUrl,
+          },
+        ],
+      }).replace(/<\/script>/gi, "<\\/script>") +
+      "</script>",
   ].join("\n    ");
 }
 
