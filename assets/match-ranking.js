@@ -1,6 +1,9 @@
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 import { insuranceMatches } from "../shared/therapist-picker-options.mjs";
-import { phoneHref as normalizeTelHref } from "../shared/contact-href.mjs";
+import {
+  phoneHref as normalizeTelHref,
+  publicHttpUrl as normalizeExternalUrl,
+} from "../shared/contact-href.mjs";
 
 export const FEEDBACK_REASON_OPTIONS = [
   "Insurance mismatch",
@@ -10,14 +13,6 @@ export const FEEDBACK_REASON_OPTIONS = [
   "Weak bipolar specialization",
   "Other",
 ];
-
-function normalizeExternalUrl(value) {
-  var raw = String(value || "").trim();
-  if (!raw) return "";
-  if (/^(https?:|mailto:|tel:)/i.test(raw)) return raw;
-  if (/^\/\//.test(raw)) return "https:" + raw;
-  return "https://" + raw.replace(/^\/+/, "");
-}
 
 function buildRouteLearningMap(outcomes, buildLearningSegments) {
   var entries = Array.isArray(outcomes) ? outcomes : [];
