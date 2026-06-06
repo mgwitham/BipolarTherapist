@@ -154,7 +154,7 @@ export function renderVoiceCascade(therapist) {
   // 1. Clinician's own words (shown whenever present, regardless of source)
   if (t.care_approach && String(t.care_approach).trim()) {
     var quote = trimQuote(t.care_approach, 220);
-    return "<p class=”bth-voice bth-voice-quote”>&ldquo;" + escapeHtml(quote) + "&rdquo;</p>";
+    return '<p class="bth-voice bth-voice-quote">&ldquo;' + escapeHtml(quote) + "&rdquo;</p>";
   }
 
   // 2. Populations served
