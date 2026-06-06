@@ -11,7 +11,7 @@
   --cream: #f7f4ef;
   --text-dark: #17323b;
   --text-mid: #3a5b65;
-  --text-light: #5d7a84;
+  --text-light: #527079;
   --border: rgba(52, 127, 150, 0.15);
 }
 
@@ -842,6 +842,19 @@ a {
    ───────────────────────────────────────────────────────── */
 :focus {
   outline: none;
+}
+
+/* Baseline keyboard ring. The bare :focus reset above strips the UA
+   outline from every element; without this fallback, any interactive
+   surface not named in the lists below would have NO visible keyboard
+   focus. Equal specificity to the reset, placed after it, so it wins for
+   keyboard focus (:focus-visible) while mouse focus stays clean. The
+   per-component rules below still override it where they want a different
+   colour or offset. */
+:focus-visible {
+  outline: 2px solid var(--teal-500);
+  outline-offset: 3px;
+  border-radius: 4px;
 }
 
 .filter-edit-btn:focus-visible,

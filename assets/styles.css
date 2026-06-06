@@ -21,7 +21,11 @@
   --sans: "Hanken Grotesk", system-ui, sans-serif;
   --text-dark: #17323b;
   --text-mid: #3a5b65;
-  --text-light: #5d7a84;
+  /* Lightened muted text darkened from #5d7a84 (4.21:1 on the --bg cream,
+     failed normal-text WCAG AA) to #527079 (4.88:1). Same blue-grey hue,
+     now legible for the small captions/labels that use it across home,
+     results, and city pages. */
+  --text-light: #527079;
   --border: rgba(52, 127, 150, 0.15);
 
   --teal: #1a7a8f;
@@ -33,7 +37,10 @@
   --muted: #333333;
   --bg: #f7f5f2;
   --white: #ffffff;
-  --green: #3aaa7a;
+  /* Success/availability green darkened from #3aaa7a (2.68:1 on --bg,
+     failed AA) to #1f7a52 (4.87:1). Drives the "Accepting new patients"
+     badge and other small status text, so it must clear normal-text AA. */
+  --green: #1f7a52;
   --amber-bg: #fef3e2;
   --amber-text: #8a5a00;
 }
