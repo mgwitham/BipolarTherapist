@@ -3,7 +3,7 @@ import {
   previewPortalCompletenessNudge,
   sendPortalCompletenessNudges,
 } from "./review-api.js";
-import { escapeHtml } from "./escape-html.js";
+import { openEmailCampaignPreview } from "./admin-email-campaign-preview.js";
 import {
   PORTAL_COMPLETENESS_SHORT_LABELS as COMPLETENESS_FIELD_LABELS,
   PORTAL_COMPLETENESS_REQUIRED_FIELDS as REQUIRED_FIELDS,
@@ -12,152 +12,19 @@ import {
 // Per-session nudge tracking so the button reflects "Sent" without a page reload.
 let _portalNudgeSent = {};
 
-// Preview-before-send modal. Fetches the rendered email for `previewSlug`
-// and shows it in an iframe sandbox so the email's inline styles can't
-// leak into admin chrome. Confirm sends to every slug in `slugs` (single
-// or batch). Resolves the `onSuccess` callback after a successful send.
+// Preview-before-send for the completeness nudge. Thin wrapper over the
+// shared campaign modal with this campaign's copy + API functions.
 function openNudgePreview(options) {
-  const slugs = Array.isArray(options.slugs) ? options.slugs : [];
-  const previewSlug = options.previewSlug || slugs[0];
-  if (!previewSlug || slugs.length === 0) return;
-
-  // Drop any pre-existing modal in case the admin double-clicks.
-  document.querySelectorAll(".pc-preview-overlay").forEach((el) => el.remove());
-
-  const overlay = document.createElement("div");
-  overlay.className = "pc-preview-overlay";
-  overlay.setAttribute("role", "dialog");
-  overlay.setAttribute("aria-modal", "true");
-  overlay.setAttribute("aria-label", "Preview completeness nudge email");
-  overlay.innerHTML =
-    '<div class="pc-preview-modal">' +
-    '<header class="pc-preview-head">' +
-    '<h3 class="pc-preview-title">Preview nudge email</h3>' +
-    '<button type="button" class="pc-preview-close" aria-label="Close">×</button>' +
-    "</header>" +
-    '<div class="pc-preview-body" id="pcPreviewBody">' +
-    '<p class="pc-preview-loading">Loading preview…</p>' +
-    "</div>" +
-    '<footer class="pc-preview-foot">' +
-    '<button type="button" class="pc-preview-cancel">Cancel</button>' +
-    '<button type="button" class="pc-preview-send" disabled>Send</button>' +
-    '<span class="pc-preview-status"></span>' +
-    "</footer>" +
-    "</div>";
-  document.body.appendChild(overlay);
-
-  const closeBtn = overlay.querySelector(".pc-preview-close");
-  const cancelBtn = overlay.querySelector(".pc-preview-cancel");
-  const sendBtn = overlay.querySelector(".pc-preview-send");
-  const statusEl = overlay.querySelector(".pc-preview-status");
-  const bodyEl = overlay.querySelector("#pcPreviewBody");
-
-  function close() {
-    overlay.remove();
-    document.removeEventListener("keydown", onKey);
-  }
-  function onKey(e) {
-    if (e.key === "Escape") close();
-  }
-  document.addEventListener("keydown", onKey);
-  closeBtn.addEventListener("click", close);
-  cancelBtn.addEventListener("click", close);
-  overlay.addEventListener("click", function (e) {
-    if (e.target === overlay) close();
-  });
-
-  // Fetch the preview, render header summary + iframe with the email body.
-  previewPortalCompletenessNudge(previewSlug)
-    .then(function (result) {
-      const p = (result && result.preview) || {};
-      const isBatch = slugs.length > 1;
-      const subjectLine = p.subject || "";
-      const recipientLine = isBatch
-        ? `<strong>Sending to ${slugs.length} therapists.</strong> Preview shown is for <em>${escapeHtml(p.name || previewSlug)}</em>. Each recipient gets their own personalized score and missing-fields list.`
-        : `To: <strong>${escapeHtml(p.to_email || "")}</strong>`;
-      bodyEl.innerHTML =
-        '<div class="pc-preview-meta">' +
-        '<div><span class="pc-preview-label">Subject</span><div class="pc-preview-subject">' +
-        escapeHtml(subjectLine) +
-        "</div></div>" +
-        '<div class="pc-preview-recipient">' +
-        recipientLine +
-        "</div>" +
-        "</div>" +
-        '<iframe class="pc-preview-frame" sandbox title="Email body preview"></iframe>';
-      const frame = bodyEl.querySelector(".pc-preview-frame");
-      // Inject the HTML via srcdoc so the iframe is a fresh document and
-      // the email's inline styles never reach admin chrome.
-      frame.srcdoc = p.html || "<p>(no body)</p>";
-      sendBtn.disabled = false;
-      sendBtn.textContent = isBatch ? "Send to " + slugs.length : "Send";
-    })
-    .catch(function (err) {
-      bodyEl.innerHTML =
-        '<p class="pc-preview-error">Preview failed: ' +
-        escapeHtml((err && err.message) || "unknown") +
-        "</p>";
-    });
-
-  sendBtn.addEventListener("click", async function () {
-    sendBtn.disabled = true;
-    cancelBtn.disabled = true;
-    sendBtn.textContent = "Sending…";
-    statusEl.textContent = "";
-    statusEl.className = "pc-preview-status";
-    try {
-      const result = await sendPortalCompletenessNudges(slugs);
-      const sent = Number((result && result.sent) || 0);
-      const failed = Number((result && result.failed) || 0);
-      const skipped = Number((result && result.skipped) || 0);
-      // Three cases: full success, partial success, or zero sends. Surface
-      // each distinctly so a quiet partial failure doesn't read like a win.
-      if (failed === 0 && skipped === 0) {
-        statusEl.textContent = "Sent.";
-        if (typeof options.onSuccess === "function") options.onSuccess(result);
-        window.setTimeout(close, 600);
-      } else if (sent > 0) {
-        const issues = [
-          failed > 0 ? `${failed} failed` : "",
-          skipped > 0 ? `${skipped} skipped (no email)` : "",
-        ]
-          .filter(Boolean)
-          .join(", ");
-        statusEl.textContent = `Sent ${sent}, ${issues}. See console for details.`;
-        statusEl.className = "pc-preview-status is-partial";
-        if (typeof options.onSuccess === "function") options.onSuccess(result);
-        // Leave the modal open so admin can act on the failures. Re-enable
-        // cancel so they can dismiss; keep send disabled to prevent a
-        // double-send loop on the same slugs.
-        cancelBtn.disabled = false;
-        cancelBtn.textContent = "Close";
-        if (result && Array.isArray(result.results)) {
-          // Log the per-row breakdown so admin can find which slugs failed.
-          console.warn("[nudge] partial send result", result.results);
-        }
-      } else {
-        const issues = [
-          failed > 0 ? `${failed} failed` : "",
-          skipped > 0 ? `${skipped} skipped (no email)` : "",
-        ]
-          .filter(Boolean)
-          .join(", ");
-        statusEl.textContent = `Nothing sent: ${issues || "no eligible recipients"}.`;
-        statusEl.className = "pc-preview-status is-failure";
-        sendBtn.disabled = false;
-        cancelBtn.disabled = false;
-        sendBtn.textContent = slugs.length > 1 ? "Send to " + slugs.length : "Send";
-        if (result && Array.isArray(result.results)) {
-          console.warn("[nudge] no sends succeeded", result.results);
-        }
-      }
-    } catch (err) {
-      sendBtn.disabled = false;
-      cancelBtn.disabled = false;
-      sendBtn.textContent = slugs.length > 1 ? "Send to " + slugs.length : "Send";
-      statusEl.textContent = "Failed: " + ((err && err.message) || "unknown");
-      statusEl.className = "pc-preview-status is-failure";
-    }
+  openEmailCampaignPreview({
+    slugs: options.slugs,
+    previewSlug: options.previewSlug,
+    title: "Preview nudge email",
+    logLabel: "[nudge]",
+    batchNote: (n) =>
+      `<strong>Sending to ${n} therapists.</strong> Each recipient gets their own personalized score and missing-fields list.`,
+    fetchPreview: previewPortalCompletenessNudge,
+    sendBatch: sendPortalCompletenessNudges,
+    onSuccess: options.onSuccess,
   });
 }
 

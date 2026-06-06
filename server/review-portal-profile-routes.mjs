@@ -4,7 +4,12 @@ import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { appendFunnelEvent } from "./review-analytics-routes.mjs";
-import { renderPortalCompletenessNudge, sendPortalCompletenessNudge } from "./review-email.mjs";
+import {
+  renderPortalCompletenessNudge,
+  renderTherapistPhotoRequest,
+  sendPortalCompletenessNudge,
+  sendTherapistPhotoRequest,
+} from "./review-email.mjs";
 import {
   computePortalCompletenessSnapshot,
   persistCompletenessSnapshot,
@@ -1125,6 +1130,165 @@ export async function handlePortalProfileRoutes(context) {
     for (let i = 0; i < therapists.length; i += NUDGE_CONCURRENCY) {
       const chunk = therapists.slice(i, i + NUDGE_CONCURRENCY);
       const settled = await Promise.all(chunk.map(nudgeOne));
+      results.push(...settled);
+    }
+    const sent = results.filter((r) => r.status === "sent").length;
+    const failed = results.filter((r) => r.status === "failed").length;
+    const skipped = results.filter((r) => r.status === "skipped").length;
+
+    sendJson(response, 200, { ok: true, sent, failed, skipped, results }, origin, config);
+    return true;
+  }
+
+  // GET /portal/photo-missing — admin-only.
+  // Claimed therapists with a live listing but no headshot on file — the
+  // target list for the "add your photo" campaign. Sorted least-recently-
+  // requested first (never-requested before any with a date) so the daily
+  // admin pass naturally works through the backlog without re-hitting the
+  // same people. Photos only ever arrive via consent-based portal upload,
+  // so this campaign is how the directory fills in faces.
+  if (request.method === "GET" && routePath === "/portal/photo-missing") {
+    if (!deps.isAuthorized || !deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Admin session required." }, origin, config);
+      return true;
+    }
+    const rows = await client.fetch(
+      `*[_type == "therapist" && claimStatus == "claimed" && listingActive != false && !defined(photo.asset)] | order(
+        coalesce(photoRequestLastSentAt, "1970-01-01T00:00:00Z") asc,
+        name asc
+      ) {
+        "slug": slug.current,
+        name,
+        email,
+        city,
+        state,
+        photoRequestSentCount,
+        photoRequestLastSentAt,
+        "hasEmail": defined(email) && email != ""
+      }`,
+    );
+    sendJson(response, 200, { ok: true, therapists: rows || [] }, origin, config);
+    return true;
+  }
+
+  // GET /portal/photo-request/preview?slug=<slug> — admin-only.
+  // Renders the email so admin can see exactly what would be sent. Does
+  // NOT send anything.
+  if (request.method === "GET" && routePath === "/portal/photo-request/preview") {
+    if (!deps.isAuthorized || !deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Admin session required." }, origin, config);
+      return true;
+    }
+    const slugParam = String((url && url.searchParams.get("slug")) || "").trim();
+    if (!slugParam) {
+      sendJson(response, 400, { error: "slug query param is required." }, origin, config);
+      return true;
+    }
+    // Mirror the send endpoint's filter so admin can't preview an email for
+    // a record the send step would silently reject.
+    const t = await client.fetch(
+      `*[_type == "therapist" && claimStatus == "claimed" && slug.current == $slug][0]{
+        "slug": slug.current,
+        name,
+        email
+      }`,
+      { slug: slugParam },
+    );
+    if (!t) {
+      sendJson(response, 404, { error: "Therapist not found or not claimed." }, origin, config);
+      return true;
+    }
+    const rendered = renderTherapistPhotoRequest(config, t, config.portalBaseUrl);
+    sendJson(
+      response,
+      200,
+      {
+        ok: true,
+        preview: {
+          subject: rendered.subject,
+          html: rendered.html,
+          text: rendered.text,
+          to_email: rendered.toEmail,
+          portal_url: rendered.portalUrl,
+          name: t.name || "",
+          slug: t.slug,
+        },
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  // POST /portal/photo-request — admin-only.
+  // Body: { slugs: ["slug1", ...] }
+  // Sends the "add your photo" email to each claimed slug, tracks the
+  // send, and returns { sent, failed, skipped, results }. Mirrors the
+  // completeness-nudge send endpoint's concurrency + tracking model.
+  if (request.method === "POST" && routePath === "/portal/photo-request") {
+    if (!deps.isAuthorized || !deps.isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Admin session required." }, origin, config);
+      return true;
+    }
+    const body = await deps.parseBody(request);
+    const slugs = Array.isArray(body && body.slugs)
+      ? body.slugs
+          .map((s) => String(s || "").trim())
+          .filter(Boolean)
+          .slice(0, 100)
+      : [];
+    if (!slugs.length) {
+      sendJson(response, 400, { error: "Provide at least one slug." }, origin, config);
+      return true;
+    }
+
+    const therapists = await client.fetch(
+      `*[_type == "therapist" && claimStatus == "claimed" && slug.current in $slugs]{
+        _id,
+        "slug": slug.current,
+        name,
+        email
+      }`,
+      { slugs },
+    );
+
+    // Bounded concurrency, same as the completeness nudge: each Resend
+    // call is network-bound, so 4 in flight keeps wall time low while
+    // staying well under rate limits. One failure never affects the rest.
+    const PHOTO_REQUEST_CONCURRENCY = 4;
+
+    async function requestOne(t) {
+      const toEmail = String(t.email || "")
+        .trim()
+        .toLowerCase();
+      if (!toEmail) {
+        return { slug: t.slug, status: "skipped", reason: "no email on file" };
+      }
+      try {
+        await sendTherapistPhotoRequest(config, t, config.portalBaseUrl);
+        client
+          .patch(t._id)
+          .setIfMissing({ photoRequestSentCount: 0 })
+          .inc({ photoRequestSentCount: 1 })
+          .set({ photoRequestLastSentAt: new Date().toISOString() })
+          .commit({ visibility: "async" })
+          .catch((patchErr) => {
+            log.warn("[photo-request] failed to persist send count", {
+              slug: t.slug,
+              err: patchErr?.message || String(patchErr),
+            });
+          });
+        appendFunnelEvent(client, "photo_request_sent", { therapist_slug: t.slug });
+        return { slug: t.slug, status: "sent", to: toEmail };
+      } catch (err) {
+        return { slug: t.slug, status: "failed", reason: (err && err.message) || "unknown" };
+      }
+    }
+
+    const results = [];
+    for (let i = 0; i < therapists.length; i += PHOTO_REQUEST_CONCURRENCY) {
+      const chunk = therapists.slice(i, i + PHOTO_REQUEST_CONCURRENCY);
+      const settled = await Promise.all(chunk.map(requestOne));
       results.push(...settled);
     }
     const sent = results.filter((r) => r.status === "sent").length;

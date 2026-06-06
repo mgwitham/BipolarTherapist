@@ -298,6 +298,30 @@ export async function previewPortalCompletenessNudge(slug) {
   });
 }
 
+// Claimed therapists with a live listing but no headshot — the target
+// list for the "add your photo" campaign.
+export async function fetchPhotoMissingSummary() {
+  return request("/portal/photo-missing", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+export async function sendTherapistPhotoRequests(slugs) {
+  return request("/portal/photo-request", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ slugs }),
+  });
+}
+
+export async function previewTherapistPhotoRequest(slug) {
+  return request("/portal/photo-request/preview?slug=" + encodeURIComponent(slug), {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
 // Server-side sign-out is stateless (signed tokens, no session table),
 // so this endpoint's job is funnel instrumentation + future-proofing.
 // The actual sign-out happens client-side via clearTherapistSessionToken.

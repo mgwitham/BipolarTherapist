@@ -289,6 +289,21 @@ export const therapistType = defineType({
       group: "practice",
     }),
     defineField({
+      name: "photoRequestSentCount",
+      title: "Photo-request emails sent",
+      type: "number",
+      group: "practice",
+      validation: (rule) => rule.min(0),
+      description:
+        "Lifetime count of 'add your photo' campaign emails sent by admin. Drives the soft-cooldown warning in the photo campaign tracker.",
+    }),
+    defineField({
+      name: "photoRequestLastSentAt",
+      title: "Photo-request last sent at",
+      type: "datetime",
+      group: "practice",
+    }),
+    defineField({
       name: "lastWeeklyDigestSentAt",
       title: "Last weekly digest sent at",
       type: "datetime",
