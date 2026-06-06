@@ -135,6 +135,7 @@ const STATUS_LABELS = {
   email_1_sent: "Email 1 sent",
   followed_up: "Followed up",
   profile_gap_sent: "Profile gap sent",
+  add_photo_sent: "Photo request sent",
   replied: "Replied",
   bounced: "Bounced",
   claimed: "Claimed",
@@ -147,6 +148,7 @@ const STATUS_STYLES = {
   email_1_sent: "background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;",
   followed_up: "background:#fffbeb;color:#b45309;border:1px solid #fcd34d;",
   profile_gap_sent: "background:#fdf4ff;color:#86198f;border:1px solid #f0abfc;",
+  add_photo_sent: "background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;",
   replied: "background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;",
   bounced:
     "background:#f3f4f6;color:#374151;border:1px solid #9ca3af;text-decoration:line-through;",
@@ -361,6 +363,7 @@ const STATUS_ORDER = [
   "email_1_sent",
   "followed_up",
   "profile_gap_sent",
+  "add_photo_sent",
   "replied",
   "claimed",
   "paid",
@@ -398,9 +401,15 @@ function applySort(list) {
 function computeStats(list) {
   const total = list.length;
   const contacted = list.filter((t) =>
-    ["email_1_sent", "followed_up", "profile_gap_sent", "replied", "claimed", "paid"].includes(
-      t.outreach?.status,
-    ),
+    [
+      "email_1_sent",
+      "followed_up",
+      "profile_gap_sent",
+      "add_photo_sent",
+      "replied",
+      "claimed",
+      "paid",
+    ].includes(t.outreach?.status),
   ).length;
   const replied = list.filter((t) =>
     ["replied", "claimed", "paid"].includes(t.outreach?.status),
@@ -1119,6 +1128,7 @@ function openFindOnPT() {
 function nextStatusForTemplate(template) {
   if (template === "email_1") return "email_1_sent";
   if (template === "profile_gap") return "profile_gap_sent";
+  if (template === "add_photo") return "add_photo_sent";
   if (template === "reassurance") return "reassurance_sent";
   return "followed_up";
 }
@@ -1182,6 +1192,7 @@ function openBatchComposer() {
           <option value="email_1" selected>Initial outreach</option>
           <option value="follow_up">Follow-up</option>
           <option value="profile_gap">Profile gap (photo + experience)</option>
+          <option value="add_photo">Add a photo</option>
           <option value="reassurance">Reassurance (no catch)</option>
         </select>
 
@@ -1561,7 +1572,10 @@ function refreshTable() {
           ? channel === "email"
             ? "Send email 1"
             : "Open form 1"
-          : s === "email_1_sent" || s === "followed_up" || s === "profile_gap_sent"
+          : s === "email_1_sent" ||
+              s === "followed_up" ||
+              s === "profile_gap_sent" ||
+              s === "add_photo_sent"
             ? channel === "email"
               ? "Send follow-up"
               : "Open form follow-up"
@@ -1824,7 +1838,12 @@ function renderPanelContent(t) {
   // Quick-action reply buttons make sense after we've contacted them
   // but before they've reached a terminal status. Keeps the dropdown-
   // and-Save dance off the most common reply outcomes.
-  const showQuickActions = ["email_1_sent", "followed_up", "profile_gap_sent"].includes(status);
+  const showQuickActions = [
+    "email_1_sent",
+    "followed_up",
+    "profile_gap_sent",
+    "add_photo_sent",
+  ].includes(status);
 
   return `
     <div style="padding:18px 24px;border-bottom:1px solid #e5e7eb;display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
@@ -1914,7 +1933,9 @@ function renderPanelContent(t) {
                     ? "Initial outreach"
                     : e.template === "profile_gap"
                       ? "Profile gap"
-                      : "Follow-up"
+                      : e.template === "add_photo"
+                        ? "Add a photo"
+                        : "Follow-up"
                 }${isFormSend ? " (contact form)" : ""}</div>
                 <div style="color:#6b7280;font-size:12px;margin-top:2px;">${esc(e.subject)}</div>
                 <div style="color:#9ca3af;font-size:12px;margin-top:2px;">${e.sentAt ? new Date(e.sentAt).toLocaleString() : "-"}${e.campaign ? ` · campaign: ${esc(e.campaign)}` : ""}</div>
@@ -1991,6 +2012,7 @@ function gmailComposerHtml(t, defaultTemplate, mode) {
       <option value="email_1" ${defaultTemplate === "email_1" ? "selected" : ""}>Initial outreach</option>
       <option value="follow_up" ${defaultTemplate === "follow_up" ? "selected" : ""}>Follow-up</option>
       <option value="profile_gap" ${defaultTemplate === "profile_gap" ? "selected" : ""}>Profile gap (photo + experience)</option>
+      <option value="add_photo" ${defaultTemplate === "add_photo" ? "selected" : ""}>Add a photo</option>
       <option value="reassurance" ${defaultTemplate === "reassurance" ? "selected" : ""}>Reassurance (no catch)</option>
     </select>
   `;

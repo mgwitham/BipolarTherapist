@@ -2,9 +2,11 @@ import { createClient } from "@sanity/client";
 import { verifyAdminSession } from "../_adminAuth.mjs";
 import { getRateLimiter } from "../../server/rate-limit-store.mjs";
 import {
+  ADD_PHOTO_SUBJECT,
   INITIAL_SUBJECT,
   PROFILE_GAP_SUBJECT,
   REASSURANCE_SUBJECT,
+  buildAddPhotoBody,
   buildOutreachBody,
   buildProfileGapBody,
   buildReassuranceBody,
@@ -68,7 +70,13 @@ async function resendSend({ apiKey, from, to, subject, html, text }) {
   return data;
 }
 
-const VALID_TEMPLATES = new Set(["email_1", "follow_up", "profile_gap", "reassurance"]);
+const VALID_TEMPLATES = new Set([
+  "email_1",
+  "follow_up",
+  "profile_gap",
+  "add_photo",
+  "reassurance",
+]);
 
 // Fallback copy used when the composer ships a blank subject/body
 // (shouldn't happen — the client validates — but defense in depth).
@@ -82,6 +90,12 @@ function buildSharedBody(t) {
 }
 function buildSharedProfileGapBody(t) {
   return buildProfileGapBody({
+    name: t.name,
+    profileUrl: withOutreachRef(t.profileUrl || ""),
+  });
+}
+function buildSharedAddPhotoBody(t) {
+  return buildAddPhotoBody({
     name: t.name,
     profileUrl: withOutreachRef(t.profileUrl || ""),
   });
@@ -115,6 +129,15 @@ const TEMPLATES = {
     text: (t) => buildSharedProfileGapBody(t),
     html: (t) => plainTextToHtml(buildSharedProfileGapBody(t)),
     nextStatus: "profile_gap_sent",
+  },
+  add_photo: {
+    // Single-ask photo angle: asks for the one field that most moves
+    // contact rate (a headshot). Standalone subject, focused copy. Lands
+    // the recipient on the claim/profile flow where the upload lives.
+    subject: () => ADD_PHOTO_SUBJECT,
+    text: (t) => buildSharedAddPhotoBody(t),
+    html: (t) => plainTextToHtml(buildSharedAddPhotoBody(t)),
+    nextStatus: "add_photo_sent",
   },
   reassurance: {
     // Touch-4 angle: objection-handling (free / fast / reversible /
