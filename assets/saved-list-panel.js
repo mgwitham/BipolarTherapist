@@ -147,11 +147,13 @@ function getInitials(name) {
     .trim()
     .split(/\s+/)
     .slice(0, 2);
-  return parts
-    .map(function (part) {
-      return part.charAt(0).toUpperCase();
-    })
-    .join("");
+  return (
+    parts
+      .map(function (part) {
+        return part.charAt(0).toUpperCase();
+      })
+      .join("") || "?"
+  );
 }
 
 async function loadTherapistsByCache() {

@@ -18,13 +18,15 @@ function getInitials(name) {
     .filter(function (w) {
       return !NAME_TITLE_PREFIXES.test(w);
     });
-  return words
-    .map(function (w) {
-      return w[0];
-    })
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+  return (
+    words
+      .map(function (w) {
+        return w[0];
+      })
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "?"
+  );
 }
 
 // Spec'd 4-color ramp. Deterministic per therapist so a clinician's avatar
