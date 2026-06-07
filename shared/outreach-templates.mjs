@@ -141,7 +141,7 @@ export function buildAddPhotoBody({ name, profileUrl }) {
     "",
     "One quick thing that makes a real difference: add a photo to your BipolarTherapyHub listing.",
     "",
-    "Listings with a headshot get about 3x more contact clicks than those without. Patients searching for a bipolar specialist have usually been through a few therapists who didn't get it — seeing a face before they reach out lowers the bar to that first message.",
+    "Listings with a headshot get about 3x more contact clicks than those without. Patients searching for a bipolar specialist have usually been through a few therapists who didn't get it. Seeing a face before they reach out lowers the bar to that first message.",
     "",
     "It takes under a minute. Claim your profile and upload a JPG, PNG, or WebP:",
     "",
