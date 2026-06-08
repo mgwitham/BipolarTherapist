@@ -22,6 +22,11 @@ import { articles } from "../content/resources/articles.mjs";
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const SITE_URL = "https://www.bipolartherapyhub.com";
+// Bump when the city share-card art/format changes so X re-fetches the
+// cached image (X caches by the page's og:url, busted via this query
+// param on the image URL). Per-city cards: dist/og/cities/<slug>.png,
+// rendered by scripts/generate-og-cards.mjs. The hub uses og/city-hub.png.
+const CITY_OG_VERSION = "v1";
 const DIST_DIR = path.join(ROOT, "dist");
 const TEMPLATE_PATH = path.join(DIST_DIR, "directory.html");
 const CITY_OUTPUT_DIR = path.join(DIST_DIR, "bipolar-therapists");
@@ -570,6 +575,12 @@ function buildHeadTags(city, state, slug, providers) {
   const canonicalUrl = buildCanonicalUrl(slug);
   const title = buildTitle(city, state, providers.length) + " - BipolarTherapyHub";
   const description = buildDescription(city, state, providers.length);
+  // Per-city branded share card (rendered by generate-og-cards.mjs into
+  // dist/og/cities/<slug>.png). Falls back to nothing if a city has no
+  // card, but the generator mirrors this MIN_PROVIDERS eligibility set so
+  // every published city page has a matching card.
+  const cardUrl = SITE_URL + "/og/cities/" + slug + ".png?" + CITY_OG_VERSION;
+  const cardAlt = "Bipolar-informed therapists in " + city + ", " + state + " · BipolarTherapyHub";
   return [
     "<title>" + escapeHtml(title) + "</title>",
     '<meta name="description" content="' + escapeAttribute(description) + '" />',
@@ -581,16 +592,16 @@ function buildHeadTags(city, state, slug, providers) {
       escapeAttribute(buildTitle(city, state, providers.length)) +
       '" />',
     '<meta property="og:description" content="' + escapeAttribute(description) + '" />',
-    '<meta property="og:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta property="og:image" content="' + escapeAttribute(cardUrl) + '" />',
     '<meta property="og:image:width" content="1200" />',
     '<meta property="og:image:height" content="630" />',
-    '<meta property="og:image:alt" content="BipolarTherapyHub — California bipolar-informed therapist directory" />',
+    '<meta property="og:image:alt" content="' + escapeAttribute(cardAlt) + '" />',
     '<meta name="twitter:card" content="summary_large_image" />',
     '<meta name="twitter:title" content="' +
       escapeAttribute(buildTitle(city, state, providers.length)) +
       '" />',
     '<meta name="twitter:description" content="' + escapeAttribute(description) + '" />',
-    '<meta name="twitter:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta name="twitter:image" content="' + escapeAttribute(cardUrl) + '" />',
     '<script type="application/ld+json" id="city-jsonld">' +
       JSON.stringify(buildJsonLd(city, state, slug, providers)) +
       "</script>",
@@ -671,14 +682,22 @@ function buildHubHeadTags() {
     '<meta property="og:url" content="' + escapeAttribute(canonicalUrl) + '" />',
     '<meta property="og:title" content="' + escapeAttribute(title) + '" />',
     '<meta property="og:description" content="' + escapeAttribute(description) + '" />',
-    '<meta property="og:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta property="og:image" content="' +
+      SITE_URL +
+      "/og/city-hub.png?" +
+      CITY_OG_VERSION +
+      '" />',
     '<meta property="og:image:width" content="1200" />',
     '<meta property="og:image:height" content="630" />',
-    '<meta property="og:image:alt" content="BipolarTherapyHub — California bipolar-informed therapist directory" />',
+    '<meta property="og:image:alt" content="Browse bipolar-informed therapists by California city · BipolarTherapyHub" />',
     '<meta name="twitter:card" content="summary_large_image" />',
     '<meta name="twitter:title" content="' + escapeAttribute(title) + '" />',
     '<meta name="twitter:description" content="' + escapeAttribute(description) + '" />',
-    '<meta name="twitter:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta name="twitter:image" content="' +
+      SITE_URL +
+      "/og/city-hub.png?" +
+      CITY_OG_VERSION +
+      '" />',
     '<script type="application/ld+json" id="city-hub-jsonld">' +
       JSON.stringify({
         "@context": "https://schema.org",
@@ -903,6 +922,15 @@ function bucketByCity(therapists) {
   }
   return [...map.values()].sort(function (a, b) {
     return b.providers.length - a.providers.length;
+  });
+}
+
+// Cities that get a published landing page (>= MIN_PROVIDERS). Exported so
+// the share-card generator renders exactly one card per published page —
+// same Sanity therapist set, same eligibility rule, no drift.
+export function eligibleCityBuckets(therapists) {
+  return bucketByCity(therapists).filter(function (c) {
+    return c.providers.length >= MIN_PROVIDERS;
   });
 }
 

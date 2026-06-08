@@ -20,6 +20,13 @@ import {
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const SITE_URL = "https://www.bipolartherapyhub.com";
+// Branded insurance share card (dist/og/insurance.png, rendered by
+// scripts/generate-og-cards.mjs). Bump when the card art/format changes
+// so X re-fetches its cached copy.
+const INSURANCE_OG_VERSION = "v1";
+const INSURANCE_CARD_URL = SITE_URL + "/og/insurance.png?" + INSURANCE_OG_VERSION;
+const INSURANCE_CARD_ALT =
+  "Find bipolar-informed California therapists who take your insurance · BipolarTherapyHub";
 const DIST_DIR = path.join(ROOT, "dist");
 const TEMPLATE_PATH = path.join(DIST_DIR, "directory.html");
 const OUTPUT_DIR = path.join(DIST_DIR, "insurance");
@@ -306,14 +313,14 @@ function buildHeadTags(bucket) {
     '<meta property="og:url" content="' + escapeAttribute(url) + '" />',
     '<meta property="og:title" content="' + escapeAttribute(title) + '" />',
     '<meta property="og:description" content="' + escapeAttribute(description) + '" />',
-    '<meta property="og:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta property="og:image" content="' + INSURANCE_CARD_URL + '" />',
     '<meta property="og:image:width" content="1200" />',
     '<meta property="og:image:height" content="630" />',
-    '<meta property="og:image:alt" content="BipolarTherapyHub — California bipolar-informed therapist directory" />',
+    '<meta property="og:image:alt" content="' + escapeAttribute(INSURANCE_CARD_ALT) + '" />',
     '<meta name="twitter:card" content="summary_large_image" />',
     '<meta name="twitter:title" content="' + escapeAttribute(title) + '" />',
     '<meta name="twitter:description" content="' + escapeAttribute(description) + '" />',
-    '<meta name="twitter:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta name="twitter:image" content="' + INSURANCE_CARD_URL + '" />',
     '<script type="application/ld+json" id="insurance-jsonld">' +
       JSON.stringify(buildJsonLd(bucket)).replace(/<\/script>/gi, "<\\/script>") +
       "</script>",
@@ -537,6 +544,14 @@ function buildHubHeadTags(buckets) {
     '<meta property="og:url" content="' + escapeAttribute(url) + '" />',
     '<meta property="og:title" content="' + escapeAttribute(title) + '" />',
     '<meta property="og:description" content="' + escapeAttribute(description) + '" />',
+    '<meta property="og:image" content="' + INSURANCE_CARD_URL + '" />',
+    '<meta property="og:image:width" content="1200" />',
+    '<meta property="og:image:height" content="630" />',
+    '<meta property="og:image:alt" content="' + escapeAttribute(INSURANCE_CARD_ALT) + '" />',
+    '<meta name="twitter:card" content="summary_large_image" />',
+    '<meta name="twitter:title" content="' + escapeAttribute(title) + '" />',
+    '<meta name="twitter:description" content="' + escapeAttribute(description) + '" />',
+    '<meta name="twitter:image" content="' + INSURANCE_CARD_URL + '" />',
     '<script type="application/ld+json" id="insurance-hub-jsonld">' +
       JSON.stringify(jsonLd).replace(/<\/script>/gi, "<\\/script>") +
       "</script>",
