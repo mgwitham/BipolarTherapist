@@ -47,6 +47,30 @@ jobs:
       - name: Build CMS
         run: npm run cms:build
 
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v6
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+
+      # Fails the build on a known high/critical advisory in shipped
+      # production dependencies. Reads the lockfile against npm's advisory
+      # DB — no install needed. Dev-only deps are excluded to avoid blocking
+      # on build-tool advisories that never reach production.
+      - name: Audit production dependencies (root)
+        run: npm audit --omit=dev --audit-level=high
+
+      # Studio (Sanity CMS) is build-time only; still gate on high/critical.
+      - name: Audit studio dependencies
+        run: npm --prefix studio audit --audit-level=high
+
   lighthouse:
     name: Lighthouse CI
     runs-on: ubuntu-latest
