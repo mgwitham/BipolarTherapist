@@ -30,7 +30,7 @@
   min-width: 0;
 }
 .td-header-name {
-  font-family: "Fraunces", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 500;
   font-size: clamp(1.7rem, 2.6vw, 2.2rem);
   letter-spacing: -0.01em;
