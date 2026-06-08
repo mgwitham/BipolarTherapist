@@ -155,6 +155,9 @@ const PUBLIC_WRITE_RATE_LIMITS = {
   "POST /portal/claim-by-slug": { limit: 120, windowMs: 60 * 60 * 1000 },
   "POST /portal/claim-link": { limit: 120, windowMs: 60 * 60 * 1000 },
   "POST /portal/listing-removal/request": { limit: 30, windowMs: 60 * 60 * 1000 },
+  // Session-gated, but still cap per-IP so a claimed account can't spam
+  // 4 MB uploads (each creates a Sanity asset).
+  "POST /portal/photo": { limit: 15, windowMs: 60 * 60 * 1000 },
   "POST /portal/quick-claim": { limit: 120, windowMs: 60 * 60 * 1000 },
   "POST /portal/recovery-request": { limit: 30, windowMs: 60 * 60 * 1000 },
   "POST /portal/requests": { limit: 30, windowMs: 60 * 60 * 1000 },
