@@ -1,0 +1,46 @@
+name: CodeQL
+
+# Static analysis security scanning. Runs GitHub's CodeQL engine over the
+# JS/TS in this repo on every PR and push to main, plus a weekly scheduled
+# scan so newly-published query rules catch latent issues in code that
+# hasn't changed. Findings appear in the repo's Security → Code scanning tab.
+#
+# NOTE: code scanning is free for public repositories. On a PRIVATE repo it
+# requires GitHub Advanced Security to be enabled (Settings → Code security).
+# Until then this workflow will error on upload — it does not gate merges
+# unless you make it a required check in branch protection.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "27 3 * * 1" # Mondays 03:27 UTC
+
+jobs:
+  analyze:
+    name: Analyze (javascript-typescript)
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: javascript-typescript
+          # security-extended adds higher-recall security queries on top of
+          # the default suite. Slightly noisier, appropriate for a site
+          # handling auth + PII.
+          queries: security-extended
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:javascript-typescript"
