@@ -426,11 +426,12 @@ export function renderDirectoryDetailsMarkup(options) {
     .slice(0, 2)
     .toUpperCase();
   var avatarHtml = therapist.photo_url
-    ? '<img class="dir-panel-avatar-img" src="' +
+    ? // Decorative: name is shown as adjacent text and the initials
+      // fallback is aria-hidden, so an empty alt avoids a redundant
+      // screen-reader announcement (consistent with the rest of the site).
+      '<img class="dir-panel-avatar-img" src="' +
       escapeHtml(sanityImageUrl(therapist.photo_url, { width: 112, height: 112 })) +
-      '" alt="' +
-      escapeHtml(therapist.name) +
-      '" width="56" height="56" loading="lazy" decoding="async" />'
+      '" alt="" width="56" height="56" loading="lazy" decoding="async" />'
     : '<div class="dir-panel-avatar-initials" aria-hidden="true">' +
       escapeHtml(initials) +
       "</div>";
@@ -716,11 +717,12 @@ export function renderBottomSheetMarkup(options) {
     .slice(0, 2)
     .toUpperCase();
   var avatarInner = therapist.photo_url
-    ? '<img class="bsh-avatar-img" src="' +
+    ? // Decorative: name is shown as adjacent text and the initials
+      // fallback is aria-hidden, so an empty alt avoids a redundant
+      // screen-reader announcement (consistent with the rest of the site).
+      '<img class="bsh-avatar-img" src="' +
       escapeHtml(sanityImageUrl(therapist.photo_url, { width: 104, height: 104 })) +
-      '" alt="' +
-      escapeHtml(therapist.name) +
-      '" width="52" height="52" loading="lazy" decoding="async" />'
+      '" alt="" width="52" height="52" loading="lazy" decoding="async" />'
     : '<div class="bsh-avatar-initials" aria-hidden="true">' + escapeHtml(initials) + "</div>";
 
   // Credential line

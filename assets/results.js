@@ -140,7 +140,11 @@ function renderAvatar(t, sizeClass) {
     // card-avatar is 48px, card-avatar-sm is 36px; request 2x for retina.
     const px = sizeClass === "card-avatar-sm" ? 36 : 48;
     const src = sanityImageUrl(t.photo_url, { width: px * 2, height: px * 2 });
-    return `<div class="${cls}"><img class="card-avatar-img" src="${escapeHtml(src)}" alt="${escapeHtml(t.name || "")}" width="${px}" height="${px}" loading="lazy" decoding="async" /></div>`;
+    // Decorative: the name is always rendered as adjacent text and the
+    // initials fallback below is aria-hidden, so an empty alt keeps the
+    // screen-reader experience consistent and avoids a redundant
+    // name announcement.
+    return `<div class="${cls}"><img class="card-avatar-img" src="${escapeHtml(src)}" alt="" width="${px}" height="${px}" loading="lazy" decoding="async" /></div>`;
   }
   return `<div class="${cls}" aria-hidden="true">${escapeHtml(getInitials(t.name))}</div>`;
 }
