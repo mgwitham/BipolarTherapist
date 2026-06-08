@@ -160,6 +160,10 @@ const PUBLIC_WRITE_RATE_LIMITS = {
   "POST /portal/requests": { limit: 30, windowMs: 60 * 60 * 1000 },
   "POST /portal/sign-in": { limit: 120, windowMs: 60 * 60 * 1000 },
   "POST /saved-list/email": { limit: 30, windowMs: 60 * 60 * 1000 },
+  // Unauthenticated: anyone can start a Stripe Checkout Session with an
+  // arbitrary slug/email. Cap it so it can't be scripted into unbounded
+  // Stripe session creations (cost/abuse vector).
+  "POST /stripe/checkout-session": { limit: 20, windowMs: 60 * 60 * 1000 },
   "POST /waitlist": { limit: 30, windowMs: 60 * 60 * 1000 },
 };
 

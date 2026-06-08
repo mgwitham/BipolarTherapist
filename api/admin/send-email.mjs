@@ -166,7 +166,12 @@ function getSanityClient() {
 // line and profile link both render as clickable anchors, then turns
 // blank lines into paragraph breaks and single newlines into <br>.
 function plainTextToHtml(text) {
-  const escaped = String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const escaped = String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
   // Order matters: match full URLs first so the bare-domain fallback
   // doesn't truncate them mid-path.
   const URL_PATTERN = /(https?:\/\/[^\s<]+|www\.[^\s<]+|bipolartherapyhub\.com)/gi;

@@ -4,6 +4,7 @@ import {
   sendPortalCompletenessNudges,
 } from "./review-api.js";
 import { openEmailCampaignPreview } from "./admin-email-campaign-preview.js";
+import { escapeHtml } from "./escape-html.js";
 import {
   PORTAL_COMPLETENESS_SHORT_LABELS as COMPLETENESS_FIELD_LABELS,
   PORTAL_COMPLETENESS_REQUIRED_FIELDS as REQUIRED_FIELDS,
@@ -153,12 +154,12 @@ export async function renderPortalCompletenessPanel() {
       ].join("");
 
       html += "<tr>";
-      html += "<td><strong>" + (t.name || slug) + "</strong>";
+      html += "<td><strong>" + escapeHtml(t.name || slug) + "</strong>";
       if (t.city)
         html +=
           '<br><span class="subtle" style="font-size:0.8rem">' +
-          t.city +
-          (t.state ? ", " + t.state : "") +
+          escapeHtml(t.city) +
+          (t.state ? ", " + escapeHtml(t.state) : "") +
           "</span>";
       html += "</td>";
       html +=
@@ -198,7 +199,7 @@ export async function renderPortalCompletenessPanel() {
         '<td><button type="button" class="pc-nudge-btn' +
         (alreadySent ? " is-sent" : "") +
         '" data-pc-nudge="' +
-        slug +
+        escapeHtml(slug) +
         '" ' +
         (!canNudge
           ? 'disabled title="' + (alreadySent ? "Nudge sent" : "No email on file") + '"'
@@ -214,7 +215,7 @@ export async function renderPortalCompletenessPanel() {
     if (batchSlugs.length > 0) {
       html +=
         '<div class="pc-batch-bar" style="margin-top:1rem"><button type="button" class="pc-batch-btn" id="pcBatchSend" data-slugs="' +
-        batchSlugs.join(",") +
+        escapeHtml(batchSlugs.join(",")) +
         '">Send nudge to all ' +
         batchSlugs.length +
         " with email</button><span class='pc-status-msg' id='pcBatchStatus' style='display:none'></span></div>";
