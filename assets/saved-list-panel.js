@@ -15,6 +15,12 @@ import {
   MAX_ENTRIES,
 } from "./saved-list.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
+import { mountTurnstile } from "./turnstile-widget.js";
+
+// Turnstile handle for the "email my list" form. Null until the form is
+// opened; reset to null whenever the panel re-renders (which rebuilds the
+// form DOM). No-op when Turnstile isn't configured.
+var turnstileHandle = null;
 
 function readBuildEnvValue(getValue) {
   try {
@@ -322,6 +328,14 @@ function handlePanelClick(event) {
         fields.removeAttribute("hidden");
         var input = fields.querySelector("[data-saved-list-email-input]");
         if (input) input.focus();
+        // Mount the Turnstile widget the first time the form is revealed.
+        // No-op when unconfigured. The handle is nulled on panel re-render.
+        var tsContainer = fields.querySelector("[data-saved-list-turnstile]");
+        if (tsContainer && !turnstileHandle) {
+          mountTurnstile(tsContainer).then(function (handle) {
+            turnstileHandle = handle;
+          });
+        }
         trackFunnelEvent("saved_list_email_form_opened", {
           list_size: readList().length,
         });
@@ -371,20 +385,33 @@ async function submitEmailRequest() {
   setEmailStatus("Sending.", "pending");
   trackFunnelEvent("saved_list_email_requested", { list_size: list.length });
   try {
+    var turnstileToken =
+      turnstileHandle && typeof turnstileHandle.getToken === "function"
+        ? turnstileHandle.getToken()
+        : null;
+    var requestBody = {
+      email: email,
+      items: list.map(function (entry) {
+        return { slug: entry.slug, note: entry.note };
+      }),
+    };
+    if (turnstileToken) {
+      requestBody.turnstile_token = turnstileToken;
+    }
     var response = await window.fetch(getReviewApiBase() + "/saved-list/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        email: email,
-        items: list.map(function (entry) {
-          return { slug: entry.slug, note: entry.note };
-        }),
-      }),
+      body: JSON.stringify(requestBody),
     });
     var payload = await response.json().catch(function () {
       return {};
     });
     if (!response.ok) {
+      // A 403 is a failed Turnstile challenge — reset so the user gets a
+      // fresh token on retry.
+      if (response.status === 403 && turnstileHandle && turnstileHandle.reset) {
+        turnstileHandle.reset();
+      }
       throw new Error(payload && payload.error ? payload.error : "Could not send the email.");
     }
     recordLocalSend();
@@ -522,6 +549,7 @@ function renderEmailForm() {
     '<input id="savedListEmailInput" type="email" inputmode="email" autocomplete="email" placeholder="you@example.com" data-saved-list-email-input />' +
     '<button type="button" class="saved-list-panel-cta saved-list-panel-cta-compact" data-saved-list-email-send>Send</button>' +
     "</div>" +
+    '<div class="saved-list-panel-turnstile" data-saved-list-turnstile></div>' +
     '<div class="saved-list-panel-email-status" data-saved-list-email-status></div>' +
     "</div>" +
     "</div>"
@@ -557,6 +585,9 @@ function renderFooter(list) {
 
 function renderPanel() {
   if (!panelBody) return;
+  // The panel rebuilds its inner HTML below, which destroys any mounted
+  // Turnstile widget; drop the stale handle so it re-mounts on next open.
+  turnstileHandle = null;
   var list = readList();
   var sub = panelRoot.querySelector("[data-saved-list-sub]");
   if (sub) {

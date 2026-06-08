@@ -1,6 +1,8 @@
 import { log } from "./logger.mjs";
 import { renderSavedListEmail } from "../shared/saved-list-email.mjs";
 import { validateEmail } from "../shared/contact-validation.mjs";
+import { getClientAddress } from "./review-http-auth.mjs";
+import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 
 const MAX_ITEMS = 6;
 const MAX_NOTE_LENGTH = 120;
@@ -64,6 +66,27 @@ export async function handleSavedListRoutes(context) {
     body = await parseBody(request);
   } catch (_error) {
     sendJson(response, 400, { error: "Invalid JSON body." }, origin, config);
+    return true;
+  }
+
+  // Anti-bot gate. This endpoint mails an unverified recipient address, so
+  // without a challenge it's an open relay for the site's branded domain.
+  // No-op when Turnstile isn't configured (matches the other public POSTs:
+  // claim, recovery-request, listing-removal). Generic 403 so a bot can't
+  // learn which check tripped.
+  const turnstile = await verifyTurnstileToken({
+    token: body && body.turnstile_token,
+    remoteIp: getClientAddress(request),
+    config,
+  });
+  if (!turnstile.ok) {
+    sendJson(
+      response,
+      403,
+      { error: "Verification failed. Please refresh the page and try again." },
+      origin,
+      config,
+    );
     return true;
   }
 

@@ -163,7 +163,9 @@ const PUBLIC_WRITE_RATE_LIMITS = {
   "POST /portal/recovery-request": { limit: 30, windowMs: 60 * 60 * 1000 },
   "POST /portal/requests": { limit: 30, windowMs: 60 * 60 * 1000 },
   "POST /portal/sign-in": { limit: 120, windowMs: 60 * 60 * 1000 },
-  "POST /saved-list/email": { limit: 30, windowMs: 60 * 60 * 1000 },
+  // Mails an unverified recipient — keep the per-IP cap tight (plus the
+  // Turnstile gate in the route) to bound brand-spoof/relay abuse.
+  "POST /saved-list/email": { limit: 5, windowMs: 60 * 60 * 1000 },
   // Unauthenticated: anyone can start a Stripe Checkout Session with an
   // arbitrary slug/email. Cap it so it can't be scripted into unbounded
   // Stripe session creations (cost/abuse vector).

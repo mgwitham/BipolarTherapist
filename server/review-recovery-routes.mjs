@@ -1105,10 +1105,17 @@ export async function handleRecoveryRoutes(context) {
     try {
       await deps.sendRecoveryApprovedEmail(config, recovery, magicLink, "");
     } catch (error) {
+      // Generic message to the (anonymous) caller; the provider-side
+      // failure detail goes to server logs only — don't leak Resend
+      // error strings to an unauthenticated confirm-page request.
+      log.error("[recovery-confirm] sign-in email delivery failed", {
+        requestId: contextRequestId,
+        err: error?.message || String(error),
+      });
       sendJson(
         response,
         502,
-        { error: "Confirmation saved, but sign-in email delivery failed: " + error.message },
+        { error: "Confirmation saved, but the sign-in email could not be sent. Contact support." },
         origin,
         config,
       );
