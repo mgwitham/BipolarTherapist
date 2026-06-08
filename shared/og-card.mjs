@@ -40,14 +40,13 @@ export const COLOR = {
   acceptingBorder: "#B8E0C9",
 };
 
-// Brand fonts, self-hosted as static TTF cuts next to this module
+// Brand font, self-hosted as static TTF cuts next to this module
 // (shared/og-fonts/). Read from disk instead of a CDN fetch: there's no
 // network round trip (so og-card generation works offline / in a sandboxed
 // CI), and Satori renders these static instances reliably (it handles
-// variable fonts poorly). Hanken Grotesk ships 400 + 700; Fraunces is the
-// 600 display cut (high optical size), which Satori nearest-matches for the
-// serif headings that request the default weight. OFL-licensed, so bundling
-// is the intended use.
+// variable fonts poorly). Hanken Grotesk ships 400 + 700 — the cards and
+// banner are all set in this one sans for clean legibility at share scale.
+// OFL-licensed, so bundling is the intended use.
 const FONT_DIR = fileURLToPath(new URL("./og-fonts/", import.meta.url));
 
 let cachedFonts = null;
@@ -57,7 +56,6 @@ export async function loadFonts() {
   cachedFonts = [
     { name: "Hanken Grotesk", data: read("hanken-grotesk-400.ttf"), weight: 400, style: "normal" },
     { name: "Hanken Grotesk", data: read("hanken-grotesk-700.ttf"), weight: 700, style: "normal" },
-    { name: "Fraunces", data: read("fraunces-600.ttf"), weight: 600, style: "normal" },
   ];
   return cachedFonts;
 }
@@ -114,7 +112,8 @@ export function buildCard(t) {
             alignItems: "center",
             justifyContent: "center",
             fontSize: 170,
-            fontFamily: "Fraunces",
+            fontFamily: "Hanken Grotesk",
+            fontWeight: 700,
             letterSpacing: "-0.02em",
             boxShadow: "0 12px 32px rgba(15, 50, 60, 0.22)",
           },
@@ -189,7 +188,8 @@ export function buildCard(t) {
         style: {
           display: "flex",
           fontSize: 62,
-          fontFamily: "Fraunces",
+          fontFamily: "Hanken Grotesk",
+          fontWeight: 700,
           color: COLOR.navy,
           lineHeight: 1.05,
           letterSpacing: "-0.01em",
@@ -325,38 +325,26 @@ export async function renderCardPng(therapist, fonts) {
 }
 
 // ─── Page cards (home + promotable nav pages) ────────────────────────
-// One dark, brand-consistent template for every promotable page's share
-// card. Differs only in copy, so all the marketing surfaces look like
-// one family on X/LinkedIn. Used by scripts/generate-og-cards.mjs.
+// One light, brand-consistent template for every promotable page's share
+// card — same cream background, sans wordmark, and navy/teal palette as
+// the therapist cards and the X header banner, so all the marketing
+// surfaces read as one family on X/LinkedIn. Differs only in copy.
+// Used by scripts/generate-og-cards.mjs.
 
 const PAGE = {
-  bgA: "#0c2830",
-  bgB: "#1a5663",
-  bgC: "#27707f",
-  white: "#ffffff",
-  teal: "#7ccbdd",
+  bgA: COLOR.bgTop,
+  bgB: COLOR.bgBottom,
+  headline: COLOR.navy,
+  accent: COLOR.teal,
+  subtitle: COLOR.textMid,
+  footnote: COLOR.slate,
 };
-
-function pageDecoCircle(size, top, right) {
-  return el("div", {
-    style: {
-      display: "flex",
-      position: "absolute",
-      top: `${top}px`,
-      right: `${right}px`,
-      width: `${size}px`,
-      height: `${size}px`,
-      borderRadius: "50%",
-      border: "1px solid rgba(255,255,255,0.07)",
-    },
-  });
-}
 
 /**
  * Build a page share card.
  * opts: {
  *   kicker?: string,                       // small eyebrow (e.g. zone label)
- *   lines: Array<string | {text, accent}>, // serif headline, one entry per line
+ *   lines: Array<string | {text, accent}>, // sans headline, one entry per line
  *   subtitle?: string,
  *   footnote?: string,                     // small trust line, bottom-left
  * }
@@ -371,10 +359,11 @@ export function buildPageCard(opts) {
         style: {
           display: "flex",
           fontSize: 68,
-          fontFamily: "Fraunces",
-          color: isAccent ? PAGE.teal : PAGE.white,
-          lineHeight: 1.05,
-          letterSpacing: "-0.015em",
+          fontFamily: "Hanken Grotesk",
+          fontWeight: 700,
+          color: isAccent ? PAGE.accent : PAGE.headline,
+          lineHeight: 1.08,
+          letterSpacing: "-0.01em",
         },
       },
       text,
@@ -432,8 +421,8 @@ export function buildPageCard(opts) {
           letterSpacing: "-0.01em",
         },
       },
-      el("span", { style: { color: PAGE.white } }, "BipolarTherapy"),
-      el("span", { style: { color: PAGE.teal } }, "Hub"),
+      el("span", { style: { color: PAGE.headline } }, "BipolarTherapy"),
+      el("span", { style: { color: PAGE.accent } }, "Hub"),
     ),
   );
 
@@ -448,7 +437,7 @@ export function buildPageCard(opts) {
             fontWeight: 700,
             letterSpacing: "0.13em",
             textTransform: "uppercase",
-            color: PAGE.teal,
+            color: PAGE.accent,
             marginBottom: 18,
           },
         },
@@ -466,7 +455,7 @@ export function buildPageCard(opts) {
             display: "flex",
             fontSize: 28,
             fontFamily: "Hanken Grotesk",
-            color: "rgba(255,255,255,0.82)",
+            color: PAGE.subtitle,
             marginTop: 26,
             maxWidth: "900px",
           },
@@ -495,14 +484,16 @@ export function buildPageCard(opts) {
           display: "flex",
           fontSize: 23,
           fontFamily: "Hanken Grotesk",
-          color: "rgba(255,255,255,0.8)",
+          color: PAGE.footnote,
         },
       },
       opts.footnote || "",
     ),
     el(
       "div",
-      { style: { display: "flex", fontSize: 23, fontFamily: "Hanken Grotesk", color: PAGE.teal } },
+      {
+        style: { display: "flex", fontSize: 23, fontFamily: "Hanken Grotesk", color: PAGE.accent },
+      },
       "bipolartherapyhub.com",
     ),
   );
@@ -518,12 +509,10 @@ export function buildPageCard(opts) {
         height: "100%",
         position: "relative",
         padding: "70px",
-        background: `linear-gradient(125deg, ${PAGE.bgA} 0%, ${PAGE.bgB} 58%, ${PAGE.bgC} 100%)`,
+        background: `linear-gradient(180deg, ${PAGE.bgA} 0%, ${PAGE.bgB} 100%)`,
         fontFamily: "Hanken Grotesk",
       },
     },
-    pageDecoCircle(520, -160, -120),
-    pageDecoCircle(360, -80, -40),
     brandRow,
     kicker,
     headline,
