@@ -115,6 +115,39 @@ export function parsePhotoSourceType(value) {
   return "";
 }
 
+// Confirms the decoded bytes actually match the claimed image MIME type
+// by checking the file's magic bytes. The data-URL prefix is fully
+// attacker-controlled, so an allowlist check on the declared MIME alone
+// lets a caller upload arbitrary bytes labeled "image/png". This refuses
+// any payload whose signature doesn't match its claimed type.
+export function imageBytesMatchMime(buffer, mimeType) {
+  if (!buffer || buffer.length < 12) {
+    return false;
+  }
+  if (mimeType === "image/jpeg") {
+    // SOI marker FF D8 FF
+    return buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff;
+  }
+  if (mimeType === "image/png") {
+    // 89 50 4E 47 0D 0A 1A 0A
+    return (
+      buffer[0] === 0x89 &&
+      buffer[1] === 0x50 &&
+      buffer[2] === 0x4e &&
+      buffer[3] === 0x47 &&
+      buffer[4] === 0x0d &&
+      buffer[5] === 0x0a &&
+      buffer[6] === 0x1a &&
+      buffer[7] === 0x0a
+    );
+  }
+  if (mimeType === "image/webp") {
+    // "RIFF" .... "WEBP"
+    return buffer.toString("ascii", 0, 4) === "RIFF" && buffer.toString("ascii", 8, 12) === "WEBP";
+  }
+  return false;
+}
+
 export function decodeBase64FilePayload(payload, options) {
   const raw = String(payload || "").trim();
   if (!raw) {
@@ -140,6 +173,9 @@ export function decodeBase64FilePayload(payload, options) {
   }
   if (buffer.length > options.maxPhotoUploadBytes) {
     throw new Error("Headshot image is too large. Keep it under 4 MB.");
+  }
+  if (!imageBytesMatchMime(buffer, mimeType)) {
+    throw new Error("Headshot file contents don't match a JPG, PNG, or WebP image.");
   }
 
   return {

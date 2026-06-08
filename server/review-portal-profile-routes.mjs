@@ -4,6 +4,7 @@ import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
 import { appendFunnelEvent } from "./review-analytics-routes.mjs";
+import { imageBytesMatchMime } from "./review-application-support.mjs";
 import {
   renderPortalCompletenessNudge,
   renderTherapistPhotoRequest,
@@ -466,10 +467,24 @@ export async function handlePortalProfileRoutes(context) {
       );
       return true;
     }
+    // The data-URL MIME prefix is client-controlled; confirm the actual
+    // bytes match the claimed image type so a caller can't store arbitrary
+    // content labeled as an image.
+    if (!imageBytesMatchMime(buffer, mimeType)) {
+      sendJson(
+        response,
+        400,
+        { error: "Headshot file contents don't match a JPG, PNG, or WebP image." },
+        origin,
+        config,
+      );
+      return true;
+    }
 
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
         _id, claimStatus, name, email, city, state,
+        "existingPhotoAssetRef": photo.asset._ref,
         preferredContactMethod, phone, bookingUrl,
         careApproach, bio, practiceName, website, languages,
         sessionFeeMin, sessionFeeMax, slidingScale,
@@ -525,6 +540,20 @@ export async function handlePortalProfileRoutes(context) {
         photoUsagePermissionConfirmed: true,
       })
       .commit({ visibility: "sync" });
+
+    // Delete the previous headshot asset now that nothing references it,
+    // so repeated re-uploads don't accumulate orphaned assets in the
+    // dataset. Best-effort: a failure (e.g. the asset is still referenced
+    // elsewhere) is logged, not surfaced — the upload already succeeded.
+    if (therapist.existingPhotoAssetRef && therapist.existingPhotoAssetRef !== asset._id) {
+      client.delete(therapist.existingPhotoAssetRef).catch((delErr) => {
+        log.warn("Failed to delete replaced portal photo asset", {
+          requestId,
+          assetId: therapist.existingPhotoAssetRef,
+          err: delErr?.message || String(delErr),
+        });
+      });
+    }
 
     // Completeness snapshot — hasPhoto is now true since we just uploaded.
     const snapshotAfterPhoto = computePortalCompletenessSnapshot(

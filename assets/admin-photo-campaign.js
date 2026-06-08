@@ -4,6 +4,7 @@ import {
   sendTherapistPhotoRequests,
 } from "./review-api.js";
 import { openEmailCampaignPreview } from "./admin-email-campaign-preview.js";
+import { escapeHtml } from "./escape-html.js";
 
 // Per-session send tracking so a button reads "Sent" without a reload.
 let _photoRequestSent = {};
@@ -39,7 +40,7 @@ export async function renderPhotoCampaignPanel() {
     rows = Array.isArray(result) ? result : result.therapists || result.data || [];
   } catch (err) {
     root.innerHTML =
-      '<p class="subtle" style="color:#c2410c">Failed to load: ' + err.message + "</p>";
+      '<p class="subtle" style="color:#c2410c">Failed to load: ' + escapeHtml(err.message) + "</p>";
     return;
   }
   if (!rows.length) {
@@ -84,18 +85,18 @@ export async function renderPhotoCampaignPanel() {
       const canSend = t.hasEmail && !alreadySent;
 
       html += "<tr>";
-      html += "<td><strong>" + (t.name || slug) + "</strong>";
+      html += "<td><strong>" + escapeHtml(t.name || slug) + "</strong>";
       if (t.city)
         html +=
           '<br><span class="subtle" style="font-size:0.8rem">' +
-          t.city +
-          (t.state ? ", " + t.state : "") +
+          escapeHtml(t.city) +
+          (t.state ? ", " + escapeHtml(t.state) : "") +
           "</span>";
       html += "</td>";
 
       html +=
         '<td style="max-width:220px;font-size:0.82rem;color:#4a6875">' +
-        (t.hasEmail ? t.email || "" : '<span class="subtle">No email on file</span>') +
+        (t.hasEmail ? escapeHtml(t.email || "") : '<span class="subtle">No email on file</span>') +
         "</td>";
 
       // Last-request cell: count + relative time, with a soft "recent"
@@ -120,7 +121,7 @@ export async function renderPhotoCampaignPanel() {
         '<td><button type="button" class="pc-nudge-btn' +
         (alreadySent ? " is-sent" : "") +
         '" data-photo-req="' +
-        slug +
+        escapeHtml(slug) +
         '" ' +
         (!canSend
           ? 'disabled title="' + (alreadySent ? "Request sent" : "No email on file") + '"'
@@ -136,7 +137,7 @@ export async function renderPhotoCampaignPanel() {
     if (batchSlugs.length > 0) {
       html +=
         '<div class="pc-batch-bar" style="margin-top:1rem"><button type="button" class="pc-batch-btn" id="photoBatchSend" data-slugs="' +
-        batchSlugs.join(",") +
+        escapeHtml(batchSlugs.join(",")) +
         '">Send photo request to all ' +
         batchSlugs.length +
         " with email</button><span class='pc-status-msg' id='photoBatchStatus' style='display:none'></span></div>";
