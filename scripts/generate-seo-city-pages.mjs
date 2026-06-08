@@ -26,7 +26,7 @@ const SITE_URL = "https://www.bipolartherapyhub.com";
 // cached image (X caches by the page's og:url, busted via this query
 // param on the image URL). Per-city cards: dist/og/cities/<slug>.png,
 // rendered by scripts/generate-og-cards.mjs. The hub uses og/city-hub.png.
-const CITY_OG_VERSION = "v1";
+const CITY_OG_VERSION = "v2";
 const DIST_DIR = path.join(ROOT, "dist");
 const TEMPLATE_PATH = path.join(DIST_DIR, "directory.html");
 const CITY_OUTPUT_DIR = path.join(DIST_DIR, "bipolar-therapists");

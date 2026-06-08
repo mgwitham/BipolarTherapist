@@ -23,7 +23,7 @@ const SITE_URL = "https://www.bipolartherapyhub.com";
 // Branded insurance share card (dist/og/insurance.png, rendered by
 // scripts/generate-og-cards.mjs). Bump when the card art/format changes
 // so X re-fetches its cached copy.
-const INSURANCE_OG_VERSION = "v1";
+const INSURANCE_OG_VERSION = "v2";
 const INSURANCE_CARD_URL = SITE_URL + "/og/insurance.png?" + INSURANCE_OG_VERSION;
 const INSURANCE_CARD_ALT =
   "Find bipolar-informed California therapists who take your insurance · BipolarTherapyHub";
