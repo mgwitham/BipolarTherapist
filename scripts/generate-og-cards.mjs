@@ -15,10 +15,12 @@ import process from "node:process";
 import { createClient } from "@sanity/client";
 
 import { loadFonts, renderCardPng, renderPageCardPng } from "../shared/og-card.mjs";
+import { citySlug, eligibleCityBuckets } from "./generate-seo-city-pages.mjs";
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const OUTPUT_DIR = path.join(ROOT, "dist", "og", "therapists");
+const CITY_OUTPUT_DIR = path.join(ROOT, "dist", "og", "cities");
 
 // Promotable page share cards — one brand-consistent template, page-
 // specific copy. `out` is relative to dist/. Home overrides the static
@@ -71,7 +73,40 @@ const PAGE_CARDS = [
       subtitle: "Built from public California license records. Take ownership in minutes.",
     },
   },
+  {
+    out: "og/city-hub.png",
+    card: {
+      kicker: "California",
+      lines: ["Find a bipolar therapist", { text: "in your city.", accent: true }],
+      subtitle: "Browse license-verified specialists by California city.",
+      footnote: "Free  ·  No account  ·  No insurance needed",
+    },
+  },
+  {
+    out: "og/insurance.png",
+    card: {
+      kicker: "California",
+      lines: ["Bipolar therapists who", { text: "take your insurance.", accent: true }],
+      subtitle: "Filter California specialists by the plan you carry.",
+      footnote: "Free  ·  No account  ·  Confirm plan fit before booking",
+    },
+  },
 ];
+
+// Per-city share card copy. Mirrors the published city pages
+// (generate-seo-city-pages.mjs) one-to-one via eligibleCityBuckets, so
+// every /bipolar-therapists/<slug>/ page has a matching branded card.
+function cityCard(city, state, count) {
+  return {
+    kicker: "California",
+    lines: ["Bipolar therapists in", { text: `${city}, ${state}.`, accent: true }],
+    subtitle:
+      count === 1
+        ? "1 license-verified specialist, ranked by fit."
+        : `${count} license-verified specialists, ranked by fit.`,
+    footnote: "Free  ·  No account  ·  No insurance needed",
+  };
+}
 
 async function generatePageCards(fonts) {
   let written = 0;
@@ -188,6 +223,28 @@ async function main() {
   }
 
   console.log(`[og-cards] Wrote ${written} share cards to ${OUTPUT_DIR}`);
+
+  // Per-city cards — one per published city landing page, same Sanity
+  // therapist set and eligibility rule as the page generator.
+  const cityBuckets = eligibleCityBuckets(therapists);
+  fs.mkdirSync(CITY_OUTPUT_DIR, { recursive: true });
+  let cityWritten = 0;
+  for (const bucket of cityBuckets) {
+    const slug = citySlug(bucket.city, bucket.state);
+    if (!slug) continue;
+    try {
+      const png = await renderPageCardPng(
+        cityCard(bucket.city, bucket.state, bucket.providers.length),
+        fonts,
+      );
+      fs.writeFileSync(path.join(CITY_OUTPUT_DIR, `${slug}.png`), png);
+      cityWritten += 1;
+    } catch (err) {
+      failures.push({ slug: `city:${slug}`, error: String(err?.message || err) });
+    }
+  }
+  console.log(`[og-cards] Wrote ${cityWritten} city share cards to ${CITY_OUTPUT_DIR}`);
+
   if (failures.length > 0) {
     // Loud, not silent — a missing card means a broken share preview.
     console.error(`[og-cards] ${failures.length} card(s) FAILED to render:`);
