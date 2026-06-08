@@ -91,18 +91,23 @@ function buildBanner() {
       },
     },
     brandMark(),
+    // Wordmark in the bold-sans brand lockup (matches the favicon + OG
+    // cards): dark "BipolarTherapy" + teal "Hub". Sans reads instantly at
+    // banner scale and on mobile where the header is small and partly
+    // covered by the avatar — legibility over a decorative serif.
     el(
       "div",
       {
         style: {
           display: "flex",
-          fontFamily: "Fraunces",
-          fontWeight: 600,
+          fontFamily: "Hanken Grotesk",
+          fontWeight: 700,
           fontSize: 76,
-          color: COLOR.navy,
+          letterSpacing: "-0.01em",
         },
       },
-      "BipolarTherapyHub",
+      el("span", { style: { color: COLOR.navy } }, "BipolarTherapy"),
+      el("span", { style: { color: COLOR.teal } }, "Hub"),
     ),
     el(
       "div",

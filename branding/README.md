@@ -24,10 +24,13 @@ The visual language extends the existing favicon:
 - **Palette**: cream `#F7F4EF` background, brand teal `#26667A` for
   links/accents, slate `#3A5B65` for body, dark teal `#1C4D5C` for
   the wordmark.
-- **Typography**: Fraunces for the wordmark (matches the site
-  headings), Hanken Grotesk for taglines (matches the body). These are
-  the same brand cuts the OG share cards use, loaded from
-  `shared/og-fonts/`.
+- **Typography**: Hanken Grotesk throughout — bold for the wordmark
+  (the dark "BipolarTherapy" + teal "Hub" lockup, matching the favicon
+  and OG cards), regular for the tagline. A clean sans reads instantly
+  at banner scale and on mobile, where the header is small and partly
+  covered by the avatar; the decorative Fraunces serif (the site
+  heading face) is deliberately not used here. Fonts load from
+  `shared/og-fonts/`, the same cuts the share cards use.
 - **Tagline copy**: "Not every therapist gets bipolar. These do." —
   the patient-facing voice the founder has explicitly validated
   (see `feedback_copy` memory). No em-dashes, no clinician

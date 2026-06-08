@@ -32,12 +32,8 @@
          overlay. text-anchor="middle" with x=750 keeps everything
          on-axis regardless of length. -->
     <g text-anchor="middle">
-      <g font-family="Fraunces, Georgia, 'Times New Roman', serif">
-        <text x="750" y="170" font-size="76" fill="#1C4D5C" font-weight="600">
-          BipolarTherapyHub
-        </text>
-      </g>
       <g font-family="Hanken Grotesk, system-ui, sans-serif">
+        <text x="750" y="170" font-size="76" font-weight="700" letter-spacing="-0.01em"><tspan fill="#1C4D5C">BipolarTherapy</tspan><tspan fill="#26667A">Hub</tspan></text>
         <text x="750" y="235" font-size="32" fill="#3A5B65" font-weight="400">
           Not every therapist gets bipolar. These do.
         </text>
