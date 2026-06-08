@@ -88,6 +88,13 @@ export function getReviewApiConfig() {
     adminPassword: process.env.REVIEW_API_ADMIN_PASSWORD || rootEnv.REVIEW_API_ADMIN_PASSWORD || "",
     explicitSessionSecret:
       process.env.REVIEW_API_SESSION_SECRET || rootEnv.REVIEW_API_SESSION_SECRET || "",
+    // Comma-separated old secrets still accepted for VERIFYING existing
+    // sessions/magic-links during a rotation overlap window. Signing always
+    // uses REVIEW_API_SESSION_SECRET; once the overlap passes, clear this.
+    explicitSessionSecretsPrevious:
+      process.env.REVIEW_API_SESSION_SECRET_PREVIOUS ||
+      rootEnv.REVIEW_API_SESSION_SECRET_PREVIOUS ||
+      "",
     port: Number(process.env.REVIEW_API_PORT || rootEnv.REVIEW_API_PORT || DEFAULT_PORT),
     allowedOrigins: allowedOrigins,
     sessionTtlMs: Number(
@@ -188,6 +195,12 @@ export function getReviewApiConfig() {
   };
 
   config.sessionSecret = config.explicitSessionSecret || "";
+  // Previous secrets accepted for verification only, during a rotation
+  // overlap. De-duplicated and never includes the current secret twice.
+  config.sessionSecretsPrevious = String(config.explicitSessionSecretsPrevious || "")
+    .split(",")
+    .map((entry) => entry.trim())
+    .filter((entry) => entry && entry !== config.sessionSecret);
 
   if (!config.projectId || !config.dataset || !config.token) {
     throw new Error("Missing Sanity config or SANITY_API_TOKEN for review API.");
