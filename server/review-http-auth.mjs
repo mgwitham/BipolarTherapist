@@ -223,6 +223,24 @@ export function createSignedPayload(payload, secret) {
   return `${encodedPayload}.${signature}`;
 }
 
+// Ordered list of secrets accepted when VERIFYING a signed session/token:
+// the current secret first, then any previous secrets still inside their
+// rotation overlap window (config.sessionSecretsPrevious). Signing always
+// uses the current secret only (createSignedPayload), so rotating is:
+// move the old secret into REVIEW_API_SESSION_SECRET_PREVIOUS, set a new
+// REVIEW_API_SESSION_SECRET, and tokens signed with the old one keep
+// verifying until they expire or the previous entry is dropped.
+export function sessionVerificationSecrets(config) {
+  const previous = Array.isArray(config && config.sessionSecretsPrevious)
+    ? config.sessionSecretsPrevious
+    : [];
+  return [config && config.sessionSecret, ...previous].filter(Boolean);
+}
+
+// Accepts either a single secret (string) or a list of secrets to try in
+// order. Returns the decoded payload if ANY secret produces a matching
+// signature, else null. Each comparison is constant-time; trying multiple
+// server-side secrets leaks no useful timing signal.
 export function readSignedPayload(token, secret) {
   if (!token) {
     return null;
@@ -235,7 +253,11 @@ export function readSignedPayload(token, secret) {
 
   const encodedPayload = parts[0];
   const signature = parts[1];
-  if (!signaturesMatch(signValue(encodedPayload, secret), signature)) {
+  const secrets = Array.isArray(secret) ? secret : [secret];
+  const matched = secrets.some(
+    (candidate) => candidate && signaturesMatch(signValue(encodedPayload, candidate), signature),
+  );
+  if (!matched) {
     return null;
   }
 
@@ -247,7 +269,7 @@ export function readSignedPayload(token, secret) {
 }
 
 export function readSignedSession(token, config) {
-  const payload = readSignedPayload(token, config.sessionSecret);
+  const payload = readSignedPayload(token, sessionVerificationSecrets(config));
   if (!payload || payload.sub !== "admin" || !payload.exp || payload.exp <= Date.now()) {
     return null;
   }
@@ -283,7 +305,7 @@ export function createTherapistSession(config, claims) {
 }
 
 export function readTherapistSession(token, config) {
-  const payload = readSignedPayload(token, config.sessionSecret);
+  const payload = readSignedPayload(token, sessionVerificationSecrets(config));
   if (!payload || payload.sub !== "therapist" || !payload.exp || payload.exp <= Date.now()) {
     return null;
   }

@@ -79,6 +79,7 @@ import {
   readAdminSessionFromRequest,
   readSignedPayload,
   recordFailedLogin,
+  sessionVerificationSecrets,
   refreshTherapistSessionIfStale,
   sendJson,
 } from "./review-http-auth.mjs";
@@ -658,7 +659,7 @@ function buildPortalClaimToken(config, therapist, requesterEmail, options) {
 }
 
 function readPortalClaimToken(config, token) {
-  const payload = readSignedPayload(token, config.sessionSecret);
+  const payload = readSignedPayload(token, sessionVerificationSecrets(config));
   if (!payload || payload.sub !== "therapist-portal" || !payload.exp || payload.exp <= Date.now()) {
     return null;
   }
@@ -706,7 +707,7 @@ function buildRecoveryConfirmToken(config, recoveryId, nonce) {
 }
 
 function readRecoveryConfirmToken(config, token) {
-  const payload = readSignedPayload(token, config.sessionSecret);
+  const payload = readSignedPayload(token, sessionVerificationSecrets(config));
   if (!payload || payload.sub !== "recovery-confirm" || !payload.exp || payload.exp <= Date.now()) {
     return null;
   }
@@ -726,7 +727,7 @@ function buildListingRemovalToken(config, therapist) {
 }
 
 function readListingRemovalToken(config, token) {
-  const payload = readSignedPayload(token, config.sessionSecret);
+  const payload = readSignedPayload(token, sessionVerificationSecrets(config));
   if (!payload || payload.sub !== "listing-removal" || !payload.exp || payload.exp <= Date.now()) {
     return null;
   }
