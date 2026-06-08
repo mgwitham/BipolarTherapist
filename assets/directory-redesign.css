@@ -167,7 +167,7 @@ body.dir-vb {
   flex: 1;
 }
 .dir-card-name {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 18px;
   color: #17323b;
   line-height: 1.25;
@@ -310,7 +310,7 @@ body.dir-vb {
   flex-wrap: wrap;
 }
 .dir-header-title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 28px;
   color: #17323b;
   line-height: 1.2;
@@ -1011,7 +1011,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
   margin: 0 auto;
 }
 .dir-empty-state-h3 {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 22px;
   color: #17323b;
   line-height: 1.3;
@@ -1053,7 +1053,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
   margin-right: auto;
 }
 .dir-loosened-title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 17px;
   color: #17323b;
   margin: 0 0 4px;

@@ -395,7 +395,7 @@ body {
    name/credential header. Quotation marks are added inline by the JS only
    when the clinician is claimed (it's their voice). */
 .profile-main h1 {
-  font-family: "Fraunces", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 2.3rem;
   font-weight: 600;
   color: var(--navy);
@@ -1471,7 +1471,7 @@ img.bth-avatar {
 }
 
 .report-issue-title {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 1.25rem;
   font-weight: 600;
   margin: 0;
@@ -1849,7 +1849,7 @@ img.bth-avatar {
   color: #5d7882;
 }
 .profile-hero-name {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 28px;
   color: #17323b;
   line-height: 1.15;
@@ -1902,7 +1902,7 @@ img.bth-avatar {
   margin-bottom: 18px;
 }
 .profile-hero-years-num {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 30px;
   font-weight: 600;
   color: #1c4d5c;
@@ -2013,7 +2013,7 @@ img.bth-avatar {
   margin-bottom: 6px;
 }
 .profile-section-h2 {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 20px;
   color: #17323b;
   margin: 0 0 14px;

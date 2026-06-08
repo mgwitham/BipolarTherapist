@@ -47,7 +47,7 @@ img.bth-avatar {
   min-width: 0;
 }
 .bth-card-name {
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 500;
   font-size: 1.15rem;
   line-height: 1.2;
@@ -88,7 +88,7 @@ img.bth-avatar {
 }
 
 .bth-voice {
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.55;
   color: #4d6671;

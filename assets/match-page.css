@@ -178,7 +178,7 @@ body.match-refine-drawer-open .refine-foot {
   text-transform: uppercase;
 }
 .match-tool-title {
-  font-family: "Fraunces", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: clamp(1.35rem, 2.7vw, 1.72rem);
   line-height: 1.18;
   color: var(--navy);
@@ -2481,7 +2481,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
   margin-bottom: 0.35rem;
 }
 .mx-loading-title {
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 500;
   font-size: clamp(1.4rem, 2.4vw, 1.75rem);
   line-height: 1.2;
@@ -2541,7 +2541,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
   letter-spacing: 0.08em;
 }
 .mx-results-title {
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 500;
   font-size: clamp(1.4rem, 2.4vw, 1.75rem);
   line-height: 1.2;
@@ -3257,7 +3257,7 @@ img.bth-avatar {
   min-width: 0;
 }
 .bth-card-name {
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 500;
   font-size: 1.15rem;
   line-height: 1.2;
@@ -3345,7 +3345,7 @@ img.bth-avatar {
 
 /* Zone 2 — voice cascade */
 .bth-voice {
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 14px;
   line-height: 1.55;
   color: #4d6671;
@@ -3521,7 +3521,7 @@ img.bth-avatar {
   gap: 0.55rem;
 }
 .bth-modal-name {
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 500;
   font-size: 1.45rem;
   line-height: 1.2;
@@ -4137,7 +4137,7 @@ img.bth-avatar {
   color: var(--teal-dark);
 }
 .mx-outreach-expanded-label {
-  font-family: "Fraunces", Georgia, serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--slate);
@@ -4311,7 +4311,7 @@ img.bth-avatar {
 }
 .mx-sl-page-title {
   margin: 0;
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 500;
   font-size: 1.6rem;
   line-height: 1.2;
@@ -4373,7 +4373,7 @@ img.bth-avatar {
   object-fit: cover;
 }
 .mx-sl-hero-photo-fill {
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-size: 1.6rem;
   color: #1a7a8f;
   font-weight: 600;
@@ -4383,7 +4383,7 @@ img.bth-avatar {
   min-width: 0;
 }
 .mx-sl-hero-name {
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 500;
   font-size: 1.4rem;
   line-height: 1.15;
@@ -4506,7 +4506,7 @@ img.bth-avatar {
   border-radius: 999px;
 }
 .mx-sl-card-name {
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 500;
   font-size: 1.1rem;
   line-height: 1.2;
@@ -4584,7 +4584,7 @@ img.bth-avatar {
   font-size: 0.8rem;
 }
 .mx-sl-diff-head-name {
-  font-family: "Fraunces", "Hanken Grotesk", serif;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 500;
   font-size: 0.95rem;
   color: #0f1f28;
