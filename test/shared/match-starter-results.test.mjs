@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { getTherapists } from "../../assets/store.js";
-import { buildUserMatchProfile, rankTherapistsForUser } from "../../assets/matching-model.js";
+import { buildUserMatchProfile, rankTherapistsForUser } from "../../shared/matching-model.mjs";
 
 function buildStarterProfile() {
   return buildUserMatchProfile({

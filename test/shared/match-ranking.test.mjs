@@ -21,7 +21,7 @@ import {
   getShortcutPreference,
   pickRecommendedFirstContact,
 } from "../../assets/match-ranking.js";
-import { buildUserMatchProfile } from "../../assets/matching-model.js";
+import { buildUserMatchProfile } from "../../shared/matching-model.mjs";
 
 test("buildStarterProfile returns the expected lightweight California starter shape", function () {
   const profile = buildStarterProfile({

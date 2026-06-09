@@ -64,7 +64,7 @@ import {
   getDataFreshnessSummary,
   getTherapistMatchReadiness,
   getTherapistReviewCoaching,
-} from "./matching-model.js";
+} from "../shared/matching-model.mjs";
 import { readFunnelEvents, trackFunnelEvent } from "./funnel-analytics.js";
 import * as adminReviewActivity from "./admin-review-activity.js";
 import { createAdminWorkflowNavigator } from "./admin-workflow-navigation.js";
