@@ -556,7 +556,56 @@ function buildCityGuidesHtml() {
   );
 }
 
-function buildFallbackBodyHtml(city, state, providers, cityContent) {
+// Pick up to `max` sibling cities for cross-linking. Walks a stable
+// alphabetical ring starting just after the current city (wrapping), so
+// each page links to a DIFFERENT window of neighbors — spreading internal
+// links / PageRank around the whole geo cluster instead of every page
+// pointing at the same few. (No geo coords on the bucket, so alphabetical
+// adjacency is the deterministic proxy for "nearby".)
+export function selectNearbyCities(alphaCities, currentSlug, max) {
+  const list = Array.isArray(alphaCities) ? alphaCities : [];
+  if (list.length <= 1) return [];
+  const limit = Math.max(0, max || 0);
+  const idx = list.findIndex((c) => c && c.slug === currentSlug);
+  const start = idx === -1 ? 0 : idx;
+  const out = [];
+  for (let step = 1; step < list.length && out.length < limit; step += 1) {
+    const candidate = list[(start + step) % list.length];
+    if (candidate && candidate.slug && candidate.slug !== currentSlug) {
+      out.push(candidate);
+    }
+  }
+  return out;
+}
+
+// Reuses the .city-guides / .city-section-* classes so it inherits the
+// existing styling with no stylesheet change.
+function buildNearbyCitiesHtml(nearby) {
+  if (!nearby || !nearby.length) return "";
+  const items = nearby
+    .map(
+      (c) =>
+        '<li><a href="' +
+        escapeAttribute(buildCityPath(c.slug)) +
+        '">Bipolar therapists in ' +
+        escapeHtml(c.city) +
+        "</a></li>",
+    )
+    .join("");
+  return (
+    '<section class="city-guides">' +
+    '<div class="city-section-inner">' +
+    '<p class="city-section-kicker">Nearby</p>' +
+    '<h2 class="city-section-h2">Bipolar therapists in other California cities</h2>' +
+    '<ul class="city-guides-list">' +
+    items +
+    "</ul>" +
+    "</div>" +
+    "</section>"
+  );
+}
+
+function buildFallbackBodyHtml(city, state, providers, cityContent, nearbyHtml) {
   const stats = computeCityStats(providers);
   return (
     '<div class="seo-city-fallback" data-static-seo-city>' +
@@ -566,6 +615,7 @@ function buildFallbackBodyHtml(city, state, providers, cityContent) {
     buildWhatToLookForHtml(city) +
     buildCityFaqHtml(city, stats) +
     buildCityGuidesHtml() +
+    (nearbyHtml || "") +
     buildCityCtaBandHtml(city) +
     "</div>"
   );
@@ -626,7 +676,8 @@ export function stripDirectoryTemplateSeoHead(html) {
     .replace(/\s*<script\b(?=[^>]*\bid="dirJsonLd")[^>]*>[\s\S]*?<\/script>/gi, "");
 }
 
-export function injectSeo(template, city, state, slug, providers, cityContent) {
+export function injectSeo(template, city, state, slug, providers, cityContent, nearbyCities) {
+  const nearbyHtml = buildNearbyCitiesHtml(nearbyCities);
   return injectStylesheet(
     stripDirectoryTemplateSeoHead(template)
       .replace(/<title[^>]*>[\s\S]*?<\/title>/, buildHeadTags(city, state, slug, providers))
@@ -637,7 +688,7 @@ export function injectSeo(template, city, state, slug, providers, cityContent) {
       .replace(
         /<main[^>]*>[\s\S]*?<\/main>/,
         '<main class="seo-city-main">\n      ' +
-          buildFallbackBodyHtml(city, state, providers, cityContent) +
+          buildFallbackBodyHtml(city, state, providers, cityContent, nearbyHtml) +
           "\n    </main>",
       ),
   );
@@ -955,16 +1006,32 @@ async function main() {
     return c.providers.length >= MIN_PROVIDERS;
   });
 
+  // Alphabetical index of every published city, used to give each page a
+  // rotating window of sibling cross-links (see selectNearbyCities).
+  const alphaCities = eligibleCities
+    .map((c) => ({ city: c.city, state: c.state, slug: citySlug(c.city, c.state) }))
+    .filter((c) => c.slug)
+    .sort((a, b) => a.city.localeCompare(b.city));
+
   let written = 0;
   let skipped = cities.length - eligibleCities.length;
   for (const city of eligibleCities) {
     const slug = citySlug(city.city, city.state);
     if (!slug) continue;
+    const nearby = selectNearbyCities(alphaCities, slug, 6);
     const outputDir = path.join(CITY_OUTPUT_DIR, slug);
     fs.mkdirSync(outputDir, { recursive: true });
     fs.writeFileSync(
       path.join(outputDir, "index.html"),
-      injectSeo(template, city.city, city.state, slug, city.providers, cityContentMap[slug]),
+      injectSeo(
+        template,
+        city.city,
+        city.state,
+        slug,
+        city.providers,
+        cityContentMap[slug],
+        nearby,
+      ),
       "utf8",
     );
     written += 1;
