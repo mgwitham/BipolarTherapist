@@ -12,6 +12,8 @@
 //
 // GET /analytics/events  — admin-only, returns current log contents.
 
+import { log } from "./logger.mjs";
+
 const SINGLETON_ID = "funnelEventLog.singleton";
 const MAX_EVENTS = 3000;
 const MAX_PAYLOAD_BYTES = 1024;
@@ -293,8 +295,14 @@ export async function appendFunnelEvent(client, type, payload) {
       .patch(SINGLETON_ID)
       .set({ events: merged, updatedAt: now, totalAppended })
       .commit({ visibility: "async" });
-  } catch (_error) {
-    // Analytics is best-effort; never block the caller.
+  } catch (error) {
+    // Analytics is best-effort; never block the caller. Logged so a
+    // sustained write failure (the funnel dashboard quietly going stale)
+    // is visible instead of silent.
+    log.warn("analytics: failed to append funnel event", {
+      eventType: event.type,
+      err: error?.message || String(error),
+    });
   }
 }
 
