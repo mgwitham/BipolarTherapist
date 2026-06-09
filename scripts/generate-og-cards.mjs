@@ -16,11 +16,13 @@ import { createClient } from "@sanity/client";
 
 import { loadFonts, renderCardPng, renderPageCardPng } from "../shared/og-card.mjs";
 import { citySlug, eligibleCityBuckets } from "./generate-seo-city-pages.mjs";
+import { articles } from "../content/resources/articles.mjs";
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const OUTPUT_DIR = path.join(ROOT, "dist", "og", "therapists");
 const CITY_OUTPUT_DIR = path.join(ROOT, "dist", "og", "cities");
+const RESOURCE_OUTPUT_DIR = path.join(ROOT, "dist", "og", "resources");
 
 // Promotable page share cards — one brand-consistent template, page-
 // specific copy. `out` is relative to dist/. Home overrides the static
@@ -120,6 +122,86 @@ async function generatePageCards(fonts) {
   console.log(`[og-cards] Wrote ${written} page share cards`);
 }
 
+// Wrap a (variable-length) article title into balanced headline lines and
+// pick a font size that fits the 1200x630 card. buildPageCard renders each
+// `lines` entry on its own line with no auto-wrap, so we wrap here and
+// shrink the type for longer titles instead of letting them overflow.
+function wrapTitleLines(title) {
+  const clean = String(title || "").trim();
+  const words = clean.split(/\s+/).filter(Boolean);
+  let fontSize, maxChars, maxLines;
+  if (clean.length <= 38) {
+    fontSize = 62;
+    maxChars = 20;
+    maxLines = 2;
+  } else if (clean.length <= 60) {
+    fontSize = 52;
+    maxChars = 26;
+    maxLines = 3;
+  } else {
+    fontSize = 44;
+    maxChars = 30;
+    maxLines = 3;
+  }
+  const lines = [];
+  let cur = "";
+  for (const w of words) {
+    const next = cur ? cur + " " + w : w;
+    if (next.length > maxChars && cur) {
+      lines.push(cur);
+      cur = w;
+    } else {
+      cur = next;
+    }
+  }
+  if (cur) lines.push(cur);
+  // Overflow guard: fold any extra lines into the last allowed line.
+  if (lines.length > maxLines) {
+    const head = lines.slice(0, maxLines - 1);
+    head.push(lines.slice(maxLines - 1).join(" "));
+    return { lines: head, fontSize: Math.min(fontSize, 42) };
+  }
+  return { lines, fontSize };
+}
+
+// Per-article share card: title as the headline (last line accented),
+// title-focused with a small brand footnote. Titles are static content,
+// so these render without Sanity.
+function articleCard(article) {
+  const { lines, fontSize } = wrapTitleLines(article.title);
+  const headline = lines.map((text, i) => (i === lines.length - 1 ? { text, accent: true } : text));
+  return {
+    kicker: "Bipolar care guide",
+    headlineFontSize: fontSize,
+    lines: headline,
+    footnote: "BipolarTherapyHub  ·  Free, plain-language guides",
+  };
+}
+
+async function generateResourceCards(fonts) {
+  fs.mkdirSync(RESOURCE_OUTPUT_DIR, { recursive: true });
+  let written = 0;
+  for (const article of articles || []) {
+    if (!article || !article.slug) continue;
+    const png = await renderPageCardPng(articleCard(article), fonts);
+    fs.writeFileSync(path.join(RESOURCE_OUTPUT_DIR, `${article.slug}.png`), png);
+    written += 1;
+  }
+  // Resource hub card (/resources/).
+  const hubPng = await renderPageCardPng(
+    {
+      kicker: "California",
+      lines: ["Guides on finding", { text: "bipolar care.", accent: true }],
+      subtitle: "Plain-language guides on choosing a bipolar therapist.",
+      footnote: "Free  ·  No account  ·  No insurance needed",
+    },
+    fonts,
+  );
+  fs.writeFileSync(path.join(RESOURCE_OUTPUT_DIR, "hub.png"), hubPng);
+  written += 1;
+  console.log(`[og-cards] Wrote ${written} resource share cards to ${RESOURCE_OUTPUT_DIR}`);
+}
+
 function readEnvFile(filePath) {
   if (!fs.existsSync(filePath)) return {};
   return fs
@@ -191,9 +273,10 @@ async function main() {
     process.exit(0);
   }
 
-  // Page cards first — they don't need Sanity, so they're generated even
-  // if therapist data is unavailable.
+  // Page + resource cards first — they don't need Sanity, so they're
+  // generated even if therapist data is unavailable.
   await generatePageCards(fonts);
+  await generateResourceCards(fonts);
 
   const config = getConfig();
   if (!config.projectId || !config.dataset) {

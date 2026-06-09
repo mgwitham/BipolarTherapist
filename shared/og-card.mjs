@@ -350,6 +350,7 @@ const PAGE = {
  * }
  */
 export function buildPageCard(opts) {
+  const headlineFontSize = opts.headlineFontSize || 68;
   const lines = (opts.lines || []).map((line) => {
     const isAccent = typeof line === "object" && line.accent;
     const text = typeof line === "object" ? line.text : line;
@@ -358,7 +359,7 @@ export function buildPageCard(opts) {
       {
         style: {
           display: "flex",
-          fontSize: 68,
+          fontSize: headlineFontSize,
           fontFamily: "Hanken Grotesk",
           fontWeight: 700,
           color: isAccent ? PAGE.accent : PAGE.headline,
