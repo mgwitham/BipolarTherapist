@@ -755,6 +755,25 @@ export async function handleApplicationRoutes(context) {
       return true;
     }
 
+    // Approval is not idempotent: it rebuilds the therapist doc from the
+    // application via createOrReplace, so a second approve (stale admin tab,
+    // double-click, concurrent reviewers) would wipe any portal edits made
+    // since the first. Re-approving a *rejected* application stays allowed.
+    if (application.status === "approved") {
+      sendJson(
+        response,
+        409,
+        {
+          error:
+            "This application was already approved. Re-approving would rebuild the live profile and overwrite edits made since.",
+          therapistId: application.publishedTherapistId || "",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     if (!String(application.licenseNumber || "").trim()) {
       sendJson(
         response,

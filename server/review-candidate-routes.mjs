@@ -396,6 +396,25 @@ export async function handleCandidateRoutes(context) {
     eventType = "candidate_merged";
     changedFields.push("matchedTherapistId", "dedupeStatus", "publishedTherapistId", "publishedAt");
   } else if (decision === "publish") {
+    // Publish is not idempotent: it rebuilds the therapist doc via
+    // createOrReplace, so publishing twice (stale admin tab, concurrent
+    // reviewers) would overwrite the live profile and any edits made since.
+    // publishedTherapistId is stamped by both publish and merge_to_therapist,
+    // so this also blocks re-publishing an already-merged candidate.
+    if (String(candidate.publishedTherapistId || "").trim()) {
+      sendJson(
+        response,
+        409,
+        {
+          error:
+            "This candidate was already published. Re-publishing would overwrite the live therapist profile and any edits made since.",
+          therapistId: candidate.publishedTherapistId,
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
     if (!String(candidate.licenseNumber || "").trim()) {
       sendJson(
         response,
