@@ -914,11 +914,7 @@ export async function handlePortalProfileRoutes(context) {
 
     const { sendListingRemovalLink } = deps;
     try {
-      await sendListingRemovalLink(
-        config,
-        therapist,
-        `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
-      );
+      await sendListingRemovalLink(config, therapist, config.portalBaseUrl);
     } catch (error) {
       // Log and still return generic success; an email-delivery
       // failure should not reveal that the listing exists.
@@ -939,7 +935,7 @@ export async function handlePortalProfileRoutes(context) {
   // the signed token is the auth.
   if (request.method === "GET" && routePath === "/portal/listing-removal/confirm") {
     const token = String((url.searchParams && url.searchParams.get("token")) || "").trim();
-    const returnBase = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+    const returnBase = config.portalBaseUrl;
 
     function redirect(status) {
       response.statusCode = 302;

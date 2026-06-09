@@ -25,6 +25,7 @@ function claimTestConfig() {
     sessionSecret: "test-secret",
     loginWindowMs: 60000,
     loginMaxAttempts: 5,
+    portalBaseUrl: "http://localhost:8787",
     resendApiKey: "re_test_key",
     emailFrom: "noreply@bipolartherapyhub.example",
     notificationTo: "founder@bipolartherapyhub.example",

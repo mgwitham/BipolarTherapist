@@ -530,7 +530,7 @@ export async function handleRecoveryRoutes(context) {
         ? { ...therapist, slug: { current: therapist.slug } }
         : therapist;
 
-    const portalBaseUrl = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+    const portalBaseUrl = config.portalBaseUrl;
     const magicLink = deps.buildRecoveryMagicLink(
       config,
       therapistForLink,
@@ -709,7 +709,7 @@ export async function handleRecoveryRoutes(context) {
       typeof therapist.slug === "string"
         ? { ...therapist, slug: { current: therapist.slug } }
         : therapist;
-    const portalBaseUrl = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+    const portalBaseUrl = config.portalBaseUrl;
     const magicLink = deps.buildRecoveryMagicLink(
       config,
       therapistForLink,
@@ -834,7 +834,7 @@ export async function handleRecoveryRoutes(context) {
 
     const nonce = crypto.randomBytes(12).toString("hex");
     const token = deps.buildRecoveryConfirmToken(config, recovery._id, nonce);
-    const portalBaseUrl = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+    const portalBaseUrl = config.portalBaseUrl;
     const confirmUrl =
       portalBaseUrl + "/confirm-claim?token=" + encodeURIComponent(token) + "&response=yes";
     const denyUrl =
@@ -1128,7 +1128,7 @@ export async function handleRecoveryRoutes(context) {
       typeof therapist.slug === "string"
         ? { ...therapist, slug: { current: therapist.slug } }
         : therapist;
-    const portalBaseUrl = `${url.protocol}//${url.host}`.replace(/\/+$/, "");
+    const portalBaseUrl = config.portalBaseUrl;
     const magicLink = deps.buildRecoveryMagicLink(
       config,
       therapistForLink,

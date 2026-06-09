@@ -559,7 +559,7 @@ export async function handleStripeRoutes(context) {
                 therapist.email,
                 { ttlMs },
               );
-              activationUrl = `${url.protocol}//${url.host}/portal?token=${encodeURIComponent(token)}`;
+              activationUrl = `${config.portalBaseUrl}/portal?token=${encodeURIComponent(token)}`;
             } catch (error) {
               activationUrl = "";
               log.warn("stripe webhook: could not build activation link for canceled trial", {

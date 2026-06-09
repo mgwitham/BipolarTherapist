@@ -497,10 +497,7 @@ export async function handleApplicationRoutes(context) {
       sendJson(response, 404, { error: "Listing not found." }, origin, config);
       return true;
     }
-    const portalBaseUrl =
-      url && url.protocol && url.host
-        ? `${url.protocol}//${url.host}`.replace(/\/+$/, "")
-        : String(config.stripeReturnUrlBase || "").replace(/\/+$/, "");
+    const portalBaseUrl = config.portalBaseUrl;
     let emailSent = false;
     try {
       await sendPortalClaimLink(config, therapist, payload.email, portalBaseUrl);
@@ -832,10 +829,7 @@ export async function handleApplicationRoutes(context) {
     // identically once the token is verified.
     let approvalEmailFailed = false;
     try {
-      const portalBaseUrl =
-        url && url.protocol && url.host
-          ? `${url.protocol}//${url.host}`.replace(/\/+$/, "")
-          : String(config.stripeReturnUrlBase || "").replace(/\/+$/, "");
+      const portalBaseUrl = config.portalBaseUrl;
       // buildTherapistDocument returns the doc we just wrote; read
       // it back from Sanity so the email has the canonical slug
       // structure the token builder expects.

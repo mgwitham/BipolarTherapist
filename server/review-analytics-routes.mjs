@@ -300,7 +300,6 @@ export async function appendFunnelEvent(client, type, payload) {
     // sustained write failure (the funnel dashboard quietly going stale)
     // is visible instead of silent.
     log.warn("analytics: failed to append funnel event", {
-      eventType: event.type,
       err: error?.message || String(error),
     });
   }

@@ -451,6 +451,7 @@ export function createTestApiConfig() {
     sessionTtlMs: 60000,
     allowedOrigins: [],
     sessionSecret: "test-secret",
+    portalBaseUrl: "http://localhost:8787",
     loginWindowMs: 60000,
     loginMaxAttempts: 5,
   };
