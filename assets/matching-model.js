@@ -1,5 +1,5 @@
 import { normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
-import { resolveInsuranceName } from "../shared/therapist-picker-options.mjs";
+import { resolveInsuranceName, insuranceMatches } from "../shared/therapist-picker-options.mjs";
 
 export const MATCH_INTAKE_QUESTIONS = [
   {
@@ -520,23 +520,11 @@ function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
 }
 
-function normalizeInsurance(value) {
-  return normalizeLower(value).replace(/[^a-z0-9]+/g, " ");
-}
-
-function insuranceMatches(requestedInsurance, acceptedInsurance) {
-  var requested = normalizeInsurance(requestedInsurance);
-  if (!requested) {
-    return false;
-  }
-
-  return normalizeList(acceptedInsurance).some(function (item) {
-    var normalized = normalizeInsurance(item);
-    return (
-      normalized === requested || normalized.includes(requested) || requested.includes(normalized)
-    );
-  });
-}
+// insuranceMatches now comes from shared/therapist-picker-options.mjs — the
+// alias-aware matcher the directory uses (resolves BCBS/Anthem/UHC/Medi-Cal
+// on BOTH the patient query and the therapist's listed values). The old
+// local copy did plain substring matching, so the guided match flow could
+// miss a therapist the directory matched for the same insurance.
 
 function supportsTelehealthInState(therapist, careState) {
   if (therapist.accepts_telehealth === false) {

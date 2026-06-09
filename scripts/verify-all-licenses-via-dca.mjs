@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 import process from "node:process";
 import fs from "node:fs";
 import path from "node:path";

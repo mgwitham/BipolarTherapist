@@ -9,26 +9,6 @@ import {
 
 const DEFAULT_DISCOVERY_COUNT = 10;
 
-function buildCityIndex(therapists) {
-  const index = new Map();
-  (therapists || []).forEach(function (item) {
-    const city = item.city || "";
-    const state = item.state || "";
-    if (!city) return;
-    const key = [city, state].filter(Boolean).join(", ");
-    const entry = index.get(key) || { city: city, state: state, zips: new Set(), entries: [] };
-    if (item.zip) entry.zips.add(String(item.zip).slice(0, 5));
-    entry.entries.push({
-      name: item.name || "",
-      credentials: item.credentials || "",
-      licenseNumber: item.license_number || item.licenseNumber || "",
-      sourceUrl: item.source_url || item.sourceUrl || item.website || "",
-    });
-    index.set(key, entry);
-  });
-  return index;
-}
-
 function extractCityName(cityLabel) {
   const comma = String(cityLabel || "").indexOf(",");
   return comma >= 0 ? cityLabel.slice(0, comma).trim() : String(cityLabel || "").trim();

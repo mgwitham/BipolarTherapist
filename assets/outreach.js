@@ -1237,8 +1237,6 @@ function openBatchComposer() {
   function classifyAndRenderWarning() {
     const template = tmplSel.value;
     const already = recipients.filter((t) => therapistAlreadySent(t, template));
-    const fresh = recipients.filter((t) => !therapistAlreadySent(t, template));
-    const willSend = includeAlreadySent ? recipients : fresh;
 
     if (already.length === 0) {
       warnEl.style.display = "none";
