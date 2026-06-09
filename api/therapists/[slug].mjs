@@ -230,7 +230,7 @@ function buildSeoDescription(t) {
   return result.length > 158 ? result.slice(0, 155) + "…" : result;
 }
 
-function buildFAQItems(t) {
+export function buildFAQItems(t) {
   const name = t.name || "This therapist";
   const first = (t.name || "").split(" ")[0] || "They";
   const phone = t.phone || null;
@@ -346,7 +346,7 @@ function buildFAQItems(t) {
   return items;
 }
 
-function buildJsonLd(t) {
+export function buildJsonLd(t) {
   const nameWithCreds = t.credentials ? t.name + ", " + t.credentials : t.name;
   const pageUrl = ORIGIN + "/therapists/" + encodeURIComponent(t.slug) + "/";
   const address = {
