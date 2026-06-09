@@ -65,21 +65,7 @@ import {
   getTherapistMatchReadiness,
   getTherapistReviewCoaching,
 } from "./matching-model.js";
-import {
-  readFunnelEvents,
-  setPromotedExperimentVariant,
-  summarizeContactRouteOutcomePerformance,
-  summarizeAdaptiveSignals,
-  summarizeDirectoryProfileOpenQuality,
-  summarizeExperimentDecisions,
-  summarizeExperimentPerformance,
-  summarizeProfileContactExperimentDecision,
-  summarizeProfileContactOutcomeValidation,
-  summarizeProfileContactSignals,
-  summarizeProfileQueueProgress,
-  summarizePatientJourney,
-  trackFunnelEvent,
-} from "./funnel-analytics.js";
+import { readFunnelEvents, trackFunnelEvent } from "./funnel-analytics.js";
 import * as adminReviewActivity from "./admin-review-activity.js";
 import { createAdminWorkflowNavigator } from "./admin-workflow-navigation.js";
 import { getSourceReferenceMeta } from "./admin-source-reference.js";
@@ -96,13 +82,8 @@ import {
 import { mountEditDrawer } from "./edit-drawer-shell.js";
 import { initAdminProfileSearch } from "./admin-profile-search.js";
 import { bindResolveDuplicate, openResolveDuplicate } from "./admin-duplicate-resolve.js";
-import { normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
 import {
   formatFieldLabel,
-  getFieldTrustValue,
-  getFieldTrustEntries,
-  getFieldTrustTier,
-  getFieldTrustChipClass,
   getTherapistFieldTrustSummary,
   getTherapistFieldTrustAttentionCount,
 } from "./admin-field-trust.js";

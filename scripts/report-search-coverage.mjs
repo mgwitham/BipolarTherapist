@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 /**
  * Print a coverage report for a discovery run's search_log against the
  * 5-bucket Query Diversity Mandate (see docs/discovery-prompt.template.txt).

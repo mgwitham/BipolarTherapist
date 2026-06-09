@@ -276,7 +276,7 @@ function applyPricingState(me, subscription) {
   applyResolvedBranchTracking();
 }
 
-function handleFreeCtaClick(event) {
+function handleFreeCtaClick(_event) {
   trackFunnelEvent("pricing_free_cta_clicked", {
     branch: pricingState.branch,
     source: "pricing_page",
