@@ -23,6 +23,13 @@ const TEMPLATE_PATH = path.join(DIST_DIR, "about.html");
 const OUTPUT_DIR = path.join(DIST_DIR, "resources");
 const STYLESHEET_LINK = '<link rel="stylesheet" href="/seo-resources.css" />';
 const WORDS_PER_MINUTE = 200;
+// Per-article branded share cards live at /og/resources/<slug>.png,
+// rendered by scripts/generate-og-cards.mjs. Bump to bust X/social caches
+// when the card art changes.
+const RESOURCE_OG_VERSION = "v1";
+function resourceOgImage(slug) {
+  return SITE_URL + "/og/resources/" + slug + ".png?" + RESOURCE_OG_VERSION;
+}
 
 // Visible byline + JSON-LD author. A named human voice with real lived
 // experience is the strongest E-E-A-T signal a health guide can carry.
@@ -112,7 +119,7 @@ function buildArticleJsonLd(article, canonicalUrl, minutes) {
       wordCount,
       timeRequired: "PT" + minutes + "M",
       mainEntityOfPage: canonicalUrl,
-      image: SITE_URL + "/og-image.png",
+      image: resourceOgImage(article.slug),
       author: {
         "@type": "Person",
         name: AUTHOR.name,
@@ -194,13 +201,17 @@ function buildHeadTags(meta) {
     '<meta property="og:url" content="' + escapeAttribute(meta.canonicalUrl) + '" />',
     '<meta property="og:title" content="' + escapeAttribute(meta.title) + '" />',
     '<meta property="og:description" content="' + escapeAttribute(meta.description) + '" />',
-    '<meta property="og:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta property="og:image" content="' +
+      escapeAttribute(meta.ogImage || SITE_URL + "/og-image.png") +
+      '" />',
     '<meta property="og:image:width" content="1200" />',
     '<meta property="og:image:height" content="630" />',
     '<meta name="twitter:card" content="summary_large_image" />',
     '<meta name="twitter:title" content="' + escapeAttribute(meta.title) + '" />',
     '<meta name="twitter:description" content="' + escapeAttribute(meta.description) + '" />',
-    '<meta name="twitter:image" content="' + SITE_URL + '/og-image.png" />',
+    '<meta name="twitter:image" content="' +
+      escapeAttribute(meta.ogImage || SITE_URL + "/og-image.png") +
+      '" />',
     '<script type="application/ld+json">' + JSON.stringify(meta.jsonLd) + "</script>",
   ];
   return lines.join("\n    ");
@@ -459,6 +470,7 @@ function main() {
       description: article.description,
       canonicalUrl,
       ogType: "article",
+      ogImage: resourceOgImage(slug),
       jsonLd: buildArticleJsonLd(article, canonicalUrl, minutes),
     });
     let html = rewriteHead(template, headTags);
@@ -477,6 +489,7 @@ function main() {
     description: HUB.description,
     canonicalUrl: SITE_URL + "/resources/",
     ogType: "website",
+    ogImage: SITE_URL + "/og/resources/hub.png?" + RESOURCE_OG_VERSION,
     jsonLd: buildHubJsonLd(),
   });
   let hubHtml = rewriteHead(template, hubHead);
