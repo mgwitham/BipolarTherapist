@@ -474,6 +474,41 @@ export async function handleRecoveryRoutes(context) {
     }
 
     const nowIso = new Date().toISOString();
+    const reviewer = deps.getAuthorizedActor(request, config);
+
+    // Atomic claim FIRST: transition the recovery doc pending->approved
+    // gated on its revision. This is the lock — if two admins approve the
+    // same request concurrently (or one double-clicks), only one commit
+    // succeeds; the loser hits the revision conflict here and bails before
+    // any side effects, so we never double-grant access or double-send the
+    // approval email.
+    let updated;
+    try {
+      updated = await client
+        .patch(recovery._id)
+        .ifRevisionId(recovery._rev)
+        .set({
+          status: "approved",
+          reviewedAt: nowIso,
+          reviewedBy: (reviewer && (reviewer.name || reviewer.id)) || "admin",
+          outcomeMessage: customMessage,
+          adminNote: adminNote || recovery.adminNote || "",
+        })
+        .commit({ visibility: "sync" });
+    } catch (error) {
+      log.warn("[recovery approve] revision conflict — already resolved", {
+        requestId: contextRequestId,
+        err: error?.message || String(error),
+      });
+      sendJson(
+        response,
+        409,
+        { error: "This request was just resolved by another action." },
+        origin,
+        config,
+      );
+      return true;
+    }
 
     // Update the therapist doc: promote claimedByEmail to the new
     // address and mark claimed (if it wasn't already). This is the
@@ -506,27 +541,26 @@ export async function handleRecoveryRoutes(context) {
     try {
       await deps.sendRecoveryApprovedEmail(config, recovery, magicLink, customMessage);
     } catch (error) {
+      // The recovery is already approved and access is granted; only the
+      // email failed. Point the admin at "Resend sign-in" (purpose-built
+      // for approved recoveries) instead of leaving it half-done, and keep
+      // the provider error in the logs rather than the response.
+      log.error("[recovery approve] approval email delivery failed", {
+        requestId: contextRequestId,
+        err: error?.message || String(error),
+      });
       sendJson(
         response,
         502,
-        { error: "Approval saved on therapist, but email delivery failed: " + error.message },
+        {
+          error: "Approval saved, but the sign-in email could not be sent. Use Resend sign-in.",
+          reason: "email_failed",
+        },
         origin,
         config,
       );
       return true;
     }
-
-    const reviewer = deps.getAuthorizedActor(request, config);
-    const updated = await client
-      .patch(recovery._id)
-      .set({
-        status: "approved",
-        reviewedAt: nowIso,
-        reviewedBy: (reviewer && (reviewer.name || reviewer.id)) || "admin",
-        outcomeMessage: customMessage,
-        adminNote: adminNote || recovery.adminNote || "",
-      })
-      .commit({ visibility: "sync" });
 
     sendJson(response, 200, { ok: true, request: updated }, origin, config);
     return true;
