@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { evaluateTherapistAgainstProfile } from "../../assets/matching-model.js";
+import { evaluateTherapistAgainstProfile } from "../../shared/matching-model.mjs";
 
 // Regression for the insurance-alias drift bug: the guided match flow used
 // a local plain-substring insuranceMatches, while the directory used the

@@ -90,7 +90,7 @@ import {
   buildFirstContactRecommendation as buildFirstContactRecommendationBase,
   renderFallbackRecommendation as renderFallbackRecommendationBase,
 } from "./match-outreach.js";
-import { buildUserMatchProfile, rankTherapistsForUser } from "./matching-model.js";
+import { buildUserMatchProfile, rankTherapistsForUser } from "../shared/matching-model.mjs";
 import { submitMatchRequest } from "./review-api.js";
 import {
   getExperimentVariant,

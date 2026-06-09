@@ -1,5 +1,5 @@
-import { normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
-import { resolveInsuranceName, insuranceMatches } from "../shared/therapist-picker-options.mjs";
+import { normalizeFieldReviewStates } from "./therapist-domain.mjs";
+import { resolveInsuranceName, insuranceMatches } from "./therapist-picker-options.mjs";
 
 export const MATCH_INTAKE_QUESTIONS = [
   {

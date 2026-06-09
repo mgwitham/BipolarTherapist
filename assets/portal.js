@@ -5,7 +5,7 @@ import { safeStripeRedirectUrl } from "./safe-url.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { mountPortalTdCompleteness, shouldShowCompleteness } from "./portal-td-completeness.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
-import { getTherapistMatchReadiness } from "./matching-model.js";
+import { getTherapistMatchReadiness } from "../shared/matching-model.mjs";
 import { getApplications } from "./store.js";
 import {
   acceptTherapistClaim,

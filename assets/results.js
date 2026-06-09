@@ -5,7 +5,7 @@
 
 import "./site-analytics.js";
 import { fetchPublicTherapists } from "./cms.js";
-import { rankTherapistsForUser, buildUserMatchProfile } from "./matching-model.js";
+import { rankTherapistsForUser, buildUserMatchProfile } from "../shared/matching-model.mjs";
 import {
   restoreProfileFromUrl,
   splitCommaSeparated,
