@@ -188,9 +188,26 @@ function writeStaticFallback() {
   console.warn(`[sitemap] Sanity not configured — wrote static-only sitemap to ${OUTPUT_PATH}`);
 }
 
+// A static-only fallback in a PRODUCTION build means every therapist
+// profile + city + insurance URL is missing from the sitemap — a real
+// long-tail indexing regression. Fail the build so a missing Sanity env
+// surfaces loudly instead of silently shipping an ~11-URL sitemap.
+// Preview/local builds (VERCEL_ENV unset or "preview"/"development")
+// still fall back gracefully.
+function guardProductionFallback(reason) {
+  if (process.env.VERCEL_ENV === "production") {
+    console.error(
+      `[sitemap] Refusing to ship a static-only sitemap in production: ${reason}. ` +
+        `Check SANITY_PROJECT_ID / VITE_SANITY_PROJECT_ID + dataset in the build env.`,
+    );
+    process.exit(1);
+  }
+}
+
 async function main() {
   const config = getConfig();
   if (!config.projectId || !config.dataset) {
+    guardProductionFallback("Sanity project/dataset not configured");
     writeStaticFallback();
     return;
   }
@@ -202,6 +219,7 @@ async function main() {
     console.warn(
       `[sitemap] Failed to fetch therapists from Sanity: ${error.message}. Falling back to static routes only.`,
     );
+    guardProductionFallback(`Sanity fetch failed: ${error.message}`);
     writeStaticFallback();
     return;
   }
@@ -279,7 +297,10 @@ async function main() {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   main().catch((error) => {
     console.error("[sitemap] Unexpected error:", error);
-    // Don't fail the build — ship static fallback instead
+    // In production, surface the failure rather than silently shipping a
+    // static-only sitemap (process.exit inside the guard). Outside
+    // production, fall back so local/preview builds aren't blocked.
+    guardProductionFallback(`unexpected error: ${error && error.message}`);
     try {
       writeStaticFallback();
     } catch (_fallbackError) {
