@@ -11,6 +11,7 @@ import {
 import { fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
 import { showLazyLoadFailureBanner } from "./admin-lazy-load-banner.js";
+import { showSnapshotFailureBanner } from "./admin-snapshot-failure-banner.js";
 import { renderAdminHome } from "./admin-home.js";
 import { createAdminStore } from "./admin-store.js";
 import { createControllerRegistry } from "./admin-controller-registry.js";
@@ -3417,6 +3418,12 @@ async function loadData() {
         profileConversionFreshnessQueue: generatedArtifacts.profileConversionFreshnessQueue,
       }),
     );
+    // Surface partially failed snapshot sections: each one degraded to an
+    // empty queue above, and silence here is how an admin walks away from
+    // a full approval queue thinking there is nothing to review.
+    if (Array.isArray(remoteSnapshot.fetchFailures) && remoteSnapshot.fetchFailures.length) {
+      showSnapshotFailureBanner(remoteSnapshot.fetchFailures);
+    }
     // Review-activity feed is loaded after first paint (see end of
     // loadData) so it no longer blocks the dashboard from rendering.
     signedInSnapshotLoaded = true;

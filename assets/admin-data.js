@@ -57,16 +57,27 @@ export async function loadRemoteAdminSnapshot(dependencies) {
     fetchTherapistReviewers,
   } = dependencies;
 
-  const nil = () => null;
+  // Each section still degrades to null so one failed fetch doesn't blank
+  // the whole dashboard, but the failure is recorded instead of swallowed:
+  // a null section renders as an empty queue, and without this the admin
+  // cannot tell "nothing to review" from "the Review API is down".
+  const fetchFailures = [];
+  const captureFailure = (name) => (error) => {
+    fetchFailures.push({
+      name,
+      message: error && error.message ? String(error.message) : "Request failed.",
+    });
+    return null;
+  };
   const [applications, candidates, portalRequests, reviewEvents, reviewers, session, therapists] =
     await Promise.all([
-      fetchTherapistApplications().catch(nil),
-      fetchTherapistCandidates().catch(nil),
-      fetchTherapistPortalRequests().catch(nil),
-      fetchReviewEvents({ limit: 50 }).catch(nil),
-      fetchTherapistReviewers().catch(nil),
-      fetchAdminSession().catch(nil),
-      fetchPublicTherapists({ strict: true, fresh: true }).catch(nil),
+      fetchTherapistApplications().catch(captureFailure("applications")),
+      fetchTherapistCandidates().catch(captureFailure("candidates")),
+      fetchTherapistPortalRequests().catch(captureFailure("portal requests")),
+      fetchReviewEvents({ limit: 50 }).catch(captureFailure("review events")),
+      fetchTherapistReviewers().catch(captureFailure("reviewers")),
+      fetchAdminSession().catch(captureFailure("session")),
+      fetchPublicTherapists({ strict: true, fresh: true }).catch(captureFailure("therapists")),
     ]);
 
   return {
@@ -77,5 +88,6 @@ export async function loadRemoteAdminSnapshot(dependencies) {
     reviewers: Array.isArray(reviewers) ? reviewers : [],
     session,
     therapists,
+    fetchFailures,
   };
 }
