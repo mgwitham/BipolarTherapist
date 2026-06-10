@@ -49,7 +49,8 @@ const STATUS_MAP = {
 export const ACCEPTABLE_STATUSES = new Set(["active"]);
 
 export function resolveLicenseTypeCode(label) {
-  if (LICENSE_TYPE_MAP[label]) return LICENSE_TYPE_MAP[label];
+  if (Object.hasOwn(LICENSE_TYPE_MAP, label) && LICENSE_TYPE_MAP[label])
+    return LICENSE_TYPE_MAP[label];
   // Full licensureVerification.licenseType labels ("Licensed Marriage and
   // Family Therapist") map back through LICENSE_LABEL_MAP.
   const byFullLabel = Object.keys(LICENSE_LABEL_MAP).find(function (code) {

@@ -37,13 +37,12 @@ function fakeSanityClient(therapists) {
 function withDcaStub(byNumber) {
   const original = globalThis.fetch;
   globalThis.fetch = async (url) => {
-    const href = String(url);
-    if (!href.includes("iservices.dca.ca.gov")) {
-      if (original) return original(url);
-      throw new Error("no stub for " + href);
+    const parsed = new URL(String(url));
+    if (parsed.hostname !== "iservices.dca.ca.gov") {
+      throw new Error("unexpected URL in test stub: " + parsed.hostname);
     }
-    const number = new URL(href).searchParams.get("licNumber");
-    const entry = byNumber[number];
+    const number = parsed.searchParams.get("licNumber");
+    const entry = Object.hasOwn(byNumber, number) ? byNumber[number] : undefined;
     if (!entry) {
       return { ok: true, status: 200, json: async () => ({ licenseDetails: [] }) };
     }
