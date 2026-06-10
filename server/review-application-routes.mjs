@@ -1,6 +1,10 @@
 import { log } from "./logger.mjs";
 import { validateBody } from "./validate.mjs";
-import { DEFAULT_LICENSE_STATE, SUPPORTED_LICENSE_STATES } from "./license-states.mjs";
+import {
+  DEFAULT_LICENSE_STATE,
+  SUPPORTED_LICENSE_STATES,
+  getLicenseVerifierForState,
+} from "./license-states.mjs";
 import { getClientAddress } from "./review-http-auth.mjs";
 import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 
@@ -241,10 +245,18 @@ export async function handleApplicationRoutes(context) {
       }
     } else {
       try {
-        verification = await verifyLicenseAcrossCaTypes(config, licenseNumber);
+        // Route through the per-state verifier registry. licenseState was
+        // validated against SUPPORTED_LICENSE_STATES above, so a null
+        // verifier here means the registry and the supported set drifted —
+        // fail closed rather than silently verifying against the wrong board.
+        const verifier = await getLicenseVerifierForState(licenseState);
+        verification = verifier
+          ? await verifier.verifyByNumber(config, licenseNumber)
+          : { verified: false, error: "no_verifier_for_state" };
       } catch (error) {
-        log.error("DCA verification threw at intake", {
+        log.error("License verification threw at intake", {
           requestId,
+          licenseState,
           err: error?.message || String(error),
         });
         verification = { verified: false, error: "dca_unreachable" };
@@ -1030,52 +1042,6 @@ async function runDcaVerification(client, config, application, body) {
     id: application._id,
     status: result.licensureVerification.primaryStatus,
   });
-}
-
-// Synchronous fan-out DCA verification for the signup-intake path.
-// Signup only collects a license number (no type dropdown — adding a
-// dropdown would be the single biggest friction point on a 5-field
-// form), so we race all 6 CA license types in parallel and return the
-// first verified match. Only one type can hit for a given license
-// number since license numbers aren't unique across types but the
-// DCA search will return zero results for a mismatched type.
-//
-// Returns { verified, licensureVerification, licenseTypeLabel, isActive,
-// hasDiscipline, licenseeName } on hit, or { verified: false, error } on
-// miss / all-types-fail. Caller is responsible for enforcing isActive +
-// !hasDiscipline + name match before approving.
-async function verifyLicenseAcrossCaTypes(config, licenseNumber) {
-  const { verifyLicense, getLicenseTypeOptions } = await import("./dca-license-client.mjs");
-  const types = getLicenseTypeOptions();
-  if (!types || !types.length) {
-    return { verified: false, error: "no_license_types_configured" };
-  }
-  const results = await Promise.all(
-    types.map(function (option) {
-      return verifyLicense(config, option.code, licenseNumber)
-        .then(function (r) {
-          return { option, result: r };
-        })
-        .catch(function (error) {
-          return { option, result: { verified: false, error: String(error) } };
-        });
-    }),
-  );
-  const hit = results.find(function (r) {
-    return r.result && r.result.verified;
-  });
-  if (!hit) {
-    const lastError = (results[0] && results[0].result && results[0].result.error) || "not_found";
-    return { verified: false, error: lastError };
-  }
-  return {
-    verified: true,
-    isActive: hit.result.isActive,
-    hasDiscipline: hit.result.hasDiscipline,
-    licenseeName: hit.result.licenseeName,
-    licensureVerification: hit.result.licensureVerification,
-    licenseTypeLabel: hit.option.label,
-  };
 }
 
 // Fuzzy name match for DCA licensee vs applicant-submitted name.

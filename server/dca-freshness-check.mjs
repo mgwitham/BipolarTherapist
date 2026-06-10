@@ -1,54 +1,27 @@
 import { log } from "./logger.mjs";
-import { SUPPORTED_LICENSE_STATES } from "./license-states.mjs";
+import { getLicenseVerifierForState } from "./license-states.mjs";
 
-// DCA license freshness check.
+// License freshness check.
 //
-// Re-verifies every active+listed therapist against CA DCA, refreshes
-// the stored licensureVerification snapshot, and auto-unpublishes any
-// therapist whose license has lost active status or picked up a public
-// discipline action. Designed to be invoked by:
+// Re-verifies every active+listed therapist against their state's license
+// verifier (today: CA DCA only), refreshes the stored
+// licensureVerification snapshot, and auto-unpublishes any therapist whose
+// license has lost active status or picked up a public discipline action.
+// Therapists in states with no registered verifier are surfaced loudly as
+// unmonitoredState rather than silently skipped. Designed to be invoked by:
 //   - the weekly cron at api/cron/dca-freshness.mjs
 //   - a CLI runner (`node server/dca-freshness-check.mjs`) for manual
 //     ops checks
 //
-// CA DCA license numbers are stored in mixed forms ("LMFT 103986",
-// "MD A117442", "MFC47803"). DCA's API rejects all leading non-digit
-// chars + spaces — we normalize before verifying.
+// Number normalization and board-code resolution are PER-STATE concerns
+// owned by each verifier (CA: see cleanLicenseNumber in
+// dca-license-client.mjs — DCA wants the bare trailing digits).
 
 import { createClient } from "@sanity/client";
 import { getReviewApiConfig } from "./review-config.mjs";
-import { verifyLicense, resolveLicenseTypeCode } from "./dca-license-client.mjs";
 
-const LICENSE_TYPE_CODES = {
-  "Licensed Marriage and Family Therapist": "2001",
-  "Licensed Clinical Social Worker": "2002",
-  "Licensed Professional Clinical Counselor": "2005",
-  "Licensed Educational Psychologist": "2003",
-  Psychologist: "6001",
-  "Physician and Surgeon": "8002",
-  "Osteopathic Physician and Surgeon": "9001",
-  "Nurse Practitioner": "4004",
-  LMFT: "2001",
-  LCSW: "2002",
-  LPCC: "2005",
-  LEP: "2003",
-  "Psychiatrist (MD)": "8002",
-  "Osteopathic Physician (DO)": "9001",
-};
-
-export function cleanLicenseNumber(raw) {
-  let s = String(raw || "").trim();
-  // Drop leading credential-prefix tokens followed by space ("LMFT 103986", "MD A117442").
-  s = s.replace(/^(LMFT|MFC|LCSW|LPCC|LEP|PSYD|PHD|MD|DO|PMHNP|NP|APRN|LP|RN)\s+/i, "");
-  // Drop leading non-alphanumerics ("# PSY28157" → "PSY28157").
-  s = s.replace(/^[^A-Za-z0-9]+/, "");
-  // Take only the trailing digit run — handles "MFC47803" → "47803",
-  // "A117442" → "117442", "20A20064" (DO) → "20064", "PSY28157" → "28157".
-  const tail = s.match(/(\d+)$/);
-  if (!tail) return "";
-  // DCA rejects leading zeros (verified: "060666" empty vs "60666" hit).
-  return tail[1].replace(/^0+/, "") || "0";
-}
+// Back-compat re-export: the normalizer moved into the CA verifier module.
+export { cleanLicenseNumber } from "./dca-license-client.mjs";
 
 export async function runDcaFreshnessCheck({
   client,
@@ -96,9 +69,20 @@ export async function runDcaFreshnessCheck({
     flaggedDetails: [],
   };
 
+  // Verifier objects cached per state so the registry's lazy import runs
+  // once per state per run, not once per therapist.
+  const verifierCache = new Map();
+  async function verifierFor(licenseState) {
+    if (!verifierCache.has(licenseState)) {
+      verifierCache.set(licenseState, await getLicenseVerifierForState(licenseState));
+    }
+    return verifierCache.get(licenseState);
+  }
+
   for (let i = 0; i < therapists.length; i += 1) {
     const t = therapists[i];
-    if (!SUPPORTED_LICENSE_STATES.has(t.licenseState)) {
+    const verifier = await verifierFor(t.licenseState);
+    if (!verifier) {
       summary.unmonitoredState += 1;
       summary.unmonitoredStateDetails.push({
         id: t._id,
@@ -107,22 +91,21 @@ export async function runDcaFreshnessCheck({
       });
       continue;
     }
-    let typeCode = t.boardCode || LICENSE_TYPE_CODES[t.licenseType] || null;
-    if (!typeCode) typeCode = resolveLicenseTypeCode(t.licenseType || "");
+    const typeCode = t.boardCode || verifier.resolveBoardCode(t.licenseType || "");
     if (!typeCode) {
       summary.skipped += 1;
       continue;
     }
-    const cleanNumber = cleanLicenseNumber(t.licenseNumber);
+    const cleanNumber = verifier.normalizeLicenseNumber(t.licenseNumber);
     if (!cleanNumber) {
       summary.skipped += 1;
       continue;
     }
-    if (i > 0) await new Promise((r) => setTimeout(r, 400));
+    if (i > 0) await new Promise((r) => setTimeout(r, verifier.interCallDelayMs || 0));
 
     let result;
     try {
-      result = await verifyLicense(config, typeCode, cleanNumber);
+      result = await verifier.verifyByBoardCode(config, typeCode, cleanNumber);
     } catch (err) {
       logFn(`  ERR ${t.name} (${t._id}): ${err.message}`);
       summary.errors += 1;
