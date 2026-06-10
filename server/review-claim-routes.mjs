@@ -513,13 +513,9 @@ export async function handleClaimRoutes(context) {
     // mode=signin so the email reads as a sign-in link instead.
     const emailMode = therapist.claimStatus === "claimed" ? "signin" : "claim";
 
-    await sendPortalClaimLink(
-      config,
-      therapistForEmail,
-      onFileEmail,
-      `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
-      { mode: emailMode },
-    );
+    await sendPortalClaimLink(config, therapistForEmail, onFileEmail, config.portalBaseUrl, {
+      mode: emailMode,
+    });
 
     const claimStatusUpdate = therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
     await client
@@ -712,12 +708,7 @@ export async function handleClaimRoutes(context) {
       return true;
     }
 
-    await sendPortalClaimLink(
-      config,
-      therapist,
-      requesterEmail,
-      `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
-    );
+    await sendPortalClaimLink(config, therapist, requesterEmail, config.portalBaseUrl);
 
     const claimStatusUpdate = therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
     const patchBuilder = client.patch(therapist._id).set({ claimStatus: claimStatusUpdate });
@@ -816,13 +807,9 @@ export async function handleClaimRoutes(context) {
     };
 
     try {
-      await sendPortalClaimLink(
-        config,
-        therapistForEmail,
-        requesterEmail,
-        `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
-        { mode: "signin" },
-      );
+      await sendPortalClaimLink(config, therapistForEmail, requesterEmail, config.portalBaseUrl, {
+        mode: "signin",
+      });
 
       await client
         .patch(therapist._id)
@@ -905,13 +892,9 @@ export async function handleClaimRoutes(context) {
     }
 
     try {
-      await sendPortalClaimLink(
-        config,
-        therapist,
-        requesterEmail,
-        `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
-        { mode: therapist.claimStatus === "claimed" ? "signin" : "claim" },
-      );
+      await sendPortalClaimLink(config, therapist, requesterEmail, config.portalBaseUrl, {
+        mode: therapist.claimStatus === "claimed" ? "signin" : "claim",
+      });
     } catch (emailError) {
       log.error("Failed to send portal claim link", {
         requestId,
@@ -1068,12 +1051,7 @@ export async function handleClaimRoutes(context) {
     const wasUnclaimedBeforePatch = therapist.claimStatus !== "claimed";
     if (wasUnclaimedBeforePatch) {
       try {
-        await sendPortalWelcomeEmail(
-          config,
-          therapist,
-          payload.email,
-          `${url.protocol}//${url.host}`.replace(/\/+$/, ""),
-        );
+        await sendPortalWelcomeEmail(config, therapist, payload.email, config.portalBaseUrl);
       } catch (error) {
         log.error("Failed to send portal welcome email", {
           requestId,

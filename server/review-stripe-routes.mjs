@@ -314,8 +314,15 @@ export async function handleStripeRoutes(context) {
       try {
         const full = await retrieveSubscription(config, stripeSubscription.id);
         therapistSlug = extractTherapistSlug(full, full);
-      } catch (_error) {
-        // fall through
+      } catch (error) {
+        // Fall through to the no-therapist-slug response, but leave a trace:
+        // when this lookup fails the event is acked unhandled and the
+        // subscription doc silently stops tracking Stripe.
+        log.warn("stripe webhook: subscription retrieve fallback failed", {
+          subscriptionId: stripeSubscription.id,
+          eventType: event.type,
+          err: error?.message || String(error),
+        });
       }
     }
 
@@ -419,8 +426,12 @@ export async function handleStripeRoutes(context) {
             `Plan: ${merged.tier || "(none)"} (${merged.interval || "(none)"})`,
           ],
         });
-      } catch (_error) {
+      } catch (error) {
         // Side-effects on the webhook must not fail the webhook.
+        log.error("stripe webhook: trial-started founder alert failed", {
+          therapistSlug,
+          err: error?.message || String(error),
+        });
       }
     }
 
@@ -443,8 +454,12 @@ export async function handleStripeRoutes(context) {
             `Plan: ${merged.tier || "(none)"} (${merged.interval || "(none)"})`,
           ],
         });
-      } catch (_error) {
+      } catch (error) {
         // Side-effects on the webhook must not fail the webhook.
+        log.error("stripe webhook: trial-converted founder alert failed", {
+          therapistSlug,
+          err: error?.message || String(error),
+        });
       }
     }
 
@@ -478,8 +493,12 @@ export async function handleStripeRoutes(context) {
               : "Subscription terminated immediately.",
           ],
         });
-      } catch (_error) {
+      } catch (error) {
         // Side-effects on the webhook must not fail the webhook.
+        log.error("stripe webhook: cancellation founder alert failed", {
+          therapistSlug,
+          err: error?.message || String(error),
+        });
       }
     }
 
@@ -511,19 +530,21 @@ export async function handleStripeRoutes(context) {
           ) {
             try {
               await cancelSubscriptionImmediately(config, stripeSubscription.id);
-            } catch (_error) {
-              // Non-fatal: we still want to email the therapist
+            } catch (error) {
+              // Non-fatal for the email below, but this is the one failure
+              // here with a billing consequence: the unclaimed therapist's
+              // card WILL be charged at trial end unless someone cancels
+              // manually in the Stripe dashboard.
+              log.error("stripe webhook: failed to cancel unclaimed trial before billing", {
+                therapistSlug,
+                subscriptionId: stripeSubscription.id,
+                err: error?.message || String(error),
+              });
             }
           }
           // Build a fresh activation link so they can still claim if they want
           let activationUrl = "";
-          if (
-            typeof buildPortalClaimToken === "function" &&
-            therapist.email &&
-            url &&
-            url.protocol &&
-            url.host
-          ) {
+          if (typeof buildPortalClaimToken === "function" && therapist.email) {
             try {
               const ttlMs = 24 * 60 * 60 * 1000;
               const token = buildPortalClaimToken(
@@ -532,17 +553,28 @@ export async function handleStripeRoutes(context) {
                 therapist.email,
                 { ttlMs },
               );
-              activationUrl = `${url.protocol}//${url.host}/portal?token=${encodeURIComponent(token)}`;
-            } catch (_error) {
+              activationUrl = `${config.portalBaseUrl}/portal?token=${encodeURIComponent(token)}`;
+            } catch (error) {
               activationUrl = "";
+              log.warn("stripe webhook: could not build activation link for canceled trial", {
+                therapistSlug,
+                err: error?.message || String(error),
+              });
             }
           }
           if (typeof sendUnverifiedTrialCanceledNotice === "function") {
             await sendUnverifiedTrialCanceledNotice(config, therapist, activationUrl);
           }
         }
-      } catch (_error) {
-        // Webhook processing should not fail because our side-effects errored.
+      } catch (error) {
+        // Webhook processing should not fail because our side-effects errored,
+        // but a silent miss here is either a skipped AB 390 pre-charge
+        // reminder (compliance) or a skipped cancellation notice.
+        log.error("stripe webhook: trial_will_end handling failed", {
+          therapistSlug,
+          eventType: event.type,
+          err: error?.message || String(error),
+        });
       }
     }
 

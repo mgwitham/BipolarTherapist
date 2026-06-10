@@ -497,10 +497,7 @@ export async function handleApplicationRoutes(context) {
       sendJson(response, 404, { error: "Listing not found." }, origin, config);
       return true;
     }
-    const portalBaseUrl =
-      url && url.protocol && url.host
-        ? `${url.protocol}//${url.host}`.replace(/\/+$/, "")
-        : String(config.stripeReturnUrlBase || "").replace(/\/+$/, "");
+    const portalBaseUrl = config.portalBaseUrl;
     let emailSent = false;
     try {
       await sendPortalClaimLink(config, therapist, payload.email, portalBaseUrl);
@@ -755,6 +752,25 @@ export async function handleApplicationRoutes(context) {
       return true;
     }
 
+    // Approval is not idempotent: it rebuilds the therapist doc from the
+    // application via createOrReplace, so a second approve (stale admin tab,
+    // double-click, concurrent reviewers) would wipe any portal edits made
+    // since the first. Re-approving a *rejected* application stays allowed.
+    if (application.status === "approved") {
+      sendJson(
+        response,
+        409,
+        {
+          error:
+            "This application was already approved. Re-approving would rebuild the live profile and overwrite edits made since.",
+          therapistId: application.publishedTherapistId || "",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     if (!String(application.licenseNumber || "").trim()) {
       sendJson(
         response,
@@ -813,10 +829,7 @@ export async function handleApplicationRoutes(context) {
     // identically once the token is verified.
     let approvalEmailFailed = false;
     try {
-      const portalBaseUrl =
-        url && url.protocol && url.host
-          ? `${url.protocol}//${url.host}`.replace(/\/+$/, "")
-          : String(config.stripeReturnUrlBase || "").replace(/\/+$/, "");
+      const portalBaseUrl = config.portalBaseUrl;
       // buildTherapistDocument returns the doc we just wrote; read
       // it back from Sanity so the email has the canonical slug
       // structure the token builder expects.

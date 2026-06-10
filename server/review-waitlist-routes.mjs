@@ -7,6 +7,8 @@
 // Open endpoint. A top-level per-IP write limiter catches high-volume
 // abuse before this route; the bounded event log keeps storage capped.
 
+import { log } from "./logger.mjs";
+
 const SINGLETON_ID = "funnelEventLog.singleton";
 const MAX_EVENTS = 500;
 const MAX_PAYLOAD_BYTES = 1024;
@@ -211,12 +213,16 @@ export async function handleWaitlistRoutes(context) {
     return true;
   }
 
-  // Email alert is best-effort. Logging already happened; don't fail
-  // the request if Resend is down.
+  // Email alert is best-effort: don't fail the signup if Resend is down.
+  // But log it — this alert is the only push signal for out-of-state
+  // demand, and a silent miss means the sourcing team never sees it.
   try {
     await notifyAdminOfWaitlist(config, sendEmail, { email, state });
-  } catch (_error) {
-    // swallow
+  } catch (error) {
+    log.error("waitlist: admin notification email failed", {
+      state,
+      err: error?.message || String(error),
+    });
   }
 
   sendJson(response, 201, { ok: true }, origin, config);

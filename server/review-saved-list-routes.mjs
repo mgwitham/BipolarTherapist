@@ -179,10 +179,7 @@ export async function handleSavedListRoutes(context) {
     return true;
   }
 
-  const baseUrl =
-    url && url.protocol && url.host
-      ? `${url.protocol}//${url.host}`.replace(/\/+$/, "")
-      : "https://www.bipolartherapyhub.com";
+  const baseUrl = config.portalBaseUrl;
 
   const message = renderSavedListEmail({ baseUrl: baseUrl, therapists: renderable });
 
