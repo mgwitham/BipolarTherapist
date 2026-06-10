@@ -403,15 +403,17 @@ function buildTherapistJsonLd(t) {
     postalCode: t.zip || undefined,
     addressCountry: "US",
   };
-  // Plain-text description for JSON-LD. Strip tags, then drop any stray angle
-  // brackets a single regex pass could leave behind (e.g. "<scr<b>ipt>") so no
-  // meta-characters survive — complete sanitization, not a one-pass strip.
-  const rawBio = t.bio
-    ? t.bio
-        .replace(/<[^>]*>/g, "")
-        .replace(/[<>]/g, "")
-        .trim()
-    : "";
+  // Plain-text description for JSON-LD. Strip HTML tags by repeating the
+  // replacement until the string stops changing, so a single pass can't leave
+  // a tag behind (e.g. "<scr<script>ipt>"). The sink is textContent, so this
+  // is defense-in-depth.
+  let bioStripped = t.bio || "";
+  let bioPrev;
+  do {
+    bioPrev = bioStripped;
+    bioStripped = bioStripped.replace(/<[^>]*>/g, "");
+  } while (bioStripped !== bioPrev);
+  const rawBio = bioStripped.trim();
   const bioDescription = rawBio
     ? rawBio.length > 160
       ? rawBio.slice(0, 160) + "..."

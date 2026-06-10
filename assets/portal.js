@@ -843,11 +843,16 @@ function markUpsellDismissed(slug) {
     // (slug is CMS-derived, but treat any value used as an object key as untrusted.)
     if (!key || key === "__proto__" || key === "constructor" || key === "prototype") return;
     const raw = window.localStorage.getItem(PORTAL_UPSELL_DISMISS_KEY) || "{}";
-    let parsed = {};
+    // Null-prototype map so writing a slug-derived key can never reach
+    // Object.prototype (there is no prototype to pollute).
+    const parsed = Object.create(null);
     try {
-      parsed = JSON.parse(raw) || {};
+      const stored = JSON.parse(raw);
+      if (stored && typeof stored === "object") {
+        Object.assign(parsed, stored);
+      }
     } catch (_error) {
-      parsed = {};
+      /* corrupt value; start fresh */
     }
     parsed[key] = new Date().toISOString();
     window.localStorage.setItem(PORTAL_UPSELL_DISMISS_KEY, JSON.stringify(parsed));
