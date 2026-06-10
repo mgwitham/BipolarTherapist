@@ -1,5 +1,5 @@
 import { log } from "./logger.mjs";
-import { getClientAddress } from "./review-http-auth.mjs";
+import { getClientAddress, sessionIsStaleForListing } from "./review-http-auth.mjs";
 import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 import { scrubIntakeStub } from "../shared/therapist-publishing-domain.mjs";
 import { buildEngagementPeriodKey } from "../shared/therapist-engagement-domain.mjs";
@@ -386,6 +386,16 @@ export async function handlePortalProfileRoutes(context) {
       sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
       return true;
     }
+    if (sessionIsStaleForListing(session, therapist)) {
+      sendJson(
+        response,
+        401,
+        { error: "Your session is no longer valid for this listing." },
+        origin,
+        config,
+      );
+      return true;
+    }
 
     sendJson(
       response,
@@ -483,7 +493,7 @@ export async function handlePortalProfileRoutes(context) {
 
     const therapist = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, claimStatus, name, email, city, state,
+        _id, claimStatus, claimedByEmail, name, email, city, state,
         "existingPhotoAssetRef": photo.asset._ref,
         preferredContactMethod, phone, bookingUrl,
         careApproach, bio, practiceName, website, languages,
@@ -496,6 +506,16 @@ export async function handlePortalProfileRoutes(context) {
     );
     if (!therapist) {
       sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
+      return true;
+    }
+    if (sessionIsStaleForListing(session, therapist)) {
+      sendJson(
+        response,
+        401,
+        { error: "Your session is no longer valid for this listing." },
+        origin,
+        config,
+      );
       return true;
     }
     if (therapist.claimStatus !== "claimed") {
@@ -603,7 +623,7 @@ export async function handlePortalProfileRoutes(context) {
 
     const existing = await client.fetch(
       `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, claimStatus, therapistReportedFields,
+        _id, claimStatus, claimedByEmail, therapistReportedFields,
         portalFirstSaveAt, portalSaveCount,
         listingActive, status, bio,
         email, phone, website, bookingUrl
@@ -612,6 +632,16 @@ export async function handlePortalProfileRoutes(context) {
     );
     if (!existing) {
       sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
+      return true;
+    }
+    if (sessionIsStaleForListing(session, existing)) {
+      sendJson(
+        response,
+        401,
+        { error: "Your session is no longer valid for this listing." },
+        origin,
+        config,
+      );
       return true;
     }
     if (existing.claimStatus !== "claimed") {
@@ -747,6 +777,21 @@ export async function handlePortalProfileRoutes(context) {
     const session = getAuthorizedTherapist(request, config);
     if (!session) {
       sendJson(response, 401, { error: "Not signed in." }, origin, config);
+      return true;
+    }
+
+    const owner = await client.fetch(
+      `*[_type == "therapist" && slug.current == $slug][0]{ claimedByEmail }`,
+      { slug: session.slug },
+    );
+    if (sessionIsStaleForListing(session, owner)) {
+      sendJson(
+        response,
+        401,
+        { error: "Your session is no longer valid for this listing." },
+        origin,
+        config,
+      );
       return true;
     }
 

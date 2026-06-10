@@ -5,6 +5,7 @@ import {
   createTherapistSession,
   getAuthorizedTherapist,
   readTherapistSession,
+  sessionIsStaleForListing,
   THERAPIST_SESSION_COOKIE,
 } from "../../server/review-http-auth.mjs";
 import { createReviewApiHandler } from "../../server/review-handler.mjs";
@@ -817,4 +818,86 @@ test("/portal/analytics returns 401 without a therapist session token", async ()
   });
 
   assert.equal(response.statusCode, 401);
+});
+
+// --- Session staleness on ownership transfer ---
+// A therapist session is signature-valid for 14 days, but ownership can change
+// before then (account recovery flips claimedByEmail). The token must stop
+// granting access once it no longer matches the listing's current owner.
+
+test("sessionIsStaleForListing: true when the listing owner email no longer matches the session", () => {
+  assert.equal(
+    sessionIsStaleForListing(
+      { email: "old-owner@example.com" },
+      { claimedByEmail: "new-owner@example.com" },
+    ),
+    true,
+  );
+});
+
+test("sessionIsStaleForListing: false when the session still matches (case/whitespace-insensitive)", () => {
+  assert.equal(
+    sessionIsStaleForListing(
+      { email: "Jamie@Example.com" },
+      { claimedByEmail: "  jamie@example.com " },
+    ),
+    false,
+  );
+});
+
+test("sessionIsStaleForListing: false on missing data so legacy claimed docs aren't locked out", () => {
+  assert.equal(sessionIsStaleForListing({ email: "x@y.com" }, { claimedByEmail: "" }), false);
+  assert.equal(sessionIsStaleForListing({ email: "" }, { claimedByEmail: "x@y.com" }), false);
+  assert.equal(sessionIsStaleForListing(null, { claimedByEmail: "x@y.com" }), false);
+  assert.equal(sessionIsStaleForListing({ email: "x@y.com" }, null), false);
+});
+
+test("GET /portal/me rejects a session after the listing is recovered to a different email", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture(),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  // The original owner holds a valid 14-day session cookie.
+  const ownerSession = standardHeaders(authHeader("jamie-rivera", "jamie@example.com"));
+  const before = await runHandlerRequest(handler, {
+    headers: ownerSession,
+    method: "GET",
+    url: "/portal/me",
+  });
+  assert.equal(before.statusCode, 200);
+
+  // Ownership is transferred (e.g. admin-approved account recovery).
+  state.documents.get("therapist-jamie").claimedByEmail = "new-owner@example.com";
+
+  // The old, still-signature-valid cookie must no longer be honored.
+  const after = await runHandlerRequest(handler, {
+    headers: ownerSession,
+    method: "GET",
+    url: "/portal/me",
+  });
+  assert.equal(after.statusCode, 401);
+});
+
+test("PATCH /portal/therapist rejects a stale session from a previous owner", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture({ claimedByEmail: "new-owner@example.com" }),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { bio: "x".repeat(60) },
+    // Session minted for the PREVIOUS owner, who no longer owns the listing.
+    headers: standardHeaders(authHeader("jamie-rivera", "old-owner@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 401);
+  const raw = await client.getDocument("therapist-jamie");
+  assert.equal(
+    raw.bio,
+    buildClaimedTherapistFixture().bio,
+    "stale session must not edit the listing",
+  );
 });

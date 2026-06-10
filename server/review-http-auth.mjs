@@ -328,6 +328,34 @@ export function getAuthorizedTherapist(request, config) {
   };
 }
 
+// A therapist session is bound to the email that owned the listing when the
+// token was minted (the `email` claim). Sessions are cryptographically valid
+// for 14 days, but ownership can change before then — account recovery flips
+// `claimedByEmail` to a new address. A stale token stays signature-valid, so
+// without this check a previous owner (or a phished old session) keeps full
+// edit/billing access to a listing they no longer own.
+//
+// Returns true only when we can POSITIVELY prove the current owner differs
+// from the session's email. Missing data (no claimedByEmail on a legacy doc,
+// no email on the session) is treated as "not proven stale" so we fall back
+// to the other gates (claimStatus etc.) rather than locking out legitimate
+// owners of older records.
+export function sessionIsStaleForListing(session, therapistDoc) {
+  if (!session || !therapistDoc) {
+    return false;
+  }
+  const sessionEmail = String(session.email || "")
+    .trim()
+    .toLowerCase();
+  const ownerEmail = String(therapistDoc.claimedByEmail || "")
+    .trim()
+    .toLowerCase();
+  if (!sessionEmail || !ownerEmail) {
+    return false;
+  }
+  return sessionEmail !== ownerEmail;
+}
+
 export function isAuthorized(request, config) {
   const sessionPayload = readAdminSessionFromRequest(request, config);
   if (sessionPayload) {

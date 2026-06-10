@@ -1,4 +1,5 @@
 import { log } from "./logger.mjs";
+import { sessionIsStaleForListing } from "./review-http-auth.mjs";
 import {
   buildSubscriptionId,
   deriveSubscriptionDocumentFromStripe,
@@ -6,6 +7,19 @@ import {
   mergeSubscriptionDocuments,
   shouldApplyEvent,
 } from "../shared/therapist-subscription-domain.mjs";
+
+// Billing endpoints key off the subscription doc (by slug), not the therapist
+// doc, so they don't otherwise read claimedByEmail. Fetch it to confirm the
+// session still owns the listing before exposing subscription data or minting
+// a Stripe billing-portal link — otherwise a stale post-transfer session could
+// manage the new owner's subscription.
+async function sessionIsStaleForListingSlug(client, session) {
+  const owner = await client.fetch(
+    `*[_type == "therapist" && slug.current == $slug][0]{ claimedByEmail }`,
+    { slug: session.slug },
+  );
+  return sessionIsStaleForListing(session, owner);
+}
 
 function shapeSubscriptionForClient(document) {
   if (!document) {
@@ -74,6 +88,16 @@ export async function handleStripeRoutes(context) {
     const session = getAuthorizedTherapist ? getAuthorizedTherapist(request, config) : null;
     if (!session || !session.slug) {
       sendJson(response, 401, { error: "Therapist session required." }, origin, config);
+      return true;
+    }
+    if (await sessionIsStaleForListingSlug(client, session)) {
+      sendJson(
+        response,
+        401,
+        { error: "Your session is no longer valid for this listing." },
+        origin,
+        config,
+      );
       return true;
     }
     const doc = await client.getDocument(buildSubscriptionId(session.slug));
@@ -171,6 +195,16 @@ export async function handleStripeRoutes(context) {
     const session = getAuthorizedTherapist ? getAuthorizedTherapist(request, config) : null;
     if (!session || !session.slug) {
       sendJson(response, 401, { error: "Therapist session required." }, origin, config);
+      return true;
+    }
+    if (await sessionIsStaleForListingSlug(client, session)) {
+      sendJson(
+        response,
+        401,
+        { error: "Your session is no longer valid for this listing." },
+        origin,
+        config,
+      );
       return true;
     }
 
