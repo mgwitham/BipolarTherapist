@@ -130,6 +130,41 @@ function evaluateClaimLinkRateLimit(requestHistory) {
   };
 }
 
+// Reserve a claim-link rate-limit slot BEFORE sending the email. The
+// history write is gated on the document revision we read, so two
+// concurrent requests for the same listing can't both pass the cap and
+// both send (the naive check-then-send-then-write pattern let racing
+// requests exceed 3/hour). On a revision conflict the loop re-reads and
+// re-evaluates; if the cap is hit (or the write keeps conflicting), the
+// slot is refused — fail closed, the caller treats it as rate-limited.
+// buildExtraSet(doc) lets the caller bundle fields (e.g. claimStatus)
+// into the same patch.
+async function reserveClaimLinkSlot(client, therapistId, buildExtraSet) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const doc = await client.getDocument(therapistId);
+    if (!doc) {
+      return { ok: false };
+    }
+    const rate = evaluateClaimLinkRateLimit(doc.claimLinkRequests);
+    if (rate.exceeded) {
+      return { ok: false };
+    }
+    const extra = typeof buildExtraSet === "function" ? buildExtraSet(doc) : {};
+    try {
+      await client
+        .patch(therapistId)
+        .ifRevisionId(doc._rev || "")
+        .set({ claimLinkRequests: rate.nextHistory, ...extra })
+        .commit({ visibility: "sync" });
+      return { ok: true };
+    } catch (_error) {
+      // Revision conflict — another request landed between our read and
+      // write. Loop to re-read and re-evaluate.
+    }
+  }
+  return { ok: false };
+}
+
 function maskEmail(email) {
   const trimmed = String(email || "").trim();
   if (!trimmed) {
@@ -507,6 +542,26 @@ export async function handleClaimRoutes(context) {
       slug: { current: resolvedSlug },
     };
 
+    // Reserve the rate-limit slot (and stamp claimStatus) atomically
+    // BEFORE sending, so concurrent requests can't race past the cap.
+    const reserved = await reserveClaimLinkSlot(client, therapist._id, function (doc) {
+      return { claimStatus: doc.claimStatus === "claimed" ? "claimed" : "claim_requested" };
+    });
+    if (!reserved.ok) {
+      sendJson(
+        response,
+        429,
+        {
+          error:
+            "Too many claim link requests for this listing. Try again in an hour or contact support.",
+          reason: "rate_limited",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     // Already-claimed therapists land here via re-entry ("send me a
     // fresh link" for a listing they already own). The "activate your
     // listing" copy is wrong for them — they already did that. Pass
@@ -516,12 +571,6 @@ export async function handleClaimRoutes(context) {
     await sendPortalClaimLink(config, therapistForEmail, onFileEmail, config.portalBaseUrl, {
       mode: emailMode,
     });
-
-    const claimStatusUpdate = therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
-    await client
-      .patch(therapist._id)
-      .set({ claimStatus: claimStatusUpdate, claimLinkRequests: rate.nextHistory })
-      .commit({ visibility: "sync" });
 
     sendJson(
       response,
@@ -793,10 +842,12 @@ export async function handleClaimRoutes(context) {
       return true;
     }
 
-    const rate = evaluateClaimLinkRateLimit(therapist.claimLinkRequests);
-    if (rate.exceeded) {
-      // Silently succeed — don't leak the rate-limit signal since the
-      // generic response promises a link only "if the email matched".
+    // Reserve the rate-limit slot atomically BEFORE sending, so concurrent
+    // requests can't race past the cap. Silently succeed when refused —
+    // don't leak the rate-limit signal since the generic response promises
+    // a link only "if the email matched".
+    const reserved = await reserveClaimLinkSlot(client, therapist._id);
+    if (!reserved.ok) {
       sendJson(response, 200, GENERIC_SUCCESS, origin, config);
       return true;
     }
@@ -810,11 +861,6 @@ export async function handleClaimRoutes(context) {
       await sendPortalClaimLink(config, therapistForEmail, requesterEmail, config.portalBaseUrl, {
         mode: "signin",
       });
-
-      await client
-        .patch(therapist._id)
-        .set({ claimLinkRequests: rate.nextHistory })
-        .commit({ visibility: "sync" });
     } catch (error) {
       // Preserve the generic response contract so delivery outages or
       // downstream write failures cannot become a claimed-email oracle.
