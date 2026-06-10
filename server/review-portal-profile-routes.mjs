@@ -1,5 +1,6 @@
 import { log } from "./logger.mjs";
 import { normalizeLicenseForMatch } from "../shared/therapist-domain.mjs";
+import { readLicenseStateParam } from "./license-states.mjs";
 import { getClientAddress, sessionIsStaleForListing } from "./review-http-auth.mjs";
 import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 import { shapePortalTherapist } from "../shared/therapist-publishing-domain.mjs";
@@ -845,11 +846,15 @@ export async function handlePortalProfileRoutes(context) {
       return true;
     };
 
+    // Scoped to one state's license namespace (two states can issue the
+    // same number); the !defined() escape keeps legacy docs visible until
+    // a licenseState backfill.
+    const removalLicenseState = readLicenseStateParam(body.license_state);
     const therapist = await client.fetch(
-      `*[_type == "therapist" && licenseNumber match $license][0]{
+      `*[_type == "therapist" && (licenseState == $licenseState || !defined(licenseState)) && licenseNumber match $license][0]{
         _id, name, email, website, listingActive, "slug": slug
       }`,
-      { license: `*${licenseNumber}*` },
+      { license: `*${licenseNumber}*`, licenseState: removalLicenseState },
     );
     if (!therapist || !therapist.slug || !therapist.slug.current) {
       return genericSuccess();

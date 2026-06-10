@@ -1,6 +1,6 @@
 import { log } from "./logger.mjs";
 import { validateBody } from "./validate.mjs";
-import { DEFAULT_LICENSE_STATE } from "./license-states.mjs";
+import { DEFAULT_LICENSE_STATE, SUPPORTED_LICENSE_STATES } from "./license-states.mjs";
 import { getClientAddress } from "./review-http-auth.mjs";
 import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 
@@ -122,6 +122,30 @@ export async function handleApplicationRoutes(context) {
       return true;
     }
 
+    // License state comes from the form (hidden CA input today, a visible
+    // select at multi-state launch) and is validated against the supported
+    // set rather than silently forced to the default — a tampered or
+    // premature non-CA value gets a clean rejection instead of being
+    // verified against the wrong state's board and mislabeled.
+    const licenseState =
+      String(body.license_state || DEFAULT_LICENSE_STATE)
+        .trim()
+        .toUpperCase() || DEFAULT_LICENSE_STATE;
+    if (!SUPPORTED_LICENSE_STATES.has(licenseState)) {
+      sendJson(
+        response,
+        422,
+        {
+          error:
+            "We can't verify licenses for that state yet. The directory currently supports California licenses only.",
+          reason: "license_state_not_supported",
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+
     // Stub the narrative fields the full-form /applications endpoint
     // expects. Empty strings would fail schema validation; these get
     // scrubbed when buildTherapistDocument runs and are replaced by
@@ -131,8 +155,8 @@ export async function handleApplicationRoutes(context) {
       name: name,
       email: email,
       license_number: licenseNumber,
-      license_state: DEFAULT_LICENSE_STATE,
-      state: DEFAULT_LICENSE_STATE,
+      license_state: licenseState,
+      state: licenseState,
       city: String(body.city || "").trim(),
       zip: String(body.zip || "").trim(),
       credentials: String(body.credentials || "").trim() || "Pending",

@@ -350,3 +350,128 @@ test("quick-claim lookup masks the on-file email and never leaks the raw address
   assert.equal(response.payload.result.has_email, true);
   assert.ok(!String(response.rawBody).includes("morgan@example.com"));
 });
+
+// --- Cross-state license-number collisions (multi-state Phase 0) ---
+// Two states can issue the same license digits. The quick-claim lookup is
+// scoped to one state's namespace (defaulting to CA while the form has no
+// state field), so a future NY therapist with the same digits can never be
+// resolved — and claimed — in place of the CA one.
+
+test("quick-claim resolves the CA therapist, not a different-state therapist with the same digits", async function () {
+  const emails = captureResendEmails();
+  try {
+    const { client } = createMemoryClient({
+      "therapist-ny-collider": {
+        _id: "therapist-ny-collider",
+        _type: "therapist",
+        name: "Dr. Morgan Lake", // same name, same digits, different state
+        email: "ny-morgan@example.com",
+        city: "Albany",
+        state: "NY",
+        licenseState: "NY",
+        licenseNumber: "LMFT77777",
+        listingActive: true,
+        claimStatus: "unclaimed",
+        slug: { current: "dr-morgan-lake-albany-ny" },
+      },
+      "therapist-claim-target": unclaimedTherapist({ licenseState: "CA" }),
+    });
+    const handler = createReviewApiHandler(claimTestConfig(), client);
+
+    const response = await runHandlerRequest(handler, {
+      body: {
+        full_name: "Dr. Morgan Lake",
+        email: "morgan@example.com",
+        license_number: "77777",
+        // no license_state → defaults to CA
+      },
+      headers: HOST_HEADERS,
+      method: "POST",
+      url: "/portal/quick-claim",
+    });
+
+    assert.equal(response.statusCode, 200);
+    // The claim link must go to the CA profile's on-file email, never the
+    // NY collider's.
+    const sent = emails.calls.find((call) => Array.isArray(call.to));
+    assert.ok(sent, "a claim link should be sent");
+    assert.deepEqual(sent.to, ["morgan@example.com"]);
+    assert.ok(
+      !emails.calls.some(
+        (call) => Array.isArray(call.to) && call.to.includes("ny-morgan@example.com"),
+      ),
+      "the NY therapist with colliding digits must not receive the claim link",
+    );
+  } finally {
+    emails.restore();
+  }
+});
+
+test("quick-claim with an explicit license_state scopes to that state's namespace", async function () {
+  const emails = captureResendEmails();
+  try {
+    const { client } = createMemoryClient({
+      "therapist-ny-collider": {
+        _id: "therapist-ny-collider",
+        _type: "therapist",
+        name: "Dr. Morgan Lake",
+        email: "ny-morgan@example.com",
+        city: "Albany",
+        state: "NY",
+        licenseState: "NY",
+        licenseNumber: "LMFT77777",
+        listingActive: true,
+        claimStatus: "unclaimed",
+        slug: { current: "dr-morgan-lake-albany-ny" },
+      },
+      "therapist-claim-target": unclaimedTherapist({ licenseState: "CA" }),
+    });
+    const handler = createReviewApiHandler(claimTestConfig(), client);
+
+    const response = await runHandlerRequest(handler, {
+      body: {
+        full_name: "Dr. Morgan Lake",
+        email: "ny-morgan@example.com",
+        license_number: "77777",
+        license_state: "NY",
+      },
+      headers: HOST_HEADERS,
+      method: "POST",
+      url: "/portal/quick-claim",
+    });
+
+    assert.equal(response.statusCode, 200);
+    const sent = emails.calls.find((call) => Array.isArray(call.to));
+    assert.ok(sent, "a claim link should be sent");
+    assert.deepEqual(sent.to, ["ny-morgan@example.com"], "NY scope must resolve the NY profile");
+  } finally {
+    emails.restore();
+  }
+});
+
+test("quick-claim still resolves legacy docs that predate the licenseState field", async function () {
+  const emails = captureResendEmails();
+  try {
+    const legacy = unclaimedTherapist();
+    delete legacy.licenseState; // pre-backfill doc: no licenseState at all
+    const { client } = createMemoryClient({ "therapist-claim-target": legacy });
+    const handler = createReviewApiHandler(claimTestConfig(), client);
+
+    const response = await runHandlerRequest(handler, {
+      body: {
+        full_name: "Dr. Morgan Lake",
+        email: "morgan@example.com",
+        license_number: "77777",
+      },
+      headers: HOST_HEADERS,
+      method: "POST",
+      url: "/portal/quick-claim",
+    });
+
+    assert.equal(response.statusCode, 200);
+    const sent = emails.calls.find((call) => Array.isArray(call.to));
+    assert.ok(sent, "legacy docs without licenseState must remain claimable");
+  } finally {
+    emails.restore();
+  }
+});

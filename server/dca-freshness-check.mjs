@@ -86,15 +86,30 @@ export async function runDcaFreshnessCheck({
     flaggedNewDiscipline: 0,
     autoUnpublished: 0,
     skipped: 0,
+    // Live listings whose licenseState has no registered verifier. These
+    // get NO ongoing license monitoring and NO auto-unpublish — a silent
+    // trust gap if a state ever launches without its verifier. Surfaced
+    // loudly below instead of being folded into the generic skip count.
+    unmonitoredState: 0,
+    unmonitoredStateDetails: [],
     errors: 0,
     flaggedDetails: [],
   };
 
   for (let i = 0; i < therapists.length; i += 1) {
     const t = therapists[i];
+    if (!SUPPORTED_LICENSE_STATES.has(t.licenseState)) {
+      summary.unmonitoredState += 1;
+      summary.unmonitoredStateDetails.push({
+        id: t._id,
+        name: t.name,
+        licenseState: t.licenseState || "(none)",
+      });
+      continue;
+    }
     let typeCode = t.boardCode || LICENSE_TYPE_CODES[t.licenseType] || null;
     if (!typeCode) typeCode = resolveLicenseTypeCode(t.licenseType || "");
-    if (!typeCode || !SUPPORTED_LICENSE_STATES.has(t.licenseState)) {
+    if (!typeCode) {
       summary.skipped += 1;
       continue;
     }
@@ -159,8 +174,22 @@ export async function runDcaFreshnessCheck({
     }
   }
 
+  if (summary.unmonitoredState > 0) {
+    // Loud, structured warning: these are LIVE listings with no license
+    // monitoring at all. If this fires, either a state launched without a
+    // verifier being registered in license-states.mjs, or bad licenseState
+    // data slipped in — both need a human.
+    log.warn("freshness check: live listings in states with NO license monitoring", {
+      count: summary.unmonitoredState,
+      states: Array.from(
+        new Set(summary.unmonitoredStateDetails.map((d) => d.licenseState)),
+      ).sort(),
+      therapists: summary.unmonitoredStateDetails.slice(0, 20),
+    });
+  }
+
   logFn(
-    `\nFreshness check ${dryRun ? "(dry run) " : ""}complete: refreshed=${summary.refreshed} unpublished=${summary.autoUnpublished} flaggedNonActive=${summary.flaggedNonActive} flaggedNewDiscipline=${summary.flaggedNewDiscipline} skipped=${summary.skipped} errors=${summary.errors}`,
+    `\nFreshness check ${dryRun ? "(dry run) " : ""}complete: refreshed=${summary.refreshed} unpublished=${summary.autoUnpublished} flaggedNonActive=${summary.flaggedNonActive} flaggedNewDiscipline=${summary.flaggedNewDiscipline} skipped=${summary.skipped} unmonitoredState=${summary.unmonitoredState} errors=${summary.errors}`,
   );
   return summary;
 }
