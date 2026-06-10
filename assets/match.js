@@ -124,13 +124,13 @@ import {
   subscribe as subscribeToSavedList,
 } from "./saved-list.js";
 
-var therapists = [];
-var latestProfile = null;
-var latestEntries = [];
-var latestLearningSignals = null;
-var currentJourneyId = null;
-var persistedJourneyId = "";
-var starterResultsMode = false;
+let therapists = [];
+let latestProfile = null;
+let latestEntries = [];
+let latestLearningSignals = null;
+let currentJourneyId = null;
+let persistedJourneyId = "";
+let starterResultsMode = false;
 
 // Match-session conversion tracker. The single number that matters for
 // the patient funnel is "of all sessions where matches were shown, what
@@ -139,18 +139,18 @@ var starterResultsMode = false;
 // match_session_outcome event on pagehide. funnel-analytics already
 // flushes its queue on pagehide via sendBeacon, so the event delivers
 // even when the user just closes the tab.
-var matchSessionStats = null;
-var MATCH_FEEDBACK_KEY = "bth_match_feedback_v1";
-var CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
-var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
-var MATCH_RESULTS_URL_KEY = "matchResultsUrl";
+let matchSessionStats = null;
+const MATCH_FEEDBACK_KEY = "bth_match_feedback_v1";
+const CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
+const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
+const MATCH_RESULTS_URL_KEY = "matchResultsUrl";
 // Timestamp (ms) the resume link was last saved. nav.js expires the
 // "Your matches" link 24h after this, reverting to "Get matched".
-var MATCH_RESULTS_AT_KEY = "matchResultsAt";
-var zipcodesPreloadPromise = null;
-var activeSecondPassMode = "balanced";
-var activeMatchExperimentVariant = "control";
-var OUTREACH_OUTCOME_OPTIONS = [
+const MATCH_RESULTS_AT_KEY = "matchResultsAt";
+let zipcodesPreloadPromise = null;
+let activeSecondPassMode = "balanced";
+let activeMatchExperimentVariant = "control";
+const OUTREACH_OUTCOME_OPTIONS = [
   { value: "reached_out", label: "Contacted", tone: "positive" },
   { value: "heard_back", label: "Heard back", tone: "positive" },
   { value: "booked_consult", label: "Booked", tone: "positive" },
@@ -177,7 +177,7 @@ function clearStoredMatchResultsUrl() {
 }
 
 function rememberMatchResultsUrl(profile, entries) {
-  var hasPersonalizedResults = Boolean(
+  const hasPersonalizedResults = Boolean(
     profile &&
     profile.care_state &&
     profile.care_intent &&
@@ -196,11 +196,11 @@ function rememberMatchResultsUrl(profile, entries) {
     /* ignore */
   }
 }
-var latestAdaptiveSignals = null;
-var isInternalMode = new URLSearchParams(window.location.search).get("internal") === "1";
-var directoryEntryMode = new URLSearchParams(window.location.search).get("entry") || "";
-var PRIMARY_SHORTLIST_LIMIT = 6;
-var US_STATE_MAP = {
+let latestAdaptiveSignals = null;
+const isInternalMode = new URLSearchParams(window.location.search).get("internal") === "1";
+const directoryEntryMode = new URLSearchParams(window.location.search).get("entry") || "";
+const PRIMARY_SHORTLIST_LIMIT = 6;
+const US_STATE_MAP = {
   ALABAMA: "AL",
   ALASKA: "AK",
   ARIZONA: "AZ",
@@ -263,11 +263,11 @@ function slugifyForProfile(text) {
 }
 
 function buildTherapistProfileHref(therapist) {
-  var name = String((therapist && therapist.name) || "").trim();
-  var city = String((therapist && therapist.city) || "").trim();
-  var state = String((therapist && therapist.state) || "CA").trim();
+  const name = String((therapist && therapist.name) || "").trim();
+  const city = String((therapist && therapist.city) || "").trim();
+  const state = String((therapist && therapist.state) || "CA").trim();
   if (!name) return "/directory";
-  var slug = slugifyForProfile([name, city, state].join(" "));
+  const slug = slugifyForProfile([name, city, state].join(" "));
   return slug ? "/therapists/" + slug + "/?ref=match" : "/directory";
 }
 
@@ -281,13 +281,13 @@ function startZipcodesPreload() {
 }
 
 function maybeWarmZipcodesForValue(value) {
-  var normalizedZip = normalizeLocationQuery(value);
+  const normalizedZip = normalizeLocationQuery(value);
   if (!normalizedZip) {
     return;
   }
 
   startZipcodesPreload().then(function () {
-    var form = document.getElementById("matchForm");
+    const form = document.getElementById("matchForm");
     if (!form || !form.elements || !form.elements.location_query) {
       return;
     }
@@ -302,18 +302,18 @@ function syncMirroredFieldValues(changedNode) {
   if (!changedNode) {
     return;
   }
-  var syncKey = changedNode.getAttribute("data-sync-key") || changedNode.name;
+  const syncKey = changedNode.getAttribute("data-sync-key") || changedNode.name;
   if (!syncKey) {
     return;
   }
   if (changedNode.type === "radio" || changedNode.type === "checkbox") {
     return;
   }
-  var form = document.getElementById("matchForm");
+  const form = document.getElementById("matchForm");
   if (!form) {
     return;
   }
-  var selector = '[data-sync-key="' + syncKey + '"], [name="' + syncKey + '"]';
+  const selector = '[data-sync-key="' + syncKey + '"], [name="' + syncKey + '"]';
   Array.from(form.querySelectorAll(selector)).forEach(function (node) {
     if (node === changedNode || node.type === "radio" || node.type === "checkbox") {
       return;
@@ -355,7 +355,7 @@ function syncMatchStartState() {
 }
 
 function setMatchPreviewText(id, value) {
-  var node = document.getElementById(id);
+  const node = document.getElementById(id);
   if (node) {
     node.textContent = value;
   }
@@ -366,7 +366,7 @@ function countOptionalIntakeAnswers(profile) {
     return 0;
   }
 
-  var count = 0;
+  let count = 0;
   if (profile.insurance) count += 1;
   if (profile.budget_max) count += 1;
   if (profile.care_format) count += 1;
@@ -391,11 +391,11 @@ function countOptionalIntakeAnswers(profile) {
 }
 
 function renderMatchIntakePreview(profile) {
-  var zipStatus = getZipMarketStatus(profile && profile.location_query);
-  var hasCareIntent = Boolean(profile && profile.care_intent);
-  var hasZip = Boolean(profile && profile.location_query);
-  var optionalCount = countOptionalIntakeAnswers(profile);
-  var nextRefinement =
+  const zipStatus = getZipMarketStatus(profile && profile.location_query);
+  const hasCareIntent = Boolean(profile && profile.care_intent);
+  const hasZip = Boolean(profile && profile.location_query);
+  const optionalCount = countOptionalIntakeAnswers(profile);
+  const nextRefinement =
     profile && !profile.insurance
       ? "Insurance or payment preference is usually the cleanest next tightening move."
       : profile && !profile.care_format
@@ -568,12 +568,12 @@ function scrollToTopMatches() {
 }
 
 function getRequestedZip(profile) {
-  var raw = normalizeLocationQuery((profile && profile.location_query) || "");
+  const raw = normalizeLocationQuery((profile && profile.location_query) || "");
   return /^\d{5}$/.test(raw) ? raw : "";
 }
 
 function getTherapistZipValue(therapist) {
-  var zip = String((therapist && therapist.zip) || "").trim();
+  const zip = String((therapist && therapist.zip) || "").trim();
   return /^\d{5}$/.test(zip) ? zip : "";
 }
 
@@ -613,8 +613,8 @@ function buildStarterProfile() {
 }
 
 function renderStarterResults() {
-  var starterProfile = buildStarterProfile();
-  var starterEntries = rankEntriesForProfile(starterProfile);
+  const starterProfile = buildStarterProfile();
+  const starterEntries = rankEntriesForProfile(starterProfile);
   clearStoredMatchResultsUrl();
   if (!starterEntries.length) {
     setMatchJourneyMode("intake");
@@ -637,16 +637,16 @@ function renderStarterResults() {
 }
 
 function getClosestZipSuggestions(profile, sourceEntries) {
-  var requestedZip = getRequestedZip(profile);
+  const requestedZip = getRequestedZip(profile);
   if (!requestedZip) {
     return [];
   }
 
-  var suggestions = [];
-  var seen = new Set();
+  const suggestions = [];
+  const seen = new Set();
 
   (sourceEntries || []).forEach(function (entry) {
-    var zip = getTherapistZipValue(entry && entry.therapist);
+    const zip = getTherapistZipValue(entry && entry.therapist);
     if (!zip || zip === requestedZip || seen.has(zip)) {
       return;
     }
@@ -673,7 +673,7 @@ function formatZipSuggestionList(items) {
 }
 
 function clearOptionalRefinements() {
-  var form = document.getElementById("matchForm");
+  const form = document.getElementById("matchForm");
   if (!form) {
     return;
   }
@@ -691,7 +691,7 @@ function clearOptionalRefinements() {
     });
   });
 
-  var refinements = document.querySelector(".match-refinements");
+  const refinements = document.querySelector(".match-refinements");
   if (refinements) {
     refinements.open = false;
   }
@@ -704,7 +704,7 @@ function rerunMatchFromCurrentForm() {
 }
 
 function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
-  var root = getMatchShellRefs().resultsRoot;
+  const root = getMatchShellRefs().resultsRoot;
   if (!root) {
     return;
   }
@@ -726,8 +726,8 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
 
   root.querySelectorAll("[data-empty-zip]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var zip = button.getAttribute("data-empty-zip") || "";
-      var form = document.getElementById("matchForm");
+      const zip = button.getAttribute("data-empty-zip") || "";
+      const form = document.getElementById("matchForm");
       if (!form || !zip) {
         return;
       }
@@ -744,7 +744,7 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
 
   root.querySelectorAll("[data-empty-telehealth]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var form = document.getElementById("matchForm");
+      const form = document.getElementById("matchForm");
       if (!form) {
         return;
       }
@@ -778,16 +778,16 @@ function renderNoResultsState(profile, zipSuggestions, hasRefinements) {
 // short debounce so the list reflects the current filter state as
 // the user makes choices. Keeps the panel feeling "direct-manipulation"
 // instead of the old form-submit-only flow.
-var liveRecomputeTimer = null;
-var lastLiveCount = null;
-var lastLiveTopSlug = null;
+let liveRecomputeTimer = null;
+let lastLiveCount = null;
+let lastLiveTopSlug = null;
 function maybeLiveRecompute(event) {
   if (!document.body.classList.contains("match-refine-drawer-open")) return;
-  var form = document.getElementById("matchForm");
+  const form = document.getElementById("matchForm");
   if (!form) return;
-  var profile = readCurrentIntakeProfile();
-  var careIntent = profile && profile.care_intent ? profile.care_intent : "";
-  var zip = normalizeLocationQuery(profile && profile.location_query);
+  const profile = readCurrentIntakeProfile();
+  const careIntent = profile && profile.care_intent ? profile.care_intent : "";
+  const zip = normalizeLocationQuery(profile && profile.location_query);
   if (!careIntent || !zip) {
     // Nothing to recompute yet, surface a gentle prompt instead.
     setLiveStatus("Pick care type and a ZIP code to see live matches.", false);
@@ -797,7 +797,7 @@ function maybeLiveRecompute(event) {
   if (liveRecomputeTimer) {
     window.clearTimeout(liveRecomputeTimer);
   }
-  var changedField =
+  const changedField =
     event && event.target && event.target.name
       ? event.target.name
       : event && event.target && event.target.id
@@ -815,15 +815,15 @@ function maybeLiveRecompute(event) {
       scroll: false,
       source: "match_live_refine",
     });
-    var count = Array.isArray(latestEntries) ? latestEntries.length : 0;
-    var topSlug =
+    const count = Array.isArray(latestEntries) ? latestEntries.length : 0;
+    const topSlug =
       count > 0 && latestEntries[0] && latestEntries[0].therapist
         ? latestEntries[0].therapist.slug
         : "";
-    var countChanged = lastLiveCount !== null && lastLiveCount !== count;
-    var rankChanged =
+    const countChanged = lastLiveCount !== null && lastLiveCount !== count;
+    const rankChanged =
       lastLiveTopSlug !== null && lastLiveTopSlug !== "" && topSlug !== lastLiveTopSlug;
-    var message;
+    let message;
     if (count === 0) {
       message = "No matches with these filters. Try easing one.";
     } else if (count === 1) {
@@ -848,7 +848,7 @@ function maybeLiveRecompute(event) {
 // Update the drawer's commit button to reflect the live result count.
 // Button label reflects action, not a count, counts implied false precision.
 function setRefineSubmitLabel(count) {
-  var btn = document.querySelector(".refine-bottom-submit");
+  const btn = document.querySelector(".refine-bottom-submit");
   if (!btn) return;
   if (count === 0) {
     btn.textContent = "No matches, try fewer filters";
@@ -860,22 +860,22 @@ function setRefineSubmitLabel(count) {
 }
 
 function setLiveStatus(message, isUpdating) {
-  var node = document.getElementById("matchRefineLiveStatus");
+  const node = document.getElementById("matchRefineLiveStatus");
   if (!node) return;
   node.textContent = message;
   node.classList.toggle("is-updating", Boolean(isUpdating));
 }
 
 function bindInsuranceAutocomplete() {
-  var input = document.getElementById("insurance");
-  var list = document.getElementById("insuranceSuggestions");
-  var emptyHint = document.getElementById("insuranceNoMatchHint");
+  const input = document.getElementById("insurance");
+  const list = document.getElementById("insuranceSuggestions");
+  const emptyHint = document.getElementById("insuranceNoMatchHint");
   if (!input || !list || !emptyHint) return;
   if (input.dataset.autocompleteBound === "true") return;
   input.dataset.autocompleteBound = "true";
 
-  var highlightIndex = -1;
-  var currentMatches = [];
+  let highlightIndex = -1;
+  let currentMatches = [];
 
   function setExpanded(open) {
     input.setAttribute("aria-expanded", open ? "true" : "false");
@@ -890,7 +890,7 @@ function bindInsuranceAutocomplete() {
   }
 
   function applyHighlight() {
-    var items = list.querySelectorAll(".refine-autocomplete-item");
+    const items = list.querySelectorAll(".refine-autocomplete-item");
     items.forEach(function (item, index) {
       item.classList.toggle("is-highlighted", index === highlightIndex);
       if (index === highlightIndex) {
@@ -911,13 +911,13 @@ function bindInsuranceAutocomplete() {
   }
 
   function refresh() {
-    var raw = input.value.trim();
+    const raw = input.value.trim();
     if (!raw) {
       emptyHint.hidden = true;
       close();
       return;
     }
-    var lowered = raw.toLowerCase();
+    const lowered = raw.toLowerCase();
     currentMatches = INSURANCE_OPTIONS.filter(function (option) {
       return option.toLowerCase().indexOf(lowered) !== -1;
     }).slice(0, 6);
@@ -974,7 +974,7 @@ function bindInsuranceAutocomplete() {
   // Use mousedown rather than click so the input's blur (which closes
   // the list on a short delay) doesn't beat the selection.
   list.addEventListener("mousedown", function (event) {
-    var item = event.target.closest(".refine-autocomplete-item");
+    const item = event.target.closest(".refine-autocomplete-item");
     if (!item) return;
     event.preventDefault();
     commit(item.dataset.value || item.textContent);
@@ -987,7 +987,7 @@ function bindInsuranceAutocomplete() {
 }
 
 function pulseLiveStatus() {
-  var node = document.getElementById("matchRefineLiveStatus");
+  const node = document.getElementById("matchRefineLiveStatus");
   if (!node) return;
   node.classList.remove("is-pulsing");
   // Force reflow so the animation restarts even when the same class
@@ -1000,16 +1000,16 @@ function pulseLiveStatus() {
 // fixed right-side drawer when body.match-refine-drawer-open is set;
 // these helpers keep the toggle button, ESC key, and backdrop in sync.
 function setRefineDrawerOpen(open) {
-  var refinements = document.querySelector(".match-refinements");
-  var moreBtn = document.getElementById("openAdvancedFiltersButton");
-  var bodyClass = "match-refine-drawer-open";
+  const refinements = document.querySelector(".match-refinements");
+  const moreBtn = document.getElementById("openAdvancedFiltersButton");
+  const bodyClass = "match-refine-drawer-open";
   // After a match runs, placeBuilderInResults wraps .match-builder in a
   // <details id="matchRefineSection"> that starts closed. Children of a
   // closed <details> are hidden by the UA stylesheet (content-visibility),
   // which collapses our position:fixed drawer to height 0 and pins it
   // ~2000px down the page. Opening the wrapper restores normal layout
   // for the descendants.
-  var refineSection = document.getElementById("matchRefineSection");
+  const refineSection = document.getElementById("matchRefineSection");
   if (open) {
     document.body.classList.add(bodyClass);
     if (refineSection) {
@@ -1025,7 +1025,7 @@ function setRefineDrawerOpen(open) {
     // Seed the commit-button label with the count of currently-rendered
     // matches, so the user sees "Show 8 matches" immediately on open
     // rather than the generic "Show matches" until they tweak something.
-    var initialCount = Array.isArray(latestEntries) ? latestEntries.length : 0;
+    const initialCount = Array.isArray(latestEntries) ? latestEntries.length : 0;
     if (initialCount > 0) setRefineSubmitLabel(initialCount);
     // Sync drawer fields to the last-run profile so "Show N matches" count
     // and every form field both reflect the same search state on open.
@@ -1033,7 +1033,7 @@ function setRefineDrawerOpen(open) {
     // Focus the close button so keyboard users land in the drawer
     // instead of being stuck on the underlying toggle.
     window.requestAnimationFrame(function () {
-      var close = document.getElementById("matchRefineDrawerClose");
+      const close = document.getElementById("matchRefineDrawerClose");
       if (close) close.focus();
     });
     trackFunnelEvent("match_refine_drawer_opened", {
@@ -1066,7 +1066,7 @@ function setRefineDrawerOpen(open) {
     // fall back to the inline Customize button when there's no header
     // button (empty / pre-match state).
     window.requestAnimationFrame(function () {
-      var headerRefine = document.querySelector('[data-mx-refine-open="header"]');
+      const headerRefine = document.querySelector('[data-mx-refine-open="header"]');
       if (headerRefine && typeof headerRefine.focus === "function") {
         headerRefine.focus();
         return;
@@ -1086,14 +1086,14 @@ function bindRefineButtons() {
       btn.dataset.boundRefine = "true";
       btn.addEventListener("click", function () {
         setRefineDrawerOpen(true);
-        var target = btn.getAttribute("data-mx-refine-open");
+        const target = btn.getAttribute("data-mx-refine-open");
         trackFunnelEvent("match_smart_refine_chip", { target: target });
       });
     }
   });
 
   // refineSearchButton: external trigger, always opens the drawer
-  var externalBtn = document.getElementById("refineSearchButton");
+  const externalBtn = document.getElementById("refineSearchButton");
   if (externalBtn && externalBtn.dataset.boundRefine !== "true") {
     externalBtn.dataset.boundRefine = "true";
     externalBtn.addEventListener("click", function () {
@@ -1102,17 +1102,17 @@ function bindRefineButtons() {
   }
 
   // openAdvancedFiltersButton: inline toggle button → drawer toggle
-  var moreBtn = document.getElementById("openAdvancedFiltersButton");
+  const moreBtn = document.getElementById("openAdvancedFiltersButton");
   if (moreBtn && moreBtn.dataset.boundRefine !== "true") {
     moreBtn.dataset.boundRefine = "true";
     moreBtn.addEventListener("click", function () {
-      var isOpen = document.body.classList.contains("match-refine-drawer-open");
+      const isOpen = document.body.classList.contains("match-refine-drawer-open");
       setRefineDrawerOpen(!isOpen);
     });
   }
 
   // Backdrop click → close
-  var backdrop = document.getElementById("matchRefineBackdrop");
+  const backdrop = document.getElementById("matchRefineBackdrop");
   if (backdrop && backdrop.dataset.boundRefine !== "true") {
     backdrop.dataset.boundRefine = "true";
     backdrop.addEventListener("click", function () {
@@ -1121,7 +1121,7 @@ function bindRefineButtons() {
   }
 
   // Explicit close button inside the drawer header
-  var close = document.getElementById("matchRefineDrawerClose");
+  const close = document.getElementById("matchRefineDrawerClose");
   if (close && close.dataset.boundRefine !== "true") {
     close.dataset.boundRefine = "true";
     close.addEventListener("click", function () {
@@ -1136,7 +1136,7 @@ function bindRefineButtons() {
     if (radio.dataset.boundCareIntent === "true") return;
     radio.dataset.boundCareIntent = "true";
     radio.addEventListener("change", function (event) {
-      var select = document.getElementById("care_intent_primary");
+      const select = document.getElementById("care_intent_primary");
       if (!select || !radio.checked) return;
       if (event && typeof event.stopPropagation === "function") {
         event.stopPropagation();
@@ -1170,11 +1170,11 @@ function bindRefineTeaserShortcuts() {
         event.preventDefault();
       }
 
-      var refinements = document.querySelector(".match-refinements");
-      var builder = document.querySelector(".match-builder");
-      var form = document.getElementById("matchForm");
-      var targetName = teaser.getAttribute("data-refine-target") || "";
-      var targetValue = teaser.getAttribute("data-refine-value") || "";
+      const refinements = document.querySelector(".match-refinements");
+      const builder = document.querySelector(".match-builder");
+      const form = document.getElementById("matchForm");
+      const targetName = teaser.getAttribute("data-refine-target") || "";
+      const targetValue = teaser.getAttribute("data-refine-value") || "";
       if (!form || !targetName) {
         return;
       }
@@ -1186,7 +1186,7 @@ function bindRefineTeaserShortcuts() {
         builder.scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
-      var target = form.elements[targetName] || document.getElementById(targetName);
+      const target = form.elements[targetName] || document.getElementById(targetName);
       if (!target) {
         return;
       }
@@ -1227,27 +1227,27 @@ function bindPrimaryMatchSlider(root) {
     return;
   }
 
-  var track = root.querySelector("[data-match-card-slider-track]");
+  const track = root.querySelector("[data-match-card-slider-track]");
   if (!track) {
     return;
   }
 
-  var slides = Array.prototype.slice.call(track.querySelectorAll(".match-card-slide"));
-  var prevButton = root.querySelector("[data-match-card-slider-prev]");
-  var nextButton = root.querySelector("[data-match-card-slider-next]");
-  var count = root.querySelector("[data-match-card-slider-count]");
-  var dots = Array.prototype.slice.call(root.querySelectorAll("[data-match-card-slider-dot]"));
+  const slides = Array.prototype.slice.call(track.querySelectorAll(".match-card-slide"));
+  const prevButton = root.querySelector("[data-match-card-slider-prev]");
+  const nextButton = root.querySelector("[data-match-card-slider-next]");
+  const count = root.querySelector("[data-match-card-slider-count]");
+  const dots = Array.prototype.slice.call(root.querySelectorAll("[data-match-card-slider-dot]"));
   if (!slides.length) {
     return;
   }
 
   function getCurrentIndex() {
-    var width = track.clientWidth || 1;
+    const width = track.clientWidth || 1;
     return Math.max(0, Math.min(slides.length - 1, Math.round(track.scrollLeft / width)));
   }
 
   function updateState() {
-    var index = getCurrentIndex();
+    const index = getCurrentIndex();
     if (prevButton) {
       prevButton.disabled = index <= 0;
     }
@@ -1258,14 +1258,14 @@ function bindPrimaryMatchSlider(root) {
       count.textContent = String(index + 1) + " of " + String(slides.length);
     }
     dots.forEach(function (dot, dotIndex) {
-      var isActive = dotIndex === index;
+      const isActive = dotIndex === index;
       dot.classList.toggle("is-active", isActive);
       dot.setAttribute("aria-current", isActive ? "true" : "false");
     });
   }
 
   function scrollToIndex(index) {
-    var width = track.clientWidth || 1;
+    const width = track.clientWidth || 1;
     track.scrollTo({
       left: Math.max(0, Math.min(slides.length - 1, index)) * width,
       behavior: "smooth",
@@ -1298,27 +1298,27 @@ function bindSummaryMatchSlider(root) {
     return;
   }
 
-  var track = root.querySelector("[data-match-summary-slider-track]");
+  const track = root.querySelector("[data-match-summary-slider-track]");
   if (!track) {
     return;
   }
 
-  var slides = Array.prototype.slice.call(track.querySelectorAll(".match-summary-slide"));
-  var prevButton = root.querySelector("[data-match-summary-slider-prev]");
-  var nextButton = root.querySelector("[data-match-summary-slider-next]");
-  var count = root.querySelector("[data-match-summary-slider-count]");
-  var dots = Array.prototype.slice.call(root.querySelectorAll("[data-match-summary-slider-dot]"));
+  const slides = Array.prototype.slice.call(track.querySelectorAll(".match-summary-slide"));
+  const prevButton = root.querySelector("[data-match-summary-slider-prev]");
+  const nextButton = root.querySelector("[data-match-summary-slider-next]");
+  const count = root.querySelector("[data-match-summary-slider-count]");
+  const dots = Array.prototype.slice.call(root.querySelectorAll("[data-match-summary-slider-dot]"));
   if (!slides.length) {
     return;
   }
 
   function getCurrentIndex() {
-    var width = track.clientWidth || 1;
+    const width = track.clientWidth || 1;
     return Math.max(0, Math.min(slides.length - 1, Math.round(track.scrollLeft / width)));
   }
 
   function updateState() {
-    var index = getCurrentIndex();
+    const index = getCurrentIndex();
     if (prevButton) {
       prevButton.disabled = index <= 0;
     }
@@ -1329,14 +1329,14 @@ function bindSummaryMatchSlider(root) {
       count.textContent = String(index + 1) + " of " + String(slides.length);
     }
     dots.forEach(function (dot, dotIndex) {
-      var isActive = dotIndex === index;
+      const isActive = dotIndex === index;
       dot.classList.toggle("is-active", isActive);
       dot.setAttribute("aria-current", isActive ? "true" : "false");
     });
   }
 
   function scrollToIndex(index) {
-    var width = track.clientWidth || 1;
+    const width = track.clientWidth || 1;
     track.scrollTo({
       left: Math.max(0, Math.min(slides.length - 1, index)) * width,
       behavior: "smooth",
@@ -1365,8 +1365,8 @@ function bindSummaryMatchSlider(root) {
 }
 
 function executeMatch(profile, options) {
-  var settings = Object.assign({ scroll: false, source: "match_page" }, options || {});
-  var zipStatus = getZipMarketStatus(profile && profile.location_query);
+  const settings = Object.assign({ scroll: false, source: "match_page" }, options || {});
+  const zipStatus = getZipMarketStatus(profile && profile.location_query);
   starterResultsMode = false;
 
   if (zipStatus.status === "invalid") {
@@ -1411,7 +1411,7 @@ function executeMatch(profile, options) {
   // Adaptive ranking is disabled, every submit uses the deterministic
   // base + zip-aware pipeline.
   activeSecondPassMode = "balanced";
-  var entries = rankEntriesForProfile(profile);
+  const entries = rankEntriesForProfile(profile);
   // Flush any prior session's outcome before we overwrite stats, this
   // covers the in-tab refine flow where match_submitted fires multiple
   // times without a navigation.
@@ -1458,15 +1458,15 @@ function getOutcomeOption(outcome) {
 }
 
 function formatOutcomeLabel(outcome) {
-  var option = getOutcomeOption(outcome);
+  const option = getOutcomeOption(outcome);
   return option ? option.label : String(outcome || "").replace(/_/g, " ");
 }
 
 function formatTherapistLocationLine(therapist) {
-  var city = String((therapist && therapist.city) || "").trim();
-  var state = String((therapist && therapist.state) || "").trim();
-  var zip = String((therapist && therapist.zip) || "").trim();
-  var cityState = [city, state].filter(Boolean).join(", ");
+  const city = String((therapist && therapist.city) || "").trim();
+  const state = String((therapist && therapist.state) || "").trim();
+  const zip = String((therapist && therapist.zip) || "").trim();
+  const cityState = [city, state].filter(Boolean).join(", ");
   if (cityState && /^\d{5}$/.test(zip)) {
     return cityState + " " + zip;
   }
@@ -1491,13 +1491,13 @@ function readDirectoryShortlist() {
 }
 
 function buildShortlistComparePath(entries) {
-  var slugs = (entries || [])
+  const slugs = (entries || [])
     .slice(0, PRIMARY_SHORTLIST_LIMIT)
     .map(function (entry) {
       return entry?.therapist?.slug || "";
     })
     .filter(Boolean);
-  var params = new URLSearchParams();
+  const params = new URLSearchParams();
   if (slugs.length) {
     params.set("shortlist", slugs.join(","));
   }
@@ -1505,7 +1505,7 @@ function buildShortlistComparePath(entries) {
     params.set("entry", directoryEntryMode);
   }
 
-  var query = params.toString();
+  const query = params.toString();
   return query ? "match.html?" + query : "match.html";
 }
 
@@ -1522,7 +1522,7 @@ function formatSegmentLabel(segment) {
 }
 
 function initMatchCareDropdown() {
-  var select = document.getElementById("care_intent_primary");
+  const select = document.getElementById("care_intent_primary");
 
   if (!select) {
     return;
@@ -1538,7 +1538,7 @@ function initMatchCareDropdown() {
 }
 
 function getSegmentLearningCopy(evaluation) {
-  var segments =
+  const segments =
     evaluation && Array.isArray(evaluation.active_segments) ? evaluation.active_segments : [];
   if (!segments.length) {
     return "";
@@ -1552,7 +1552,7 @@ function getSegmentLearningCopy(evaluation) {
 }
 
 function getSegmentAwareRecommendationCue(profile, evaluation) {
-  var segments =
+  const segments =
     evaluation && Array.isArray(evaluation.active_segments) ? evaluation.active_segments : [];
   if ((profile && profile.insurance) || segments.includes("insurance:user")) {
     return "Confirm coverage and expected out-of-pocket cost early so you do not lose momentum on a practical mismatch.";
@@ -1573,10 +1573,11 @@ function getSegmentAwareRecommendationCue(profile, evaluation) {
 }
 
 function getSegmentAwareDraftAsk(profile, recommendation) {
-  var evaluation = recommendation && recommendation.entry ? recommendation.entry.evaluation : null;
-  var segments =
+  const evaluation =
+    recommendation && recommendation.entry ? recommendation.entry.evaluation : null;
+  const segments =
     evaluation && Array.isArray(evaluation.active_segments) ? evaluation.active_segments : [];
-  var questions = ["Are you currently accepting new clients for care like this?"];
+  const questions = ["Are you currently accepting new clients for care like this?"];
 
   if ((profile && profile.insurance) || segments.includes("insurance:user")) {
     questions.push(
@@ -1608,8 +1609,8 @@ function buildEntryOutreachDraft(entry, profile) {
     return "";
   }
 
-  var routeType = getPreferredRouteType(entry);
-  var route =
+  const routeType = getPreferredRouteType(entry);
+  const route =
     routeType === "booking"
       ? "Book a consultation"
       : routeType === "phone"
@@ -1619,24 +1620,24 @@ function buildEntryOutreachDraft(entry, profile) {
           : routeType === "website"
             ? "Visit the website"
             : "Review profile";
-  var therapist = entry.therapist;
-  var reasons = Array.isArray(entry?.evaluation?.reasons)
+  const therapist = entry.therapist;
+  const reasons = Array.isArray(entry?.evaluation?.reasons)
     ? entry.evaluation.reasons.filter(Boolean)
     : [];
-  var fitSignal = reasons[0] || "";
-  var careIntent = profile && profile.care_intent ? String(profile.care_intent).trim() : "";
-  var careFormat = profile && profile.care_format ? String(profile.care_format).trim() : "";
-  var insurance = profile && profile.insurance ? String(profile.insurance).trim() : "";
-  var wantsMedication =
+  const fitSignal = reasons[0] || "";
+  const careIntent = profile && profile.care_intent ? String(profile.care_intent).trim() : "";
+  const careFormat = profile && profile.care_format ? String(profile.care_format).trim() : "";
+  const insurance = profile && profile.insurance ? String(profile.insurance).trim() : "";
+  const wantsMedication =
     profile && (profile.needs_medication_management === "Yes" || careIntent === "Psychiatry");
-  var intent = careIntent
+  const intent = careIntent
     ? "I am looking for " + careIntent.toLowerCase() + "."
     : "I am looking for bipolar informed care.";
-  var introLine =
+  const introLine =
     "Hi " +
     therapist.name +
     ",\n\nI found your profile on BipolarTherapyHub and wanted to reach out because your practice looks like a promising place to start.";
-  var contextBits = [
+  const contextBits = [
     intent,
     profile && profile.care_state ? "I am hoping to find care in " + profile.care_state + "." : "",
     careFormat ? "My preferred format is " + careFormat.toLowerCase() + "." : "",
@@ -1647,18 +1648,18 @@ function buildEntryOutreachDraft(entry, profile) {
       ? "Cost fit matters on my side, so I am also trying to confirm insurance or fee fit early."
       : "",
   ].filter(Boolean);
-  var context = contextBits.join(" ");
-  var whyNow = fitSignal
+  const context = contextBits.join(" ");
+  const whyNow = fitSignal
     ? "One reason I paused on your profile is that it appears to " +
       fitSignal.charAt(0).toLowerCase() +
       fitSignal.slice(1) +
       "."
     : "I am trying to start with an option that looks both credible and realistic to contact.";
-  var ask = getSegmentAwareDraftAsk(profile, {
+  const ask = getSegmentAwareDraftAsk(profile, {
     route: route,
     entry: entry,
   });
-  var close =
+  const close =
     "If it looks like a fit, I would really appreciate a quick note on the best next step.\n\nThank you,\nA BipolarTherapyHub visitor";
 
   return [introLine, context, whyNow, ask, close].filter(Boolean).join("\n\n");
@@ -1669,7 +1670,7 @@ function buildEntryOutreachDraft(entry, profile) {
 // Suppressed in the supporting-card explanation so we don't dilute
 // trust with commodity bullets like "Available by telehealth in
 // California" (true of ~80% of CA listings).
-var COMMODITY_REASON_RE =
+const COMMODITY_REASON_RE =
   /^Sees patients in person|^Available by telehealth|^Matches the requested care type|^Matches at least one of the requested|^Offers telehealth/i;
 
 function getMatchCardExplanation(entry) {
@@ -1677,17 +1678,17 @@ function getMatchCardExplanation(entry) {
   // therapist record. The engine's top reasons are often hard-constraint
   // matches (care type, format) that every result already passes, so they
   // don't tell the user *why this one*.
-  var fit = getHeroFitReasons(entry, (entry && entry.therapist) || {}, latestProfile);
+  const fit = getHeroFitReasons(entry, (entry && entry.therapist) || {}, latestProfile);
   if (fit.length) {
     return fit[0];
   }
-  var reasons = Array.isArray(entry?.evaluation?.reasons)
+  const reasons = Array.isArray(entry?.evaluation?.reasons)
     ? entry.evaluation.reasons.filter(Boolean)
     : [];
   // Drop commodity reasons before falling back. If none remain, return
   // empty so the card hides the "Why this may be a good fit" block
   // entirely, better than showing a non-differentiating bullet.
-  var differentiating = reasons.filter(function (r) {
+  const differentiating = reasons.filter(function (r) {
     return !COMMODITY_REASON_RE.test(String(r).replace(/\.$/, ""));
   });
   return differentiating[0] || "";
@@ -1696,7 +1697,7 @@ function getMatchCardExplanation(entry) {
 // Bipolar-specific modalities + how to describe them. IPSRT and FFT have
 // the strongest evidence base for bipolar; CBT-BD is the bipolar-adapted
 // CBT variant.
-var BIPOLAR_RELEVANT_MODALITIES = {
+const BIPOLAR_RELEVANT_MODALITIES = {
   IPSRT: "Trained in IPSRT, a bipolar-specific therapy",
   FFT: "Family-focused therapy (proven for bipolar)",
   "CBT-BD": "CBT adapted for bipolar disorder",
@@ -1706,14 +1707,14 @@ var BIPOLAR_RELEVANT_MODALITIES = {
 
 function reasonsInsuranceMatches(requestedRaw, acceptedList) {
   if (!requestedRaw || !Array.isArray(acceptedList) || !acceptedList.length) return false;
-  var requested = String(requestedRaw)
+  const requested = String(requestedRaw)
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
   if (!requested) return false;
   return acceptedList.some(function (item) {
-    var n = String(item || "")
+    const n = String(item || "")
       .trim()
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, " ")
@@ -1729,12 +1730,12 @@ function reasonsInsuranceMatches(requestedRaw, acceptedList) {
 // requested care type"). Falls back to filtered engine reasons if the
 // therapist record is too sparse to synthesize anything specific.
 function getHeroFitReasons(entry, therapist, profileArg) {
-  var profile = profileArg || {};
-  var out = [];
+  const profile = profileArg || {};
+  const out = [];
 
   // 1. Concrete bipolar experience (years, when ≥ 3), most specific
   //    signal a patient cares about. "8 years" beats "substantial".
-  var years = Number(therapist.bipolar_years_experience || 0);
+  const years = Number(therapist.bipolar_years_experience || 0);
   if (years >= 3) {
     out.push(years + " " + (years === 1 ? "year" : "years") + " specializing in bipolar care");
   }
@@ -1742,12 +1743,12 @@ function getHeroFitReasons(entry, therapist, profileArg) {
   // 2. Specific bipolar specialty overlap, prefer what the user asked
   //    for; otherwise surface bipolar-subtype specialties the therapist
   //    actually treats.
-  var specialties = Array.isArray(therapist.specialties)
+  const specialties = Array.isArray(therapist.specialties)
     ? therapist.specialties.filter(Boolean)
     : [];
   if (specialties.length) {
-    var requestedFocus = Array.isArray(profile.bipolar_focus) ? profile.bipolar_focus : [];
-    var matched = requestedFocus.length
+    const requestedFocus = Array.isArray(profile.bipolar_focus) ? profile.bipolar_focus : [];
+    const matched = requestedFocus.length
       ? specialties.filter(function (s) {
           return requestedFocus.some(function (r) {
             return String(s).toLowerCase() === String(r).toLowerCase();
@@ -1756,7 +1757,7 @@ function getHeroFitReasons(entry, therapist, profileArg) {
       : specialties.filter(function (s) {
           return /bipolar|cycl|mixed/i.test(s);
         });
-    var displayMatched = matched.filter(function (s) {
+    const displayMatched = matched.filter(function (s) {
       return !/^psychos/i.test(s);
     });
     if (displayMatched.length) {
@@ -1765,11 +1766,11 @@ function getHeroFitReasons(entry, therapist, profileArg) {
   }
 
   // 3. Bipolar-relevant modality (IPSRT, FFT, CBT-BD, etc.)
-  var modalities = Array.isArray(therapist.treatment_modalities)
+  const modalities = Array.isArray(therapist.treatment_modalities)
     ? therapist.treatment_modalities
     : [];
-  for (var i = 0; i < modalities.length; i++) {
-    var label = BIPOLAR_RELEVANT_MODALITIES[modalities[i]];
+  for (let i = 0; i < modalities.length; i++) {
+    const label = BIPOLAR_RELEVANT_MODALITIES[modalities[i]];
     if (label) {
       out.push(label);
       break;
@@ -1786,7 +1787,7 @@ function getHeroFitReasons(entry, therapist, profileArg) {
 
   // 5. Concrete timing, only when it's actually fast. Vague timing
   //    isn't worth a bullet.
-  var wait = therapist.estimated_wait_time ? String(therapist.estimated_wait_time) : "";
+  const wait = therapist.estimated_wait_time ? String(therapist.estimated_wait_time) : "";
   if (/within\s*1\s*week|same\s*week|days|immediate/i.test(wait)) {
     out.push("Openings " + wait.toLowerCase());
   }
@@ -1803,13 +1804,13 @@ function getHeroFitReasons(entry, therapist, profileArg) {
 
   // Backfill from engine reasons, but skip the table-stakes ones.
   if (out.length < 2) {
-    var engineReasons = Array.isArray(entry && entry.evaluation && entry.evaluation.reasons)
+    const engineReasons = Array.isArray(entry && entry.evaluation && entry.evaluation.reasons)
       ? entry.evaluation.reasons.filter(Boolean)
       : [];
-    var GENERIC =
+    const GENERIC =
       /^Sees patients in person|^Available by telehealth|^Matches the requested care type|^Matches at least one|^Offers telehealth/i;
-    for (var j = 0; j < engineReasons.length && out.length < 3; j++) {
-      var r = engineReasons[j].replace(/\.$/, "");
+    for (let j = 0; j < engineReasons.length && out.length < 3; j++) {
+      const r = engineReasons[j].replace(/\.$/, "");
       if (!GENERIC.test(r)) out.push(r);
     }
   }
@@ -1827,9 +1828,9 @@ function getCompareRoleReason(entry, profile, recommendation, role) {
     return recommendation.rationale;
   }
 
-  var readiness = getContactReadiness(entry);
-  var therapist = entry && entry.therapist ? entry.therapist : null;
-  var reasons = [];
+  const readiness = getContactReadiness(entry);
+  const therapist = entry && entry.therapist ? entry.therapist : null;
+  const reasons = [];
 
   if (therapist && therapist.accepting_new_patients) {
     reasons.push("appears open to new patients");
@@ -1859,13 +1860,13 @@ function getCompareRoleReason(entry, profile, recommendation, role) {
 }
 
 function buildPartnerCompareSummary(entries, profile) {
-  var topEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
+  const topEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
   if (topEntries.length < 2) {
     return "";
   }
 
-  var recommendation = buildFirstContactRecommendation(profile, topEntries);
-  var lines = [];
+  const recommendation = buildFirstContactRecommendation(profile, topEntries);
+  const lines = [];
 
   lines.push("Therapist list summary");
   lines.push("");
@@ -1881,14 +1882,14 @@ function buildPartnerCompareSummary(entries, profile) {
   }
 
   topEntries.forEach(function (entry, index) {
-    var therapist = entry.therapist;
-    var role = getCompareRole(entry, index);
-    var reason = getCompareRoleReason(entry, profile, recommendation, role);
-    var timing = getCompareTimingLabel(therapist) || "timing not listed";
-    var cost = getCompareCostLabel(therapist) || "fees not listed";
-    var trust = getCompareTrustLabel(entry) || "trust details partial";
-    var freshness = getCompareFreshness(entry);
-    var action =
+    const therapist = entry.therapist;
+    const role = getCompareRole(entry, index);
+    const reason = getCompareRoleReason(entry, profile, recommendation, role);
+    const timing = getCompareTimingLabel(therapist) || "timing not listed";
+    const cost = getCompareCostLabel(therapist) || "fees not listed";
+    const trust = getCompareTrustLabel(entry) || "trust details partial";
+    const freshness = getCompareFreshness(entry);
+    const action =
       (getContactReadiness(entry) && getContactReadiness(entry).route) || "review profile";
 
     lines.push(
@@ -1916,7 +1917,7 @@ function buildPartnerCompareSummary(entries, profile) {
 }
 
 function renderPartnerCompareSummary(entries, profile) {
-  var summary = buildPartnerCompareSummary(entries, profile);
+  const summary = buildPartnerCompareSummary(entries, profile);
   if (!summary) {
     return "";
   }
@@ -1942,7 +1943,7 @@ function buildShortlistCompareRows(topEntries) {
     {
       label: "Insurance",
       getValue: function (therapist) {
-        var accepted = (therapist.insurance_accepted || []).slice(0, 3);
+        const accepted = (therapist.insurance_accepted || []).slice(0, 3);
         return accepted.length ? accepted : [];
       },
     },
@@ -1986,10 +1987,10 @@ function buildShortlistCompareRows(topEntries) {
     {
       label: "How to reach out",
       getValue: function (therapist) {
-        var entry = topEntries.find(function (item) {
+        const entry = topEntries.find(function (item) {
           return item && item.therapist && item.therapist.slug === therapist.slug;
         });
-        var routeType = getPreferredRouteType(entry);
+        const routeType = getPreferredRouteType(entry);
         if (routeType === "booking") return "Book a consultation";
         if (routeType === "email") return "Email";
         if (routeType === "phone") return "Call";
@@ -2005,16 +2006,16 @@ function buildShortlistCompareRows(topEntries) {
 // because the matching engine already ranked this one #1, surface
 // that signal instead of pretending all are equal.
 function renderShortlistHero(entry, profile) {
-  var t = (entry && entry.therapist) || {};
-  var reasons = getHeroFitReasons(entry, t, profile);
-  var photo =
+  const t = (entry && entry.therapist) || {};
+  const reasons = getHeroFitReasons(entry, t, profile);
+  const photo =
     t.photo_url || t.photo
       ? '<img src="' + escapeHtml(t.photo_url || t.photo) + '" alt="" loading="lazy" />'
       : '<div class="mx-sl-hero-photo-fill">' +
         escapeHtml(String(t.name || "?").charAt(0)) +
         "</div>";
-  var location = formatTherapistLocationLine(t);
-  var reasonsHtml = reasons.length
+  const location = formatTherapistLocationLine(t);
+  const reasonsHtml = reasons.length
     ? '<ul class="mx-sl-hero-reasons">' +
       reasons
         .map(function (r) {
@@ -2025,8 +2026,8 @@ function renderShortlistHero(entry, profile) {
         .join("") +
       "</ul>"
     : "";
-  var outreach = buildMatchOutreachDisclosure(entry, { expanded: true });
-  var slug = String(t.slug || "");
+  const outreach = buildMatchOutreachDisclosure(entry, { expanded: true });
+  const slug = String(t.slug || "");
   return (
     '<section class="mx-sl-hero" data-slug="' +
     escapeHtml(slug) +
@@ -2068,14 +2069,14 @@ function renderShortlistHero(entry, profile) {
 // the eye scan: name, one-line differentiator, one-line metadata,
 // expandable Reach-out disclosure.
 function renderShortlistSupporting(entry, rank, profile) {
-  var t = (entry && entry.therapist) || {};
-  var reasons = getHeroFitReasons(entry, t, profile);
-  var oneReason = reasons[0] || "";
-  var cost = getCompareCostLabel(t) || "";
-  var wait = getCompareTimingLabel(t) || "";
-  var meta = [cost, wait].filter(Boolean).join(" · ");
-  var outreach = buildMatchOutreachDisclosure(entry, { expanded: false });
-  var slug = String(t.slug || "");
+  const t = (entry && entry.therapist) || {};
+  const reasons = getHeroFitReasons(entry, t, profile);
+  const oneReason = reasons[0] || "";
+  const cost = getCompareCostLabel(t) || "";
+  const wait = getCompareTimingLabel(t) || "";
+  const meta = [cost, wait].filter(Boolean).join(" · ");
+  const outreach = buildMatchOutreachDisclosure(entry, { expanded: false });
+  const slug = String(t.slug || "");
   return (
     '<article class="mx-sl-card" data-slug="' +
     escapeHtml(slug) +
@@ -2111,12 +2112,12 @@ function renderShortlistSupporting(entry, rank, profile) {
 // to do mentally otherwise.
 function renderShortlistDiffStrip(diffRows, topEntries) {
   if (!diffRows.length) return "";
-  var cols = topEntries.length;
-  var headerCells =
+  const cols = topEntries.length;
+  const headerCells =
     '<div class="mx-sl-diff-cell mx-sl-diff-label-cell mx-sl-diff-head">Where they differ</div>' +
     topEntries
       .map(function (entry) {
-        var t = entry.therapist || {};
+        const t = entry.therapist || {};
         return (
           '<div class="mx-sl-diff-cell mx-sl-diff-head"><div class="mx-sl-diff-head-name">' +
           escapeHtml(t.name || "") +
@@ -2124,7 +2125,7 @@ function renderShortlistDiffStrip(diffRows, topEntries) {
         );
       })
       .join("");
-  var rowCells = diffRows
+  const rowCells = diffRows
     .map(function (row) {
       return (
         '<div class="mx-sl-diff-cell mx-sl-diff-label-cell">' +
@@ -2160,7 +2161,7 @@ function renderShortlistDiffStrip(diffRows, topEntries) {
 // else doesn't see the clutter.
 function renderShortlistFullGrid(rows, topEntries) {
   if (!rows.length) return "";
-  var headerCells =
+  const headerCells =
     '<div class="compare-cell compare-cell-label compare-cell-header">Compare</div>' +
     topEntries
       .map(function (entry, index) {
@@ -2175,9 +2176,9 @@ function renderShortlistFullGrid(rows, topEntries) {
         );
       })
       .join("");
-  var bodyCells = rows
+  const bodyCells = rows
     .map(function (row, rowIndex) {
-      var isLastRow = rowIndex === rows.length - 1;
+      const isLastRow = rowIndex === rows.length - 1;
       return (
         '<div class="compare-cell compare-cell-label' +
         (isLastRow ? " compare-cell-last-row" : "") +
@@ -2219,7 +2220,7 @@ function renderShortlistFullGrid(rows, topEntries) {
 // a single share affordance at the bottom. Keeps the same DOM target
 // (#matchCompare) so the existing caller is unchanged.
 async function renderComparison(entries) {
-  var root = document.getElementById("matchCompare");
+  const root = document.getElementById("matchCompare");
   if (!root) return;
   // Lazy-load match-compare.js the first time the user opens the
   // compare view. Populates the module-level symbol holders so the
@@ -2227,24 +2228,24 @@ async function renderComparison(entries) {
   // renderShortlistSupporting, renderShortlistDiffStrip,
   // renderShortlistFullGrid) can reference them as plain names.
   await ensureCompareModule();
-  var topEntries = entries.slice(0, PRIMARY_SHORTLIST_LIMIT);
-  var profile = latestProfile;
+  const topEntries = entries.slice(0, PRIMARY_SHORTLIST_LIMIT);
+  const profile = latestProfile;
   if (topEntries.length === 0) {
     root.innerHTML = "";
     return;
   }
-  var hero = topEntries[0];
-  var supporting = topEntries.slice(1);
-  var rows = buildShortlistCompareRows(topEntries);
-  var diffRows =
+  const hero = topEntries[0];
+  const supporting = topEntries.slice(1);
+  const rows = buildShortlistCompareRows(topEntries);
+  const diffRows =
     topEntries.length >= 2
       ? rows.filter(function (row) {
           return shortlistRowDiffers(row, topEntries);
         })
       : [];
 
-  var heroHtml = renderShortlistHero(hero, profile);
-  var supportingHtml = supporting.length
+  const heroHtml = renderShortlistHero(hero, profile);
+  const supportingHtml = supporting.length
     ? '<section class="mx-sl-supporting">' +
       '<div class="mx-sl-section-title">Also worth a look</div>' +
       '<div class="mx-sl-supporting-grid">' +
@@ -2255,11 +2256,11 @@ async function renderComparison(entries) {
         .join("") +
       "</div></section>"
     : "";
-  var diffHtml = renderShortlistDiffStrip(diffRows, topEntries);
-  var fullGridHtml = topEntries.length >= 2 ? renderShortlistFullGrid(rows, topEntries) : "";
-  var shareHtml = renderPartnerCompareSummary(topEntries, profile);
+  const diffHtml = renderShortlistDiffStrip(diffRows, topEntries);
+  const fullGridHtml = topEntries.length >= 2 ? renderShortlistFullGrid(rows, topEntries) : "";
+  const shareHtml = renderPartnerCompareSummary(topEntries, profile);
 
-  var pageHeader =
+  const pageHeader =
     '<header class="mx-sl-page-head">' +
     '<div class="mx-sl-page-kicker">Your shortlist · ' +
     String(topEntries.length) +
@@ -2280,10 +2281,10 @@ async function renderComparison(entries) {
     (shareHtml ? '<div class="mx-sl-share">' + shareHtml + "</div>" : "") +
     "</div>";
 
-  var copyBtn = root.querySelector("[data-copy-partner-summary]");
+  const copyBtn = root.querySelector("[data-copy-partner-summary]");
   if (copyBtn) {
     copyBtn.addEventListener("click", function () {
-      var body = root.querySelector(".partner-compare-body");
+      const body = root.querySelector(".partner-compare-body");
       if (!body) return;
       navigator.clipboard.writeText(body.textContent).then(function () {
         copyBtn.textContent = "Copied!";
@@ -2298,10 +2299,13 @@ async function renderComparison(entries) {
 }
 
 function buildAdaptiveIntakeGuidance(profile) {
-  var normalized = profile || {};
-  var prompts = [];
-  var patterns = analyzeConciergePatterns(readConciergeRequests());
-  var shortcutLearningMap = buildShortcutLearningMap(readStoredFeedback(), readOutreachOutcomes());
+  const normalized = profile || {};
+  const prompts = [];
+  const patterns = analyzeConciergePatterns(readConciergeRequests());
+  const shortcutLearningMap = buildShortcutLearningMap(
+    readStoredFeedback(),
+    readOutreachOutcomes(),
+  );
 
   function add(field, label, body) {
     if (
@@ -2335,7 +2339,7 @@ function buildAdaptiveIntakeGuidance(profile) {
       "When psychiatry or medication support matters, this answer becomes one of the strongest ranking signals.",
     );
   } else {
-    var psychiatryPreference = getShortcutPreference(
+    const psychiatryPreference = getShortcutPreference(
       normalized,
       "strongest_psychiatry_option",
       shortcutLearningMap,
@@ -2375,12 +2379,12 @@ function buildAdaptiveIntakeGuidance(profile) {
 }
 
 function renderAdaptiveIntakeGuidance(profile) {
-  var root = document.getElementById("intakeAdaptiveCoach");
+  const root = document.getElementById("intakeAdaptiveCoach");
   if (!root) {
     return;
   }
 
-  var prompts = buildAdaptiveIntakeGuidance(profile);
+  const prompts = buildAdaptiveIntakeGuidance(profile);
   root.classList.toggle("is-empty", !prompts.length);
   root.innerHTML = prompts.length
     ? '<div class="intake-adaptive-header"><h3>What seems most predictive for this search</h3><p>As similar searches come through the product, these answers tend to shape ranking the most.</p></div><div class="intake-adaptive-list">' +
@@ -2402,7 +2406,7 @@ function renderAdaptiveIntakeGuidance(profile) {
     node.classList.remove("is-guided");
   });
   prompts.forEach(function (item) {
-    var node = document.querySelector('[data-intake-field="' + item.field + '"]');
+    const node = document.querySelector('[data-intake-field="' + item.field + '"]');
     if (node) {
       node.classList.add("is-guided");
     }
@@ -2410,7 +2414,7 @@ function renderAdaptiveIntakeGuidance(profile) {
 }
 
 function buildProfileVariant(profile, overrides) {
-  var next = Object.assign(
+  const next = Object.assign(
     {
       care_state: profile.care_state,
       care_format: profile.care_format,
@@ -2428,7 +2432,7 @@ function buildProfileVariant(profile, overrides) {
     },
     overrides || {},
   );
-  var built = buildUserMatchProfile(next);
+  const built = buildUserMatchProfile(next);
   built.location_query = next.location_query || "";
   return built;
 }
@@ -2438,23 +2442,23 @@ function buildIntakeTradeoffPreviews(profile) {
     return [];
   }
 
-  var baseEntries = orderMatchEntries(
+  const baseEntries = orderMatchEntries(
     rankTherapistsForUser(therapists, profile, latestLearningSignals),
     profile,
   );
-  var baseTop = baseEntries[0] ? baseEntries[0].therapist.name : "";
-  var scenarios = [];
+  const baseTop = baseEntries[0] ? baseEntries[0].therapist.name : "";
+  const scenarios = [];
 
   function addScenario(field, label, variantProfile, bodyBuilder) {
-    var variantEntries = orderMatchEntries(
+    const variantEntries = orderMatchEntries(
       rankTherapistsForUser(therapists, variantProfile, latestLearningSignals),
       variantProfile,
     );
     if (!variantEntries.length) {
       return;
     }
-    var nextTop = variantEntries[0].therapist.name;
-    var changed = nextTop && baseTop && nextTop !== baseTop;
+    const nextTop = variantEntries[0].therapist.name;
+    const changed = nextTop && baseTop && nextTop !== baseTop;
     scenarios.push({
       field: field,
       label: label,
@@ -2512,12 +2516,12 @@ function buildIntakeTradeoffPreviews(profile) {
 }
 
 function renderIntakeTradeoffPreview(profile) {
-  var root = document.getElementById("intakeTradeoffCoach");
+  const root = document.getElementById("intakeTradeoffCoach");
   if (!root) {
     return;
   }
 
-  var scenarios = buildIntakeTradeoffPreviews(profile);
+  const scenarios = buildIntakeTradeoffPreviews(profile);
   root.classList.toggle("is-empty", !scenarios.length);
   root.innerHTML = scenarios.length
     ? '<div class="intake-adaptive-header"><h3>How one answer could change the list</h3><p>These are lightweight previews, so you can see the tradeoff between speed, fit, and specialization before you run the match.</p></div><div class="intake-tradeoff-list">' +
@@ -2592,7 +2596,7 @@ function getRouteLearningForProfile(profile, entry, outcomes) {
 }
 
 async function renderFeedbackInsights() {
-  var root = document.getElementById("feedbackInsights");
+  const root = document.getElementById("feedbackInsights");
   if (!root) {
     return;
   }
@@ -2603,7 +2607,7 @@ async function renderFeedbackInsights() {
   // Lazy-load the markup module only for internal-mode users. The
   // module is ~6 KB of pure rendering code that 99%+ of users never
   // see, so keeping it out of the initial bundle is a clean win.
-  var mod = await import("./match-feedback-insights.js");
+  const mod = await import("./match-feedback-insights.js");
   root.hidden = false;
   root.innerHTML = mod.buildFeedbackInsightsMarkup(readStoredFeedback(), readOutreachOutcomes(), {
     therapists: therapists,
@@ -2622,7 +2626,7 @@ function buildFeedbackContext() {
 }
 
 function saveFeedback(entry) {
-  var feedback = readStoredFeedback();
+  const feedback = readStoredFeedback();
   feedback.push(entry);
   writeStoredFeedback(feedback);
   latestLearningSignals = buildLearningSignals(feedback, readOutreachOutcomes());
@@ -2638,7 +2642,7 @@ function recordShortlistFeedback(value) {
     return;
   }
 
-  var reasons =
+  const reasons =
     value === "negative"
       ? Array.from(
           document.querySelectorAll('#noFitReasonGroup input[type="checkbox"]:checked'),
@@ -2677,7 +2681,7 @@ function getMatchAdaptiveStrategy(profile) {
 }
 
 function buildAdaptiveStrategySnapshot(profile) {
-  var strategy = getMatchAdaptiveStrategy(profile);
+  const strategy = getMatchAdaptiveStrategy(profile);
   return {
     match_action:
       strategy && strategy.preferred_match_action ? strategy.preferred_match_action : "help",
@@ -2691,7 +2695,7 @@ function buildAdaptiveStrategySnapshot(profile) {
 }
 
 function triggerMotion(selector, className) {
-  var element = typeof selector === "string" ? document.querySelector(selector) : selector;
+  const element = typeof selector === "string" ? document.querySelector(selector) : selector;
   if (!element) {
     return;
   }
@@ -2710,27 +2714,27 @@ function getTherapistContactEmailLink(entry) {
     return "";
   }
 
-  var p = latestProfile || {};
-  var format = String(p.care_format || "").trim() || "therapy";
-  var zip = String(p.location_query || "").trim();
-  var urgency = String(p.urgency || "").trim();
-  var medMgmt = p.needs_medication_management;
+  const p = latestProfile || {};
+  const format = String(p.care_format || "").trim() || "therapy";
+  const zip = String(p.location_query || "").trim();
+  const urgency = String(p.urgency || "").trim();
+  const medMgmt = p.needs_medication_management;
 
-  var bodyParts = ["Hi"];
-  var details = [];
+  const bodyParts = ["Hi"];
+  const details = [];
   if (format && format !== "therapy") details.push(format.toLowerCase() + " therapy");
   else details.push("therapy");
   if (zip) details.push("near " + zip);
   if (urgency) details.push(urgency.toLowerCase());
   if (medMgmt === "Yes") details.push("with medication management");
   else if (medMgmt === "No") details.push("without medication management");
-  var body =
+  const body =
     bodyParts.join("") +
     ", I'm looking for " +
     details.join(", ") +
     ". Are you currently accepting new clients?";
 
-  var subject = "Inquiry from BipolarTherapyHub";
+  const subject = "Inquiry from BipolarTherapyHub";
 
   return (
     "mailto:" +
@@ -2757,9 +2761,9 @@ function getContactReadiness(entry) {
     return null;
   }
 
-  var therapist = entry.therapist;
-  var outreach = getPreferredOutreach(entry);
-  var routeLabel = outreach
+  const therapist = entry.therapist;
+  const outreach = getPreferredOutreach(entry);
+  const routeLabel = outreach
     ? outreach.label
     : therapist.preferred_contact_method === "booking"
       ? "Booking link"
@@ -2771,7 +2775,7 @@ function getContactReadiness(entry) {
             ? "Email"
             : "Profile review first";
 
-  var readinessTone =
+  const readinessTone =
     therapist.preferred_contact_method === "booking" ||
     therapist.preferred_contact_method === "website"
       ? "high"
@@ -2816,12 +2820,12 @@ function getOutreachRenderServices() {
 }
 
 function buildAdaptiveGuidance(profile, entries) {
-  var requests = readConciergeRequests();
-  var patterns = analyzeConciergePatterns(requests);
-  var topEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
-  var items = [];
-  var topEvaluation = topEntries[0] && topEntries[0].evaluation ? topEntries[0].evaluation : null;
-  var segmentCue = getSegmentAwareRecommendationCue(profile, topEvaluation);
+  const requests = readConciergeRequests();
+  const patterns = analyzeConciergePatterns(requests);
+  const topEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
+  const items = [];
+  const topEvaluation = topEntries[0] && topEntries[0].evaluation ? topEntries[0].evaluation : null;
+  const segmentCue = getSegmentAwareRecommendationCue(profile, topEvaluation);
 
   if (profile && profile.insurance) {
     items.push({
@@ -2864,8 +2868,8 @@ function buildAdaptiveGuidance(profile, entries) {
   }
 
   if (topEntries.length >= 2 && (patterns.contact_first >= 1 || patterns.fit_uncertainty >= 2)) {
-    var firstReady = getContactReadiness(topEntries[0]);
-    var secondReady = getContactReadiness(topEntries[1]);
+    const firstReady = getContactReadiness(topEntries[0]);
+    const secondReady = getContactReadiness(topEntries[1]);
     items.push({
       tone: "decision",
       title: "If you are unsure who to contact first",
@@ -2895,11 +2899,11 @@ function buildAdaptiveGuidance(profile, entries) {
 }
 
 function renderAdaptiveGuidance(profile, entries) {
-  var root = document.getElementById("matchAdaptiveGuidance");
+  const root = document.getElementById("matchAdaptiveGuidance");
   if (!root) {
     return;
   }
-  var items = buildAdaptiveGuidance(profile, entries);
+  const items = buildAdaptiveGuidance(profile, entries);
   renderAdaptiveGuidanceSection({
     root: root,
     items: items,
@@ -2946,9 +2950,9 @@ function getEntryRankPosition(slug) {
 }
 
 function startMatchSessionTracking(profile, entries) {
-  var topEntry = Array.isArray(entries) && entries[0] ? entries[0] : null;
-  var topTherapist = topEntry && topEntry.therapist ? topEntry.therapist : {};
-  var topRoute = topEntry ? getPreferredRouteType(topEntry) || "" : "";
+  const topEntry = Array.isArray(entries) && entries[0] ? entries[0] : null;
+  const topTherapist = topEntry && topEntry.therapist ? topEntry.therapist : {};
+  const topRoute = topEntry ? getPreferredRouteType(topEntry) || "" : "";
   matchSessionStats = {
     started_at: Date.now(),
     journey_id: currentJourneyId || "",
@@ -2981,8 +2985,8 @@ function recordMatchSessionInteraction(kind, payload) {
   if (!matchSessionStats) return;
   if (kind === "contact_click") {
     matchSessionStats.contact_clicks += 1;
-    var slug = payload && payload.slug ? String(payload.slug) : "";
-    var route = payload && payload.route ? String(payload.route) : "";
+    const slug = payload && payload.slug ? String(payload.slug) : "";
+    const route = payload && payload.route ? String(payload.route) : "";
     if (slug && matchSessionStats.contacted_slugs.indexOf(slug) === -1) {
       matchSessionStats.contacted_slugs.push(slug);
     }
@@ -3007,8 +3011,8 @@ function recordMatchSessionInteraction(kind, payload) {
 function emitMatchSessionOutcome() {
   if (!matchSessionStats || matchSessionStats.outcome_emitted) return;
   matchSessionStats.outcome_emitted = true;
-  var stats = matchSessionStats;
-  var outcome =
+  const stats = matchSessionStats;
+  const outcome =
     stats.contact_clicks > 0 ? "contacted" : stats.profile_clicks > 0 ? "explored" : "bounced";
   trackFunnelEvent("match_session_outcome", {
     journey_id: stats.journey_id,
@@ -3048,7 +3052,7 @@ if (typeof window !== "undefined" && !window.__matchSessionOutcomeBound) {
 }
 
 function buildMatchTrackingPayload(slug, extra) {
-  var payload = Object.assign(
+  const payload = Object.assign(
     {
       therapist_slug: slug || "",
       rank_position: getEntryRankPosition(slug) || "",
@@ -3110,7 +3114,7 @@ function buildFirstContactRecommendation(profile, entries) {
 }
 
 function getLatestOutreachOutcome(slug) {
-  var outcomes = readOutreachOutcomes()
+  const outcomes = readOutreachOutcomes()
     .filter(function (item) {
       return item && item.therapist_slug === slug;
     })
@@ -3121,10 +3125,10 @@ function getLatestOutreachOutcome(slug) {
 }
 
 function getLatestShortlistOutcome(slugs) {
-  var outcomes = readOutreachOutcomes();
-  var shortlist = Array.isArray(slugs) ? slugs : [];
-  for (var i = 0; i < outcomes.length; i += 1) {
-    var item = outcomes[i];
+  const outcomes = readOutreachOutcomes();
+  const shortlist = Array.isArray(slugs) ? slugs : [];
+  for (let i = 0; i < outcomes.length; i += 1) {
+    const item = outcomes[i];
     if (item && shortlist.indexOf(item.therapist_slug) !== -1) {
       return item;
     }
@@ -3172,37 +3176,37 @@ function buildContactOrderPlan(profile, entries) {
 
 function buildIntakeMirrorSentence(profile) {
   if (!profile) return "";
-  var parts = [];
-  var format = String(profile.care_format || "").trim();
-  var intent =
+  const parts = [];
+  const format = String(profile.care_format || "").trim();
+  const intent =
     String(profile.care_intent || "")
       .trim()
       .toLowerCase() || "care";
-  var formatPrefix =
+  const formatPrefix =
     format === "In-Person" ? "In-person" : format === "Telehealth" ? "Telehealth" : "";
-  var firstPart = (formatPrefix ? formatPrefix + " " : "") + intent;
-  var zip = String(profile.location_query || "").trim();
+  let firstPart = (formatPrefix ? formatPrefix + " " : "") + intent;
+  const zip = String(profile.location_query || "").trim();
   if (zip && format !== "Telehealth") firstPart += " near " + zip;
   else if (format === "Telehealth") firstPart += " across California";
   parts.push(firstPart.charAt(0).toUpperCase() + firstPart.slice(1));
-  var urgency = String(profile.urgency || "").trim();
+  const urgency = String(profile.urgency || "").trim();
   if (urgency) parts.push("Available " + urgency);
-  var medMgmt = profile.needs_medication_management;
+  const medMgmt = profile.needs_medication_management;
   if (medMgmt === "No") parts.push("No medication management");
   else if (medMgmt === "Yes") parts.push("With medication management");
   if (profile.insurance) parts.push(profile.insurance + " insurance");
-  var priorityLabels = {
+  const priorityLabels = {
     "Soonest availability": "Ranked by shortest wait",
     "Lowest cost": "Ranked by lowest cost",
     "Highest specialization": "Ranked by most experience",
   };
-  var priorityMode = String(profile.priority_mode || "").trim();
+  const priorityMode = String(profile.priority_mode || "").trim();
   if (priorityLabels[priorityMode]) parts.push(priorityLabels[priorityMode]);
   return parts.join(". ") + ".";
 }
 
 function renderSaveIcon(saved) {
-  var fill = saved ? "currentColor" : "none";
+  const fill = saved ? "currentColor" : "none";
   return (
     '<svg viewBox="0 0 24 24" fill="' +
     fill +
@@ -3214,8 +3218,8 @@ function renderSaveIcon(saved) {
 
 function syncSaveButtonState(btn, slug) {
   if (!btn || !slug) return;
-  var saved = isSavedSlug(slug);
-  var baseClass = btn.classList.contains("mx-card-save") ? "mx-card-save" : "mx-save";
+  const saved = isSavedSlug(slug);
+  const baseClass = btn.classList.contains("mx-card-save") ? "mx-card-save" : "mx-save";
   btn.className = baseClass + (saved ? " is-saved" : "");
   btn.setAttribute("aria-pressed", saved ? "true" : "false");
   btn.setAttribute(
@@ -3232,9 +3236,9 @@ function syncAllSaveButtons() {
   });
 }
 
-var saveAnnouncementTimer = 0;
+let saveAnnouncementTimer = 0;
 function announceSaveAction(message) {
-  var node = document.getElementById("matchSaveAnnouncement");
+  let node = document.getElementById("matchSaveAnnouncement");
   if (!node) {
     node = document.createElement("div");
     node.id = "matchSaveAnnouncement";
@@ -3254,9 +3258,9 @@ function announceSaveAction(message) {
 subscribeToSavedList(syncAllSaveButtons);
 
 function renderSaveButton(slug, variant) {
-  var saved = isSavedSlug(slug);
-  var className = (variant === "card" ? "mx-card-save" : "mx-save") + (saved ? " is-saved" : "");
-  var label = saved ? "Saved" : "Save";
+  const saved = isSavedSlug(slug);
+  const className = (variant === "card" ? "mx-card-save" : "mx-save") + (saved ? " is-saved" : "");
+  const label = saved ? "Saved" : "Save";
   return (
     '<button type="button" class="' +
     className +
@@ -3278,30 +3282,30 @@ function renderSaveButton(slug, variant) {
 // Slots 2–5: location · fee · availability · insurance.
 // Distance is computed here so the slot renderer stays pure.
 function buildCardInfoRow(therapist) {
-  var t = therapist || {};
-  var userZip = latestProfile ? String(latestProfile.location_query || "") : "";
-  var teleSelected = Boolean(latestProfile && latestProfile.care_format === "Telehealth");
-  var distanceMiles = null;
+  const t = therapist || {};
+  const userZip = latestProfile ? String(latestProfile.location_query || "") : "";
+  const teleSelected = Boolean(latestProfile && latestProfile.care_format === "Telehealth");
+  let distanceMiles = null;
   if (!teleSelected && userZip && t.zip) {
-    var d = getZipDistance(userZip, t.zip);
+    const d = getZipDistance(userZip, t.zip);
     if (Number.isFinite(d) && d <= 60) distanceMiles = d;
   }
 
-  var parts = [];
+  const parts = [];
 
-  var locLabel = getCardLocationLabel(t, {
+  const locLabel = getCardLocationLabel(t, {
     distanceMiles: distanceMiles,
     teleSelected: teleSelected,
   });
   if (locLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(locLabel) + "</span>");
 
-  var feeLabel = getFeeLabel(t);
+  const feeLabel = getFeeLabel(t);
   if (feeLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(feeLabel) + "</span>");
 
-  var availHtml = renderAvailabilityBadge(t);
+  const availHtml = renderAvailabilityBadge(t);
   if (availHtml) parts.push('<span class="bth-card-info-item">' + availHtml + "</span>");
 
-  var insLabel = getInsuranceLabel(t);
+  const insLabel = getInsuranceLabel(t);
   if (insLabel) parts.push('<span class="bth-card-info-item">' + escapeHtml(insLabel) + "</span>");
 
   if (!parts.length) return "";
@@ -3323,19 +3327,19 @@ function getCardRenderServices() {
 }
 
 function renderPrimaryMatchCards(entries, profile) {
-  var root = getMatchShellRefs().resultsRoot;
+  const root = getMatchShellRefs().resultsRoot;
   if (!root) {
     return;
   }
 
-  var primary = buildPrimaryMatchCardsMarkup(entries, profile, getCardRenderServices());
+  const primary = buildPrimaryMatchCardsMarkup(entries, profile, getCardRenderServices());
   if (!primary.html) {
     root.className = "match-empty";
     return;
   }
 
-  var allEntries = primary.allEntries;
-  var leadEntry = primary.leadEntry;
+  const allEntries = primary.allEntries;
+  const leadEntry = primary.leadEntry;
 
   root.className = "match-list";
   root.innerHTML = primary.html;
@@ -3355,20 +3359,20 @@ function renderPrimaryMatchCards(entries, profile) {
   root.querySelectorAll("[data-mx-refine-open]").forEach(function (chip) {
     chip.addEventListener("click", function () {
       setRefineDrawerOpen(true);
-      var target = chip.getAttribute("data-mx-refine-open");
+      const target = chip.getAttribute("data-mx-refine-open");
       trackFunnelEvent("match_smart_refine_chip", { target: target });
       // For the smart chips (insurance / format / language), focus the
       // relevant field in the drawer so the user can type immediately.
       if (target && target !== "header") {
-        var focusMap = {
+        const focusMap = {
           insurance: "insurance",
           format: 'input[name="care_format"]',
           language: "language_preferences",
         };
-        var selector = focusMap[target];
+        const selector = focusMap[target];
         if (selector) {
           window.requestAnimationFrame(function () {
-            var node = document.getElementById(selector) || document.querySelector(selector);
+            const node = document.getElementById(selector) || document.querySelector(selector);
             if (node && typeof node.focus === "function") {
               node.focus({ preventScroll: true });
             }
@@ -3381,8 +3385,8 @@ function renderPrimaryMatchCards(entries, profile) {
   // Active filter chip dismissal, clears the field from the form and re-runs match
   root.querySelectorAll("[data-clear-filter]").forEach(function (chip) {
     chip.addEventListener("click", function () {
-      var field = chip.getAttribute("data-clear-filter");
-      var form = document.getElementById("matchForm");
+      const field = chip.getAttribute("data-clear-filter");
+      const form = document.getElementById("matchForm");
       if (!form || !field) return;
       if (field === "care_format") {
         form.querySelectorAll('input[name="care_format"]').forEach(function (r) {
@@ -3393,15 +3397,15 @@ function renderPrimaryMatchCards(entries, profile) {
           r.checked = r.value === "Best overall fit";
         });
       } else if (field === "language_preferences") {
-        var lf = form.querySelector(
+        const lf = form.querySelector(
           'input[name="language_preferences"], textarea[name="language_preferences"]',
         );
         if (lf) lf.value = "";
       } else {
-        var el = form.querySelector('[name="' + field + '"]');
+        const el = form.querySelector('[name="' + field + '"]');
         if (el) el.value = "";
       }
-      var newProfile = readCurrentIntakeProfile();
+      const newProfile = readCurrentIntakeProfile();
       executeMatch(newProfile, { scroll: false, source: "filter_chip_dismiss" });
       trackFunnelEvent("match_filter_chip_dismissed", { field: field });
     });
@@ -3409,7 +3413,7 @@ function renderPrimaryMatchCards(entries, profile) {
 
   root.querySelectorAll("[data-match-primary-cta]").forEach(function (link) {
     link.addEventListener("click", function () {
-      var slug = link.getAttribute("data-match-primary-cta") || "";
+      const slug = link.getAttribute("data-match-primary-cta") || "";
       trackFunnelEvent(
         "match_primary_cta_clicked",
         buildMatchTrackingPayload(slug, {
@@ -3427,13 +3431,13 @@ function renderPrimaryMatchCards(entries, profile) {
   root.querySelectorAll("[data-mx-outreach]").forEach(function (details) {
     details.addEventListener("toggle", function () {
       if (!details.open) return;
-      var slug = details.getAttribute("data-mx-outreach") || "";
+      const slug = details.getAttribute("data-mx-outreach") || "";
       trackFunnelEvent("outreach_panel_opened", {
         surface: "match_card",
         therapist_slug: slug,
       });
       if (!emailNudgeShownThisSession) {
-        var alreadyDismissed = false;
+        let alreadyDismissed = false;
         try {
           alreadyDismissed = !!window.sessionStorage.getItem("mxEmailNudge");
         } catch (_) {}
@@ -3447,13 +3451,13 @@ function renderPrimaryMatchCards(entries, profile) {
 
   root.querySelectorAll("[data-mx-outreach] [data-outreach-copy-message]").forEach(function (btn) {
     btn.addEventListener("click", async function () {
-      var details = btn.closest("[data-mx-outreach]");
-      var slug = details ? details.getAttribute("data-mx-outreach") || "" : "";
-      var bodyEl = details ? details.querySelector("[data-outreach-message-body]") : null;
-      var text = bodyEl ? bodyEl.textContent || "" : "";
+      const details = btn.closest("[data-mx-outreach]");
+      const slug = details ? details.getAttribute("data-mx-outreach") || "" : "";
+      const bodyEl = details ? details.querySelector("[data-outreach-message-body]") : null;
+      const text = bodyEl ? bodyEl.textContent || "" : "";
       if (!text) return;
-      var labelEl = btn.querySelector("span");
-      var originalLabel = labelEl ? labelEl.textContent : "";
+      const labelEl = btn.querySelector("span");
+      const originalLabel = labelEl ? labelEl.textContent : "";
       try {
         await navigator.clipboard.writeText(text);
         if (labelEl) labelEl.textContent = "Copied";
@@ -3479,8 +3483,8 @@ function renderPrimaryMatchCards(entries, profile) {
 
   root.querySelectorAll("[data-mx-outreach] .outreach-script-call").forEach(function (link) {
     link.addEventListener("click", function () {
-      var details = link.closest("[data-mx-outreach]");
-      var slug = details ? details.getAttribute("data-mx-outreach") || "" : "";
+      const details = link.closest("[data-mx-outreach]");
+      const slug = details ? details.getAttribute("data-mx-outreach") || "" : "";
       trackFunnelEvent("outreach_call_clicked", {
         surface: "match_card",
         therapist_slug: slug,
@@ -3495,15 +3499,15 @@ function renderPrimaryMatchCards(entries, profile) {
 
   root.querySelectorAll("[data-mx-outreach] [data-outreach-close]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      var details = btn.closest("details");
+      const details = btn.closest("details");
       if (details) details.open = false;
     });
   });
 
-  var summaryPrimaryAction = document.getElementById("startWithLeadButton");
+  const summaryPrimaryAction = document.getElementById("startWithLeadButton");
   if (summaryPrimaryAction) {
     summaryPrimaryAction.addEventListener("click", function () {
-      var slug = summaryPrimaryAction.getAttribute("data-match-summary-primary") || "";
+      const slug = summaryPrimaryAction.getAttribute("data-match-summary-primary") || "";
       trackFunnelEvent(
         "match_summary_primary_clicked",
         buildMatchTrackingPayload(slug, {
@@ -3515,7 +3519,7 @@ function renderPrimaryMatchCards(entries, profile) {
 
   root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
     link.addEventListener("click", function () {
-      var slug = link.getAttribute("data-match-profile-link") || "";
+      const slug = link.getAttribute("data-match-profile-link") || "";
       trackFunnelEvent(
         "match_result_profile_opened",
         buildMatchTrackingPayload(slug, {
@@ -3531,10 +3535,10 @@ function renderPrimaryMatchCards(entries, profile) {
     btn.dataset.boundSaveClick = "true";
     btn.addEventListener("click", function (event) {
       event.preventDefault();
-      var slug = btn.getAttribute("data-save-slug") || "";
+      let slug = btn.getAttribute("data-save-slug") || "";
       if (!slug) {
-        var card = btn.closest(".mx-hero, .mx-card");
-        var anchor = card
+        const card = btn.closest(".mx-hero, .mx-card");
+        const anchor = card
           ? card.querySelector("[data-match-primary-cta], [data-match-profile-link]")
           : null;
         if (anchor) {
@@ -3546,7 +3550,7 @@ function renderPrimaryMatchCards(entries, profile) {
       }
       if (!slug) return;
 
-      var result = toggleSavedSlug(slug, { surface: "match_results" });
+      const result = toggleSavedSlug(slug, { surface: "match_results" });
       trackFunnelEvent("match_card_save_clicked", buildMatchTrackingPayload(slug, {}));
       recordMatchSessionInteraction("save_click", { slug: slug });
 
@@ -3565,13 +3569,13 @@ function renderPrimaryMatchCards(entries, profile) {
   });
 
   if (typeof window.IntersectionObserver === "function") {
-    var impressionSeen = new Set();
-    var impressionObserver = new window.IntersectionObserver(
+    const impressionSeen = new Set();
+    const impressionObserver = new window.IntersectionObserver(
       function (entries) {
         entries.forEach(function (entry) {
           if (!entry.isIntersecting) return;
-          var card = entry.target;
-          var slug = (card.querySelector("[data-match-primary-cta]") || {}).getAttribute
+          const card = entry.target;
+          const slug = (card.querySelector("[data-match-primary-cta]") || {}).getAttribute
             ? card.querySelector("[data-match-primary-cta]").getAttribute("data-match-primary-cta")
             : "";
           if (!slug || impressionSeen.has(slug)) return;
@@ -3594,11 +3598,11 @@ function renderPrimaryMatchCards(entries, profile) {
     });
   }
 
-  var showMoreBtn = document.getElementById("matchShowMore");
+  const showMoreBtn = document.getElementById("matchShowMore");
   if (showMoreBtn) {
     showMoreBtn.addEventListener("click", function () {
-      var moreSection = root.querySelector(".mx-more-cards");
-      var showMoreWrap = root.querySelector(".mx-show-more-wrap");
+      const moreSection = root.querySelector(".mx-more-cards");
+      const showMoreWrap = root.querySelector(".mx-show-more-wrap");
       if (moreSection) {
         moreSection.hidden = false;
         moreSection.classList.add("is-revealed");
@@ -3611,7 +3615,7 @@ function renderPrimaryMatchCards(entries, profile) {
     });
   }
 
-  var compareTrigger = document.getElementById("matchCompareTrigger");
+  const compareTrigger = document.getElementById("matchCompareTrigger");
   if (compareTrigger) {
     compareTrigger.addEventListener("click", async function () {
       trackFunnelEvent("match_compare_opened", { result_count: allEntries.length });
@@ -3619,7 +3623,7 @@ function renderPrimaryMatchCards(entries, profile) {
       // on first open. Await it so the scrollIntoView below targets the
       // element after it's been populated.
       await renderComparison(allEntries);
-      var compareEl = document.getElementById("matchCompare");
+      const compareEl = document.getElementById("matchCompare");
       if (compareEl) {
         compareEl.scrollIntoView({ behavior: "smooth", block: "start" });
       }
@@ -3627,20 +3631,20 @@ function renderPrimaryMatchCards(entries, profile) {
     });
   }
 
-  var noFitOpenBtn = document.getElementById("matchNoFitOpen");
+  const noFitOpenBtn = document.getElementById("matchNoFitOpen");
   if (noFitOpenBtn) {
     noFitOpenBtn.addEventListener("click", function () {
       trackFunnelEvent("match_no_fit_feedback_opened", { result_count: allEntries.length });
-      var dialog = document.getElementById("noFitFeedbackDialog");
+      const dialog = document.getElementById("noFitFeedbackDialog");
       if (dialog && typeof dialog.showModal === "function") dialog.showModal();
     });
   }
 
-  var stickyBar = document.getElementById("matchRefineSticky");
-  var stickyCount = document.getElementById("matchRefineStickyCount");
+  const stickyBar = document.getElementById("matchRefineSticky");
+  const stickyCount = document.getElementById("matchRefineStickyCount");
   if (stickyBar) {
     stickyBar.hidden = false;
-    var activeCount = countActiveRefinements(profile);
+    const activeCount = countActiveRefinements(profile);
     if (stickyCount) {
       if (activeCount) {
         stickyCount.textContent = activeCount;
@@ -3666,14 +3670,14 @@ function safeRenderResults(entries, profile) {
   }
 }
 
-var matchEntriesBySlug = Object.create(null);
-var currentMatchSlugs = [];
-var emailNudgeShownThisSession = false;
+let matchEntriesBySlug = Object.create(null);
+let currentMatchSlugs = [];
+let emailNudgeShownThisSession = false;
 
 function rememberEntriesForDetails(entries) {
   matchEntriesBySlug = Object.create(null);
   currentMatchSlugs = [];
-  var missingContact = [];
+  const missingContact = [];
   (entries || []).forEach(function (entry) {
     if (entry && entry.therapist && entry.therapist.slug) {
       matchEntriesBySlug[entry.therapist.slug] = entry;
@@ -3693,10 +3697,10 @@ function rememberEntriesForDetails(entries) {
 
 function showMatchEmailNudge(root) {
   if (document.getElementById("matchEmailNudge")) return;
-  var slugs = currentMatchSlugs.slice(0, 5);
+  const slugs = currentMatchSlugs.slice(0, 5);
   if (!slugs.length) return;
 
-  var nudge = document.createElement("div");
+  const nudge = document.createElement("div");
   nudge.className = "mx-email-nudge";
   nudge.id = "matchEmailNudge";
   nudge.innerHTML =
@@ -3708,12 +3712,12 @@ function showMatchEmailNudge(root) {
     '<p class="mx-email-nudge-status" id="matchEmailNudgeStatus"></p>' +
     '<button type="button" class="mx-email-nudge-dismiss" id="matchEmailNudgeDismiss">No thanks</button>';
 
-  var anchor =
+  const anchor =
     root.querySelector(".mx-compare-trigger-wrap") || root.querySelector(".mx-no-fit-link-wrap");
   if (anchor && anchor.parentNode) {
     anchor.parentNode.insertBefore(nudge, anchor);
   } else {
-    var panel = root.querySelector(".results-panel");
+    const panel = root.querySelector(".results-panel");
     if (panel) panel.appendChild(nudge);
   }
 
@@ -3729,10 +3733,10 @@ function showMatchEmailNudge(root) {
 
   document.getElementById("matchEmailNudgeForm").addEventListener("submit", async function (event) {
     event.preventDefault();
-    var input = nudge.querySelector(".mx-email-nudge-input");
-    var btn = nudge.querySelector(".mx-email-nudge-btn");
-    var status = document.getElementById("matchEmailNudgeStatus");
-    var email = String((input && input.value) || "").trim();
+    const input = nudge.querySelector(".mx-email-nudge-input");
+    const btn = nudge.querySelector(".mx-email-nudge-btn");
+    const status = document.getElementById("matchEmailNudgeStatus");
+    const email = String((input && input.value) || "").trim();
     if (!email) {
       status.textContent = "Enter your email address.";
       status.className = "mx-email-nudge-status mx-email-nudge-status--error";
@@ -3744,7 +3748,7 @@ function showMatchEmailNudge(root) {
     status.className = "mx-email-nudge-status";
     trackFunnelEvent("match_email_nudge_send_attempted", { slug_count: slugs.length });
     try {
-      var response = await window.fetch("/api/review/saved-list/email", {
+      const response = await window.fetch("/api/review/saved-list/email", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -3754,7 +3758,7 @@ function showMatchEmailNudge(root) {
           }),
         }),
       });
-      var payload = await response.json().catch(function () {
+      const payload = await response.json().catch(function () {
         return {};
       });
       if (!response.ok) {
@@ -3775,29 +3779,29 @@ function showMatchEmailNudge(root) {
 }
 
 function renderDetailsBody(entry) {
-  var therapist = entry.therapist || {};
-  var locationLabel = getLocationModalityLabel(therapist);
-  var availabilityHtml = renderAvailabilityBadge(therapist);
-  var costLabel = getCostLabel(therapist);
+  const therapist = entry.therapist || {};
+  const locationLabel = getLocationModalityLabel(therapist);
+  const availabilityHtml = renderAvailabilityBadge(therapist);
+  const costLabel = getCostLabel(therapist);
 
-  var modalities = Array.isArray(therapist.treatment_modalities)
+  const modalities = Array.isArray(therapist.treatment_modalities)
     ? therapist.treatment_modalities.filter(Boolean)
     : [];
-  var populations = Array.isArray(therapist.client_populations)
+  const populations = Array.isArray(therapist.client_populations)
     ? therapist.client_populations.filter(Boolean)
     : [];
 
-  var approachHtml = modalities.length
+  const approachHtml = modalities.length
     ? '<div class="bth-modal-row"><span class="bth-modal-row-label">Approach</span><span class="bth-modal-row-value">' +
       escapeHtml(modalities.slice(0, 6).join(" · ")) +
       "</span></div>"
     : "";
-  var seesHtml = populations.length
+  const seesHtml = populations.length
     ? '<div class="bth-modal-row"><span class="bth-modal-row-label">Sees</span><span class="bth-modal-row-value">' +
       escapeHtml(populations.slice(0, 6).join(" · ")) +
       "</span></div>"
     : "";
-  var costHtml = costLabel
+  const costHtml = costLabel
     ? '<div class="bth-modal-row"><span class="bth-modal-row-label">Cost</span><span class="bth-modal-row-value">' +
       escapeHtml(costLabel) +
       "</span></div>"
@@ -3805,9 +3809,9 @@ function renderDetailsBody(entry) {
 
   // Reaching out, only render labels when the corresponding clinician
   // field is populated.
-  var contactGuidance = String(therapist.contact_guidance || "").trim();
-  var firstStep = String(therapist.first_step_expectation || "").trim();
-  var reachingOutItems = "";
+  const contactGuidance = String(therapist.contact_guidance || "").trim();
+  const firstStep = String(therapist.first_step_expectation || "").trim();
+  let reachingOutItems = "";
   if (contactGuidance) {
     reachingOutItems +=
       '<div class="bth-modal-reach-item"><strong>What to include:</strong> ' +
@@ -3821,8 +3825,8 @@ function renderDetailsBody(entry) {
       "</div>";
   }
 
-  var ctaInfo = buildModalPrimaryCta(therapist, entry);
-  var primaryCtaHtml =
+  const ctaInfo = buildModalPrimaryCta(therapist, entry);
+  const primaryCtaHtml =
     '<a href="' +
     escapeHtml(ctaInfo.href) +
     '" class="bth-modal-cta" data-match-primary-cta="' +
@@ -3837,7 +3841,7 @@ function renderDetailsBody(entry) {
 
   // Secondary contact line (shows whichever channels weren't already the
   // primary CTA, so we never double-up).
-  var reachingOutHtml =
+  const reachingOutHtml =
     '<div class="bth-modal-reaching-out">' +
     (reachingOutItems
       ? '<h4 class="bth-modal-section-label">Reaching out</h4>' + reachingOutItems
@@ -3845,7 +3849,7 @@ function renderDetailsBody(entry) {
     primaryCtaHtml +
     "</div>";
 
-  var teaserHtml =
+  const teaserHtml =
     '<a href="' +
     escapeHtml(buildTherapistProfileHref(therapist) + "#outreach") +
     '" class="bth-modal-teaser" data-modal-outreach-link="' +
@@ -3893,14 +3897,14 @@ function renderDetailsBody(entry) {
 // preferred_contact_method, with a strict fallback ladder when null.
 // Returns { href, label, routeLabel, routeKey, external }.
 function buildModalPrimaryCta(therapist, entry) {
-  var method = String(therapist.preferred_contact_method || "").toLowerCase();
-  var phone = String(therapist.phone || "").trim();
-  var email = String(therapist.email || "").trim();
-  var booking = String(therapist.booking_url || "").trim();
-  var website = String(therapist.website || "").trim();
+  const method = String(therapist.preferred_contact_method || "").toLowerCase();
+  const phone = String(therapist.phone || "").trim();
+  const email = String(therapist.email || "").trim();
+  const booking = String(therapist.booking_url || "").trim();
+  const website = String(therapist.website || "").trim();
 
   function emailHref() {
-    var route = getPreferredOutreach(entry);
+    const route = getPreferredOutreach(entry);
     if (route && route.href && /^mailto:/i.test(route.href)) return route.href;
     return "mailto:" + email;
   }
@@ -3979,10 +3983,10 @@ function buildModalPrimaryCta(therapist, entry) {
 }
 
 function openMatchDetails(slug) {
-  var entry = matchEntriesBySlug[slug];
+  const entry = matchEntriesBySlug[slug];
   if (!entry) return false;
-  var dialog = document.getElementById("matchDetailsDialog");
-  var body = document.getElementById("matchDetailsBody");
+  const dialog = document.getElementById("matchDetailsDialog");
+  const body = document.getElementById("matchDetailsBody");
   if (!dialog || !body || typeof dialog.showModal !== "function") return false;
   body.innerHTML = renderDetailsBody(entry);
   if (!dialog.open) dialog.showModal();
@@ -3990,8 +3994,8 @@ function openMatchDetails(slug) {
 }
 
 function bindMatchDetailsDialog() {
-  var dialog = document.getElementById("matchDetailsDialog");
-  var close = document.getElementById("matchDetailsClose");
+  const dialog = document.getElementById("matchDetailsDialog");
+  const close = document.getElementById("matchDetailsClose");
   if (!dialog || !close) return;
   close.addEventListener("click", function () {
     if (dialog.open) dialog.close();
@@ -4000,12 +4004,12 @@ function bindMatchDetailsDialog() {
     if (event.target === dialog) dialog.close();
   });
   document.addEventListener("click", function (event) {
-    var link =
+    const link =
       event.target && event.target.closest
         ? event.target.closest("a[data-match-profile-link]")
         : null;
     if (!link) return;
-    var slug = link.getAttribute("data-match-profile-link");
+    const slug = link.getAttribute("data-match-profile-link");
     if (!slug) return;
     if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) return;
     if (openMatchDetails(slug)) {
@@ -4028,7 +4032,7 @@ function isMobileViewport() {
 
 function flashCopyConfirmation(button) {
   if (!button) return;
-  var original = button.getAttribute("data-original-label") || button.textContent;
+  const original = button.getAttribute("data-original-label") || button.textContent;
   button.setAttribute("data-original-label", original);
   button.textContent = "Copied ✓";
   button.classList.add("is-copied");
@@ -4048,7 +4052,7 @@ async function copyTextToClipboard(text) {
     }
   }
   try {
-    var textarea = document.createElement("textarea");
+    const textarea = document.createElement("textarea");
     textarea.value = text;
     textarea.style.position = "fixed";
     textarea.style.opacity = "0";
@@ -4063,14 +4067,14 @@ async function copyTextToClipboard(text) {
 }
 
 function bindContactDialogActions(entry) {
-  var body = document.getElementById("contactDialogBody");
+  const body = document.getElementById("contactDialogBody");
   if (!body) return;
-  var therapist = entry.therapist || {};
+  const therapist = entry.therapist || {};
 
   body.querySelectorAll("[data-contact-copy]").forEach(function (button) {
     button.addEventListener("click", async function () {
-      var value = button.getAttribute("data-contact-copy-value") || "";
-      var ok = await copyTextToClipboard(value);
+      const value = button.getAttribute("data-contact-copy-value") || "";
+      const ok = await copyTextToClipboard(value);
       if (ok) {
         flashCopyConfirmation(button);
         trackFunnelEvent("match_contact_modal_copy", {
@@ -4081,12 +4085,12 @@ function bindContactDialogActions(entry) {
     });
   });
 
-  var copyMessageBtn = body.querySelector("[data-contact-copy-message]");
+  const copyMessageBtn = body.querySelector("[data-contact-copy-message]");
   if (copyMessageBtn) {
     copyMessageBtn.addEventListener("click", async function () {
-      var textarea = body.querySelector("#contactDraftMessage");
-      var text = textarea ? textarea.value : "";
-      var ok = await copyTextToClipboard(text);
+      const textarea = body.querySelector("#contactDraftMessage");
+      const text = textarea ? textarea.value : "";
+      const ok = await copyTextToClipboard(text);
       if (ok) {
         flashCopyConfirmation(copyMessageBtn);
         trackFunnelEvent("match_contact_modal_copy_message", {
@@ -4101,13 +4105,15 @@ function bindContactDialogActions(entry) {
     });
   }
 
-  var sendEmailBtn = body.querySelector("[data-contact-send-email]");
+  const sendEmailBtn = body.querySelector("[data-contact-send-email]");
   if (sendEmailBtn) {
     sendEmailBtn.addEventListener("click", function () {
-      var email = sendEmailBtn.getAttribute("data-contact-send-email") || "";
-      var textarea = body.querySelector("#contactDraftMessage");
-      var bodyText = textarea ? textarea.value : "";
-      var href =
+      const rawEmail = sendEmailBtn.getAttribute("data-contact-send-email") || "";
+      // Allowlist-sanitize a DOM-sourced value before building a navigable URL.
+      const email = rawEmail.replace(/[^a-zA-Z0-9@._%+-]/g, "");
+      const textarea = body.querySelector("#contactDraftMessage");
+      const bodyText = textarea ? textarea.value : "";
+      const href =
         "mailto:" +
         email +
         "?subject=" +
@@ -4122,7 +4128,7 @@ function bindContactDialogActions(entry) {
         method: "email_clicked",
         surface: "contact_modal",
       });
-      var a = document.createElement("a");
+      const a = document.createElement("a");
       a.href = href;
       document.body.appendChild(a);
       a.click();
@@ -4147,12 +4153,12 @@ function bindContactDialogActions(entry) {
 }
 
 function openContactDialog(slug) {
-  var entry = matchEntriesBySlug[slug];
+  const entry = matchEntriesBySlug[slug];
   if (!entry || !entry.therapist) return false;
-  var routes = getContactRoutes(entry);
+  const routes = getContactRoutes(entry);
   if (!routes.length) return false;
-  var dialog = document.getElementById("contactDialog");
-  var body = document.getElementById("contactDialogBody");
+  const dialog = document.getElementById("contactDialog");
+  const body = document.getElementById("contactDialogBody");
   if (!dialog || !body || typeof dialog.showModal !== "function") return false;
   body.innerHTML = renderContactDialogBody(entry, { isMobile: isMobileViewport() });
   if (!dialog.open) dialog.showModal();
@@ -4173,8 +4179,8 @@ function openContactDialog(slug) {
 }
 
 function bindContactDialog() {
-  var dialog = document.getElementById("contactDialog");
-  var close = document.getElementById("contactDialogClose");
+  const dialog = document.getElementById("contactDialog");
+  const close = document.getElementById("contactDialogClose");
   if (!dialog || !close) return;
   close.addEventListener("click", function () {
     if (dialog.open) dialog.close();
@@ -4187,13 +4193,13 @@ function bindContactDialog() {
     "click",
     function (event) {
       if (event.metaKey || event.ctrlKey || event.shiftKey || event.button === 1) return;
-      var target = event.target && event.target.closest ? event.target : null;
+      const target = event.target && event.target.closest ? event.target : null;
       if (!target) return;
-      var trigger = target.closest(
+      const trigger = target.closest(
         "[data-match-primary-cta], [data-fallback-contact-link], [data-contact-trigger]",
       );
       if (!trigger) return;
-      var slug =
+      const slug =
         trigger.getAttribute("data-match-primary-cta") ||
         trigger.getAttribute("data-fallback-contact-link") ||
         trigger.getAttribute("data-contact-trigger");
@@ -4207,14 +4213,14 @@ function bindContactDialog() {
 }
 
 function renderResults(entries, profile) {
-  var refs = getMatchShellRefs();
-  var root = refs.resultsRoot;
-  var hasRefinements = hasMeaningfulRefinements(profile);
-  var primaryEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
+  const refs = getMatchShellRefs();
+  const root = refs.resultsRoot;
+  const hasRefinements = hasMeaningfulRefinements(profile);
+  const primaryEntries = (entries || []).slice(0, PRIMARY_SHORTLIST_LIMIT);
 
   if (!entries.length) {
-    var requestedZip = getRequestedZip(profile);
-    var zipSuggestions = getClosestZipSuggestions(
+    const requestedZip = getRequestedZip(profile);
+    const zipSuggestions = getClosestZipSuggestions(
       profile,
       (therapists || []).map(function (therapist) {
         return { therapist: therapist };
@@ -4232,7 +4238,7 @@ function renderResults(entries, profile) {
       hasRefinements,
     );
     clearRenderedMatchPanels();
-    var refineSectionEmpty = document.getElementById("matchRefineSection");
+    const refineSectionEmpty = document.getElementById("matchRefineSection");
     if (refineSectionEmpty) {
       refineSectionEmpty.setAttribute("open", "");
     }
@@ -4255,14 +4261,14 @@ function renderResults(entries, profile) {
   renderPrimaryMatchCards(entries, profile);
   triggerMotion(root, "motion-enter");
 
-  var guidanceEl = document.getElementById("matchResultsGuidance");
+  const guidanceEl = document.getElementById("matchResultsGuidance");
   if (guidanceEl) {
     guidanceEl.textContent =
       "Start with your top match. Most therapists respond within 2 business days.";
     guidanceEl.hidden = false;
   }
 
-  var zip = String((profile && profile.location_query) || "").trim();
+  const zip = String((profile && profile.location_query) || "").trim();
   if (/^\d{5}$/.test(zip)) {
     try {
       window.sessionStorage.setItem("bth_sort_zip_v1", zip);
@@ -4276,7 +4282,7 @@ function renderResults(entries, profile) {
   }
 
   // Collapse refine section when real results are showing (not starter mode)
-  var refineSection = document.getElementById("matchRefineSection");
+  const refineSection = document.getElementById("matchRefineSection");
   if (refineSection && !starterResultsMode) {
     refineSection.removeAttribute("open");
   } else if (refineSection && starterResultsMode) {
@@ -4284,13 +4290,13 @@ function renderResults(entries, profile) {
   }
 
   // Hide hero content
-  var heroRoot = document.getElementById("matchResults");
+  const heroRoot = document.getElementById("matchResults");
   if (heroRoot) {
     heroRoot.classList.remove("match-empty");
   }
 }
 
-var MATCH_LOADING_SKELETON_HTML =
+const MATCH_LOADING_SKELETON_HTML =
   '<div class="mx-loading" role="status" aria-live="polite">' +
   '<div class="mx-loading-header">' +
   '<div class="mx-loading-kicker">Your matches</div>' +
@@ -4309,13 +4315,13 @@ async function handleSubmit(event) {
   // If the submit was fired from inside the open drawer (the bottom
   // commit button), close the drawer before running so the user actually
   // sees the new results, otherwise the drawer occludes them.
-  var drawerWasOpen = document.body.classList.contains("match-refine-drawer-open");
+  const drawerWasOpen = document.body.classList.contains("match-refine-drawer-open");
   if (drawerWasOpen) {
     setRefineDrawerOpen(false);
   }
-  var profile = readCurrentIntakeProfile();
+  const profile = readCurrentIntakeProfile();
 
-  var root = getMatchShellRefs().resultsRoot;
+  const root = getMatchShellRefs().resultsRoot;
   if (root) {
     root.className = "match-results match-results-hero match-empty";
     root.innerHTML = MATCH_LOADING_SKELETON_HTML;
@@ -4325,8 +4331,8 @@ async function handleSubmit(event) {
   // params, scores, and renders the new card design. /match keeps
   // working as today on direct visits, only the post-submit render
   // path moved.
-  var params = new URLSearchParams();
-  var scalarKeys = [
+  const params = new URLSearchParams();
+  const scalarKeys = [
     "care_intent",
     "location_query",
     "care_state",
@@ -4339,12 +4345,12 @@ async function handleSubmit(event) {
     "therapist_gender_preference",
   ];
   scalarKeys.forEach(function (k) {
-    var v = profile && profile[k];
+    const v = profile && profile[k];
     if (v != null && String(v) !== "") params.set(k, String(v));
   });
   ["bipolar_focus", "preferred_modalities", "population_fit", "language_preferences"].forEach(
     function (k) {
-      var v = profile && profile[k];
+      const v = profile && profile[k];
       if (Array.isArray(v) && v.length) params.set(k, v.join(","));
     },
   );
@@ -4352,13 +4358,13 @@ async function handleSubmit(event) {
 }
 
 function renderDirectoryShortlist(slugs) {
-  var savedShortlist = readDirectoryShortlist();
-  var selected = slugs
+  const savedShortlist = readDirectoryShortlist();
+  const selected = slugs
     .map(function (slug) {
-      var therapist = therapists.find(function (item) {
+      const therapist = therapists.find(function (item) {
         return item.slug === slug;
       });
-      var shortlistEntry = savedShortlist.find(function (item) {
+      const shortlistEntry = savedShortlist.find(function (item) {
         return item.slug === slug;
       });
       return therapist
@@ -4409,7 +4415,7 @@ function renderDirectoryShortlist(slugs) {
   currentJourneyId = buildJourneyId(null, selected);
   starterResultsMode = false;
   clearStoredMatchResultsUrl();
-  var latestShortlistOutcome = getLatestShortlistOutcome(
+  const latestShortlistOutcome = getLatestShortlistOutcome(
     selected.map(function (entry) {
       return entry.therapist.slug;
     }),
@@ -4440,8 +4446,8 @@ function renderDirectoryShortlist(slugs) {
 }
 
 function resetForm() {
-  var refs = getMatchShellRefs();
-  var form = refs.form;
+  const refs = getMatchShellRefs();
+  const form = refs.form;
   form.reset();
   syncZipResolvedLabel("");
   syncMatchStartState();
@@ -4462,7 +4468,7 @@ function resetForm() {
   renderMatchLandingShell();
   clearRenderedMatchPanels();
   updateShortlistFeedbackUi("");
-  var resetStickyBar = document.getElementById("matchRefineSticky");
+  const resetStickyBar = document.getElementById("matchRefineSticky");
   if (resetStickyBar) resetStickyBar.hidden = true;
   if (refs.feedbackStatus) {
     refs.feedbackStatus.textContent =
@@ -4471,9 +4477,9 @@ function resetForm() {
 }
 
 function refreshIntakeUiFromForm() {
-  var refs = getMatchShellRefs();
-  var form = refs.form;
-  var profile = readCurrentIntakeProfile();
+  const refs = getMatchShellRefs();
+  const form = refs.form;
+  const profile = readCurrentIntakeProfile();
 
   syncZipResolvedLabel(
     profile.location_query || (form.elements.location_query || { value: "" }).value,
@@ -4489,16 +4495,16 @@ function refreshIntakeUiFromForm() {
 (async function init() {
   initValuePillPopover();
   startZipcodesPreload();
-  var therapistsPromise = fetchPublicTherapists();
+  const therapistsPromise = fetchPublicTherapists();
   therapists = await therapistsPromise;
 
   if (isDatasetEmpty(therapists)) {
-    var emptyResultsRoot = document.getElementById("matchResults");
+    const emptyResultsRoot = document.getElementById("matchResults");
     if (emptyResultsRoot) {
       emptyResultsRoot.className = "match-results";
       emptyResultsRoot.innerHTML = renderDatasetEmptyStateMarkup();
     }
-    var emptyHideSelectors = [".match-layout", ".match-refine-backdrop"];
+    const emptyHideSelectors = [".match-layout", ".match-refine-backdrop"];
     emptyHideSelectors.forEach(function (sel) {
       document.querySelectorAll(sel).forEach(function (node) {
         node.setAttribute("hidden", "");
@@ -4508,9 +4514,9 @@ function refreshIntakeUiFromForm() {
     return;
   }
 
-  var landedSource = "direct";
+  let landedSource = "direct";
   try {
-    var landedParams = new URLSearchParams(window.location.search || "");
+    const landedParams = new URLSearchParams(window.location.search || "");
     if (landedParams.has("care_state") || landedParams.has("location_query")) {
       landedSource = "homepage_handoff";
     } else if (landedParams.has("shortlist")) {
@@ -4529,14 +4535,14 @@ function refreshIntakeUiFromForm() {
     surface: "match",
   });
   latestAdaptiveSignals = getMatchAdaptiveStrategy();
-  var refs = getMatchShellRefs();
+  const refs = getMatchShellRefs();
   initMatchCareDropdown();
   bindMatchDetailsDialog();
   bindContactDialog();
   bindRefineButtons();
   bindRefineTeaserShortcuts();
   bindInsuranceAutocomplete();
-  var matchForm = refs.form;
+  const matchForm = refs.form;
   matchForm.addEventListener("submit", handleSubmit);
   matchForm.addEventListener("input", function (event) {
     // Mirror text input values across drawer/primary fields and warm the
@@ -4571,14 +4577,14 @@ function refreshIntakeUiFromForm() {
       handleSubmit({ preventDefault: function () {} });
     }
   });
-  var refinements = refs.refinements;
+  const refinements = refs.refinements;
   if (refinements) {
     refinements.addEventListener("toggle", function () {
       // Keep body class in sync regardless of how the panel was opened
       // (inline summary click vs setRefineDrawerOpen button path).
       // Without this, maybeLiveRecompute bails when the user opens the
       // panel via the inline summary and then changes priority/filters.
-      var bodyHasClass = document.body.classList.contains("match-refine-drawer-open");
+      const bodyHasClass = document.body.classList.contains("match-refine-drawer-open");
       if (refinements.open && !bodyHasClass) {
         setRefineDrawerOpen(true);
       } else if (!refinements.open && bodyHasClass) {
@@ -4592,15 +4598,15 @@ function refreshIntakeUiFromForm() {
       }
     });
   }
-  var resetMatchButton = document.getElementById("resetMatch");
+  const resetMatchButton = document.getElementById("resetMatch");
   if (resetMatchButton) {
     resetMatchButton.addEventListener("click", resetForm);
   }
-  var noFitDialog = document.getElementById("noFitFeedbackDialog");
-  var noFitSubmit = document.getElementById("noFitDialogSubmit");
-  var noFitCancel = document.getElementById("noFitDialogCancel");
-  var noFitClose = document.getElementById("noFitDialogClose");
-  var noFitStatus = document.getElementById("noFitDialogStatus");
+  const noFitDialog = document.getElementById("noFitFeedbackDialog");
+  const noFitSubmit = document.getElementById("noFitDialogSubmit");
+  const noFitCancel = document.getElementById("noFitDialogCancel");
+  const noFitClose = document.getElementById("noFitDialogClose");
+  const noFitStatus = document.getElementById("noFitDialogStatus");
 
   function closeNoFitDialog() {
     if (noFitDialog && typeof noFitDialog.close === "function") noFitDialog.close();
@@ -4620,8 +4626,8 @@ function refreshIntakeUiFromForm() {
     noFitClose.addEventListener("click", closeNoFitDialog);
   }
 
-  var restoredProfile = restoreProfileFromUrl();
-  var restoredShortlist = restoreShortlistFromUrl();
+  const restoredProfile = restoreProfileFromUrl();
+  const restoredShortlist = restoreShortlistFromUrl();
   refreshIntakeUiFromForm();
   if (restoredProfile) {
     hydrateForm(restoredProfile);
@@ -4637,8 +4643,8 @@ function refreshIntakeUiFromForm() {
     syncZipResolvedLabel(matchForm.elements.location_query.value);
     updateShortlistFeedbackUi("");
   }
-  var root = refs.resultsRoot;
-  var fallbackProfile = latestProfile || readCurrentIntakeProfile();
+  const root = refs.resultsRoot;
+  const fallbackProfile = latestProfile || readCurrentIntakeProfile();
   if (
     root &&
     root.classList.contains("match-empty") &&
@@ -4653,9 +4659,9 @@ function refreshIntakeUiFromForm() {
   }
   renderFeedbackInsights();
   document.addEventListener("click", function (event) {
-    var link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
+    const link = event.target && event.target.closest ? event.target.closest("a[href]") : null;
     if (!link) return;
-    var href = link.getAttribute("href") || "";
+    const href = link.getAttribute("href") || "";
     if (href.indexOf("/therapists/") !== -1 && href.indexOf("ref=match") !== -1) {
       try {
         window.sessionStorage.setItem(MATCH_RESULTS_URL_KEY, window.location.href);

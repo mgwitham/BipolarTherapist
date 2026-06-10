@@ -85,9 +85,9 @@ export function buildDirectoryTestControls(overrides) {
 }
 
 export function renderDirectoryTestCard(options) {
-  var therapist = options.therapist;
-  var filters = options.filters || buildDirectoryTestFilters();
-  var shortlist = options.shortlist || [];
+  const therapist = options.therapist;
+  const filters = options.filters || buildDirectoryTestFilters();
+  const shortlist = options.shortlist || [];
   return renderCardMarkup({
     model: buildCardViewModel({
       therapist: therapist,
@@ -103,36 +103,36 @@ export function renderDirectoryTestCard(options) {
 }
 
 export function runDirectoryTestFlow(options) {
-  var therapists = options.therapists;
-  var controls = options.controls || buildDirectoryTestControls();
-  var applied = applyDirectoryFiltersAction({
+  const therapists = options.therapists;
+  const controls = options.controls || buildDirectoryTestControls();
+  const applied = applyDirectoryFiltersAction({
     filters: {},
     getElement: function (id) {
       return controls[id];
     },
   });
 
-  var filtered = therapists.filter(function (therapist) {
+  const filtered = therapists.filter(function (therapist) {
     return matchesDirectoryFilters(applied.filters, therapist);
   });
 
-  var sorted = filtered.slice().sort(function (a, b) {
+  const sorted = filtered.slice().sort(function (a, b) {
     return compareTherapistsWithFilters(applied.filters, a, b);
   });
 
-  var sortChanged = changeDirectorySortAction({
+  const sortChanged = changeDirectorySortAction({
     filters: applied.filters,
     sortBy: controls.sortBy.value,
   });
 
-  var renderState = buildDirectoryRenderState({
+  const renderState = buildDirectoryRenderState({
     results: sorted,
     visibleCount: 24,
     filters: sortChanged.filters,
     directoryPage: { resultsSuffix: "specialists found" },
   });
 
-  var html = renderState.pageItems[0]
+  const html = renderState.pageItems[0]
     ? renderCardMarkup({
         model: buildCardViewModel({
           therapist: renderState.pageItems[0],

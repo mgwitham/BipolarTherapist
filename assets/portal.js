@@ -25,10 +25,10 @@ import {
   submitTherapistPortalRequest,
 } from "./review-api.js";
 
-var slug = new URLSearchParams(window.location.search).get("slug") || "";
-var token = new URLSearchParams(window.location.search).get("token") || "";
-var devLoginEmail = new URLSearchParams(window.location.search).get("dev_login") || "";
-var claimSessionState = null;
+let slug = new URLSearchParams(window.location.search).get("slug") || "";
+let token = new URLSearchParams(window.location.search).get("token") || "";
+const devLoginEmail = new URLSearchParams(window.location.search).get("dev_login") || "";
+let claimSessionState = null;
 
 // Strip the magic-link token from the address bar as fast as possible.
 // Runs synchronously at module load (before any fetch/await) so:
@@ -41,10 +41,10 @@ var claimSessionState = null;
 // has served its purpose.
 function scrubTokenFromUrl() {
   try {
-    var params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.search);
     if (!params.has("token")) return;
     params.delete("token");
-    var nextUrl =
+    const nextUrl =
       window.location.pathname +
       (params.toString() ? "?" + params.toString() : "") +
       window.location.hash;
@@ -62,10 +62,10 @@ scrubTokenFromUrl();
 function applyResolvedSlug(nextSlug) {
   if (!nextSlug) return;
   try {
-    var params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.search);
     if (params.get("slug") !== nextSlug) {
       params.set("slug", nextSlug);
-      var nextUrl =
+      const nextUrl =
         window.location.pathname +
         (params.toString() ? "?" + params.toString() : "") +
         window.location.hash;
@@ -81,7 +81,7 @@ function formatDate(value) {
   if (!value) {
     return "";
   }
-  var date = new Date(value);
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return "";
   }
@@ -127,17 +127,17 @@ function getRelatedApplication(therapist, options) {
     return null;
   }
 
-  var claimedEmail = String(
+  const claimedEmail = String(
     (options && options.claimedEmail) || therapist.claimed_by_email || therapist.email || "",
   )
     .trim()
     .toLowerCase();
-  var therapistSlug = String(therapist.slug || "").trim();
-  var applications = getApplications();
+  const therapistSlug = String(therapist.slug || "").trim();
+  const applications = getApplications();
 
   return (
     applications.find(function (item) {
-      var itemEmail = String(item.email || "")
+      const itemEmail = String(item.email || "")
         .trim()
         .toLowerCase();
       return (
@@ -154,9 +154,9 @@ function buildPortalProgressData(application) {
     return null;
   }
 
-  var portalState = application.portal_state || "";
-  var followUpStatus = application.claim_follow_up_status || "not_started";
-  var stages = [
+  const portalState = application.portal_state || "";
+  const followUpStatus = application.claim_follow_up_status || "not_started";
+  const stages = [
     {
       label: "Claim submitted",
       done:
@@ -195,7 +195,7 @@ function buildPortalProgressData(application) {
     },
   ];
 
-  var nextAction = "Use the update flow if you need to change any operational details.";
+  let nextAction = "Use the update flow if you need to change any operational details.";
   // Each in-review state explains: what's happening, how long it
   // usually takes, and whether the therapist can keep editing. Without
   // that context, a generic "your profile is in review" leaves the
@@ -264,8 +264,8 @@ function getPortalResumeField(application) {
 }
 
 function getPortalSignupHref(therapist, application, focusField) {
-  var focusSuffix = focusField ? "&focus=" + encodeURIComponent(focusField) : "";
-  var targetSlug =
+  const focusSuffix = focusField ? "&focus=" + encodeURIComponent(focusField) : "";
+  const targetSlug =
     (application && application.target_therapist_slug) || (therapist && therapist.slug) || "";
 
   if (application && application.portal_state === "claim_needs_attention" && application.id) {
@@ -284,9 +284,9 @@ function buildPortalProfileCoaching(application) {
     return null;
   }
 
-  var readiness = getTherapistMatchReadiness(application);
-  var missingItems = Array.isArray(readiness.missing_items) ? readiness.missing_items : [];
-  var strengths = Array.isArray(readiness.strengths) ? readiness.strengths : [];
+  const readiness = getTherapistMatchReadiness(application);
+  const missingItems = Array.isArray(readiness.missing_items) ? readiness.missing_items : [];
+  const strengths = Array.isArray(readiness.strengths) ? readiness.strengths : [];
 
   if (!missingItems.length && !strengths.length) {
     return null;
@@ -300,7 +300,7 @@ function buildPortalProfileCoaching(application) {
 }
 
 function buildPortalTimeline(application, therapist) {
-  var items = [];
+  const items = [];
   if (therapist && therapist.claimed_at) {
     items.push({
       label: "Profile claimed",
@@ -356,7 +356,7 @@ function buildPortalExpectations(application) {
     };
   }
 
-  var portalState = application.portal_state || "";
+  const portalState = application.portal_state || "";
 
   if (portalState === "claim_pending_review" || portalState === "claim_in_review") {
     return {
@@ -413,10 +413,10 @@ function buildPortalUrgency(application) {
     return null;
   }
 
-  var portalState = application.portal_state || "";
-  var updatedAt = application.updated_at ? new Date(application.updated_at) : null;
-  var now = new Date();
-  var ageDays =
+  const portalState = application.portal_state || "";
+  const updatedAt = application.updated_at ? new Date(application.updated_at) : null;
+  const now = new Date();
+  const ageDays =
     updatedAt && !Number.isNaN(updatedAt.getTime())
       ? Math.max(0, Math.floor((now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)))
       : 0;
@@ -457,9 +457,9 @@ function buildPortalReviewerFeedback(application) {
     return null;
   }
 
-  var message = String(application.review_request_message || "").trim();
-  var history = Array.isArray(application.revision_history) ? application.revision_history : [];
-  var latestRequest = history
+  const message = String(application.review_request_message || "").trim();
+  const history = Array.isArray(application.revision_history) ? application.revision_history : [];
+  const latestRequest = history
     .slice()
     .reverse()
     .find(function (entry) {
@@ -481,9 +481,9 @@ function buildPortalReviewReadinessSignal(application) {
     return null;
   }
 
-  var portalState = String(application.portal_state || "");
-  var readiness = getTherapistMatchReadiness(application);
-  var missingItems = Array.isArray(readiness.missing_items) ? readiness.missing_items : [];
+  const portalState = String(application.portal_state || "");
+  const readiness = getTherapistMatchReadiness(application);
+  const missingItems = Array.isArray(readiness.missing_items) ? readiness.missing_items : [];
 
   if (
     ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(portalState) &&
@@ -497,8 +497,8 @@ function buildPortalReviewReadinessSignal(application) {
   }
 
   if (portalState === "profile_in_review_after_claim") {
-    var updatedAt = application.updated_at ? new Date(application.updated_at) : null;
-    var ageDays =
+    const updatedAt = application.updated_at ? new Date(application.updated_at) : null;
+    const ageDays =
       updatedAt && !Number.isNaN(updatedAt.getTime())
         ? Math.max(
             0,
@@ -537,15 +537,15 @@ function buildPortalReviewTiming(application) {
     return null;
   }
 
-  var portalState = String(application.portal_state || "");
-  var updatedAt = application.updated_at ? new Date(application.updated_at) : null;
-  var createdAt = application.created_at ? new Date(application.created_at) : null;
-  var now = new Date();
-  var updatedAgeDays =
+  const portalState = String(application.portal_state || "");
+  const updatedAt = application.updated_at ? new Date(application.updated_at) : null;
+  const createdAt = application.created_at ? new Date(application.created_at) : null;
+  const now = new Date();
+  const updatedAgeDays =
     updatedAt && !Number.isNaN(updatedAt.getTime())
       ? Math.max(0, Math.floor((now.getTime() - updatedAt.getTime()) / (1000 * 60 * 60 * 24)))
       : 0;
-  var createdAgeDays =
+  const createdAgeDays =
     createdAt && !Number.isNaN(createdAt.getTime())
       ? Math.max(0, Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24)))
       : 0;
@@ -589,8 +589,8 @@ function buildPortalReviewTiming(application) {
   return null;
 }
 
-var EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-var SIGNIN_RESEND_COOLDOWN_MS = 30 * 1000;
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SIGNIN_RESEND_COOLDOWN_MS = 30 * 1000;
 
 function normalizeSignInEmail(value) {
   return String(value || "")
@@ -628,13 +628,13 @@ function renderSignInFlash(kind) {
 }
 
 function renderLookupState(options) {
-  var shell = document.getElementById("portalShell");
+  const shell = document.getElementById("portalShell");
   if (!shell) {
     return;
   }
 
-  var opts = options || {};
-  var flashKind =
+  const opts = options || {};
+  const flashKind =
     opts.flash ||
     (new URLSearchParams(window.location.search).get("signed_out") === "1" ? "signed_out" : "");
 
@@ -681,12 +681,12 @@ function renderLookupState(options) {
   }
   trackFunnelEvent("portal_signin_viewed", { flash: flashKind || "none" });
 
-  var form = document.getElementById("portalSignInForm");
-  var emailInput = document.getElementById("portalSignInEmail");
-  var submitBtn = document.getElementById("portalSignInSubmit");
-  var feedback = document.getElementById("portalSignInFeedback");
-  var lastSentAt = 0;
-  var signInRequestInFlight = false;
+  const form = document.getElementById("portalSignInForm");
+  const emailInput = document.getElementById("portalSignInEmail");
+  const submitBtn = document.getElementById("portalSignInSubmit");
+  const feedback = document.getElementById("portalSignInFeedback");
+  let lastSentAt = 0;
+  let signInRequestInFlight = false;
 
   if (opts.prefillEmail && emailInput) {
     emailInput.value = opts.prefillEmail;
@@ -721,7 +721,7 @@ function renderLookupState(options) {
 
   form.addEventListener("submit", function (event) {
     event.preventDefault();
-    var email = normalizeSignInEmail(emailInput && emailInput.value);
+    const email = normalizeSignInEmail(emailInput && emailInput.value);
     if (!email) {
       setFeedback("Enter the email on your listing.", "error");
       emailInput && emailInput.focus();
@@ -740,10 +740,10 @@ function renderLookupState(options) {
       return;
     }
 
-    var now = Date.now();
-    var sinceLast = now - lastSentAt;
+    const now = Date.now();
+    const sinceLast = now - lastSentAt;
     if (lastSentAt && sinceLast < SIGNIN_RESEND_COOLDOWN_MS) {
-      var wait = Math.ceil((SIGNIN_RESEND_COOLDOWN_MS - sinceLast) / 1000);
+      const wait = Math.ceil((SIGNIN_RESEND_COOLDOWN_MS - sinceLast) / 1000);
       setFeedback(
         "You just requested a link. Check your inbox, or try again in " + wait + " seconds.",
         "info",
@@ -786,13 +786,13 @@ function describeFeaturedStatus(subscription) {
     return 'You\'re on the free listing. Upgrade to unlock the weekly analytics dashboard, Monday digest email, and same-day profile edits. <a href="/pricing" style="color:var(--teal)">See what\'s included →</a>';
   }
   if (subscription.has_active_featured) {
-    var endDate = formatDate(subscription.current_period_ends_at);
+    const endDate = formatDate(subscription.current_period_ends_at);
     if (subscription.cancel_at_period_end) {
       // Trial-with-scheduled-cancel is the most common way a user ends up
       // here. The end date comes from trialEndsAt (trial cancels never
       // reach a billed period), falling back to currentPeriodEndsAt for
       // post-trial cancels.
-      var cancelDate = formatDate(subscription.trial_ends_at) || endDate;
+      const cancelDate = formatDate(subscription.trial_ends_at) || endDate;
       return (
         "Cancellation scheduled" +
         (cancelDate ? " for " + cancelDate : "") +
@@ -800,7 +800,7 @@ function describeFeaturedStatus(subscription) {
       );
     }
     if (subscription.status === "trialing") {
-      var trialEnd = formatDate(subscription.trial_ends_at);
+      const trialEnd = formatDate(subscription.trial_ends_at);
       return (
         "14-day free trial active." +
         (trialEnd ? " Trial ends " + trialEnd + "." : "") +
@@ -824,13 +824,20 @@ function describeFeaturedStatus(subscription) {
 // therapists never see it; free-tier therapists see it until they
 // dismiss it (tracked per-slug in localStorage so returning visits
 // don't re-show after explicit dismissal).
-var PORTAL_UPSELL_DISMISS_KEY = "bth_portal_upsell_dismissed_v1";
+const PORTAL_UPSELL_DISMISS_KEY = "bth_portal_upsell_dismissed_v1";
+
+// One localStorage entry per slug rather than a single JSON object keyed by
+// slug. This keeps the dismissal flag without ever writing a slug-derived
+// (untrusted) value as an object property name — no dynamic-property write,
+// so no property-injection / prototype-pollution surface at all.
+function upsellDismissStorageKey(slug) {
+  return PORTAL_UPSELL_DISMISS_KEY + ":" + encodeURIComponent(String(slug || ""));
+}
 
 function isUpsellDismissed(slug) {
   try {
-    var raw = window.localStorage.getItem(PORTAL_UPSELL_DISMISS_KEY) || "{}";
-    var parsed = JSON.parse(raw);
-    return Boolean(parsed && parsed[String(slug || "")]);
+    if (!slug) return false;
+    return Boolean(window.localStorage.getItem(upsellDismissStorageKey(slug)));
   } catch (_error) {
     return false;
   }
@@ -838,26 +845,17 @@ function isUpsellDismissed(slug) {
 
 function markUpsellDismissed(slug) {
   try {
-    var key = String(slug || "");
-    if (!key) return;
-    var raw = window.localStorage.getItem(PORTAL_UPSELL_DISMISS_KEY) || "{}";
-    var parsed = {};
-    try {
-      parsed = JSON.parse(raw) || {};
-    } catch (_error) {
-      parsed = {};
-    }
-    parsed[key] = new Date().toISOString();
-    window.localStorage.setItem(PORTAL_UPSELL_DISMISS_KEY, JSON.stringify(parsed));
+    if (!slug) return;
+    window.localStorage.setItem(upsellDismissStorageKey(slug), new Date().toISOString());
   } catch (_error) {
     // best-effort; refusing to persist is fine
   }
 }
 
 function renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail) {
-  var banner = document.getElementById("portalWelcomeUpsell");
+  const banner = document.getElementById("portalWelcomeUpsell");
   if (!banner) return;
-  var isPaid = Boolean(subscription && subscription.has_active_featured);
+  const isPaid = Boolean(subscription && subscription.has_active_featured);
   if (isPaid) {
     banner.hidden = true;
     return;
@@ -867,7 +865,7 @@ function renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail) 
     return;
   }
   banner.hidden = false;
-  var dismiss = document.getElementById("portalWelcomeUpsellDismiss");
+  const dismiss = document.getElementById("portalWelcomeUpsellDismiss");
   if (dismiss && !dismiss.dataset.wired) {
     dismiss.dataset.wired = "1";
     dismiss.addEventListener("click", function () {
@@ -875,23 +873,23 @@ function renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail) 
       banner.hidden = true;
     });
   }
-  var cta = document.getElementById("portalWelcomeUpsellCta");
+  const cta = document.getElementById("portalWelcomeUpsellCta");
   if (cta && !cta.dataset.wired) {
     cta.dataset.wired = "1";
     cta.addEventListener("click", async function (event) {
       if (event && event.preventDefault) event.preventDefault();
       if (!therapistSlug) return;
-      var originalLabel = cta.textContent;
+      const originalLabel = cta.textContent;
       cta.disabled = true;
       cta.textContent = "Opening secure checkout...";
       try {
-        var result = await createStripeFeaturedCheckoutSession({
+        const result = await createStripeFeaturedCheckoutSession({
           therapist_slug: therapistSlug,
           email: therapistEmail || "",
           plan: "paid_monthly",
           return_path: "/portal.html?slug=" + encodeURIComponent(therapistSlug),
         });
-        var checkoutUrl = result && result.url ? safeStripeRedirectUrl(result.url) : "";
+        const checkoutUrl = result && result.url ? safeStripeRedirectUrl(result.url) : "";
         if (checkoutUrl) {
           window.location.href = checkoutUrl;
           return;
@@ -901,7 +899,7 @@ function renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail) 
         // Fall back to /pricing so the user still has a path forward.
         cta.disabled = false;
         cta.textContent = originalLabel;
-        var params = new URLSearchParams();
+        const params = new URLSearchParams();
         params.set("slug", therapistSlug);
         if (therapistEmail) params.set("email", therapistEmail);
         window.location.href = "/pricing?" + params.toString();
@@ -915,19 +913,19 @@ function renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail) 
 // sudden tier change on the end date. Idempotent, re-renders cleanly
 // if subscription state changes without leaving a duplicate element.
 function renderCancelScheduledBanner(subscription) {
-  var existing = document.getElementById("portalCancelScheduledBanner");
+  const existing = document.getElementById("portalCancelScheduledBanner");
   if (existing && existing.parentNode) {
     existing.parentNode.removeChild(existing);
   }
   if (!subscription || !subscription.cancel_at_period_end || !subscription.has_active_featured) {
     return;
   }
-  var endIso = subscription.trial_ends_at || subscription.current_period_ends_at || "";
-  var endLabel = endIso ? formatDate(endIso) : "";
-  var shell = document.getElementById("portalShell");
+  const endIso = subscription.trial_ends_at || subscription.current_period_ends_at || "";
+  const endLabel = endIso ? formatDate(endIso) : "";
+  const shell = document.getElementById("portalShell");
   if (!shell) return;
-  var hero = shell.querySelector(".portal-hero");
-  var banner = document.createElement("section");
+  const hero = shell.querySelector(".portal-hero");
+  const banner = document.createElement("section");
   banner.id = "portalCancelScheduledBanner";
   banner.className = "portal-card";
   banner.style.cssText = "border:1px solid #f59e0b;background:#fffbeb;margin-bottom:1rem";
@@ -949,17 +947,17 @@ function renderCancelScheduledBanner(subscription) {
 }
 
 function renderFeaturedCard(subscription) {
-  var body = document.getElementById("portalFeaturedBody");
-  var actions = document.getElementById("portalFeaturedActions");
+  const body = document.getElementById("portalFeaturedBody");
+  const actions = document.getElementById("portalFeaturedActions");
   if (!body || !actions) {
     return;
   }
   body.textContent = describeFeaturedStatus(subscription);
-  var hasCustomer = Boolean(
+  const hasCustomer = Boolean(
     subscription && subscription.plan && subscription.plan !== "none" && subscription.status,
   );
-  var showUpgrade = !subscription || !subscription.has_active_featured;
-  var buttons = "";
+  const showUpgrade = !subscription || !subscription.has_active_featured;
+  let buttons = "";
   if (showUpgrade) {
     buttons +=
       '<button class="btn-primary" type="button" id="portalFeaturedUpgradeButton">Start 14-day free trial</button>';
@@ -968,7 +966,7 @@ function renderFeaturedCard(subscription) {
     // Surface cancel intent front and center, this is the action users
     // look for most urgently on a trial and it was buried under "Manage
     // billing" (sounded like a payment-method update, not a cancel path).
-    var billingLabel =
+    const billingLabel =
       subscription && subscription.status === "trialing"
         ? "Manage subscription · Cancel trial"
         : "Manage subscription";
@@ -979,27 +977,27 @@ function renderFeaturedCard(subscription) {
   }
   actions.innerHTML = buttons;
 
-  var upgradeButton = document.getElementById("portalFeaturedUpgradeButton");
+  const upgradeButton = document.getElementById("portalFeaturedUpgradeButton");
   if (upgradeButton) {
     upgradeButton.addEventListener("click", handleFeaturedUpgradeClick);
   }
-  var billingButton = document.getElementById("portalFeaturedBillingButton");
+  const billingButton = document.getElementById("portalFeaturedBillingButton");
   if (billingButton) {
     billingButton.addEventListener("click", handleFeaturedBillingClick);
   }
 }
 
 function handleFeaturedUpgradeClick(event) {
-  var card = document.getElementById("portalFeaturedCard");
+  const card = document.getElementById("portalFeaturedCard");
   if (!card) {
     return;
   }
-  var slug = card.getAttribute("data-therapist-slug") || "";
-  var email = card.getAttribute("data-therapist-email") || "";
+  const slug = card.getAttribute("data-therapist-slug") || "";
+  const email = card.getAttribute("data-therapist-email") || "";
   if (!slug) {
     return;
   }
-  var params = new URLSearchParams();
+  const params = new URLSearchParams();
   params.set("slug", slug);
   if (email) {
     params.set("email", email);
@@ -1011,21 +1009,21 @@ function handleFeaturedUpgradeClick(event) {
 }
 
 async function handleFeaturedBillingClick(event) {
-  var feedback = document.getElementById("portalFeaturedFeedback");
-  var button = event.currentTarget;
+  const feedback = document.getElementById("portalFeaturedFeedback");
+  const button = event.currentTarget;
   button.disabled = true;
   if (feedback) {
     feedback.textContent = "Opening billing...";
   }
   try {
-    var result = await createStripeBillingPortalSession({
+    const result = await createStripeBillingPortalSession({
       // Return the therapist to their own portal (with slug) instead of
       // the unslugged lookup state. stripe=managed lets the portal know
       // the user just came back from Stripe billing so it can refresh
       // subscription state rather than relying on cached render data.
       return_path: "/portal.html?slug=" + encodeURIComponent(slug || "") + "&stripe=managed",
     });
-    var billingUrl = result && result.url ? safeStripeRedirectUrl(result.url) : "";
+    const billingUrl = result && result.url ? safeStripeRedirectUrl(result.url) : "";
     if (billingUrl) {
       window.location.href = billingUrl;
       return;
@@ -1571,22 +1569,22 @@ function wireAnalyticsActionHandlers(therapist) {
 // counts in chronological order (oldest first). Empty/zero arrays render
 // a flat line without scaling noise.
 function renderAnalyticsSparkline(weeklyCounts) {
-  var counts = Array.isArray(weeklyCounts) ? weeklyCounts.slice(-12) : [];
+  const counts = Array.isArray(weeklyCounts) ? weeklyCounts.slice(-12) : [];
   while (counts.length < 12) counts.unshift(0);
-  var max = counts.reduce(function (m, v) {
+  const max = counts.reduce(function (m, v) {
     return Math.max(m, Number(v) || 0);
   }, 0);
-  var w = 280;
-  var h = 48;
-  var step = w / (counts.length - 1 || 1);
-  var points = counts
+  const w = 280;
+  const h = 48;
+  const step = w / (counts.length - 1 || 1);
+  const points = counts
     .map(function (v, i) {
-      var y = max > 0 ? h - ((Number(v) || 0) / max) * (h - 6) - 3 : h / 2;
+      const y = max > 0 ? h - ((Number(v) || 0) / max) * (h - 6) - 3 : h / 2;
       return i * step + "," + y.toFixed(1);
     })
     .join(" ");
-  var lastIdx = counts.length - 1;
-  var lastY = max > 0 ? h - ((Number(counts[lastIdx]) || 0) / max) * (h - 6) - 3 : h / 2;
+  const lastIdx = counts.length - 1;
+  const lastY = max > 0 ? h - ((Number(counts[lastIdx]) || 0) / max) * (h - 6) - 3 : h / 2;
   return (
     '<svg viewBox="0 0 ' +
     w +
@@ -1910,17 +1908,17 @@ async function loadSubscriptionIntoFeaturedCard() {
     renderPortalWelcomeUpsell(null, slug, "");
     return;
   }
-  var card = document.getElementById("portalFeaturedCard");
-  var therapistSlug = (card && card.getAttribute("data-therapist-slug")) || slug || "";
-  var therapistEmail = (card && card.getAttribute("data-therapist-email")) || "";
+  const card = document.getElementById("portalFeaturedCard");
+  const therapistSlug = (card && card.getAttribute("data-therapist-slug")) || slug || "";
+  const therapistEmail = (card && card.getAttribute("data-therapist-email")) || "";
   try {
-    var result = await fetchTherapistSubscription();
-    var subscription = (result && result.subscription) || null;
+    const result = await fetchTherapistSubscription();
+    const subscription = (result && result.subscription) || null;
     renderFeaturedCard(subscription);
     renderPortalWelcomeUpsell(subscription, therapistSlug, therapistEmail);
     renderCancelScheduledBanner(subscription);
   } catch (_error) {
-    var body = document.getElementById("portalFeaturedBody");
+    const body = document.getElementById("portalFeaturedBody");
     if (body) {
       body.textContent = "Featured status is unavailable right now. Refresh to try again.";
     }
@@ -1931,18 +1929,18 @@ async function loadSubscriptionIntoFeaturedCard() {
 }
 
 function renderStripeReturnBanner() {
-  var params = new URLSearchParams(window.location.search);
-  var state = params.get("stripe");
-  var entry = params.get("entry");
+  const params = new URLSearchParams(window.location.search);
+  const state = params.get("stripe");
+  const entry = params.get("entry");
   if (!state && !entry) {
     return;
   }
-  var shell = document.getElementById("portalShell");
+  const shell = document.getElementById("portalShell");
   if (!shell) {
     return;
   }
-  var message = "";
-  var tone = "neutral";
+  let message = "";
+  let tone = "neutral";
   if (state === "success") {
     message =
       "Trial active. You're live in the directory the moment you save a bio below, no admin review, no waiting.";
@@ -1956,9 +1954,9 @@ function renderStripeReturnBanner() {
   if (!message) {
     return;
   }
-  var bg = tone === "success" ? "#ecfdf5" : "#f1f5f9";
-  var border = tone === "success" ? "#10b981" : "#cbd5e1";
-  var color = tone === "success" ? "#065f46" : "#334155";
+  const bg = tone === "success" ? "#ecfdf5" : "#f1f5f9";
+  const border = tone === "success" ? "#10b981" : "#cbd5e1";
+  const color = tone === "success" ? "#065f46" : "#334155";
   shell.insertAdjacentHTML(
     "afterbegin",
     '<section class="portal-card" style="margin-bottom:1rem;background:' +
@@ -1978,13 +1976,13 @@ function renderStripeReturnBanner() {
 // rather than buried below status cards. One-shot per page load, keyed
 // off the query params so refreshing or clicking around doesn't re-jump.
 function scrollToEditorOnSignupLanding() {
-  var params = new URLSearchParams(window.location.search);
-  var state = params.get("stripe");
-  var entry = params.get("entry");
-  var isSignupLanding = state === "success" || entry === "free";
+  const params = new URLSearchParams(window.location.search);
+  const state = params.get("stripe");
+  const entry = params.get("entry");
+  const isSignupLanding = state === "success" || entry === "free";
   if (!isSignupLanding) return;
   window.setTimeout(function () {
-    var target = document.getElementById("portalEditProfile");
+    const target = document.getElementById("portalEditProfile");
     if (target && typeof target.scrollIntoView === "function") {
       target.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -1996,10 +1994,10 @@ function escapeAttr(value) {
 }
 
 function safeExternalUrl(value) {
-  var raw = String(value || "").trim();
+  const raw = String(value || "").trim();
   if (!raw) return "";
   try {
-    var url = new URL(raw);
+    const url = new URL(raw);
     return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
   } catch (_error) {
     return "";
@@ -2033,8 +2031,8 @@ function computeProfileScore(therapist) {
   // Mirror of computeScore in portal-td-completeness.js, keep the two
   // in sync so the header badge and the panel both display the same
   // number on every render.
-  var t = therapist || {};
-  var score = 40; // signup baseline
+  const t = therapist || {};
+  let score = 40; // signup baseline
   if (t.photo_url) score += 15;
   if (Array.isArray(t.treatment_modalities) && t.treatment_modalities.filter(Boolean).length)
     score += 10;
@@ -2069,12 +2067,12 @@ function getScoreBand(score) {
   return { label: "Needs work", tone: "needs" };
 }
 
-var PORTAL_PHOTO_MAX_BYTES = 4 * 1024 * 1024;
-var PORTAL_PHOTO_ALLOWED_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const PORTAL_PHOTO_MAX_BYTES = 4 * 1024 * 1024;
+const PORTAL_PHOTO_ALLOWED_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
 
 function readFileAsDataUrl(file) {
   return new Promise(function (resolve, reject) {
-    var reader = new FileReader();
+    const reader = new FileReader();
     reader.onload = function () {
       resolve(String(reader.result || ""));
     };
@@ -2086,11 +2084,11 @@ function readFileAsDataUrl(file) {
 }
 
 function bindPortalPhotoUpload(therapist) {
-  var input = document.getElementById("portalPhotoInput");
+  const input = document.getElementById("portalPhotoInput");
   if (!input) return;
-  var preview = document.getElementById("portalPhotoPreview");
-  var feedback = document.getElementById("portalPhotoFeedback");
-  var btnLabel = document.getElementById("portalPhotoBtnLabel");
+  const preview = document.getElementById("portalPhotoPreview");
+  const feedback = document.getElementById("portalPhotoFeedback");
+  const btnLabel = document.getElementById("portalPhotoBtnLabel");
   if (!preview || !feedback || !btnLabel) return;
 
   function setFeedback(message, tone) {
@@ -2101,7 +2099,7 @@ function bindPortalPhotoUpload(therapist) {
   }
 
   input.addEventListener("change", async function () {
-    var file = input.files && input.files[0];
+    const file = input.files && input.files[0];
     if (!file) return;
     if (!PORTAL_PHOTO_ALLOWED_MIMES.has(file.type)) {
       setFeedback("Photo must be a JPG, PNG, or WebP.", "error");
@@ -2113,7 +2111,7 @@ function bindPortalPhotoUpload(therapist) {
       input.value = "";
       return;
     }
-    var dataUrl;
+    let dataUrl;
     try {
       dataUrl = await readFileAsDataUrl(file);
     } catch (_error) {
@@ -2124,13 +2122,13 @@ function bindPortalPhotoUpload(therapist) {
     btnLabel.textContent = "Uploading...";
     setFeedback("Uploading your headshot...", null);
     try {
-      var result = await uploadPortalPhoto(dataUrl, file.name || "headshot");
+      const result = await uploadPortalPhoto(dataUrl, file.name || "headshot");
       if (result && result.photo_url) {
-        var photoUrl = safeExternalUrl(result.photo_url);
+        const photoUrl = safeExternalUrl(result.photo_url);
         if (!photoUrl) {
           throw new Error("Upload completed but returned an invalid photo URL.");
         }
-        var image = document.createElement("img");
+        const image = document.createElement("img");
         image.src = photoUrl;
         image.alt = "";
         preview.replaceChildren(image);
@@ -2159,7 +2157,7 @@ function bindPortalPhotoUpload(therapist) {
 }
 
 async function uploadPortalPhoto(dataUrl, filename) {
-  var response = await fetch("/api/review/portal/photo", {
+  const response = await fetch("/api/review/portal/photo", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -2168,51 +2166,51 @@ async function uploadPortalPhoto(dataUrl, filename) {
       photo_filename: filename || "headshot",
     }),
   });
-  var data = null;
+  let data = null;
   try {
     data = await response.json();
   } catch (_error) {
     // ignore
   }
   if (!response.ok) {
-    var message = (data && data.error) || "Upload failed (HTTP " + response.status + ").";
+    const message = (data && data.error) || "Upload failed (HTTP " + response.status + ").";
     throw new Error(message);
   }
   return data || {};
 }
 
 function renderPortal(therapist, options) {
-  var shell = document.getElementById("portalShell");
+  const shell = document.getElementById("portalShell");
   if (!shell) {
     return;
   }
 
-  var sessionMode = options && options.sessionMode ? options.sessionMode : "public";
-  var verifiedClaim = sessionMode === "claimed";
-  var requestOptions = buildPortalRequestOptions(verifiedClaim, therapist);
-  var claimedEmail = therapist.claimed_by_email || therapist.email || "";
-  var relatedApplication = verifiedClaim
+  const sessionMode = options && options.sessionMode ? options.sessionMode : "public";
+  const verifiedClaim = sessionMode === "claimed";
+  const requestOptions = buildPortalRequestOptions(verifiedClaim, therapist);
+  const claimedEmail = therapist.claimed_by_email || therapist.email || "";
+  const relatedApplication = verifiedClaim
     ? getRelatedApplication(therapist, { claimedEmail: claimedEmail })
     : null;
-  var progress = verifiedClaim ? buildPortalProgressData(relatedApplication) : null;
-  var profileCoaching = verifiedClaim ? buildPortalProfileCoaching(relatedApplication) : null;
-  var portalTimeline = verifiedClaim ? buildPortalTimeline(relatedApplication, therapist) : [];
-  var expectations = verifiedClaim ? buildPortalExpectations(relatedApplication) : null;
-  var urgency = verifiedClaim ? buildPortalUrgency(relatedApplication) : null;
-  var reviewerFeedback = verifiedClaim ? buildPortalReviewerFeedback(relatedApplication) : null;
-  var reviewReadinessSignal = verifiedClaim
+  const progress = verifiedClaim ? buildPortalProgressData(relatedApplication) : null;
+  const profileCoaching = verifiedClaim ? buildPortalProfileCoaching(relatedApplication) : null;
+  const portalTimeline = verifiedClaim ? buildPortalTimeline(relatedApplication, therapist) : [];
+  const expectations = verifiedClaim ? buildPortalExpectations(relatedApplication) : null;
+  const urgency = verifiedClaim ? buildPortalUrgency(relatedApplication) : null;
+  const reviewerFeedback = verifiedClaim ? buildPortalReviewerFeedback(relatedApplication) : null;
+  const reviewReadinessSignal = verifiedClaim
     ? buildPortalReviewReadinessSignal(relatedApplication)
     : null;
-  var reviewTiming = verifiedClaim ? buildPortalReviewTiming(relatedApplication) : null;
+  const reviewTiming = verifiedClaim ? buildPortalReviewTiming(relatedApplication) : null;
 
   // Upsell banner: only shown on the direct post-signup landing (entry=free).
   // Skipped for returning visits, renderPortalWelcomeUpsell checks the
   // per-slug dismiss state so it never re-appears after the therapist
   // closes it. For all other visits the banner stays empty per the
   // portal redesign decision (premature upsells hurt first impressions).
-  var isSignupFreeLanding =
+  const isSignupFreeLanding =
     verifiedClaim && new URLSearchParams(window.location.search).get("entry") === "free";
-  var welcomeUpsellBanner = isSignupFreeLanding
+  const welcomeUpsellBanner = isSignupFreeLanding
     ? '<section id="portalWelcomeUpsell" class="portal-card" style="border:2px solid #2a9cb3;background:#f0f9fb;margin-bottom:1rem" hidden>' +
       '<div style="display:flex;align-items:flex-start;gap:0.75rem">' +
       '<div style="flex:1">' +
@@ -2230,7 +2228,7 @@ function renderPortal(therapist, options) {
   // viewers don't have a session to sign out of. Stateless tokens mean
   // we can only clear the client-side entry; the server logout endpoint
   // is for funnel instrumentation, not revocation.
-  var signOutControl =
+  const signOutControl =
     sessionMode === "claimed" || sessionMode === "claim_token"
       ? '<button type="button" id="portalSignOut" class="td-header-signout">Sign out</button>'
       : "";
@@ -2241,17 +2239,17 @@ function renderPortal(therapist, options) {
   // sum below. Base of 40 represents what's typically captured at
   // signup (name / location / credentials / specialties / format) so a
   // freshly claimed listing lands around 50–60 per spec.
-  var tdScore = computeProfileScore(therapist);
-  var tdBand = getScoreBand(tdScore);
-  var tdViewPublicHref = "/therapists/" + encodeURIComponent(therapist.slug || "");
-  var tdAccepting = therapist.accepting_new_patients === true;
-  var tdAcceptingHidden = therapist.accepting_new_patients === false;
+  const tdScore = computeProfileScore(therapist);
+  const tdBand = getScoreBand(tdScore);
+  const tdViewPublicHref = "/therapists/" + encodeURIComponent(therapist.slug || "");
+  const tdAccepting = therapist.accepting_new_patients === true;
+  const tdAcceptingHidden = therapist.accepting_new_patients === false;
 
   // Headshot upload is handled inline by the completeness panel. These
   // hidden hooks keep the shared upload handler available without
   // rendering a duplicate standalone card.
-  var hasPhoto = Boolean(therapist.photo_url);
-  var photoZone = verifiedClaim
+  const hasPhoto = Boolean(therapist.photo_url);
+  const photoZone = verifiedClaim
     ? '<form class="portal-photo-shell" id="portalPhotoShell" hidden>' +
       '<div id="portalPhotoPreview" hidden></div>' +
       '<input type="file" id="portalPhotoInput" accept="image/jpeg,image/png,image/webp" hidden />' +
@@ -2270,7 +2268,7 @@ function renderPortal(therapist, options) {
   // We keep those IDs on the new structure so the existing JS hydrates
   // active states (e.g. real numbers for paid users) over our static
   // empty-state copy without any handler changes.
-  var planZone = verifiedClaim
+  const planZone = verifiedClaim
     ? '<section class="td-bottom-grid">' +
       // "This week", analytics card. Empty-state copy comes from the
       // spec; handlers replace #portalAnalyticsBody when real numbers
@@ -2308,7 +2306,7 @@ function renderPortal(therapist, options) {
     : "";
 
   // Zone 4, Review activity & coaching. Collapsed under one disclosure.
-  var hasReviewContent = Boolean(
+  const hasReviewContent = Boolean(
     progress ||
     profileCoaching ||
     portalTimeline.length ||
@@ -2318,10 +2316,10 @@ function renderPortal(therapist, options) {
     reviewTiming ||
     reviewerFeedback,
   );
-  var reviewZoneIsActive =
+  const reviewZoneIsActive =
     relatedApplication &&
     !["approved_ready_to_publish", "live"].includes(relatedApplication.portal_state || "");
-  var reviewZone = hasReviewContent
+  const reviewZone = hasReviewContent
     ? '<details class="portal-card portal-review-details"' +
       (reviewZoneIsActive ? " open" : "") +
       '><summary><strong>Review activity &amp; coaching</strong><span class="portal-subtle" style="font-size:0.85rem;margin-left:0.5rem">See your claim status and next steps</span></summary><div class="portal-review-body">' +
@@ -2431,7 +2429,7 @@ function renderPortal(therapist, options) {
     : "";
 
   // Zone 5, Help & account requests. Demoted behind one disclosure.
-  var helpZone =
+  const helpZone =
     '<details class="portal-card portal-help-details"><summary><strong>Help &amp; account requests</strong><span class="portal-subtle" style="font-size:0.85rem;margin-left:0.5rem">Pause, remove, update, or ask a question</span></summary>' +
     '<p class="portal-subtle" style="margin:0.5rem 0 0.9rem">Claim, pause, removal, and profile-update requests route to the review team. Your edits above still publish directly; this form is for things the editor can\'t change.</p>' +
     '<form id="portalRequestForm" class="portal-form"><input type="hidden" name="therapist_slug" value="' +
@@ -2471,15 +2469,15 @@ function renderPortal(therapist, options) {
   // control, not a status banner. The "Not live yet" onboarding state
   // lives separately above the completeness editor (renderNotLiveBar in
   // portal-td-completeness.js), which is the right place for it.
-  var tdAcceptingChipClass =
+  const tdAcceptingChipClass =
     "td-accepting-chip" + (tdAccepting ? " is-on" : tdAcceptingHidden ? " is-off" : " is-unset");
-  var tdAcceptingChipLabel = tdAccepting
+  const tdAcceptingChipLabel = tdAccepting
     ? "Accepting patients"
     : tdAcceptingHidden
       ? "Paused"
       : "Set status";
 
-  var tdHeader =
+  const tdHeader =
     verifiedClaim || sessionMode === "claim_token"
       ? '<section class="portal-card td-header" id="portalTdHeader">' +
         '<div class="td-header-row td-header-row-primary">' +
@@ -2551,9 +2549,9 @@ function renderPortal(therapist, options) {
   // legacy long-form editor stays in the DOM for now but is hidden;
   // any field whose inline form hasn't been built yet (TD-C / TD-D
   // scope) routes to it via the placeholder body.
-  var tdcApi = null;
+  let tdcApi = null;
   if (verifiedClaim && shouldShowCompleteness(therapist)) {
-    var tdcMount = document.getElementById("portalTdCompletenessMount");
+    const tdcMount = document.getElementById("portalTdCompletenessMount");
     if (tdcMount) {
       tdcApi = mountPortalTdCompleteness(tdcMount, therapist, {
         onSaved: function (updatedTherapist) {
@@ -2563,10 +2561,10 @@ function renderPortal(therapist, options) {
           }
         },
         onScoreChange: function (score) {
-          var headerScore = document.getElementById("portalTdScore");
+          const headerScore = document.getElementById("portalTdScore");
           if (!headerScore) return;
-          var bandLabel = "Needs work";
-          var tone = "needs";
+          let bandLabel = "Needs work";
+          let tone = "needs";
           if (score >= 100) {
             bandLabel = "Complete";
             tone = "complete";
@@ -2586,9 +2584,9 @@ function renderPortal(therapist, options) {
 
   document.getElementById("portalRequestForm").addEventListener("submit", async function (event) {
     event.preventDefault();
-    var form = event.currentTarget;
-    var feedback = document.getElementById("portalRequestFeedback");
-    var payload = {
+    const form = event.currentTarget;
+    const feedback = document.getElementById("portalRequestFeedback");
+    const payload = {
       therapist_slug: form.elements.therapist_slug.value,
       therapist_name: form.elements.therapist_name.value,
       requester_name: form.elements.requester_name.value.trim(),
@@ -2617,7 +2615,7 @@ function renderPortal(therapist, options) {
   // scroll the clinician there instead.
   document.querySelectorAll('[data-portal-editor-jump="1"]').forEach(function (link) {
     link.addEventListener("click", function (event) {
-      var target = document.getElementById("portalTdCompletenessMount");
+      const target = document.getElementById("portalTdCompletenessMount");
       if (!target) return;
       event.preventDefault();
       target.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2649,13 +2647,13 @@ function renderPortal(therapist, options) {
   // Tap immediately PATCHes accepting_new_patients. Optimistically
   // updates the visual state, reverts on error. Score badge is
   // independent of this field, so we don't need to recompute it here.
-  var acceptingBtn = document.getElementById("portalTdAccepting");
+  const acceptingBtn = document.getElementById("portalTdAccepting");
   if (acceptingBtn) {
     acceptingBtn.addEventListener("click", async function () {
-      var prev = therapist.accepting_new_patients;
-      var next = prev === true ? false : true;
-      var feedbackEl = document.getElementById("portalTdAcceptingFeedback");
-      var titleEl = document.getElementById("portalTdAcceptingTitle");
+      const prev = therapist.accepting_new_patients;
+      const next = prev === true ? false : true;
+      const feedbackEl = document.getElementById("portalTdAcceptingFeedback");
+      const titleEl = document.getElementById("portalTdAcceptingTitle");
 
       function paint(state) {
         acceptingBtn.classList.remove("is-on", "is-off", "is-unset");
@@ -2680,7 +2678,7 @@ function renderPortal(therapist, options) {
       if (feedbackEl) feedbackEl.textContent = "Saving…";
 
       try {
-        var result = await patchTherapistProfile({ accepting_new_patients: next });
+        const result = await patchTherapistProfile({ accepting_new_patients: next });
         therapist.accepting_new_patients = next;
         if (result && result.therapist) {
           claimSessionState = { therapist: result.therapist };
@@ -2706,7 +2704,7 @@ function renderPortal(therapist, options) {
     });
   }
 
-  var signOutButton = document.getElementById("portalSignOut");
+  const signOutButton = document.getElementById("portalSignOut");
   if (signOutButton) {
     signOutButton.addEventListener("click", async function () {
       signOutButton.disabled = true;
@@ -2721,7 +2719,7 @@ function renderPortal(therapist, options) {
         // Ignore, we still want to clear locally and redirect.
       }
       clearTherapistSessionToken();
-      var redirect = new URL(window.location.href);
+      const redirect = new URL(window.location.href);
       redirect.searchParams.delete("token");
       redirect.searchParams.delete("slug");
       redirect.searchParams.set("signed_out", "1");
@@ -2731,10 +2729,10 @@ function renderPortal(therapist, options) {
 
   if (sessionMode === "claim_token") {
     document.getElementById("acceptClaimButton").addEventListener("click", async function () {
-      var feedback = document.getElementById("claimAcceptFeedback");
+      const feedback = document.getElementById("claimAcceptFeedback");
       feedback.textContent = "Claiming profile...";
       try {
-        var result = await acceptTherapistClaim(token);
+        const result = await acceptTherapistClaim(token);
         // Conversion event for the claim funnel — marks the
         // transition from "clicked the magic link" to "owns the
         // listing." Pairs with claim_link_opened above so the admin
@@ -2773,12 +2771,15 @@ function renderPortal(therapist, options) {
 (async function init() {
   renderStripeReturnBanner();
 
-  if (devLoginEmail) {
+  // Dev-login is a development-only affordance (the server also 404s it outside
+  // NODE_ENV=development). Gate the client attempt on the build mode so a prod
+  // user can't trigger the flow via the ?dev_login= URL param.
+  if (import.meta.env.DEV && devLoginEmail) {
     try {
-      var devResult = await fetchPortalDevLogin(devLoginEmail);
+      const devResult = await fetchPortalDevLogin(devLoginEmail);
       if (devResult && devResult.ok) {
         setTherapistSessionToken("cookie");
-        var devParams = new URLSearchParams(window.location.search);
+        const devParams = new URLSearchParams(window.location.search);
         devParams.delete("dev_login");
         devParams.set("slug", devResult.slug);
         window.location.replace(window.location.pathname + "?" + devParams.toString());
@@ -2809,7 +2810,7 @@ function renderPortal(therapist, options) {
     }
 
     try {
-      var session = await fetchTherapistClaimSession(token);
+      const session = await fetchTherapistClaimSession(token);
       claimSessionState = session;
       if (session.therapist && session.therapist.claim_status === "claimed") {
         trackFunnelEvent("portal_signin_completed", {
@@ -2837,13 +2838,13 @@ function renderPortal(therapist, options) {
     //   - Any page load after a prior successful claim
     if (getTherapistSessionToken()) {
       try {
-        var me = await fetchTherapistMe();
-        var mySlug =
+        const me = await fetchTherapistMe();
+        const mySlug =
           (me && me.therapist && me.therapist.slug) || (me && me.session && me.session.slug) || "";
         if (mySlug) {
           // Preserve any stripe=managed / stripe=success query so the
           // portal's existing stripe-return UI can light up appropriately.
-          var pass = new URLSearchParams(window.location.search);
+          const pass = new URLSearchParams(window.location.search);
           pass.set("slug", mySlug);
           window.location.replace(
             window.location.pathname + "?" + pass.toString() + window.location.hash,
@@ -2864,10 +2865,10 @@ function renderPortal(therapist, options) {
   // which would lock a paused/inactive therapist out of their own portal.
   // /portal/me is session-authed and doesn't apply those visibility
   // filters, so a claimed therapist always reaches their own dashboard.
-  var meTherapist = null;
+  let meTherapist = null;
   if (getTherapistSessionToken()) {
     try {
-      var meResp = await fetchTherapistMe();
+      const meResp = await fetchTherapistMe();
       if (meResp && meResp.therapist && meResp.therapist.slug === slug) {
         meTherapist = meResp.therapist;
       }
@@ -2881,7 +2882,7 @@ function renderPortal(therapist, options) {
     return;
   }
 
-  var therapist = await fetchPublicTherapistBySlug(slug);
+  const therapist = await fetchPublicTherapistBySlug(slug);
   if (!therapist) {
     renderLookupState({ flash: "not_found" });
     return;

@@ -13,6 +13,8 @@ const sharedRules = {
     },
   ],
   eqeqeq: ["error", "always", { null: "ignore" }],
+  "no-var": "error",
+  "prefer-const": "error",
 };
 
 // Browser runtime globals for the Vite frontend (assets/*.js) and the

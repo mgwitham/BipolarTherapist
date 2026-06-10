@@ -36,8 +36,8 @@ import {
 
 function detectProfileViewSource() {
   try {
-    var params = new URLSearchParams(window.location.search || "");
-    var utmSource = (params.get("utm_source") || "").toLowerCase();
+    const params = new URLSearchParams(window.location.search || "");
+    const utmSource = (params.get("utm_source") || "").toLowerCase();
     if (utmSource === "email") {
       return "email";
     }
@@ -47,11 +47,11 @@ function detectProfileViewSource() {
     if (utmSource === "match") {
       return "match";
     }
-    var referrer = String(document.referrer || "").toLowerCase();
+    const referrer = String(document.referrer || "").toLowerCase();
     if (!referrer) {
       return "direct";
     }
-    var currentHost = (window.location.hostname || "").toLowerCase();
+    const currentHost = (window.location.hostname || "").toLowerCase();
     if (currentHost && referrer.indexOf(currentHost) === -1) {
       return "search";
     }
@@ -68,12 +68,12 @@ function detectProfileViewSource() {
 }
 
 function recordProfileViewSafely(slug) {
-  var cleanSlug = String(slug || "").trim();
+  const cleanSlug = String(slug || "").trim();
   if (!cleanSlug) {
     return;
   }
   try {
-    var promise = submitTherapistProfileView({
+    const promise = submitTherapistProfileView({
       therapist_slug: cleanSlug,
       source: detectProfileViewSource(),
     });
@@ -86,13 +86,13 @@ function recordProfileViewSafely(slug) {
 }
 
 function recordCtaClickSafely(slug, route) {
-  var cleanSlug = String(slug || "").trim();
-  var cleanRoute = String(route || "").trim();
+  const cleanSlug = String(slug || "").trim();
+  const cleanRoute = String(route || "").trim();
   if (!cleanSlug || !cleanRoute) {
     return;
   }
   try {
-    var promise = submitTherapistCtaClick({
+    const promise = submitTherapistCtaClick({
       therapist_slug: cleanSlug,
       route: cleanRoute,
     });
@@ -109,7 +109,7 @@ function recordCtaClickSafely(slug, route) {
 // CSP no longer allows (so icons were silently broken in production), and a
 // self-hosted webfont would ship ~450KB for ~12 glyphs. Inline SVG is a few
 // hundred bytes, CSP-clean, and removes a render-blocking third-party request.
-var TI_ICON_PATHS = {
+const TI_ICON_PATHS = {
   bookmark: '<path d="M18 7v14l-6 -4l-6 4v-14a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4" />',
   calendar:
     '<path d="M4 7a2 2 0 0 1 2 -2h12a2 2 0 0 1 2 2v12a2 2 0 0 1 -2 2h-12a2 2 0 0 1 -2 -2v-12" /><path d="M16 3v4" /><path d="M8 3v4" /><path d="M4 11h16" /><path d="M11 15h1" /><path d="M12 15v3" />',
@@ -132,8 +132,8 @@ var TI_ICON_PATHS = {
 // (size, color, spacing) keep applying unchanged — only the glyph source
 // changes from a webfont to inline SVG.
 function tiSvg(name, extraClass) {
-  var paths = TI_ICON_PATHS[name] || "";
-  var cls = "ti-icon" + (extraClass ? " " + extraClass : "");
+  const paths = TI_ICON_PATHS[name] || "";
+  const cls = "ti-icon" + (extraClass ? " " + extraClass : "");
   return (
     '<i class="' +
     cls +
@@ -145,20 +145,20 @@ function tiSvg(name, extraClass) {
 }
 
 function getSlugFromPath(pathname) {
-  var match = String(pathname || "").match(/^\/therapists\/([^/]+)\/?$/);
+  const match = String(pathname || "").match(/^\/therapists\/([^/]+)\/?$/);
   return match ? decodeURIComponent(match[1]) : "";
 }
 
 function buildTherapistProfileUrl(slugValue) {
-  var cleanSlug = String(slugValue || "").trim();
+  const cleanSlug = String(slugValue || "").trim();
   return cleanSlug
     ? `https://www.bipolartherapyhub.com/therapists/${encodeURIComponent(cleanSlug)}/`
     : "https://www.bipolartherapyhub.com/directory";
 }
 
-var profileParams = new URLSearchParams(window.location.search);
-var slug = profileParams.get("slug") || getSlugFromPath(window.location.pathname);
-var profileSource = profileParams.get("source") || "";
+const profileParams = new URLSearchParams(window.location.search);
+const slug = profileParams.get("slug") || getSlugFromPath(window.location.pathname);
+const profileSource = profileParams.get("source") || "";
 
 // Outreach-recipient attribution: when the profile is reached from an
 // outreach email (?ref=outreach), fire a funnel event so the daily
@@ -168,7 +168,7 @@ var profileSource = profileParams.get("source") || "";
   if (profileParams.get("ref") !== "outreach") return;
   if (!slug) return;
   try {
-    var key = "bth_outreach_click_logged:" + slug;
+    const key = "bth_outreach_click_logged:" + slug;
     if (window.sessionStorage && window.sessionStorage.getItem(key)) return;
     if (window.sessionStorage) window.sessionStorage.setItem(key, "1");
   } catch (_error) {
@@ -182,9 +182,9 @@ var profileSource = profileParams.get("source") || "";
     // Analytics is best-effort.
   }
 })();
-var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
-var DIRECTORY_LIST_LIMIT = SAVED_LIST_MAX;
-var activeTherapistContactExperimentVariant = "control";
+const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
+const DIRECTORY_LIST_LIMIT = SAVED_LIST_MAX;
+let activeTherapistContactExperimentVariant = "control";
 
 // Strip everything but digits and + so tel: URIs work across iOS, Android,
 // and VoIP dialers. iOS auto-normalizes "(805) 870-8901" but Android Auto
@@ -195,13 +195,13 @@ function normalizeTelUri(phone) {
 }
 
 function safeExternalUrl(value) {
-  var raw = String(value || "").trim();
+  const raw = String(value || "").trim();
   if (!raw) {
     return "";
   }
 
   try {
-    var url = new URL(raw);
+    const url = new URL(raw);
     return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
   } catch (_error) {
     return "";
@@ -235,18 +235,18 @@ function upsertLinkRel(rel, href) {
 }
 
 function buildTherapistSeoDescription(t) {
-  var name = t.name || "Bipolar therapist";
-  var credentials = t.credentials ? ", " + t.credentials : "";
-  var location = [t.city, t.state].filter(Boolean).join(", ") || "California";
-  var parts = [];
+  const name = t.name || "Bipolar therapist";
+  const credentials = t.credentials ? ", " + t.credentials : "";
+  const location = [t.city, t.state].filter(Boolean).join(", ") || "California";
+  const parts = [];
   parts.push(name + credentials + ", bipolar disorder specialist in " + location + ".");
   if (t.accepting_new_patients) parts.push("Accepting new patients.");
-  var formats = [];
+  const formats = [];
   if (t.accepts_telehealth) formats.push("telehealth");
   if (t.accepts_in_person) formats.push("in-person");
   if (formats.length) parts.push("Offers " + formats.join(" & ") + ".");
   if (t.session_fee_min) {
-    var feeStr =
+    const feeStr =
       "$" +
       t.session_fee_min +
       (t.session_fee_max && t.session_fee_max !== t.session_fee_min
@@ -255,16 +255,16 @@ function buildTherapistSeoDescription(t) {
       "/session";
     parts.push("Fee: " + feeStr + (t.sliding_scale ? " (sliding scale)." : "."));
   }
-  var insurance = (t.insurance_accepted || []).filter(Boolean);
+  const insurance = (t.insurance_accepted || []).filter(Boolean);
   if (insurance.length)
     parts.push(
       "Accepts " + insurance.slice(0, 3).join(", ") + (insurance.length > 3 ? " & more." : "."),
     );
-  var result = parts.join(" ");
+  const result = parts.join(" ");
   return result.length > 158 ? result.slice(0, 155) + "…" : result;
 }
 
-var ZIP_GEO = {
+const ZIP_GEO = {
   90001: [33.9731, -118.2479],
   90002: [33.9494, -118.2466],
   90007: [34.027, -118.2843],
@@ -392,32 +392,42 @@ var ZIP_GEO = {
 };
 
 function buildTherapistJsonLd(t) {
-  var name = t.name || "";
-  var credentials = t.credentials || "";
-  var nameWithCreds = credentials ? name + ", " + credentials : name;
-  var pageUrl = buildTherapistProfileUrl(t.slug || "");
-  var address = {
+  const name = t.name || "";
+  const credentials = t.credentials || "";
+  const nameWithCreds = credentials ? name + ", " + credentials : name;
+  const pageUrl = buildTherapistProfileUrl(t.slug || "");
+  const address = {
     "@type": "PostalAddress",
     addressLocality: t.city || undefined,
     addressRegion: t.state || "CA",
     postalCode: t.zip || undefined,
     addressCountry: "US",
   };
-  var rawBio = t.bio ? t.bio.replace(/<[^>]+>/g, "").trim() : "";
-  var bioDescription = rawBio
+  // Plain-text description for JSON-LD. Strip HTML tags by repeating the
+  // replacement until the string stops changing, so a single pass can't leave
+  // a tag behind (e.g. "<scr<script>ipt>"). The sink is textContent, so this
+  // is defense-in-depth.
+  let bioStripped = t.bio || "";
+  let bioPrev;
+  do {
+    bioPrev = bioStripped;
+    bioStripped = bioStripped.replace(/<[^>]*>/g, "");
+  } while (bioStripped !== bioPrev);
+  const rawBio = bioStripped.trim();
+  const bioDescription = rawBio
     ? rawBio.length > 160
       ? rawBio.slice(0, 160) + "..."
       : rawBio
     : undefined;
-  var sameAsLinks = [];
+  const sameAsLinks = [];
   if (t.license_number) {
     sameAsLinks.push(
       "https://search.dca.ca.gov/results#/advanced?licenseNumber=" +
         encodeURIComponent(t.license_number),
     );
   }
-  var photoUrl = safeExternalUrl(t.photo_url);
-  var person = {
+  const photoUrl = safeExternalUrl(t.photo_url);
+  const person = {
     "@context": "https://schema.org",
     "@type": "Person",
     name: nameWithCreds,
@@ -431,8 +441,8 @@ function buildTherapistJsonLd(t) {
     email: t.email || undefined,
     sameAs: sameAsLinks.length > 0 ? sameAsLinks : undefined,
   };
-  var insurance = (t.insurance_accepted || []).filter(Boolean);
-  var serviceChannels = [];
+  const insurance = (t.insurance_accepted || []).filter(Boolean);
+  const serviceChannels = [];
   if (t.accepts_telehealth) {
     serviceChannels.push({
       "@type": "ServiceChannel",
@@ -440,8 +450,8 @@ function buildTherapistJsonLd(t) {
       availableLanguage: { "@type": "Language", name: "English" },
     });
   }
-  var zipCoords = ZIP_GEO[t.zip];
-  var medicalBusiness = {
+  const zipCoords = ZIP_GEO[t.zip];
+  const medicalBusiness = {
     "@context": "https://schema.org",
     "@type": "MedicalBusiness",
     name: t.practice_name || nameWithCreds,
@@ -457,7 +467,7 @@ function buildTherapistJsonLd(t) {
       ? { "@type": "GeoCoordinates", latitude: zipCoords[0], longitude: zipCoords[1] }
       : undefined,
   };
-  var breadcrumb = {
+  const breadcrumb = {
     "@context": "https://schema.org",
     "@type": "BreadcrumbList",
     itemListElement: [
@@ -476,8 +486,8 @@ function buildTherapistJsonLd(t) {
       { "@type": "ListItem", position: 3, name: nameWithCreds || "Therapist", item: pageUrl },
     ],
   };
-  var faqItems = buildFAQItems(t);
-  var faqSchema = {
+  const faqItems = buildFAQItems(t);
+  const faqSchema = {
     "@context": "https://schema.org",
     "@type": "FAQPage",
     mainEntity: faqItems.map(function (item) {
@@ -510,7 +520,7 @@ function applyTherapistSeo(t) {
   upsertMeta("property", "og:url", canonicalUrl);
   upsertMeta("property", "og:title", seoTitle);
   upsertMeta("property", "og:description", seoDescription);
-  var photoUrl = safeExternalUrl(t.photo_url);
+  const photoUrl = safeExternalUrl(t.photo_url);
   if (photoUrl) {
     upsertMeta("property", "og:image", photoUrl);
   }
@@ -522,19 +532,19 @@ function applyTherapistSeo(t) {
   try {
     ["therapist-jsonld", "therapist-jsonld-breadcrumb", "therapist-jsonld-faq"].forEach(
       function (id) {
-        var el = document.getElementById(id);
+        const el = document.getElementById(id);
         if (el) el.remove();
       },
     );
-    var schemas = buildTherapistJsonLd(t);
-    var ids = [
+    const schemas = buildTherapistJsonLd(t);
+    const ids = [
       "therapist-jsonld",
       "therapist-jsonld-business",
       "therapist-jsonld-breadcrumb",
       "therapist-jsonld-faq",
     ];
     schemas.forEach(function (schema, i) {
-      var script = document.createElement("script");
+      const script = document.createElement("script");
       script.type = "application/ld+json";
       script.id = ids[i] || "therapist-jsonld-" + i;
       script.textContent = JSON.stringify(schema);
@@ -549,26 +559,26 @@ function applyTherapistSeo(t) {
 // Returns [{q, a}] built from live therapist data.
 // Used by both the FAQ section HTML and the FAQPage JSON-LD schema.
 function buildFAQItems(t) {
-  var name = t.name || "This therapist";
-  var first = (t.name || "").split(" ")[0] || "They";
-  var phone = t.phone || null;
-  var website = t.website || t.booking_url || null;
-  var contactPath = [phone ? "calling " + phone : null, website ? "visiting their website" : null]
+  const name = t.name || "This therapist";
+  const first = (t.name || "").split(" ")[0] || "They";
+  const phone = t.phone || null;
+  const website = t.website || t.booking_url || null;
+  let contactPath = [phone ? "calling " + phone : null, website ? "visiting their website" : null]
     .filter(Boolean)
     .join(" or ");
   if (!contactPath) contactPath = "using the contact details on this page";
 
-  var insurance = (t.insurance_accepted || []).filter(Boolean);
-  var fee_min = t.session_fee_min;
-  var fee_max = t.session_fee_max;
-  var sliding = t.sliding_scale;
-  var telehealth = Boolean(t.accepts_telehealth);
-  var inPerson = Boolean(t.accepts_in_person);
-  var modalities = (t.treatment_modalities || []).filter(Boolean);
-  var accepting = Boolean(t.accepting_new_patients);
-  var city = t.city || "their area";
+  const insurance = (t.insurance_accepted || []).filter(Boolean);
+  const fee_min = t.session_fee_min;
+  const fee_max = t.session_fee_max;
+  const sliding = t.sliding_scale;
+  const telehealth = Boolean(t.accepts_telehealth);
+  const inPerson = Boolean(t.accepts_in_person);
+  const modalities = (t.treatment_modalities || []).filter(Boolean);
+  const accepting = Boolean(t.accepting_new_patients);
+  const city = t.city || "their area";
 
-  var items = [];
+  const items = [];
 
   // Q1: Accepting new patients
   items.push({
@@ -606,8 +616,9 @@ function buildFAQItems(t) {
 
   // Q3: Session fee
   if (fee_min) {
-    var feeRange = fee_max && fee_max !== fee_min ? "$" + fee_min + "–$" + fee_max : "$" + fee_min;
-    var feeAnswer =
+    const feeRange =
+      fee_max && fee_max !== fee_min ? "$" + fee_min + "–$" + fee_max : "$" + fee_min;
+    const feeAnswer =
       first +
       "'s session fee is " +
       feeRange +
@@ -653,7 +664,7 @@ function buildFAQItems(t) {
   }
 
   // Q5: Bipolar specialization
-  var modalityNote =
+  const modalityNote =
     modalities.length > 0
       ? " drawing on " +
         modalities.slice(0, 3).join(", ") +
@@ -687,16 +698,16 @@ function buildFAQItems(t) {
 
 // ─── Mobile sticky CTA bar ────────────────────────────────────────────────────
 function buildMobileStickyBar(t) {
-  var phone = t.phone || null;
-  var email = t.email && t.email !== "contact@example.com" ? t.email : "";
-  var website = safeExternalUrl(t.website) || safeExternalUrl(t.booking_url);
-  var phoneDigits = phone ? phone.replace(/[^0-9+]/g, "") : null;
-  var fee_min = t.session_fee_min;
-  var fee_max = t.session_fee_max;
-  var feeLabel = fee_min
+  const phone = t.phone || null;
+  const email = t.email && t.email !== "contact@example.com" ? t.email : "";
+  const website = safeExternalUrl(t.website) || safeExternalUrl(t.booking_url);
+  const phoneDigits = phone ? phone.replace(/[^0-9+]/g, "") : null;
+  const fee_min = t.session_fee_min;
+  const fee_max = t.session_fee_max;
+  const feeLabel = fee_min
     ? "$" + fee_min + (fee_max && fee_max !== fee_min ? "–$" + fee_max : "") + "/session"
     : null;
-  var pref = String(t.preferred_contact_method || "")
+  const pref = String(t.preferred_contact_method || "")
     .trim()
     .toLowerCase();
 
@@ -705,9 +716,9 @@ function buildMobileStickyBar(t) {
   // Primary CTA respects preferred_contact_method (email / phone /
   // booking / website). Falls back to phone-then-email when no
   // preference is set or the preferred channel is missing.
-  var firstNameForLabel = (function () {
-    var titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
-    var words = String(t.name || "")
+  const firstNameForLabel = (function () {
+    const titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
+    const words = String(t.name || "")
       .split(/\s+/)
       .filter(Boolean)
       .filter(function (w) {
@@ -715,8 +726,8 @@ function buildMobileStickyBar(t) {
       });
     return words[0] || "";
   })();
-  var bookingUrl = safeExternalUrl(t.booking_url);
-  var primaryHtml = "";
+  const bookingUrl = safeExternalUrl(t.booking_url);
+  let primaryHtml = "";
   function emailPrimary() {
     return (
       '<a href="mailto:' +
@@ -781,11 +792,11 @@ function buildMobileStickyBar(t) {
 }
 
 function getFirstMeaningfulSentence(value) {
-  var text = String(value || "").trim();
+  const text = String(value || "").trim();
   if (!text) {
     return "";
   }
-  var match = text.match(/^.*?[.!?](?:\s|$)/);
+  const match = text.match(/^.*?[.!?](?:\s|$)/);
   return match ? match[0].trim() : text;
 }
 
@@ -795,9 +806,9 @@ function getContactStrategy(
   routePerformance,
   routeOutcomePerformance,
 ) {
-  var bookingHealthy = isBookingRouteHealthy(therapist);
-  var websiteHealthy = isWebsiteRouteHealthy(therapist);
-  var suppressedRouteNote = "";
+  const bookingHealthy = isBookingRouteHealthy(therapist);
+  const websiteHealthy = isWebsiteRouteHealthy(therapist);
+  let suppressedRouteNote = "";
   if (therapist.booking_url && !bookingHealthy && therapist.website && !websiteHealthy) {
     suppressedRouteNote =
       " The booking link and website both look unavailable right now, so a direct route is safer.";
@@ -808,9 +819,9 @@ function getContactStrategy(
     suppressedRouteNote =
       " The website looks unavailable right now, so a different contact route is safer.";
   }
-  var route = "profile";
-  var routeLabel = "Use the clearest listed contact path";
-  var routeReason = websiteHealthy
+  let route = "profile";
+  let routeLabel = "Use the clearest listed contact path";
+  let routeReason = websiteHealthy
     ? "The clearest contact path on this profile is the best place to start."
     : "A direct contact route is a safer starting point than the website on this profile.";
 
@@ -849,7 +860,7 @@ function getContactStrategy(
     routeReason = "Email is the cleanest direct route available on this profile.";
   }
 
-  var outcomeRoute =
+  const outcomeRoute =
     routeOutcomePerformance &&
     routeOutcomePerformance.top_route &&
     routeOutcomePerformance.confidence !== "none" &&
@@ -857,7 +868,7 @@ function getContactStrategy(
     routeOutcomePerformance.top_route.route !== "unknown"
       ? routeOutcomePerformance.top_route.route
       : "";
-  var performanceRoute =
+  const performanceRoute =
     routePerformance &&
     routePerformance.top_route &&
     routePerformance.confidence !== "none" &&
@@ -865,13 +876,13 @@ function getContactStrategy(
     routePerformance.top_route.route !== "unknown"
       ? routePerformance.top_route.route
       : "";
-  var performanceRouteAvailable =
+  const performanceRouteAvailable =
     (performanceRoute === "booking" && therapist.booking_url && bookingHealthy) ||
     (performanceRoute === "website" && therapist.website && websiteHealthy) ||
     (performanceRoute === "phone" && therapist.phone) ||
     (performanceRoute === "email" && therapist.email && therapist.email !== "contact@example.com");
 
-  var outcomeRouteAvailable =
+  const outcomeRouteAvailable =
     (outcomeRoute === "booking" && therapist.booking_url && bookingHealthy) ||
     (outcomeRoute === "website" && therapist.website && websiteHealthy) ||
     (outcomeRoute === "phone" && therapist.phone) ||
@@ -917,7 +928,7 @@ function getContactStrategy(
         : routeReason;
   }
 
-  var replyWindowCopy = therapist.estimated_wait_time
+  let replyWindowCopy = therapist.estimated_wait_time
     ? "Expect the first useful answer to clarify whether timing is still around " +
       therapist.estimated_wait_time +
       "."
@@ -931,7 +942,7 @@ function getContactStrategy(
     replyWindowCopy += " Early reply follow-through also looks better than usual here.";
   }
 
-  var followUpCopy =
+  const followUpCopy =
     route === "phone"
       ? "If you reach voicemail, leave one concise message and try one more call in 2 to 3 business days."
       : route === "booking"
@@ -940,7 +951,7 @@ function getContactStrategy(
           ? "If there is no response after 2 business days, send one short follow-up and then move to the next route."
           : "If you do not hear back after 2 to 3 business days, follow up once or switch to a more direct route.";
 
-  var backupPlanCopy =
+  const backupPlanCopy =
     therapist.phone && route !== "phone"
       ? "If this stalls, call the practice next and ask whether they are still taking new bipolar-care inquiries."
       : therapist.email && therapist.email !== "contact@example.com" && route !== "email"
@@ -949,11 +960,11 @@ function getContactStrategy(
           ? "If this stalls, use the website contact form as a second route before moving on."
           : "If this stalls after one follow-up, move on to your next saved option instead of waiting indefinitely.";
 
-  var confidenceLabel = "Based on profile details";
-  var confidenceNote =
+  let confidenceLabel = "Based on profile details";
+  let confidenceNote =
     "This recommendation is based on the contact routes and practical details listed on the profile.";
-  var confidenceTone = "profile";
-  var proofLine = "";
+  let confidenceTone = "profile";
+  let proofLine = "";
 
   if (outcomeRoute && outcomeRouteAvailable) {
     confidenceLabel =
@@ -1091,8 +1102,8 @@ function readOutreachOutcomes() {
 }
 
 function buildOutreachQueueUrl(focusSlug) {
-  var shortlist = readShortlist();
-  var slugs = shortlist
+  const shortlist = readShortlist();
+  const slugs = shortlist
     .map(function (item) {
       return item.slug;
     })
@@ -1101,7 +1112,7 @@ function buildOutreachQueueUrl(focusSlug) {
     return "match.html";
   }
 
-  var params = new URLSearchParams();
+  const params = new URLSearchParams();
   params.set("shortlist", slugs.join(","));
   params.set("entry", "directory_shortlist_queue");
   if (focusSlug) {
@@ -1111,8 +1122,8 @@ function buildOutreachQueueUrl(focusSlug) {
 }
 
 function buildShortlistCompareUrl() {
-  var shortlist = readShortlist();
-  var slugs = shortlist
+  const shortlist = readShortlist();
+  const slugs = shortlist
     .map(function (item) {
       return item.slug;
     })
@@ -1121,13 +1132,13 @@ function buildShortlistCompareUrl() {
     return "match.html";
   }
 
-  var params = new URLSearchParams();
+  const params = new URLSearchParams();
   params.set("shortlist", slugs.join(","));
   return "match.html?" + params.toString();
 }
 
 function formatSavedOutcomeLabel(outcome) {
-  var labels = {
+  const labels = {
     reached_out: "Reached out",
     heard_back: "Heard back",
     booked_consult: "Booked consult",
@@ -1152,18 +1163,18 @@ function recordProfileOutreachOutcome(therapist, outcome) {
     return null;
   }
 
-  var shortlist = readShortlist();
-  var shortlistSlugs = shortlist
+  const shortlist = readShortlist();
+  const shortlistSlugs = shortlist
     .map(function (item) {
       return item.slug;
     })
     .filter(Boolean)
     .slice(0, DIRECTORY_LIST_LIMIT);
-  var existing = readOutreachOutcomes();
-  var now = new Date().toISOString();
-  var entryIndex = shortlistSlugs.indexOf(therapist.slug);
+  const existing = readOutreachOutcomes();
+  const now = new Date().toISOString();
+  const entryIndex = shortlistSlugs.indexOf(therapist.slug);
 
-  var entry = {
+  const entry = {
     recorded_at: now,
     journey_id: ["profile", now, shortlistSlugs.join("-") || therapist.slug].join(":"),
     therapist_slug: therapist.slug,
@@ -1203,12 +1214,12 @@ function recordProfileOutreachOutcome(therapist, outcome) {
 }
 
 function buildProfileOutreachQueueState(slugValue) {
-  var shortlist = readShortlist();
-  var shortlistEntry = shortlist.find(function (item) {
+  const shortlist = readShortlist();
+  const shortlistEntry = shortlist.find(function (item) {
     return item.slug === slugValue;
   });
-  var latestOutcome = getLatestOutreachOutcomeForSlug(slugValue);
-  var queueUrl = buildOutreachQueueUrl(slugValue);
+  const latestOutcome = getLatestOutreachOutcomeForSlug(slugValue);
+  const queueUrl = buildOutreachQueueUrl(slugValue);
 
   if (!shortlistEntry && !latestOutcome) {
     return null;
@@ -1261,7 +1272,7 @@ function buildProfileOutreachQueueState(slugValue) {
 }
 
 function getShortlistPriorityRank(value) {
-  var normalized = String(value || "").toLowerCase();
+  const normalized = String(value || "").toLowerCase();
   if (normalized === "best fit") {
     return 3;
   }
@@ -1275,8 +1286,8 @@ function getShortlistPriorityRank(value) {
 }
 
 function buildProfileBackupState(currentTherapist, therapistDirectory) {
-  var shortlist = readShortlist();
-  var backupSignals = summarizeProfileBackupSignals(
+  const shortlist = readShortlist();
+  const backupSignals = summarizeProfileBackupSignals(
     readFunnelEvents(),
     currentTherapist && currentTherapist.slug,
   );
@@ -1284,12 +1295,12 @@ function buildProfileBackupState(currentTherapist, therapistDirectory) {
     return null;
   }
 
-  var alternatives = shortlist
+  const alternatives = shortlist
     .filter(function (item) {
       return item.slug !== currentTherapist.slug;
     })
     .map(function (item) {
-      var therapist = (therapistDirectory || []).find(function (candidate) {
+      const therapist = (therapistDirectory || []).find(function (candidate) {
         return candidate.slug === item.slug;
       });
       return therapist
@@ -1311,7 +1322,7 @@ function buildProfileBackupState(currentTherapist, therapistDirectory) {
       );
     });
 
-  var backup = alternatives[0] || null;
+  const backup = alternatives[0] || null;
   if (!backup) {
     if (
       shortlist.some(function (item) {
@@ -1353,15 +1364,15 @@ function buildProfileBackupState(currentTherapist, therapistDirectory) {
 }
 
 function buildProfileDecisionMemoryState(slugValue) {
-  var shortlistEntry = readShortlist().find(function (item) {
+  const shortlistEntry = readShortlist().find(function (item) {
     return item.slug === slugValue;
   });
   if (!shortlistEntry) {
     return null;
   }
 
-  var latestOutcome = getLatestOutreachOutcomeForSlug(slugValue);
-  var changedCopy = latestOutcome
+  const latestOutcome = getLatestOutreachOutcomeForSlug(slugValue);
+  const changedCopy = latestOutcome
     ? "Since you saved this, the newest signal is " +
       formatSavedOutcomeLabel(latestOutcome.outcome).toLowerCase() +
       ". Use that as more important than your earlier hunch if the two are in conflict."
@@ -1381,7 +1392,7 @@ function buildProfileDecisionMemoryState(slugValue) {
 }
 
 function renderQueueActionButtons(queueState) {
-  var actions = Array.isArray(queueState && queueState.actions) ? queueState.actions : [];
+  const actions = Array.isArray(queueState && queueState.actions) ? queueState.actions : [];
   if (!actions.length) {
     return "";
   }
@@ -1492,7 +1503,7 @@ function renderBackupCard(backupState) {
 }
 
 function toggleShortlist(slugValue) {
-  var wasSaved = isSavedSlug(slugValue);
+  const wasSaved = isSavedSlug(slugValue);
   toggleSavedSlug(slugValue, { surface: "therapist_profile" });
   return !wasSaved;
 }
@@ -1506,36 +1517,36 @@ function updateShortlistNote(slugValue, note) {
 }
 
 function updateShortlistNoteMeta(currentValue) {
-  var noteMeta = document.getElementById("profileShortlistNoteMeta");
+  const noteMeta = document.getElementById("profileShortlistNoteMeta");
   if (!noteMeta) {
     return;
   }
-  var length = String(currentValue || "").trim().length;
+  const length = String(currentValue || "").trim().length;
   noteMeta.textContent = length
     ? length + "/120 characters"
     : "Keep this to one sharp reminder for future-you.";
 }
 
 function updateShortlistAction(slugValue) {
-  var buttons = Array.prototype.slice.call(
+  const buttons = Array.prototype.slice.call(
     document.querySelectorAll("[data-shortlist-trigger='profile']"),
   );
-  var status = document.getElementById("profileShortlistStatus");
-  var decisionMemory = document.getElementById("profileDecisionMemory");
-  var queueStatus = document.getElementById("profileQueueStatus");
+  const status = document.getElementById("profileShortlistStatus");
+  const decisionMemory = document.getElementById("profileDecisionMemory");
+  const queueStatus = document.getElementById("profileQueueStatus");
   if (!buttons.length) {
     return;
   }
 
-  var shortlistEntry = readShortlist().find(function (item) {
+  const shortlistEntry = readShortlist().find(function (item) {
     return item.slug === slugValue;
   });
-  var shortlisted = !!shortlistEntry;
+  const shortlisted = !!shortlistEntry;
   // Update the .profile-save-btn-label span if present (keeps the icon
   // intact); otherwise update textContent for the legacy plain button.
   buttons.forEach(function (button) {
-    var label = button.querySelector(".profile-save-btn-label");
-    var icon = button.querySelector(".profile-save-btn-icon");
+    const label = button.querySelector(".profile-save-btn-label");
+    const icon = button.querySelector(".profile-save-btn-icon");
     if (label) {
       label.textContent = shortlisted ? "Saved to list" : "Save to list";
     } else {
@@ -1554,18 +1565,18 @@ function updateShortlistAction(slugValue) {
   }
 
   if (decisionMemory) {
-    var memoryState = buildProfileDecisionMemoryState(slugValue);
+    const memoryState = buildProfileDecisionMemoryState(slugValue);
     decisionMemory.innerHTML = renderDecisionMemoryCard(memoryState);
   }
 
   if (queueStatus) {
-    var queueState = buildProfileOutreachQueueState(slugValue);
+    const queueState = buildProfileOutreachQueueState(slugValue);
     queueStatus.innerHTML = renderQueueStatusCard(queueState);
   }
 
-  var priorityWrap = document.getElementById("profileShortlistPriorityWrap");
-  var prioritySelect = document.getElementById("profileShortlistPriority");
-  var noteInput = document.getElementById("profileShortlistNote");
+  const priorityWrap = document.getElementById("profileShortlistPriorityWrap");
+  const prioritySelect = document.getElementById("profileShortlistPriority");
+  const noteInput = document.getElementById("profileShortlistNote");
   if (priorityWrap && prioritySelect && noteInput) {
     priorityWrap.style.display = shortlisted ? "block" : "none";
     prioritySelect.value = shortlistEntry ? shortlistEntry.priority : "";
@@ -1576,7 +1587,7 @@ function updateShortlistAction(slugValue) {
 
 function readEmbeddedTherapistData() {
   try {
-    var el = document.getElementById("therapistData");
+    const el = document.getElementById("therapistData");
     if (!el) return null;
     return JSON.parse(el.textContent || "null");
   } catch (_error) {
@@ -1585,31 +1596,31 @@ function readEmbeddedTherapistData() {
 }
 
 async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) {
-  var exact = await fetchPublicTherapistBySlug(slugValue);
+  const exact = await fetchPublicTherapistBySlug(slugValue);
   if (exact) {
     return exact;
   }
 
-  var normalizedSlug = String(slugValue || "")
+  const normalizedSlug = String(slugValue || "")
     .trim()
     .toLowerCase();
   if (!normalizedSlug) {
     return null;
   }
 
-  var therapists = therapistDirectoryPromise
+  const therapists = therapistDirectoryPromise
     ? await therapistDirectoryPromise
     : await fetchPublicTherapists();
   return (
     therapists.find(function (item) {
-      var itemSlug = String((item && item.slug) || "").toLowerCase();
+      const itemSlug = String((item && item.slug) || "").toLowerCase();
       return itemSlug === normalizedSlug || itemSlug.indexOf(normalizedSlug + "-") === 0;
     }) || null
   );
 }
 
 (async function init() {
-  var wrap = document.getElementById("profileWrap");
+  const wrap = document.getElementById("profileWrap");
   function reveal() {
     wrap.classList.add("is-loaded");
   }
@@ -1627,13 +1638,13 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
     // render without a /api/public round-trip — the main profile LCP cost on
     // mobile. Falls back to the legacy window.__THERAPIST_DATA__ (SSR route)
     // and then to the network fetch if neither is present.
-    var ssrData = readEmbeddedTherapistData() || window.__THERAPIST_DATA__;
-    var therapistDirectoryPromise = fetchPublicTherapists();
-    var therapist =
+    const ssrData = readEmbeddedTherapistData() || window.__THERAPIST_DATA__;
+    const therapistDirectoryPromise = fetchPublicTherapists();
+    const therapist =
       ssrData && ssrData.slug === slug
         ? ssrData
         : await resolveTherapistForProfile(slug, therapistDirectoryPromise);
-    var therapistDirectory = await therapistDirectoryPromise;
+    const therapistDirectory = await therapistDirectoryPromise;
     if (!therapist) {
       wrap.innerHTML =
         '<div class="not-found"><h2>This profile is not available right now</h2><p>The link may be out of date, or the therapist may no longer be listed. You can return to the directory to compare other bipolar informed options.</p><a href="/directory" class="back-link">← Back to Directory</a></div>';
@@ -1657,7 +1668,7 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
     console.error("Therapist profile failed to load.", error);
     wrap.innerHTML =
       '<div class="not-found"><h2>We could not load this profile</h2><p>Something went wrong while opening the therapist page. Please go back to the directory and try again.</p><a href="/directory" class="back-link">← Back to Directory</a></div>';
-    var breadcrumbName = document.getElementById("breadcrumbName");
+    const breadcrumbName = document.getElementById("breadcrumbName");
     if (breadcrumbName) {
       breadcrumbName.textContent = "Profile unavailable";
     }
@@ -1666,15 +1677,15 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
 })();
 
 function bindReportIssueDialog(therapist) {
-  var dialog = document.getElementById("reportIssueDialog");
-  var trigger = document.getElementById("profileReportIssueBtn");
+  const dialog = document.getElementById("reportIssueDialog");
+  const trigger = document.getElementById("profileReportIssueBtn");
   if (!dialog || !trigger || typeof dialog.showModal !== "function") return;
 
-  var form = document.getElementById("reportIssueForm");
-  var closeBtn = document.getElementById("reportIssueClose");
-  var cancelBtn = document.getElementById("reportIssueCancel");
-  var thanks = document.getElementById("reportIssueThanks");
-  var commentInput = document.getElementById("reportIssueComment");
+  const form = document.getElementById("reportIssueForm");
+  const closeBtn = document.getElementById("reportIssueClose");
+  const cancelBtn = document.getElementById("reportIssueCancel");
+  const thanks = document.getElementById("reportIssueThanks");
+  const commentInput = document.getElementById("reportIssueComment");
 
   if (trigger.dataset.reportBound === "true") return;
   trigger.dataset.reportBound = "true";
@@ -1682,16 +1693,16 @@ function bindReportIssueDialog(therapist) {
   trigger.addEventListener("click", function () {
     if (thanks) thanks.hidden = true;
     if (form) form.querySelectorAll(".report-issue-form-controls").forEach(function () {});
-    var fieldsetEl = form ? form.querySelector(".report-issue-reasons") : null;
-    var commentEl = commentInput;
-    var actionsEl = form ? form.querySelector(".report-issue-actions") : null;
+    const fieldsetEl = form ? form.querySelector(".report-issue-reasons") : null;
+    const commentEl = commentInput;
+    const actionsEl = form ? form.querySelector(".report-issue-actions") : null;
     if (fieldsetEl) fieldsetEl.hidden = false;
     if (commentEl) {
       commentEl.hidden = false;
       commentEl.value = "";
     }
     if (actionsEl) actionsEl.hidden = false;
-    var checked = form ? form.querySelectorAll('input[name="reportReason"]:checked') : [];
+    const checked = form ? form.querySelectorAll('input[name="reportReason"]:checked') : [];
     checked.forEach(function (input) {
       input.checked = false;
     });
@@ -1710,11 +1721,11 @@ function bindReportIssueDialog(therapist) {
 
   form.addEventListener("submit", function (event) {
     event.preventDefault();
-    var reasonEl = form.querySelector('input[name="reportReason"]:checked');
+    const reasonEl = form.querySelector('input[name="reportReason"]:checked');
     if (!reasonEl) return;
-    var reason = reasonEl.value;
-    var commentRaw = commentInput ? String(commentInput.value || "").trim() : "";
-    var comment = commentRaw.length > 400 ? commentRaw.slice(0, 400) : commentRaw;
+    const reason = reasonEl.value;
+    const commentRaw = commentInput ? String(commentInput.value || "").trim() : "";
+    const comment = commentRaw.length > 400 ? commentRaw.slice(0, 400) : commentRaw;
     trackFunnelEvent("listing_issue_reported", {
       slug: (therapist && therapist.slug) || "",
       therapist_name: (therapist && therapist.name) || "",
@@ -1722,8 +1733,8 @@ function bindReportIssueDialog(therapist) {
       comment: comment,
       has_comment: Boolean(comment),
     });
-    var fieldsetEl = form.querySelector(".report-issue-reasons");
-    var actionsEl = form.querySelector(".report-issue-actions");
+    const fieldsetEl = form.querySelector(".report-issue-reasons");
+    const actionsEl = form.querySelector(".report-issue-actions");
     if (fieldsetEl) fieldsetEl.hidden = true;
     if (commentInput) commentInput.hidden = true;
     if (actionsEl) actionsEl.hidden = true;
@@ -1733,21 +1744,21 @@ function bindReportIssueDialog(therapist) {
 }
 
 function renderProfile(t, therapistDirectory) {
-  var readiness = getTherapistMatchReadiness(t);
-  var freshness = getDataFreshnessSummary(t);
-  var responsivenessSignal = getPublicResponsivenessSignal(t);
-  var routePerformance = summarizeTherapistContactRoutePerformance(readFunnelEvents(), t.slug);
-  var routeOutcomePerformance = summarizeTherapistContactRouteOutcomes(t);
-  var backupState = buildProfileBackupState(t, therapistDirectory || []);
+  const readiness = getTherapistMatchReadiness(t);
+  const freshness = getDataFreshnessSummary(t);
+  const responsivenessSignal = getPublicResponsivenessSignal(t);
+  const routePerformance = summarizeTherapistContactRoutePerformance(readFunnelEvents(), t.slug);
+  const routeOutcomePerformance = summarizeTherapistContactRouteOutcomes(t);
+  const backupState = buildProfileBackupState(t, therapistDirectory || []);
   trackDirectoryProfileOpenQuality(t, readiness, freshness);
   document.title = t.name + ", BipolarTherapyHub";
   applyTherapistSeo(t);
   document.getElementById("breadcrumbName").textContent = t.name;
   if (new URLSearchParams(window.location.search).get("ref") === "match") {
-    var breadcrumbDirLink = document.getElementById("breadcrumbDirectoryLink");
+    const breadcrumbDirLink = document.getElementById("breadcrumbDirectoryLink");
     if (breadcrumbDirLink) {
       breadcrumbDirLink.textContent = "Your matches";
-      var savedMatchUrl;
+      let savedMatchUrl;
       try {
         savedMatchUrl = window.sessionStorage.getItem("matchResultsUrl");
       } catch (_) {}
@@ -1757,10 +1768,10 @@ function renderProfile(t, therapistDirectory) {
   // navClaimLink was removed from the nav (moved into heroClaimLink
   // banner). Keep the lookup for back-compat in case an older template
   // variant still renders it.
-  var navClaimLink = document.getElementById("navClaimLink");
-  var heroClaimLink = document.getElementById("heroClaimLink");
-  var footerClaimLink = document.getElementById("footerClaimLink");
-  var claimHref = "/claim?confirm=" + encodeURIComponent(t.slug);
+  const navClaimLink = document.getElementById("navClaimLink");
+  const heroClaimLink = document.getElementById("heroClaimLink");
+  const footerClaimLink = document.getElementById("footerClaimLink");
+  const claimHref = "/claim?confirm=" + encodeURIComponent(t.slug);
   if (navClaimLink) {
     navClaimLink.href = claimHref;
   }
@@ -1776,9 +1787,9 @@ function renderProfile(t, therapistDirectory) {
   // profile isn't already claimed. Organic visitors don't see it, the
   // banner is targeted to the specific therapist we sent an email to,
   // not a general claim CTA on every profile.
-  var claimBanner = document.getElementById("inPageClaimBanner");
-  var claimStatus = String(t.claim_status || t.claimStatus || "unclaimed").toLowerCase();
-  var fromOutreach = false;
+  const claimBanner = document.getElementById("inPageClaimBanner");
+  const claimStatus = String(t.claim_status || t.claimStatus || "unclaimed").toLowerCase();
+  let fromOutreach = false;
   try {
     fromOutreach = new URLSearchParams(window.location.search).get("ref") === "outreach";
   } catch (_err) {
@@ -1788,7 +1799,7 @@ function renderProfile(t, therapistDirectory) {
     if (fromOutreach && claimStatus !== "claimed") {
       claimBanner.removeAttribute("hidden");
       claimBanner.classList.add("is-outreach");
-      var headlineEl = document.getElementById("claimBannerHeadline");
+      const headlineEl = document.getElementById("claimBannerHeadline");
       if (headlineEl) headlineEl.textContent = "This is your profile.";
     } else {
       claimBanner.setAttribute("hidden", "");
@@ -1796,7 +1807,7 @@ function renderProfile(t, therapistDirectory) {
   }
 
   function isRealEmail(email) {
-    var value = String(email || "").trim();
+    const value = String(email || "").trim();
     if (!value) return false;
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return false;
     if (/@example\.(com|org|net)$/i.test(value)) return false;
@@ -1808,13 +1819,13 @@ function renderProfile(t, therapistDirectory) {
     return true;
   }
 
-  var bipolarYears = Number(t.bipolar_years_experience || 0);
+  const bipolarYears = Number(t.bipolar_years_experience || 0);
 
-  var contactBtns = "";
-  var primaryContactLabel = String(t.preferred_contact_label || "").trim();
-  var therapistFirstName = (function () {
-    var titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
-    var words = String(t.name || "")
+  let contactBtns = "";
+  const primaryContactLabel = String(t.preferred_contact_label || "").trim();
+  const therapistFirstName = (function () {
+    const titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
+    const words = String(t.name || "")
       .split(/\s+/)
       .filter(Boolean)
       .filter(function (w) {
@@ -1822,12 +1833,12 @@ function renderProfile(t, therapistDirectory) {
       });
     return words[0] || t.name || "this therapist";
   })();
-  var firstStepExpectation = String(t.first_step_expectation || "").trim();
-  var contactQuestionItems = [];
-  var bookingUrl = safeExternalUrl(t.booking_url);
-  var websiteUrl = safeExternalUrl(t.website);
-  var bookingHealthy = Boolean(bookingUrl) && isBookingRouteHealthy(t);
-  var websiteHealthy = Boolean(websiteUrl) && isWebsiteRouteHealthy(t);
+  const firstStepExpectation = String(t.first_step_expectation || "").trim();
+  const contactQuestionItems = [];
+  const bookingUrl = safeExternalUrl(t.booking_url);
+  const websiteUrl = safeExternalUrl(t.website);
+  const bookingHealthy = Boolean(bookingUrl) && isBookingRouteHealthy(t);
+  const websiteHealthy = Boolean(websiteUrl) && isWebsiteRouteHealthy(t);
   function buildPreferredContactButton() {
     if (t.preferred_contact_method === "booking" && bookingUrl && bookingHealthy) {
       return (
@@ -1927,21 +1938,21 @@ function renderProfile(t, therapistDirectory) {
       '" target="_blank" rel="noopener noreferrer" class="btn-website" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
   }
 
-  var bestNextStepCopy =
+  const bestNextStepCopy =
     firstStepExpectation ||
     (t.preferred_contact_method === "email"
       ? "Most therapists respond within 1–2 business days."
       : t.preferred_contact_method === "website"
         ? "You'll find a contact form or booking link on their site."
         : "After first contact, the next step is usually a brief fit conversation or intake review before a full appointment is scheduled.");
-  var contactStrategy = getContactStrategy(
+  const contactStrategy = getContactStrategy(
     t,
     responsivenessSignal,
     routePerformance,
     routeOutcomePerformance,
   );
-  var outreachScript = buildOutreachScript(t, contactStrategy);
-  var primaryButton = buildPreferredContactButton();
+  const outreachScript = buildOutreachScript(t, contactStrategy);
+  const primaryButton = buildPreferredContactButton();
 
   contactQuestionItems.push("Do you work often with bipolar-spectrum care like what I need?");
   if (t.estimated_wait_time || t.accepting_new_patients) {
@@ -1958,11 +1969,11 @@ function renderProfile(t, therapistDirectory) {
   }
   contactQuestionItems.push("What usually happens after the first message or consult?");
 
-  var contactMessageOpener =
+  const contactMessageOpener =
     getFirstMeaningfulSentence(outreachScript) ||
     "Lead with one calm sentence about the kind of bipolar-focused help you want.";
-  var contactQuestionPreview = contactQuestionItems.slice(0, 2).join(" ");
-  var consultConfirmItems = [];
+  const contactQuestionPreview = contactQuestionItems.slice(0, 2).join(" ");
+  const consultConfirmItems = [];
 
   consultConfirmItems.push(
     t.accepting_new_patients || t.estimated_wait_time
@@ -1980,8 +1991,8 @@ function renderProfile(t, therapistDirectory) {
       : "Whether their bipolar-related experience and care style match what you want help with right now.",
   );
 
-  var consultConfirmPreview = consultConfirmItems.slice(0, 2).join(" ");
-  var contactPrepCardsHtml = [
+  const consultConfirmPreview = consultConfirmItems.slice(0, 2).join(" ");
+  const contactPrepCardsHtml = [
     {
       label: "Lead with",
       title: "A calm first opener",
@@ -2027,7 +2038,7 @@ function renderProfile(t, therapistDirectory) {
       );
     })
     .join("");
-  var secondaryButtons =
+  let secondaryButtons =
     '<button type="button" class="btn-website shortlist-profile-btn" data-shortlist-trigger="profile">Save to list</button>';
   if (t.phone && t.preferred_contact_method !== "phone") {
     secondaryButtons +=
@@ -2101,52 +2112,52 @@ function renderProfile(t, therapistDirectory) {
   // so schema validation passes. Those used to leak through to the
   // published therapist doc and render to patients as "Pending,
   // completed after approval." Treat them as empty.
-  var INTAKE_STUBS = [
+  const INTAKE_STUBS = [
     "Pending",
     "Pending, completed after approval.",
     "Pending - completed after approval.",
   ];
   function stripIntakeStub(value) {
     if (typeof value !== "string") return value;
-    var trimmed = value.trim();
+    const trimmed = value.trim();
     return INTAKE_STUBS.indexOf(trimmed) !== -1 ? "" : value;
   }
 
   // Strip scraped directory prefix: "Name, Credential, City, State, ZIP, Phone, actual bio"
   // Anchors on the phone number, everything up through it is metadata, not bio copy.
-  var SCRAPED_PREFIX_RE = /^.+,\s*\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4},?\s+/;
+  const SCRAPED_PREFIX_RE = /^.+,\s*\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4},?\s+/;
   function stripScrapedPrefix(value) {
     if (typeof value !== "string") return value;
-    var cleaned = value.replace(SCRAPED_PREFIX_RE, "");
+    const cleaned = value.replace(SCRAPED_PREFIX_RE, "");
     return cleaned.length < value.length ? cleaned : value;
   }
 
-  var scrubbedBio = stripScrapedPrefix(stripIntakeStub(t.bio));
+  const scrubbedBio = stripScrapedPrefix(stripIntakeStub(t.bio));
 
-  var backNavRef = new URLSearchParams(window.location.search).get("ref") || "";
-  var backNavSavedUrl;
+  const backNavRef = new URLSearchParams(window.location.search).get("ref") || "";
+  let backNavSavedUrl;
   try {
     backNavSavedUrl = window.sessionStorage.getItem("matchResultsUrl");
   } catch (_) {}
-  var backNav =
+  const backNav =
     backNavRef === "match"
       ? { href: backNavSavedUrl || "/results", label: "← Back to your matches" }
       : { href: "/directory", label: "← Back to directory" };
 
   // ─── Hero card helpers (Step 5 redesign) ──────────────────────────────
   // Hash on slug so a clinician's avatar tone stays stable across visits.
-  var HERO_AVATAR_TONE_COUNT = 6;
+  const HERO_AVATAR_TONE_COUNT = 6;
   function heroAvatarTone(slug) {
-    var key = String(slug || t.name || "");
-    var hash = 0;
-    for (var i = 0; i < key.length; i += 1) {
+    const key = String(slug || t.name || "");
+    let hash = 0;
+    for (let i = 0; i < key.length; i += 1) {
       hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
     }
     return hash % HERO_AVATAR_TONE_COUNT;
   }
   function heroInitials(name) {
-    var titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
-    var parts = String(name || "")
+    const titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
+    const parts = String(name || "")
       .trim()
       .split(/\s+/)
       .filter(Boolean)
@@ -2157,8 +2168,8 @@ function renderProfile(t, therapistDirectory) {
     if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
     return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
   }
-  var heroPhotoUrl = safeExternalUrl(t.photo_url);
-  var heroAvatarHtml = heroPhotoUrl
+  const heroPhotoUrl = safeExternalUrl(t.photo_url);
+  const heroAvatarHtml = heroPhotoUrl
     ? '<img src="' +
       escapeHtml(sanityImageUrl(heroPhotoUrl, { width: 144, height: 144 })) +
       '" alt="" width="72" height="72" class="profile-hero-avatar" fetchpriority="high" decoding="async" />'
@@ -2171,16 +2182,16 @@ function renderProfile(t, therapistDirectory) {
   // A profile earns the stronger "Bipolar specialist" label when it has any
   // years treating bipolar on file, or lists bipolar among its specialties.
   // Otherwise it falls back to the generic "Bipolar-informed profile" badge.
-  var isBipolarSpecialist =
+  const isBipolarSpecialist =
     bipolarYears >= 1 ||
     (Array.isArray(t.specialties) &&
       t.specialties.some(function (s) {
         return /bipolar/i.test(String(s || ""));
       }));
-  var isLicenseVerified =
+  const isLicenseVerified =
     t.verification_status === "editorially_verified" && Boolean(t.license_number);
 
-  var heroStatusRow =
+  const heroStatusRow =
     '<div class="profile-hero-status">' +
     (isBipolarSpecialist
       ? '<span class="profile-hero-badge profile-hero-badge--bp">Bipolar specialist</span>'
@@ -2198,8 +2209,8 @@ function renderProfile(t, therapistDirectory) {
   // The single fastest trust signal: verbatim language from the clinician's
   // own site proving bipolar specialization, rendered as a hero pull-quote.
   // Degrades to nothing when the field is absent (older published profiles).
-  var heroEvidenceQuote = String(t.bipolar_evidence_quote || "").trim();
-  var heroEvidenceHtml = "";
+  const heroEvidenceQuote = String(t.bipolar_evidence_quote || "").trim();
+  let heroEvidenceHtml = "";
   if (heroEvidenceQuote) {
     heroEvidenceHtml =
       '<figure class="profile-hero-evidence">' +
@@ -2212,16 +2223,16 @@ function renderProfile(t, therapistDirectory) {
       "</figure>";
   }
 
-  var heroTelehealthStates = Array.isArray(t.telehealth_states)
+  const heroTelehealthStates = Array.isArray(t.telehealth_states)
     ? t.telehealth_states.filter(Boolean)
     : [];
-  var heroLocationParts = [];
+  const heroLocationParts = [];
   if (t.city) heroLocationParts.push(escapeHtml(t.city));
   if (t.state) heroLocationParts.push(escapeHtml(t.state));
-  var heroLocationLine = heroLocationParts.join(", ");
+  let heroLocationLine = heroLocationParts.join(", ");
   if (t.accepts_telehealth && heroTelehealthStates.length) {
-    var thShown = heroTelehealthStates.slice(0, 6).join(", ");
-    var thExtra =
+    const thShown = heroTelehealthStates.slice(0, 6).join(", ");
+    const thExtra =
       heroTelehealthStates.length > 6 ? " +" + (heroTelehealthStates.length - 6) + " more" : "";
     heroLocationLine +=
       ' <span class="profile-hero-loc-sep">·</span> Telehealth available in ' +
@@ -2230,17 +2241,17 @@ function renderProfile(t, therapistDirectory) {
     heroLocationLine += ' <span class="profile-hero-loc-sep">·</span> Telehealth available';
   }
 
-  var heroYearsHtml = "";
+  let heroYearsHtml = "";
   if (bipolarYears > 0) {
-    var coordinatesText = /coordinat/i.test(String(t.care_approach || ""))
+    const coordinatesText = /coordinat/i.test(String(t.care_approach || ""))
       ? "Coordinates with psychiatrists"
       : "";
-    var bipolarPopulations = (
+    const bipolarPopulations = (
       Array.isArray(t.client_populations) ? t.client_populations : []
     ).filter(function (p) {
       return /bipolar|cycl|mixed|hypoman|mood|mania/i.test(String(p || ""));
     });
-    var subtypesText = bipolarPopulations.slice(0, 4).join(", ");
+    const subtypesText = bipolarPopulations.slice(0, 4).join(", ");
     heroYearsHtml =
       '<div class="profile-hero-years">' +
       '<div class="profile-hero-years-main">' +
@@ -2262,24 +2273,24 @@ function renderProfile(t, therapistDirectory) {
       "</div>";
   }
 
-  var modalityList = (Array.isArray(t.treatment_modalities) ? t.treatment_modalities : []).filter(
+  const modalityList = (Array.isArray(t.treatment_modalities) ? t.treatment_modalities : []).filter(
     Boolean,
   );
   function isPrimaryHeroModality(name) {
-    var n = String(name || "").toLowerCase();
+    const n = String(name || "").toLowerCase();
     if (/ipsrt|interpersonal\s+and\s+social\s+rhythm/.test(n)) return true;
     if (/\bfft\b|family.?focused/.test(n)) return true;
     if (/dbt.*bipolar|bipolar.*dbt|dbt-for-bipolar/.test(n)) return true;
     return false;
   }
-  var primaryModalities = modalityList.filter(isPrimaryHeroModality);
-  var secondaryModalities = modalityList.filter(function (m) {
+  const primaryModalities = modalityList.filter(isPrimaryHeroModality);
+  const secondaryModalities = modalityList.filter(function (m) {
     return !isPrimaryHeroModality(m);
   });
-  var orderedModalities = primaryModalities.concat(secondaryModalities);
-  var visibleModalities = orderedModalities.slice(0, 6);
-  var modalityOverflow = orderedModalities.length - visibleModalities.length;
-  var heroTagsHtml = "";
+  const orderedModalities = primaryModalities.concat(secondaryModalities);
+  const visibleModalities = orderedModalities.slice(0, 6);
+  const modalityOverflow = orderedModalities.length - visibleModalities.length;
+  let heroTagsHtml = "";
   if (visibleModalities.length) {
     heroTagsHtml = '<div class="profile-hero-tags">';
     visibleModalities.forEach(function (m) {
@@ -2299,31 +2310,31 @@ function renderProfile(t, therapistDirectory) {
   // Step 7: Bio card. Truncates to ~280 chars with a Read more / Show less
   // toggle when longer. Renders nothing if there's no bio to show (per the
   // graceful-empty-states rule, no "No bio yet" placeholder).
-  var bioCardHtml = "";
+  let bioCardHtml = "";
   if (scrubbedBio && String(scrubbedBio).trim()) {
-    var bioRaw = String(scrubbedBio).trim();
-    var bioParagraphs = bioRaw
+    const bioRaw = String(scrubbedBio).trim();
+    let bioParagraphs = bioRaw
       .split(/\n\s*\n+/)
       .map(function (p) {
         return p.trim();
       })
       .filter(Boolean);
     if (!bioParagraphs.length) bioParagraphs = [bioRaw];
-    var bioFullPlain = bioParagraphs.join("\n\n");
-    var needsBioTruncate = bioFullPlain.length > 280;
-    var bioPreviewText = "";
+    const bioFullPlain = bioParagraphs.join("\n\n");
+    const needsBioTruncate = bioFullPlain.length > 280;
+    let bioPreviewText = "";
     if (needsBioTruncate) {
       bioPreviewText = bioFullPlain.slice(0, 280);
-      var lastSpace = bioPreviewText.lastIndexOf(" ");
+      const lastSpace = bioPreviewText.lastIndexOf(" ");
       if (lastSpace > 200) bioPreviewText = bioPreviewText.slice(0, lastSpace);
       bioPreviewText = bioPreviewText.replace(/[\s,;:.–-]+$/, "") + "…";
     }
-    var bioFullHtml = bioParagraphs
+    const bioFullHtml = bioParagraphs
       .map(function (p) {
         return '<p class="profile-section-body">' + escapeHtml(p) + "</p>";
       })
       .join("");
-    var bioPreviewHtml = needsBioTruncate
+    const bioPreviewHtml = needsBioTruncate
       ? '<p class="profile-section-body">' + escapeHtml(bioPreviewText) + "</p>"
       : "";
     bioCardHtml =
@@ -2348,16 +2359,16 @@ function renderProfile(t, therapistDirectory) {
 
   // Step 6: Bipolar approach card. Renders only when populated; otherwise
   // skipped entirely (no placeholder per spec).
-  var bipolarApproachText = String(t.bipolar_approach || "").trim();
-  var bipolarApproachHtml = "";
+  const bipolarApproachText = String(t.bipolar_approach || "").trim();
+  let bipolarApproachHtml = "";
   if (bipolarApproachText) {
-    var approachParagraphs = bipolarApproachText
+    const approachParagraphs = bipolarApproachText
       .split(/\n{2,}/)
       .map(function (p) {
         return p.trim();
       })
       .filter(Boolean);
-    var approachBody = approachParagraphs.length
+    const approachBody = approachParagraphs.length
       ? approachParagraphs
           .map(function (p) {
             return '<p class="profile-section-body">' + escapeHtml(p) + "</p>";
@@ -2378,18 +2389,18 @@ function renderProfile(t, therapistDirectory) {
   // field is populated. The .profile-detail--full class on Insurance lets
   // it span both columns.
   function fmtUsd(n) {
-    var num = Number(n);
+    const num = Number(n);
     if (!isFinite(num) || num <= 0) return "";
     return "$" + Math.round(num);
   }
-  var practiceRows = [];
+  const practiceRows = [];
   // Availability
   if (t.accepting_new_patients === true || t.accepting_new_patients === false) {
-    var availabilityValue;
-    var availabilityClass = "profile-detail-value";
+    let availabilityValue;
+    const availabilityClass = "profile-detail-value";
     if (t.accepting_new_patients === true) {
       availabilityValue = '<span class="profile-detail-avail">Accepting new patients</span>';
-      var posture = String(t.availability_posture || "").trim();
+      const posture = String(t.availability_posture || "").trim();
       if (posture) {
         availabilityValue += '<div class="profile-detail-sub">' + escapeHtml(posture) + "</div>";
       }
@@ -2404,14 +2415,14 @@ function renderProfile(t, therapistDirectory) {
     });
   }
   // Estimated wait
-  var waitText = String(t.estimated_wait_time || "").trim();
+  const waitText = String(t.estimated_wait_time || "").trim();
   if (waitText) {
     practiceRows.push({ label: "Estimated wait", value: waitText });
   }
   // Session fee
-  var feeMin = fmtUsd(t.session_fee_min);
-  var feeMax = fmtUsd(t.session_fee_max);
-  var feeText = "";
+  const feeMin = fmtUsd(t.session_fee_min);
+  const feeMax = fmtUsd(t.session_fee_max);
+  let feeText = "";
   if (feeMin && feeMax && feeMin !== feeMax) feeText = feeMin + "–" + feeMax;
   else if (feeMin) feeText = feeMin;
   else if (feeMax) feeText = feeMax;
@@ -2421,7 +2432,7 @@ function renderProfile(t, therapistDirectory) {
     practiceRows.push({ label: "Session fee", value: feeText });
   }
   // Care mode
-  var careMode = "";
+  let careMode = "";
   if (t.accepts_telehealth && t.accepts_in_person) careMode = "In-person & telehealth";
   else if (t.accepts_telehealth) careMode = "Telehealth";
   else if (t.accepts_in_person) careMode = "In-person";
@@ -2429,19 +2440,19 @@ function renderProfile(t, therapistDirectory) {
     practiceRows.push({ label: "Care mode", value: careMode });
   }
   // Languages
-  var langs = (Array.isArray(t.languages) ? t.languages : []).filter(Boolean);
+  const langs = (Array.isArray(t.languages) ? t.languages : []).filter(Boolean);
   if (langs.length) {
     practiceRows.push({ label: "Languages", value: langs.join(", ") });
   }
   // Insurance, full width row, pills
-  var insuranceList = (Array.isArray(t.insurance_accepted) ? t.insurance_accepted : []).filter(
+  const insuranceList = (Array.isArray(t.insurance_accepted) ? t.insurance_accepted : []).filter(
     Boolean,
   );
-  var insuranceHtml = "";
+  let insuranceHtml = "";
   if (insuranceList.length) {
-    var visibleInsurance = insuranceList.slice(0, 5);
-    var insuranceOverflow = insuranceList.length - visibleInsurance.length;
-    var pillHtml = visibleInsurance
+    const visibleInsurance = insuranceList.slice(0, 5);
+    const insuranceOverflow = insuranceList.length - visibleInsurance.length;
+    let pillHtml = visibleInsurance
       .map(function (ins) {
         return '<span class="profile-detail-pill">' + escapeHtml(String(ins)) + "</span>";
       })
@@ -2454,10 +2465,10 @@ function renderProfile(t, therapistDirectory) {
   // Training & affiliations (STEP-BD, UCLA Mood Disorders, DBSA, NAMI, …) —
   // the kind of specific credential that separates a specialist from a
   // generalist. Rendered as chips; degrades to nothing when unset.
-  var trainingAffiliations = (
+  const trainingAffiliations = (
     Array.isArray(t.training_affiliations) ? t.training_affiliations : []
   ).filter(Boolean);
-  var trainingAffiliationsHtml = "";
+  let trainingAffiliationsHtml = "";
   if (trainingAffiliations.length) {
     trainingAffiliationsHtml =
       '<div class="profile-detail-row profile-detail-row--full">' +
@@ -2472,9 +2483,9 @@ function renderProfile(t, therapistDirectory) {
       "</div>";
   }
 
-  var practiceDetailsHtml = "";
+  let practiceDetailsHtml = "";
   if (practiceRows.length || insuranceHtml || trainingAffiliationsHtml) {
-    var rowsHtml = practiceRows
+    let rowsHtml = practiceRows
       .map(function (row) {
         return (
           '<div class="profile-detail-row">' +
@@ -2510,12 +2521,12 @@ function renderProfile(t, therapistDirectory) {
 
   // Step 9: Reach Out card. Open by default. Renders even when phone is
   // missing (call-script block is conditional on phone).
-  var draftMessageText;
-  var contactGuidanceText = String(t.contact_guidance || "").trim();
+  let draftMessageText;
+  const contactGuidanceText = String(t.contact_guidance || "").trim();
   if (contactGuidanceText) {
     draftMessageText = contactGuidanceText;
   } else {
-    var careModeWord;
+    let careModeWord;
     if (t.accepts_telehealth && t.accepts_in_person)
       careModeWord = "either telehealth or in-person";
     else if (t.accepts_telehealth) careModeWord = "telehealth";
@@ -2531,11 +2542,11 @@ function renderProfile(t, therapistDirectory) {
       " care. I'd love to confirm insurance details and whether you have availability in the next few weeks before going further.\n\n" +
       "Thanks so much.";
   }
-  var draftMessageHtml = escapeHtml(draftMessageText).replace(/\n/g, "<br>");
+  const draftMessageHtml = escapeHtml(draftMessageText).replace(/\n/g, "<br>");
 
-  var reachOutCallScript = "";
+  let reachOutCallScript = "";
   if (t.phone) {
-    var voicemailFirstName = therapistFirstName;
+    const voicemailFirstName = therapistFirstName;
     reachOutCallScript =
       '<div class="profile-reach-call">' +
       '<div class="profile-reach-call-label">Calling? Here\'s what to say</div>' +
@@ -2569,7 +2580,7 @@ function renderProfile(t, therapistDirectory) {
   // "phone first", the call script appears above the email draft; if
   // they've set "email first" (or no preference), the draft email
   // stays on top.
-  var reachOutDraftHtml =
+  const reachOutDraftHtml =
     '<div class="profile-reach-draft">' +
     '<div class="profile-reach-draft-label">Written message</div>' +
     '<div class="profile-reach-draft-hint">A calm starting point. Swap in your name or add one personal detail if you\'d like.</div>' +
@@ -2584,14 +2595,14 @@ function renderProfile(t, therapistDirectory) {
     "</button>" +
     "</div>" +
     "</div>";
-  var reachOutPrefersPhone = String(t.preferred_contact_method || "").toLowerCase() === "phone";
-  var reachOutBody = reachOutPrefersPhone
+  const reachOutPrefersPhone = String(t.preferred_contact_method || "").toLowerCase() === "phone";
+  const reachOutBody = reachOutPrefersPhone
     ? reachOutCallScript + reachOutDraftHtml
     : reachOutDraftHtml + reachOutCallScript;
-  var reachOutHeading = reachOutPrefersPhone
+  const reachOutHeading = reachOutPrefersPhone
     ? "Call first, here's what to say"
     : "We've drafted a message for you";
-  var reachOutHtml =
+  const reachOutHtml =
     '<div class="card profile-section-card profile-reach-card">' +
     '<div class="profile-section-eyebrow">Reach out</div>' +
     '<h2 class="profile-section-h2">' +
@@ -2603,15 +2614,15 @@ function renderProfile(t, therapistDirectory) {
   // Step 10: FAQ card. Renders in the main column (was previously inside
   // the sidebar's hero-right). Uses the shared buildFAQItems dynamic Q&A;
   // first item opens by default when accepting new patients is true.
-  var faqItems = buildFAQItems(t);
-  var faqAcceptingOpen = t.accepting_new_patients === true;
-  var faqItemsHtml = faqItems
+  const faqItems = buildFAQItems(t);
+  const faqAcceptingOpen = t.accepting_new_patients === true;
+  const faqItemsHtml = faqItems
     .map(function (item, i) {
-      var isFirst = i === 0;
-      var isOpen = isFirst && faqAcceptingOpen;
+      const isFirst = i === 0;
+      const isOpen = isFirst && faqAcceptingOpen;
       // Locked-open (accepting) item shows a static check; all others show a
       // chevron that rotates via CSS keyed on the button's aria-expanded.
-      var faqIconSvg = isOpen
+      const faqIconSvg = isOpen
         ? tiSvg("circle-check", "profile-faq-icon--success")
         : tiSvg("chevron-down", "profile-faq-chevron");
       return (
@@ -2638,10 +2649,10 @@ function renderProfile(t, therapistDirectory) {
     })
     .join("");
 
-  var faqLicenseRow = "";
+  let faqLicenseRow = "";
   if (t.license_number) {
-    var faqLicenseState = t.license_state || t.state || "CA";
-    var faqLicenseType = t.credentials || "License";
+    const faqLicenseState = t.license_state || t.state || "CA";
+    const faqLicenseType = t.credentials || "License";
     faqLicenseRow =
       '<div class="profile-faq-license">' +
       "" +
@@ -2653,7 +2664,7 @@ function renderProfile(t, therapistDirectory) {
       "</div>";
   }
 
-  var faqCardHtml =
+  const faqCardHtml =
     '<div class="card profile-section-card">' +
     '<div class="profile-section-eyebrow">Questions</div>' +
     '<h2 class="profile-section-h2">Common questions about ' +
@@ -2668,18 +2679,18 @@ function renderProfile(t, therapistDirectory) {
   // Step 11: Sidebar contact card. Coral primary CTA prefers phone, falls
   // back to email. Email anchor word-break for long addresses. Save button
   // toggles bth_saved_therapists in localStorage and pings the nav badge.
-  var sideHasPhone = Boolean(t.phone);
-  var sideHasEmail = isRealEmail(t.email);
-  var sideHasWebsite = Boolean(websiteUrl);
-  var sideHasBooking = Boolean(bookingUrl) && bookingUrl !== websiteUrl;
-  var preferredContactRaw = String(t.preferred_contact_method || "").trim();
+  const sideHasPhone = Boolean(t.phone);
+  const sideHasEmail = isRealEmail(t.email);
+  const sideHasWebsite = Boolean(websiteUrl);
+  const sideHasBooking = Boolean(bookingUrl) && bookingUrl !== websiteUrl;
+  const preferredContactRaw = String(t.preferred_contact_method || "").trim();
 
   // Sidebar primary button, respects preferred_contact_method when the
   // therapist set one (mirrors buildPreferredContactButton in the main
   // column). Falls back to the legacy phone-then-email ladder only when
   // no preference is set or the preferred channel's field is missing.
   function buildSidePrimaryHtml() {
-    var pref = preferredContactRaw.toLowerCase();
+    const pref = preferredContactRaw.toLowerCase();
     if (pref === "email" && sideHasEmail) {
       return (
         '<a href="mailto:' +
@@ -2755,21 +2766,21 @@ function renderProfile(t, therapistDirectory) {
     }
     return "";
   }
-  var sidePrimaryHtml = buildSidePrimaryHtml();
+  const sidePrimaryHtml = buildSidePrimaryHtml();
 
   // Unified contact-method list. Each row shows an icon + a value,
   // with an inline (Preferred) tag on the row matching the therapist's
   // stated preference. Replaces the legacy separate "Preferred contact"
   // box at the bottom, same information, less chrome.
-  var prefKey = preferredContactRaw.toLowerCase();
-  var prefMap = {
+  const prefKey = preferredContactRaw.toLowerCase();
+  const prefMap = {
     booking_url: "booking",
   };
-  var prefRoute = prefMap[prefKey] || prefKey; // normalize booking_url → booking
+  const prefRoute = prefMap[prefKey] || prefKey; // normalize booking_url → booking
   function sideContactRow(route, iconClass, href, label, opts) {
-    var external = opts && opts.external ? ' target="_blank" rel="noopener noreferrer"' : "";
-    var anchorCls = opts && opts.cls ? ' class="' + opts.cls + '"' : "";
-    var preferred = route === prefRoute;
+    const external = opts && opts.external ? ' target="_blank" rel="noopener noreferrer"' : "";
+    const anchorCls = opts && opts.cls ? ' class="' + opts.cls + '"' : "";
+    const preferred = route === prefRoute;
     // No "Preferred" badge here: the primary CTA above already states
     // the preferred channel loudly, so the badge duplicated it — and
     // its fixed width crowded long emails into an ugly two-line wrap.
@@ -2780,14 +2791,14 @@ function renderProfile(t, therapistDirectory) {
     // the address with a "Copied!" flash, falling back to the mailto in
     // href when the clipboard API is unavailable. Reuses the existing
     // [data-copy-email] handler + .profile-contact-copy-hint styling.
-    var copyEmail = opts && opts.copyEmail ? opts.copyEmail : "";
-    var copyAttr = copyEmail ? ' data-copy-email="' + escapeHtml(copyEmail) + '"' : "";
+    const copyEmail = opts && opts.copyEmail ? opts.copyEmail : "";
+    const copyAttr = copyEmail ? ' data-copy-email="' + escapeHtml(copyEmail) + '"' : "";
     // Action-oriented accessible name so a screen reader announces "Call
     // Dana" rather than reading the raw phone digits or URL aloud. The
     // visible value still carries the literal number/address for sighted users.
-    var ariaLabel = opts && opts.ariaLabel ? opts.ariaLabel : "";
-    var ariaAttr = ariaLabel ? ' aria-label="' + escapeHtml(ariaLabel) + '"' : "";
-    var inner = copyEmail
+    const ariaLabel = opts && opts.ariaLabel ? opts.ariaLabel : "";
+    const ariaAttr = ariaLabel ? ' aria-label="' + escapeHtml(ariaLabel) + '"' : "";
+    const inner = copyEmail
       ? '<span class="profile-contact-value">' +
         escapeHtml(label) +
         '</span><span class="profile-contact-copy-hint" aria-hidden="true">Copy</span>'
@@ -2810,7 +2821,7 @@ function renderProfile(t, therapistDirectory) {
       "</div>"
     );
   }
-  var sideContactItems = "";
+  let sideContactItems = "";
   // Order: email, phone, website, booking. Stable order so the eye
   // can find a channel without scanning; the (Preferred) tag does
   // the prioritization visually.
@@ -2852,7 +2863,7 @@ function renderProfile(t, therapistDirectory) {
   // Optional contact-guidance copy (the long-form "Email first." style
   // line the therapist wrote). Shown as a quiet sentence below the
   // contact list when present and different from the route tag.
-  var sideGuidanceBlock = "";
+  let sideGuidanceBlock = "";
   if (
     contactGuidanceText &&
     contactGuidanceText !== "Email first." &&
@@ -2863,8 +2874,8 @@ function renderProfile(t, therapistDirectory) {
       '<p class="profile-side-guidance">' + escapeHtml(contactGuidanceText) + "</p>";
   }
 
-  var sideSaveId = String(t.slug || t._id || t.name || "").trim();
-  var sideSaveButton =
+  const sideSaveId = String(t.slug || t._id || t.name || "").trim();
+  const sideSaveButton =
     '<button type="button" class="profile-side-save" data-profile-side-save data-save-id="' +
     escapeHtml(sideSaveId) +
     '" aria-pressed="false">' +
@@ -2874,7 +2885,7 @@ function renderProfile(t, therapistDirectory) {
     '<span class="profile-side-save-label">Save</span>' +
     "</button>";
 
-  var sidebarHtml =
+  const sidebarHtml =
     '<div class="profile-side-card">' +
     '<div class="profile-side-eyebrow">Contact</div>' +
     sidePrimaryHtml +
@@ -2886,7 +2897,7 @@ function renderProfile(t, therapistDirectory) {
     sideSaveButton +
     "</div>";
 
-  var html =
+  const html =
     '<div class="profile-layout">' +
     '<main class="profile-main-col">' +
     '<div class="profile-header" id="section-about" data-profile-section>' +
@@ -2951,27 +2962,27 @@ function renderProfile(t, therapistDirectory) {
   // <aside> so the new two-column layout takes effect without rewriting
   // every interior render branch in this single step.
   (function liftHeroRightToSidebar() {
-    var heroRight = document.querySelector(".profile-hero-right");
-    var sideCol = document.querySelector("[data-profile-side]");
+    const heroRight = document.querySelector(".profile-hero-right");
+    const sideCol = document.querySelector("[data-profile-side]");
     if (heroRight && sideCol) {
       sideCol.appendChild(heroRight);
     }
   })();
 
   // Append mobile sticky bar to body (outside profileWrap so it stays fixed)
-  var existingStickyBar = document.getElementById("profileMobileStickyBar");
+  const existingStickyBar = document.getElementById("profileMobileStickyBar");
   if (existingStickyBar) existingStickyBar.remove();
-  var stickyBarHtml = buildMobileStickyBar(t);
+  const stickyBarHtml = buildMobileStickyBar(t);
   if (stickyBarHtml) {
-    var stickyContainer = document.createElement("div");
+    const stickyContainer = document.createElement("div");
     stickyContainer.innerHTML = stickyBarHtml;
     document.body.appendChild(stickyContainer.firstElementChild);
   }
   // Show mobile sticky bar once hero primary CTA scrolls out of view
-  var heroCta = document.querySelector(".primary-action-frame");
-  var stickyBar = document.getElementById("profileMobileStickyBar");
+  const heroCta = document.querySelector(".primary-action-frame");
+  const stickyBar = document.getElementById("profileMobileStickyBar");
   if (heroCta && stickyBar && typeof window.IntersectionObserver === "function") {
-    var stickyObserver = new window.IntersectionObserver(
+    const stickyObserver = new window.IntersectionObserver(
       function (entries) {
         entries.forEach(function (entry) {
           stickyBar.setAttribute("aria-hidden", entry.isIntersecting ? "true" : "false");
@@ -2984,7 +2995,7 @@ function renderProfile(t, therapistDirectory) {
 
   bindReportIssueDialog(t);
   updateShortlistAction(t.slug);
-  var shortlistButtons = Array.prototype.slice.call(
+  const shortlistButtons = Array.prototype.slice.call(
     document.querySelectorAll("[data-shortlist-trigger='profile']"),
   );
   shortlistButtons.forEach(function (shortlistButton) {
@@ -2996,7 +3007,7 @@ function renderProfile(t, therapistDirectory) {
       }
     });
   });
-  var prioritySelect = document.getElementById("profileShortlistPriority");
+  const prioritySelect = document.getElementById("profileShortlistPriority");
   if (prioritySelect) {
     prioritySelect.addEventListener("change", function () {
       updateShortlistPriority(t.slug, prioritySelect.value);
@@ -3006,7 +3017,7 @@ function renderProfile(t, therapistDirectory) {
       }
     });
   }
-  var noteInput = document.getElementById("profileShortlistNote");
+  const noteInput = document.getElementById("profileShortlistNote");
   if (noteInput) {
     noteInput.addEventListener("input", function () {
       updateShortlistNote(t.slug, noteInput.value);
@@ -3038,7 +3049,7 @@ function renderProfile(t, therapistDirectory) {
           link.classList.remove("is-loading");
           delete link.dataset.ctaLoading;
         }, 600);
-        var route = link.getAttribute("data-profile-contact-route") || "";
+        const route = link.getAttribute("data-profile-contact-route") || "";
         rememberTherapistContactRoute(t.slug, route, "profile");
         recordCtaClickSafely(t.slug, route);
         trackFunnelEvent("profile_contact_route_clicked", {
@@ -3049,11 +3060,13 @@ function renderProfile(t, therapistDirectory) {
     });
   document.querySelectorAll("[data-copy-email]").forEach(function (link) {
     link.addEventListener("click", function (event) {
-      var email = link.getAttribute("data-copy-email") || "";
-      if (!email) return;
-      var valueEl = link.querySelector(".profile-contact-value");
-      var copyHint = link.querySelector(".profile-contact-copy-hint");
-      var original = valueEl ? valueEl.textContent : "";
+      const rawEmail = link.getAttribute("data-copy-email") || "";
+      if (!rawEmail) return;
+      // Allowlist-sanitize a DOM-sourced value before clipboard / mailto use.
+      const email = rawEmail.replace(/[^a-zA-Z0-9@._%+-]/g, "");
+      const valueEl = link.querySelector(".profile-contact-value");
+      const copyHint = link.querySelector(".profile-contact-copy-hint");
+      const original = valueEl ? valueEl.textContent : "";
       function flash() {
         if (valueEl) valueEl.textContent = "Copied!";
         if (copyHint) copyHint.textContent = "✓";
@@ -3069,7 +3082,7 @@ function renderProfile(t, therapistDirectory) {
         });
       } else {
         try {
-          var ta = document.createElement("textarea");
+          const ta = document.createElement("textarea");
           ta.value = email;
           ta.style.position = "fixed";
           ta.style.opacity = "0";
@@ -3086,10 +3099,10 @@ function renderProfile(t, therapistDirectory) {
     });
   });
 
-  var contactSection = document.querySelector("[data-profile-contact-section]");
-  var contactSectionTracked = false;
+  const contactSection = document.querySelector("[data-profile-contact-section]");
+  let contactSectionTracked = false;
   if (contactSection && typeof window.IntersectionObserver === "function") {
-    var contactObserver = new window.IntersectionObserver(
+    const contactObserver = new window.IntersectionObserver(
       function (entries) {
         entries.forEach(function (entry) {
           if (!entry.isIntersecting || contactSectionTracked) {
@@ -3104,11 +3117,11 @@ function renderProfile(t, therapistDirectory) {
     );
     contactObserver.observe(contactSection);
   }
-  var outreachToggleBtn = document.querySelector("[data-outreach-toggle]");
-  var outreachPanel = document.getElementById("contactOutreachPanel");
+  const outreachToggleBtn = document.querySelector("[data-outreach-toggle]");
+  const outreachPanel = document.getElementById("contactOutreachPanel");
   if (outreachToggleBtn && outreachPanel) {
     outreachToggleBtn.addEventListener("click", function () {
-      var isOpen = outreachToggleBtn.getAttribute("aria-expanded") === "true";
+      const isOpen = outreachToggleBtn.getAttribute("aria-expanded") === "true";
       outreachToggleBtn.setAttribute("aria-expanded", isOpen ? "false" : "true");
       if (isOpen) {
         outreachPanel.setAttribute("hidden", "");
@@ -3122,11 +3135,11 @@ function renderProfile(t, therapistDirectory) {
     outreachToggleBtn.setAttribute("aria-expanded", "true");
     outreachPanel.removeAttribute("hidden");
     window.setTimeout(function () {
-      var card = document.getElementById("outreach");
+      const card = document.getElementById("outreach");
       if (card) card.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 100);
   }
-  var outreachScriptCard = document.querySelector("[data-profile-outreach-script]");
+  const outreachScriptCard = document.querySelector("[data-profile-outreach-script]");
   if (outreachScriptCard) {
     outreachScriptCard.addEventListener("click", function () {
       trackFunnelEvent("profile_outreach_script_engaged", getContactAnalyticsMeta(t, "script"));
@@ -3140,7 +3153,7 @@ function renderProfile(t, therapistDirectory) {
           outreachToggleBtn.setAttribute("aria-expanded", "true");
           outreachPanel.removeAttribute("hidden");
         }
-        var scriptCard = document.querySelector("[data-profile-outreach-script]");
+        const scriptCard = document.querySelector("[data-profile-outreach-script]");
         if (!scriptCard) {
           return;
         }
@@ -3155,7 +3168,7 @@ function renderProfile(t, therapistDirectory) {
     .call(document.querySelectorAll("[data-profile-copy-script]"))
     .forEach(function (button) {
       button.addEventListener("click", async function () {
-        var message = String(outreachScript || "").trim();
+        const message = String(outreachScript || "").trim();
         if (!message) {
           return;
         }
@@ -3176,7 +3189,7 @@ function renderProfile(t, therapistDirectory) {
         trackFunnelEvent("profile_outreach_script_copied", getContactAnalyticsMeta(t, "script"));
       });
     });
-  var contactQuestionsCard = document.querySelector("[data-profile-contact-questions]");
+  const contactQuestionsCard = document.querySelector("[data-profile-contact-questions]");
   if (contactQuestionsCard) {
     contactQuestionsCard.addEventListener("click", function () {
       trackFunnelEvent(
@@ -3210,8 +3223,8 @@ function renderProfile(t, therapistDirectory) {
     .call(document.querySelectorAll("[data-profile-queue-outcome]"))
     .forEach(function (button) {
       button.addEventListener("click", function () {
-        var outcome = button.getAttribute("data-profile-queue-outcome") || "";
-        var saved = recordProfileOutreachOutcome(t, outcome);
+        const outcome = button.getAttribute("data-profile-queue-outcome") || "";
+        const saved = recordProfileOutreachOutcome(t, outcome);
         if (!saved) {
           return;
         }
@@ -3230,8 +3243,8 @@ function renderProfile(t, therapistDirectory) {
   Array.prototype.slice
     .call(document.querySelectorAll("[data-profile-side-save]"))
     .forEach(function (button) {
-      var slug = button.getAttribute("data-save-id") || "";
-      var label = button.querySelector(".profile-side-save-label");
+      const slug = button.getAttribute("data-save-id") || "";
+      const label = button.querySelector(".profile-side-save-label");
       function paint(savedState) {
         button.classList.toggle("is-saved", savedState);
         button.setAttribute("aria-pressed", savedState ? "true" : "false");
@@ -3253,27 +3266,27 @@ function renderProfile(t, therapistDirectory) {
   Array.prototype.slice
     .call(document.querySelectorAll("[data-profile-faq-toggle]"))
     .forEach(function (button) {
-      var item = button.closest("[data-profile-faq-item]");
+      const item = button.closest("[data-profile-faq-item]");
       if (!item) return;
-      var answer = item.querySelector(".profile-faq-a");
+      const answer = item.querySelector(".profile-faq-a");
       // The chevron now rotates via CSS keyed on the button's aria-expanded
       // (see .profile-faq-chevron in therapist-page.css), so the handler only
       // toggles state — no icon swapping needed.
       button.addEventListener("click", function () {
-        var open = item.classList.contains("is-open");
+        const open = item.classList.contains("is-open");
         if (open) {
           item.classList.remove("is-open");
           if (answer) answer.hidden = true;
           button.setAttribute("aria-expanded", "false");
         } else {
-          var siblings = item.parentNode
+          const siblings = item.parentNode
             ? item.parentNode.querySelectorAll("[data-profile-faq-item]")
             : [];
           Array.prototype.forEach.call(siblings, function (sib) {
             if (sib === item) return;
             sib.classList.remove("is-open");
-            var sibAnswer = sib.querySelector(".profile-faq-a");
-            var sibButton = sib.querySelector("[data-profile-faq-toggle]");
+            const sibAnswer = sib.querySelector(".profile-faq-a");
+            const sibButton = sib.querySelector("[data-profile-faq-toggle]");
             if (sibAnswer) sibAnswer.hidden = true;
             if (sibButton) sibButton.setAttribute("aria-expanded", "false");
           });
@@ -3289,13 +3302,13 @@ function renderProfile(t, therapistDirectory) {
   Array.prototype.slice
     .call(document.querySelectorAll("[data-profile-copy-draft]"))
     .forEach(function (button) {
-      var card = button.closest(".profile-reach-card");
-      var msgEl = card ? card.querySelector("[data-profile-draft-text]") : null;
-      var defaultLabel = button.innerHTML;
+      const card = button.closest(".profile-reach-card");
+      const msgEl = card ? card.querySelector("[data-profile-draft-text]") : null;
+      const defaultLabel = button.innerHTML;
       button.addEventListener("click", function () {
         if (!msgEl) return;
-        var text = msgEl.innerText || msgEl.textContent || "";
-        var done = function () {
+        const text = msgEl.innerText || msgEl.textContent || "";
+        const done = function () {
           button.classList.add("is-copied");
           button.innerHTML = "" + tiSvg("check") + " Copied";
           window.setTimeout(function () {
@@ -3314,7 +3327,9 @@ function renderProfile(t, therapistDirectory) {
     .call(document.querySelectorAll("[data-profile-call-cta]"))
     .forEach(function (button) {
       button.addEventListener("click", function () {
-        var tel = button.getAttribute("data-tel");
+        const rawTel = button.getAttribute("data-tel");
+        // Allowlist-sanitize a DOM-sourced value before building a tel: URL.
+        const tel = rawTel ? rawTel.replace(/[^0-9+().\- ]/g, "") : "";
         if (tel) window.location.href = "tel:" + tel;
       });
     });
@@ -3325,12 +3340,12 @@ function renderProfile(t, therapistDirectory) {
   Array.prototype.slice
     .call(document.querySelectorAll("[data-profile-bio-toggle]"))
     .forEach(function (button) {
-      var block = button.closest("[data-profile-bio-block]");
+      const block = button.closest("[data-profile-bio-block]");
       if (!block) return;
-      var preview = block.querySelector("[data-profile-bio-preview]");
-      var full = block.querySelector("[data-profile-bio-full]");
+      const preview = block.querySelector("[data-profile-bio-preview]");
+      const full = block.querySelector("[data-profile-bio-full]");
       button.addEventListener("click", function () {
-        var expanded = button.getAttribute("aria-expanded") === "true";
+        const expanded = button.getAttribute("aria-expanded") === "true";
         if (expanded) {
           if (full) full.hidden = true;
           if (preview) preview.hidden = false;
@@ -3348,13 +3363,13 @@ function renderProfile(t, therapistDirectory) {
     .call(document.querySelectorAll(".profile-section-header"))
     .forEach(function (button) {
       button.addEventListener("click", function () {
-        var section = button.closest("[data-profile-section]");
-        var content = section ? section.querySelector(".profile-section-content") : null;
-        var toggle = button.querySelector(".section-toggle");
+        const section = button.closest("[data-profile-section]");
+        const content = section ? section.querySelector(".profile-section-content") : null;
+        const toggle = button.querySelector(".section-toggle");
         if (!content || !toggle) {
           return;
         }
-        var collapsed = content.classList.toggle("is-collapsed");
+        const collapsed = content.classList.toggle("is-collapsed");
         button.setAttribute("aria-expanded", collapsed ? "false" : "true");
         toggle.textContent = collapsed ? "Show" : "Hide";
       });
@@ -3364,30 +3379,30 @@ function renderProfile(t, therapistDirectory) {
     .call(document.querySelectorAll("[data-faq-toggle]"))
     .forEach(function (btn) {
       btn.addEventListener("click", function () {
-        var idx = btn.getAttribute("data-faq-toggle");
-        var answer = document.getElementById("faq-answer-" + idx);
+        const idx = btn.getAttribute("data-faq-toggle");
+        const answer = document.getElementById("faq-answer-" + idx);
         if (!answer) return;
-        var expanded = btn.getAttribute("aria-expanded") === "true";
+        const expanded = btn.getAttribute("aria-expanded") === "true";
         btn.setAttribute("aria-expanded", expanded ? "false" : "true");
         if (expanded) {
           answer.setAttribute("hidden", "");
         } else {
           answer.removeAttribute("hidden");
         }
-        var icon = btn.querySelector(".faq-toggle-icon");
+        const icon = btn.querySelector(".faq-toggle-icon");
         if (icon) icon.textContent = expanded ? "+" : "−";
       });
     });
 
   if (typeof window.IntersectionObserver === "function") {
-    var navLinks = Array.prototype.slice.call(document.querySelectorAll("[data-section-link]"));
-    var sectionObserver = new window.IntersectionObserver(
+    const navLinks = Array.prototype.slice.call(document.querySelectorAll("[data-section-link]"));
+    const sectionObserver = new window.IntersectionObserver(
       function (entries) {
         entries.forEach(function (entry) {
           if (!entry.isIntersecting) {
             return;
           }
-          var id = entry.target.id;
+          const id = entry.target.id;
           navLinks.forEach(function (link) {
             link.classList.toggle("is-active", link.getAttribute("data-section-link") === id);
           });
