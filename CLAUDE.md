@@ -18,10 +18,15 @@ npm run cms:dev     # Sanity Studio → http://localhost:3333
 npm run build           # Vite production build → dist/
 npm run cms:build       # Sanity Studio build
 npm run lint            # ESLint (ignores dist/, node_modules/, studio/)
+npm run typecheck       # tsc --checkJs over shared/ (JSDoc types; see jsconfig.json)
 npm run format          # Prettier (write)
 npm run format:check    # Prettier (check, used in CI)
 npm run check           # Full release check: format + lint + build + cms:build
 ```
+
+Type checking is JSDoc + `checkJs` (no `.ts` source). `jsconfig.json` scopes it
+to the pure `shared/` layer today; expand `include` as other layers gain
+annotations. CI runs `npm run typecheck` in the verify job.
 
 ### Tests
 
@@ -34,7 +39,7 @@ node --test test/shared/directory-logic.test.mjs --grep "buildDirectoryStrategyS
 ### Pre-merge checklist
 
 ```sh
-npm run format:check && npm run lint && npm run build && npm test
+npm run format:check && npm run lint && npm run typecheck && npm run build && npm test
 ```
 
 ## Architecture
