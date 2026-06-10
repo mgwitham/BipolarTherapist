@@ -28,17 +28,22 @@ Changes here should be validated with `npm run cms:build`.
 - Local and hosted review endpoints live in `server/` and `api/`
 - This layer handles admin login, review sessions, therapist submission workflows, candidate review, and operational review actions
 - `server/review-handler.mjs` is now the composition layer, not the canonical home for every rule
-- Route modules own endpoint clusters:
-  - `server/review-auth-portal-routes.mjs`
+- Route modules own endpoint clusters — there are ~19 `server/*-routes.mjs`
+  files (see CLAUDE.md for the annotated list). Representative examples:
+  - `server/review-auth-routes.mjs` / `server/review-auth-portal-routes.mjs`
   - `server/review-read-routes.mjs`
-  - `server/review-application-routes.mjs`
-  - `server/review-candidate-routes.mjs`
+  - `server/review-application-routes.mjs` / `server/review-candidate-routes.mjs`
   - `server/review-ops-routes.mjs`
+  - `server/review-claim-routes.mjs` / `server/review-recovery-routes.mjs`
+  - `server/review-portal-profile-routes.mjs`
+  - `server/review-stripe-routes.mjs` / `server/review-resend-webhook-routes.mjs`
 - Infrastructure modules own transport and delivery concerns:
   - `server/review-config.mjs`
   - `server/review-http-auth.mjs`
+  - `server/cron-auth.mjs`
   - `server/review-email.mjs`
   - `server/review-application-support.mjs`
+  - `server/rate-limit-store.mjs`
 
 Changes here should be reviewed with auth, session, and environment handling in mind.
 

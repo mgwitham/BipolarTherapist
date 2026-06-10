@@ -1,3 +1,5 @@
+import { slugify as slugifyReviewerId } from "../shared/therapist-domain.mjs";
+
 function getEventLane(doc) {
   const eventType = String((doc && doc.eventType) || "");
   if (
@@ -46,14 +48,6 @@ function buildTextResponseHeaders(origin, config, contentType) {
     headers["Access-Control-Allow-Origin"] = origin;
   }
   return headers;
-}
-
-function slugifyReviewerId(value) {
-  return String(value || "")
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
 }
 
 function normalizeReviewerDirectoryEntries(entries) {

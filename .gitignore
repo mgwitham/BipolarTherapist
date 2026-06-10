@@ -9,6 +9,7 @@ studio/.env
 tmp/
 *.log
 coverage/
+.lighthouserc.generated.json
 playwright-report/
 test-results/
 data/import/*.csv
