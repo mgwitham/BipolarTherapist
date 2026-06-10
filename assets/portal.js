@@ -826,11 +826,18 @@ function describeFeaturedStatus(subscription) {
 // don't re-show after explicit dismissal).
 const PORTAL_UPSELL_DISMISS_KEY = "bth_portal_upsell_dismissed_v1";
 
+// One localStorage entry per slug rather than a single JSON object keyed by
+// slug. This keeps the dismissal flag without ever writing a slug-derived
+// (untrusted) value as an object property name — no dynamic-property write,
+// so no property-injection / prototype-pollution surface at all.
+function upsellDismissStorageKey(slug) {
+  return PORTAL_UPSELL_DISMISS_KEY + ":" + encodeURIComponent(String(slug || ""));
+}
+
 function isUpsellDismissed(slug) {
   try {
-    const raw = window.localStorage.getItem(PORTAL_UPSELL_DISMISS_KEY) || "{}";
-    const parsed = JSON.parse(raw);
-    return Boolean(parsed && parsed[String(slug || "")]);
+    if (!slug) return false;
+    return Boolean(window.localStorage.getItem(upsellDismissStorageKey(slug)));
   } catch (_error) {
     return false;
   }
@@ -838,24 +845,8 @@ function isUpsellDismissed(slug) {
 
 function markUpsellDismissed(slug) {
   try {
-    const key = String(slug || "");
-    // Guard prototype-pollution keys before using the slug as a property name.
-    // (slug is CMS-derived, but treat any value used as an object key as untrusted.)
-    if (!key || key === "__proto__" || key === "constructor" || key === "prototype") return;
-    const raw = window.localStorage.getItem(PORTAL_UPSELL_DISMISS_KEY) || "{}";
-    // Null-prototype map so writing a slug-derived key can never reach
-    // Object.prototype (there is no prototype to pollute).
-    const parsed = Object.create(null);
-    try {
-      const stored = JSON.parse(raw);
-      if (stored && typeof stored === "object") {
-        Object.assign(parsed, stored);
-      }
-    } catch (_error) {
-      /* corrupt value; start fresh */
-    }
-    parsed[key] = new Date().toISOString();
-    window.localStorage.setItem(PORTAL_UPSELL_DISMISS_KEY, JSON.stringify(parsed));
+    if (!slug) return;
+    window.localStorage.setItem(upsellDismissStorageKey(slug), new Date().toISOString());
   } catch (_error) {
     // best-effort; refusing to persist is fine
   }
