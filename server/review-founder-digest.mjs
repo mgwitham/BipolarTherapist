@@ -9,8 +9,8 @@ import {
 } from "../shared/founder-funnel-digest-domain.mjs";
 import { buildDirectoryIntegritySummary } from "../shared/directory-integrity-domain.mjs";
 import { hasEmailConfig, sendEmail } from "./review-email.mjs";
+import { FUNNEL_LOG_ID } from "./funnel-event-log.mjs";
 
-const FUNNEL_LOG_ID = "funnelEventLog.singleton";
 const DIRECTORY_INTEGRITY_QUERY = `*[_type == "therapist"]{
   _id, _updatedAt, name, "slug": slug.current,
   email, phone, website, bookingUrl, preferredContactMethod,

@@ -7,8 +7,7 @@ import {
   renderOutreachClickDigestEmail,
 } from "../shared/outreach-click-digest-domain.mjs";
 import { hasEmailConfig, sendFounderAlert } from "./review-email.mjs";
-
-const FUNNEL_LOG_ID = "funnelEventLog.singleton";
+import { FUNNEL_LOG_ID } from "./funnel-event-log.mjs";
 
 export async function runOutreachClickDigest({ client, config, nowIso }) {
   const summary = { ok: true, generatedAt: nowIso, sent: false, skipped_reason: null };

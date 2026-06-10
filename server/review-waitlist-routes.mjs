@@ -8,9 +8,8 @@
 // abuse before this route; the bounded event log keeps storage capped.
 
 import { log } from "./logger.mjs";
+import { appendFunnelLogEvents } from "./funnel-event-log.mjs";
 
-const SINGLETON_ID = "funnelEventLog.singleton";
-const MAX_EVENTS = 500;
 const MAX_PAYLOAD_BYTES = 1024;
 
 const STATE_CODES = new Set([
@@ -119,20 +118,6 @@ function normalizeState(value) {
   return STATE_CODES.has(s) ? s : "";
 }
 
-async function getOrCreateLog(client) {
-  const existing = await client.getDocument(SINGLETON_ID);
-  if (existing) {
-    return existing;
-  }
-  return await client.createOrReplace({
-    _id: SINGLETON_ID,
-    _type: "funnelEventLog",
-    updatedAt: new Date().toISOString(),
-    totalAppended: 0,
-    events: [],
-  });
-}
-
 async function appendWaitlistEvent(client, { email, state, userAgent }) {
   const now = new Date().toISOString();
   let payload = "";
@@ -151,28 +136,9 @@ async function appendWaitlistEvent(client, { email, state, userAgent }) {
     payload,
     userAgent: safeString(userAgent || "", 200),
   };
-  // Optimistic concurrency: this writes to the same funnelEventLog
-  // singleton as the public analytics endpoint, so an unguarded
-  // read-merge-set can clobber (or be clobbered by) a concurrent append.
-  // Gate on the revision we read and retry on conflict.
-  let lastError = null;
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const logDoc = await getOrCreateLog(client);
-    const existing = Array.isArray(logDoc.events) ? logDoc.events : [];
-    const merged = [event].concat(existing).slice(0, MAX_EVENTS);
-    const totalAppended = Number(logDoc.totalAppended || 0) + 1;
-    try {
-      await client
-        .patch(SINGLETON_ID)
-        .ifRevisionId(logDoc._rev || "")
-        .set({ events: merged, updatedAt: now, totalAppended })
-        .commit({ visibility: "async" });
-      return;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-  throw lastError;
+  // Shared append: same funnelEventLog singleton the analytics endpoint uses,
+  // with the optimistic-concurrency retry and the single 3000-event cap.
+  await appendFunnelLogEvents(client, [event], 1);
 }
 
 async function notifyAdminOfWaitlist(config, sendEmail, { email, state }) {

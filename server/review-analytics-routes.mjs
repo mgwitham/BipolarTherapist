@@ -13,9 +13,14 @@
 // GET /analytics/events  — admin-only, returns current log contents.
 
 import { log } from "./logger.mjs";
+import {
+  FUNNEL_LOG_ID,
+  FUNNEL_LOG_MAX_EVENTS,
+  appendFunnelLogEvents,
+} from "./funnel-event-log.mjs";
 
-const SINGLETON_ID = "funnelEventLog.singleton";
-const MAX_EVENTS = 3000;
+// Re-exported under the historical name for the analytics test that imports it.
+const MAX_EVENTS = FUNNEL_LOG_MAX_EVENTS;
 const MAX_PAYLOAD_BYTES = 1024;
 const MAX_EVENT_TYPE_LEN = 80;
 const MAX_BATCH_SIZE = 50;
@@ -101,52 +106,6 @@ function cryptoRandomKey() {
     .join("");
 }
 
-async function getOrCreateLog(client) {
-  const existing = await client.getDocument(SINGLETON_ID);
-  if (existing) {
-    return existing;
-  }
-  return await client.createOrReplace({
-    _id: SINGLETON_ID,
-    _type: "funnelEventLog",
-    updatedAt: new Date().toISOString(),
-    totalAppended: 0,
-    events: [],
-  });
-}
-
-// Append events to the singleton with optimistic concurrency. The naive
-// read-merge-set loses events when two writers race (both read N events,
-// both write their own merge) — and POST /analytics/events is public, so
-// the race is attacker-triggerable, silently clobbering concurrent
-// legitimate appends. Gate the set on the revision we read and retry on
-// conflict with a fresh read.
-const APPEND_MAX_ATTEMPTS = 3;
-
-async function appendEventsToLog(client, retainable, appendedCount) {
-  let lastError = null;
-  for (let attempt = 0; attempt < APPEND_MAX_ATTEMPTS; attempt += 1) {
-    const logDoc = await getOrCreateLog(client);
-    const existing = Array.isArray(logDoc.events) ? logDoc.events : [];
-    // Newest first. Prepend retained events, truncate tail.
-    const merged = retainable.concat(existing).slice(0, MAX_EVENTS);
-    const now = new Date().toISOString();
-    const totalAppended = Number(logDoc.totalAppended || 0) + appendedCount;
-    try {
-      await client
-        .patch(SINGLETON_ID)
-        .ifRevisionId(logDoc._rev || "")
-        .set({ events: merged, updatedAt: now, totalAppended })
-        .commit({ visibility: "async" });
-      return;
-    } catch (error) {
-      lastError = error;
-      // Revision conflict — another writer landed first. Re-read and retry.
-    }
-  }
-  throw lastError;
-}
-
 export async function handleAnalyticsRoutes(context) {
   const { client, config, deps, origin, request, response, routePath } = context;
   const { getAuthorizedActor, isAuthorized, parseBody, sendJson } = deps;
@@ -192,7 +151,7 @@ export async function handleAnalyticsRoutes(context) {
       return !isNoiseEvent(ev.type);
     });
 
-    await appendEventsToLog(client, retainable, sanitized.length);
+    await appendFunnelLogEvents(client, retainable, sanitized.length);
 
     sendJson(
       response,
@@ -215,7 +174,7 @@ export async function handleAnalyticsRoutes(context) {
       sendJson(response, 401, { error: "Admin session required." }, origin, config);
       return true;
     }
-    const logDoc = await client.getDocument(SINGLETON_ID);
+    const logDoc = await client.getDocument(FUNNEL_LOG_ID);
     if (!logDoc) {
       sendJson(
         response,
@@ -255,7 +214,7 @@ export async function handleAnalyticsRoutes(context) {
     }
     let logDoc;
     try {
-      logDoc = await client.getDocument(SINGLETON_ID);
+      logDoc = await client.getDocument(FUNNEL_LOG_ID);
     } catch (err) {
       sendJson(
         response,
@@ -306,7 +265,7 @@ export async function appendFunnelEvent(client, type, payload) {
   if (!event) return;
   event.userAgent = "server";
   try {
-    await appendEventsToLog(client, [event], 1);
+    await appendFunnelLogEvents(client, [event], 1);
   } catch (error) {
     // Analytics is best-effort; never block the caller. Logged so a
     // sustained write failure (the funnel dashboard quietly going stale)

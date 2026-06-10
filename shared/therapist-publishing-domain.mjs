@@ -49,6 +49,81 @@ export function scrubIntakeStub(value) {
   return isIntakeStub(value) ? "" : value || "";
 }
 
+// Shapes a therapist document into the portal /me + PATCH response payload.
+// One source of truth so /portal/me, /portal/therapist, and the claim flow
+// never drift in what they expose. Pure (camelCase doc → snake_case wire).
+export function shapePortalTherapist(therapist) {
+  return {
+    slug: therapist.slug,
+    name: therapist.name,
+    email: therapist.email || "",
+    city: therapist.city || "",
+    state: therapist.state || "",
+    zip: therapist.zip || "",
+    practice_name: therapist.practiceName || "",
+    status: therapist.status || "",
+    listing_active: therapist.listingActive !== false,
+    claim_status: therapist.claimStatus || "unclaimed",
+    claimed_by_email: therapist.claimedByEmail || "",
+    claimed_at: therapist.claimedAt || "",
+    portal_last_seen_at: therapist.portalLastSeenAt || "",
+    listing_pause_requested_at: therapist.listingPauseRequestedAt || "",
+    listing_removal_requested_at: therapist.listingRemovalRequestedAt || "",
+    bio: scrubIntakeStub(therapist.bio),
+    credentials: scrubIntakeStub(therapist.credentials),
+    title: therapist.title || "",
+    phone: therapist.phone || "",
+    website: therapist.website || "",
+    booking_url: therapist.bookingUrl || "",
+    preferred_contact_method: therapist.preferredContactMethod || "",
+    preferred_contact_label: therapist.preferredContactLabel || "",
+    contact_guidance: therapist.contactGuidance || "",
+    first_step_expectation: therapist.firstStepExpectation || "",
+    accepting_new_patients: therapist.acceptingNewPatients !== false,
+    accepts_telehealth: therapist.acceptsTelehealth !== false,
+    accepts_in_person: therapist.acceptsInPerson !== false,
+    session_fee_min: typeof therapist.sessionFeeMin === "number" ? therapist.sessionFeeMin : null,
+    session_fee_max: typeof therapist.sessionFeeMax === "number" ? therapist.sessionFeeMax : null,
+    sliding_scale: therapist.slidingScale === true,
+    client_populations: Array.isArray(therapist.clientPopulations)
+      ? therapist.clientPopulations
+      : [],
+    specialties: Array.isArray(therapist.specialties) ? therapist.specialties : [],
+    insurance_accepted: Array.isArray(therapist.insuranceAccepted)
+      ? therapist.insuranceAccepted
+      : [],
+    telehealth_states: Array.isArray(therapist.telehealthStates) ? therapist.telehealthStates : [],
+    treatment_modalities: Array.isArray(therapist.treatmentModalities)
+      ? therapist.treatmentModalities
+      : [],
+    languages: Array.isArray(therapist.languages) ? therapist.languages : [],
+    gender: therapist.gender || "",
+    care_approach: scrubIntakeStub(therapist.careApproach),
+    estimated_wait_time: therapist.estimatedWaitTime || "",
+    years_experience:
+      typeof therapist.yearsExperience === "number" ? therapist.yearsExperience : null,
+    bipolar_years_experience:
+      typeof therapist.bipolarYearsExperience === "number"
+        ? therapist.bipolarYearsExperience
+        : null,
+    medication_management: therapist.medicationManagement === true,
+    therapist_reported_fields: Array.isArray(therapist.therapistReportedFields)
+      ? therapist.therapistReportedFields
+      : [],
+    portal_first_save_at: therapist.portalFirstSaveAt || "",
+    portal_last_save_at: therapist.portalLastSaveAt || "",
+    portal_save_count:
+      typeof therapist.portalSaveCount === "number" ? therapist.portalSaveCount : 0,
+    portal_completeness_score:
+      typeof therapist.portalCompletenessScore === "number"
+        ? therapist.portalCompletenessScore
+        : null,
+    portal_completion_fields: Array.isArray(therapist.portalCompletionFields)
+      ? therapist.portalCompletionFields
+      : [],
+  };
+}
+
 export function buildPublishEventId(entityId) {
   const raw = String(entityId || "").trim();
   const fragment = raw.slice(0, MAX_EVENT_ID_ENTITY_FRAGMENT);
