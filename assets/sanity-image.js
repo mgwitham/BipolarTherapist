@@ -4,12 +4,12 @@
 // photo_url values are external aggregator links), so it is always safe to
 // wrap a raw URL with this.
 export function sanityImageUrl(url, options) {
-  var raw = String(url || "").trim();
+  const raw = String(url || "").trim();
   if (!raw || raw.indexOf("cdn.sanity.io") === -1) {
     return raw;
   }
-  var opts = options || {};
-  var params = [];
+  const opts = options || {};
+  const params = [];
   if (opts.width) {
     params.push("w=" + Math.round(opts.width));
   }

@@ -4,9 +4,9 @@
   // stays in markup as the no-JS fallback. The mobile CSS hides the
   // inline link's parent <ul> anyway, so no visible duplication.
   try {
-    var inlineCrisis = document.querySelector(".nav-crisis-link");
+    const inlineCrisis = document.querySelector(".nav-crisis-link");
     if (inlineCrisis && !document.querySelector(".crisis-ribbon")) {
-      var ribbon = document.createElement("a");
+      const ribbon = document.createElement("a");
       ribbon.className = "crisis-ribbon";
       ribbon.href = "tel:988";
       ribbon.setAttribute(
@@ -23,17 +23,17 @@
 
   // Hide-on-scroll-down, reveal-on-scroll-up. Mobile widths only.
   try {
-    var mq = window.matchMedia("(max-width: 640px)");
-    var lastY = window.scrollY;
-    var ticking = false;
+    const mq = window.matchMedia("(max-width: 640px)");
+    let lastY = window.scrollY;
+    let ticking = false;
     function updateNavCollapse() {
       ticking = false;
       if (!mq.matches) {
         document.body.classList.remove("nav-collapsed");
         return;
       }
-      var y = window.scrollY;
-      var delta = y - lastY;
+      const y = window.scrollY;
+      const delta = y - lastY;
       if (y < 24) {
         document.body.classList.remove("nav-collapsed");
       } else if (delta > 6) {
@@ -60,12 +60,12 @@
   // Append a small footer to the mobile sheet so it never reads as empty,
   // and so the crisis 988 link is always one tap from inside the menu.
   try {
-    var sheet = document.querySelector(".public-mobile-nav");
+    const sheet = document.querySelector(".public-mobile-nav");
     // The 988 crisis line is patient-facing; skip it in the therapist
     // zone (the light mobile drawer), where it's out of place.
-    var isTherapistZone = sheet && sheet.classList.contains("public-mobile-nav--light");
+    const isTherapistZone = sheet && sheet.classList.contains("public-mobile-nav--light");
     if (sheet && !isTherapistZone && !sheet.querySelector(".public-mobile-nav-footer")) {
-      var footer = document.createElement("div");
+      const footer = document.createElement("div");
       footer.className = "public-mobile-nav-footer";
       footer.innerHTML =
         'Need help now? <a href="tel:988" aria-label="Call or text 988">Call or text 988</a>';
@@ -75,11 +75,11 @@
     // Non-fatal.
   }
 
-  var btn = document.querySelector(".nav-hamburger");
-  var mobileNav = document.querySelector(".public-mobile-nav");
+  const btn = document.querySelector(".nav-hamburger");
+  const mobileNav = document.querySelector(".public-mobile-nav");
   if (btn && mobileNav) {
     btn.addEventListener("click", function () {
-      var isOpen = mobileNav.classList.toggle("is-open");
+      const isOpen = mobileNav.classList.toggle("is-open");
       btn.setAttribute("aria-expanded", String(isOpen));
       document.body.style.overflow = isOpen ? "hidden" : "";
     });
@@ -97,16 +97,16 @@
   // guided form, but only a rendered match results URL earns "Your Matches".
   // Runs synchronously on module parse (modules are deferred, so DOM is ready).
   try {
-    var DEFAULT_MATCH_HREF = "/#startMatch";
-    var MATCH_RESULTS_URL_KEY = "matchResultsUrl";
-    var MATCH_RESULTS_AT_KEY = "matchResultsAt";
+    const DEFAULT_MATCH_HREF = "/#startMatch";
+    const MATCH_RESULTS_URL_KEY = "matchResultsUrl";
+    const MATCH_RESULTS_AT_KEY = "matchResultsAt";
     // The "Your matches" resume link expires this long after it was saved.
     // Past that we fall back to "Get matched", so a forgotten week-old search
     // doesn't linger in the nav. Results recompute live from the URL params on
     // click, so this only bounds the *saved query*, not any cached data.
-    var MATCH_RESULTS_TTL_MS = 24 * 60 * 60 * 1000;
-    var storedResultsUrl = "";
-    var storedResultsAt = "";
+    const MATCH_RESULTS_TTL_MS = 24 * 60 * 60 * 1000;
+    let storedResultsUrl = "";
+    let storedResultsAt = "";
     try {
       // sessionStorage is the original source (written by match.js), but it
       // dies when the tab closes, leaving "Your matches" stranded the next
@@ -130,8 +130,8 @@
 
     // Expire stale resume links. A missing or unparseable timestamp counts as
     // expired (e.g. links saved before this field existed).
-    var savedAt = parseInt(storedResultsAt, 10);
-    var isExpired =
+    const savedAt = parseInt(storedResultsAt, 10);
+    const isExpired =
       !storedResultsUrl || !(savedAt > 0) || Date.now() - savedAt > MATCH_RESULTS_TTL_MS;
     if (isExpired) {
       storedResultsUrl = "";
@@ -159,8 +159,8 @@
         return "";
       }
       try {
-        var url = new URL(value, window.location.origin);
-        var isMatchPath =
+        const url = new URL(value, window.location.origin);
+        const isMatchPath =
           url.pathname === "/match" ||
           url.pathname === "/match.html" ||
           url.pathname === "/results" ||
@@ -174,15 +174,15 @@
       }
     }
 
-    var resultsHref = getSafeMatchResultsHref(storedResultsUrl);
-    var hasMatchResults = Boolean(resultsHref);
+    const resultsHref = getSafeMatchResultsHref(storedResultsUrl);
+    const hasMatchResults = Boolean(resultsHref);
     // No-results path always points to the homepage form (#startMatch).
     // The homepage itself reads localStorage.bth_last_search and prefills
     // location, so we don't need to thread it through the URL.
-    var matchHref = hasMatchResults ? resultsHref : DEFAULT_MATCH_HREF;
+    const matchHref = hasMatchResults ? resultsHref : DEFAULT_MATCH_HREF;
 
     // Desktop link
-    var desktopLink = document.getElementById("navBrowseLink");
+    const desktopLink = document.getElementById("navBrowseLink");
     if (desktopLink) {
       desktopLink.href = matchHref;
       desktopLink.textContent = hasMatchResults ? "Your matches" : "Get matched";
@@ -190,16 +190,16 @@
     }
 
     // Mobile link, locate by title span content
-    var mobileLinks = document.querySelectorAll(".public-mobile-nav-link");
-    for (var i = 0; i < mobileLinks.length; i++) {
-      var link = mobileLinks[i];
-      var titleEl = link.querySelector(".public-mobile-nav-title");
+    const mobileLinks = document.querySelectorAll(".public-mobile-nav-link");
+    for (let i = 0; i < mobileLinks.length; i++) {
+      const link = mobileLinks[i];
+      const titleEl = link.querySelector(".public-mobile-nav-title");
       if (!titleEl) continue;
-      var titleText = titleEl.textContent.trim().toLowerCase();
+      const titleText = titleEl.textContent.trim().toLowerCase();
       if (titleText === "get matched" || titleText === "your matches") {
         link.href = matchHref;
         titleEl.textContent = hasMatchResults ? "Your matches" : "Get matched";
-        var copyEl = link.querySelector(".public-mobile-nav-copy");
+        const copyEl = link.querySelector(".public-mobile-nav-copy");
         if (copyEl) {
           copyEl.textContent = hasMatchResults ? "Resume your matches" : "Start guided match";
         }
@@ -216,23 +216,24 @@
     function enhanceStartMatchLink(linkEl) {
       if (!linkEl) return;
       linkEl.addEventListener("click", function (evt) {
-        var href = linkEl.getAttribute("href") || "";
+        const href = linkEl.getAttribute("href") || "";
         if (href.indexOf("#startMatch") === -1) return;
-        var onHome = window.location.pathname === "/" || window.location.pathname === "/index.html";
+        const onHome =
+          window.location.pathname === "/" || window.location.pathname === "/index.html";
         if (!onHome) return;
-        var form = document.getElementById("startMatch");
+        const form = document.getElementById("startMatch");
         if (!form) return;
         evt.preventDefault();
         // Close the mobile sheet (if open) so the form is visible.
-        var sheet = document.querySelector(".public-mobile-nav");
+        const sheet = document.querySelector(".public-mobile-nav");
         if (sheet && sheet.classList.contains("is-open")) {
           sheet.classList.remove("is-open");
-          var ham = document.querySelector(".nav-hamburger");
+          const ham = document.querySelector(".nav-hamburger");
           if (ham) ham.setAttribute("aria-expanded", "false");
           document.body.style.overflow = "";
         }
         form.scrollIntoView({ behavior: "smooth", block: "start" });
-        var field =
+        const field =
           document.getElementById("homepage_interest") ||
           form.querySelector("select, input, textarea, button");
         if (field) {

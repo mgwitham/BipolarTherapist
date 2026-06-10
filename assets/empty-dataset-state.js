@@ -1,10 +1,10 @@
-export var DATASET_EMPTY_COPY_HEADING =
+export const DATASET_EMPTY_COPY_HEADING =
   "The directory is being rebuilt with a stricter verification process.";
 
-export var DATASET_EMPTY_COPY_BODY =
+export const DATASET_EMPTY_COPY_BODY =
   "We're currently contacting California therapists individually to confirm their bipolar specialization and contact details. The directory will relaunch once each listing has been verified.";
 
-export var DATASET_EMPTY_COPY_CRISIS = "Need help now? If you're in crisis, call or text 988.";
+export const DATASET_EMPTY_COPY_CRISIS = "Need help now? If you're in crisis, call or text 988.";
 
 export function renderDatasetEmptyStateMarkup() {
   return (

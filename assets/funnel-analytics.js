@@ -1,5 +1,5 @@
-var vercelAnalyticsInjected = false;
-var vercelAnalyticsPromise = null;
+let vercelAnalyticsInjected = false;
+let vercelAnalyticsPromise = null;
 function loadVercelAnalytics() {
   if (vercelAnalyticsInjected || typeof window === "undefined") {
     return vercelAnalyticsPromise;
@@ -20,16 +20,16 @@ function flattenEventPayloadForVercel(payload) {
   if (!payload || typeof payload !== "object") {
     return undefined;
   }
-  var flat = {};
-  var keys = Object.keys(payload);
-  var count = 0;
-  for (var i = 0; i < keys.length && count < 10; i += 1) {
-    var key = keys[i];
-    var value = payload[key];
+  const flat = {};
+  const keys = Object.keys(payload);
+  let count = 0;
+  for (let i = 0; i < keys.length && count < 10; i += 1) {
+    const key = keys[i];
+    const value = payload[key];
     if (value === null || value === undefined) {
       continue;
     }
-    var kind = typeof value;
+    const kind = typeof value;
     if (kind === "string") {
       flat[key] = value.length > 200 ? value.slice(0, 200) : value;
       count += 1;
@@ -60,25 +60,25 @@ function forwardEventToVercel(type, payload) {
     });
 }
 
-var FUNNEL_EVENTS_KEY = "bth_funnel_events_v1";
-var FUNNEL_EVENTS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-var EXPERIMENT_ASSIGNMENTS_KEY = "bth_experiment_assignments_v1";
-var EXPERIMENT_EXPOSURES_KEY = "bth_experiment_exposures_v1";
-var EXPERIMENT_PROMOTIONS_KEY = "bth_experiment_promotions_v1";
-var THERAPIST_CONTACT_ROUTE_MEMORY_KEY = "bth_therapist_contact_route_memory_v1";
-var funnelEventsCache = null;
-var experimentAssignmentsCache = null;
-var experimentExposuresCache = null;
-var experimentPromotionsCache = null;
-var therapistContactRouteMemoryCache = null;
+const FUNNEL_EVENTS_KEY = "bth_funnel_events_v1";
+const FUNNEL_EVENTS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const EXPERIMENT_ASSIGNMENTS_KEY = "bth_experiment_assignments_v1";
+const EXPERIMENT_EXPOSURES_KEY = "bth_experiment_exposures_v1";
+const EXPERIMENT_PROMOTIONS_KEY = "bth_experiment_promotions_v1";
+const THERAPIST_CONTACT_ROUTE_MEMORY_KEY = "bth_therapist_contact_route_memory_v1";
+let funnelEventsCache = null;
+let experimentAssignmentsCache = null;
+let experimentExposuresCache = null;
+let experimentPromotionsCache = null;
+let therapistContactRouteMemoryCache = null;
 
 function pruneFunnelEvents(events) {
-  var now = Date.now();
+  const now = Date.now();
   return (Array.isArray(events) ? events : []).filter(function (event) {
     if (!event || !event.created_at) {
       return false;
     }
-    var ageMs = now - new Date(event.created_at).getTime();
+    const ageMs = now - new Date(event.created_at).getTime();
     return Number.isFinite(ageMs) && ageMs >= 0 && ageMs <= FUNNEL_EVENTS_TTL_MS;
   });
 }
@@ -105,7 +105,7 @@ export function trackFunnelEvent(type, payload) {
     return;
   }
 
-  var events = readFunnelEvents();
+  const events = readFunnelEvents();
   events.unshift({
     type: String(type),
     created_at: new Date().toISOString(),
@@ -130,27 +130,27 @@ export function trackFunnelEvent(type, payload) {
 // fails, events still exist in localStorage + Vercel Analytics.
 // =============================================================
 
-var SERVER_BATCH_MAX = 30;
-var SERVER_BATCH_FLUSH_MS = 2000;
-var serverEventBatch = [];
-var serverFlushTimer = null;
-var serverFlushHandlersBound = false;
-var serverSessionId = null;
+const SERVER_BATCH_MAX = 30;
+const SERVER_BATCH_FLUSH_MS = 2000;
+let serverEventBatch = [];
+let serverFlushTimer = null;
+let serverFlushHandlersBound = false;
+let serverSessionId = null;
 
 function getSessionId() {
   if (serverSessionId) {
     return serverSessionId;
   }
-  var key = "bth_funnel_session_id_v1";
+  const key = "bth_funnel_session_id_v1";
   try {
-    var existing = window.sessionStorage.getItem(key);
+    const existing = window.sessionStorage.getItem(key);
     if (existing) {
       serverSessionId = existing;
       return serverSessionId;
     }
-    var bytes = new Uint8Array(8);
+    const bytes = new Uint8Array(8);
     (window.crypto || window.msCrypto).getRandomValues(bytes);
-    var id = Array.from(bytes)
+    const id = Array.from(bytes)
       .map(function (b) {
         return b.toString(16).padStart(2, "0");
       })
@@ -167,7 +167,7 @@ function getAnalyticsEndpoint() {
   if (typeof window === "undefined") {
     return "";
   }
-  var hostname = window.location.hostname;
+  const hostname = window.location.hostname;
   if (hostname === "localhost" || hostname === "127.0.0.1") {
     return "http://localhost:8787/analytics/events";
   }
@@ -182,18 +182,18 @@ function flushServerBatch() {
   if (!serverEventBatch.length) {
     return;
   }
-  var endpoint = getAnalyticsEndpoint();
+  const endpoint = getAnalyticsEndpoint();
   if (!endpoint) {
     return;
   }
-  var payload = { events: serverEventBatch.slice(0, SERVER_BATCH_MAX) };
+  const payload = { events: serverEventBatch.slice(0, SERVER_BATCH_MAX) };
   serverEventBatch = [];
-  var body = JSON.stringify(payload);
+  const body = JSON.stringify(payload);
   // Prefer sendBeacon so events flush on page unload. Fall back to fetch
   // with keepalive for anything longer than the beacon size cap.
   try {
     if (navigator && typeof navigator.sendBeacon === "function" && body.length < 60000) {
-      var blob = new window.Blob([body], { type: "application/json" });
+      const blob = new window.Blob([body], { type: "application/json" });
       if (navigator.sendBeacon(endpoint, blob)) {
         return;
       }
@@ -280,12 +280,12 @@ function writeTherapistContactRouteMemory(value) {
 }
 
 export function rememberTherapistContactRoute(therapistSlug, route, source) {
-  var slug = String(therapistSlug || "").trim();
-  var routeValue = String(route || "").trim();
+  const slug = String(therapistSlug || "").trim();
+  const routeValue = String(route || "").trim();
   if (!slug || !routeValue) {
     return;
   }
-  var memory = readTherapistContactRouteMemory();
+  const memory = readTherapistContactRouteMemory();
   memory[slug] = {
     therapist_slug: slug,
     route: routeValue,
@@ -296,16 +296,16 @@ export function rememberTherapistContactRoute(therapistSlug, route, source) {
 }
 
 export function readRememberedTherapistContactRoute(therapistSlug) {
-  var slug = String(therapistSlug || "").trim();
+  const slug = String(therapistSlug || "").trim();
   if (!slug) {
     return null;
   }
-  var memory = readTherapistContactRouteMemory();
-  var entry = memory[slug];
+  const memory = readTherapistContactRouteMemory();
+  const entry = memory[slug];
   if (!entry || !entry.recorded_at) {
     return null;
   }
-  var ageMs = Date.now() - new Date(entry.recorded_at).getTime();
+  const ageMs = Date.now() - new Date(entry.recorded_at).getTime();
   if (!Number.isFinite(ageMs) || ageMs > 21 * 24 * 60 * 60 * 1000) {
     return null;
   }
@@ -394,17 +394,17 @@ function writeExperimentPromotions(value) {
 }
 
 export function getPromotedExperimentVariant(name) {
-  var promotions = readExperimentPromotions();
+  const promotions = readExperimentPromotions();
   return promotions[String(name || "").trim()] || "";
 }
 
 export function setPromotedExperimentVariant(name, variant) {
-  var experimentName = String(name || "").trim();
-  var experimentVariant = String(variant || "").trim();
+  const experimentName = String(name || "").trim();
+  const experimentVariant = String(variant || "").trim();
   if (!experimentName) {
     return;
   }
-  var promotions = readExperimentPromotions();
+  const promotions = readExperimentPromotions();
   if (!experimentVariant) {
     delete promotions[experimentName];
   } else {
@@ -414,37 +414,37 @@ export function setPromotedExperimentVariant(name, variant) {
 }
 
 export function getExperimentVariant(name, variants) {
-  var experimentName = String(name || "").trim();
-  var options = Array.isArray(variants) ? variants.filter(Boolean) : [];
+  const experimentName = String(name || "").trim();
+  const options = Array.isArray(variants) ? variants.filter(Boolean) : [];
   if (!experimentName || !options.length) {
     return "";
   }
 
-  var promoted = getPromotedExperimentVariant(experimentName);
+  const promoted = getPromotedExperimentVariant(experimentName);
   if (promoted && options.includes(promoted)) {
     return promoted;
   }
 
-  var assignments = readExperimentAssignments();
+  const assignments = readExperimentAssignments();
   if (assignments[experimentName] && options.includes(assignments[experimentName])) {
     return assignments[experimentName];
   }
 
-  var selected = options[Math.floor(Math.random() * options.length)] || options[0];
+  const selected = options[Math.floor(Math.random() * options.length)] || options[0];
   assignments[experimentName] = selected;
   writeExperimentAssignments(assignments);
   return selected;
 }
 
 export function trackExperimentExposure(name, variant, payload) {
-  var experimentName = String(name || "").trim();
-  var experimentVariant = String(variant || "").trim();
+  const experimentName = String(name || "").trim();
+  const experimentVariant = String(variant || "").trim();
   if (!experimentName || !experimentVariant) {
     return;
   }
 
-  var exposures = readExperimentExposures();
-  var key = experimentName + "::" + experimentVariant;
+  const exposures = readExperimentExposures();
+  const key = experimentName + "::" + experimentVariant;
   if (exposures[key]) {
     return;
   }
@@ -459,8 +459,8 @@ export function trackExperimentExposure(name, variant, payload) {
 }
 
 export function summarizeFunnelEvents(events) {
-  var entries = Array.isArray(events) ? events : [];
-  var byType = entries.reduce(function (accumulator, item) {
+  const entries = Array.isArray(events) ? events : [];
+  const byType = entries.reduce(function (accumulator, item) {
     if (!item || !item.type) {
       return accumulator;
     }
@@ -468,12 +468,12 @@ export function summarizeFunnelEvents(events) {
     return accumulator;
   }, {});
 
-  var outreachStartTypes = [
+  const outreachStartTypes = [
     "match_recommended_outreach_started",
     "match_fallback_outreach_started",
     "match_entry_outreach_started",
   ];
-  var contactIntentTypes = outreachStartTypes.concat([
+  const contactIntentTypes = outreachStartTypes.concat([
     "match_recommended_draft_copied",
     "match_fallback_draft_copied",
     "match_entry_draft_copied",
@@ -508,8 +508,8 @@ export function summarizeFunnelEvents(events) {
 }
 
 export function summarizePatientJourney(events) {
-  var entries = Array.isArray(events) ? events : [];
-  var byType = entries.reduce(function (accumulator, item) {
+  const entries = Array.isArray(events) ? events : [];
+  const byType = entries.reduce(function (accumulator, item) {
     if (!item || !item.type) {
       return accumulator;
     }
@@ -521,7 +521,7 @@ export function summarizePatientJourney(events) {
     return byType[type] || 0;
   }
 
-  var stages = [
+  const stages = [
     {
       key: "homepage_start",
       label: "Homepage starts",
@@ -561,12 +561,12 @@ export function summarizePatientJourney(events) {
     },
   ];
 
-  var dropoffs = [];
-  for (var index = 0; index < stages.length - 1; index += 1) {
-    var current = stages[index];
-    var next = stages[index + 1];
-    var drop = Math.max(0, current.count - next.count);
-    var rate = current.count ? drop / current.count : 0;
+  const dropoffs = [];
+  for (let index = 0; index < stages.length - 1; index += 1) {
+    const current = stages[index];
+    const next = stages[index + 1];
+    const drop = Math.max(0, current.count - next.count);
+    const rate = current.count ? drop / current.count : 0;
     dropoffs.push({
       from: current.key,
       to: next.key,
@@ -577,12 +577,12 @@ export function summarizePatientJourney(events) {
     });
   }
 
-  var biggestDropoff =
+  const biggestDropoff =
     dropoffs.sort(function (a, b) {
       return b.drop_rate - a.drop_rate || b.drop_count - a.drop_count;
     })[0] || null;
 
-  var outcomeActions =
+  const outcomeActions =
     count("match_recommended_outreach_started") +
     count("match_fallback_outreach_started") +
     count("match_entry_outreach_started") +
@@ -600,11 +600,11 @@ export function summarizePatientJourney(events) {
 }
 
 export function summarizeExperimentPerformance(events) {
-  var entries = Array.isArray(events) ? events : [];
-  var buckets = {};
+  const entries = Array.isArray(events) ? events : [];
+  const buckets = {};
 
   function ensureBucket(experimentName, variant) {
-    var key = experimentName + "::" + variant;
+    const key = experimentName + "::" + variant;
     if (!buckets[key]) {
       buckets[key] = {
         experiment_name: experimentName,
@@ -625,9 +625,9 @@ export function summarizeExperimentPerformance(events) {
     }
 
     if (item.type === "experiment_exposed") {
-      var experimentName =
+      const experimentName =
         item.payload && item.payload.experiment_name ? item.payload.experiment_name : "";
-      var variant = item.payload && item.payload.variant ? item.payload.variant : "";
+      const variant = item.payload && item.payload.variant ? item.payload.variant : "";
       if (!experimentName || !variant) {
         return;
       }
@@ -635,7 +635,7 @@ export function summarizeExperimentPerformance(events) {
       return;
     }
 
-    var experiments =
+    const experiments =
       item.payload && item.payload.experiments && typeof item.payload.experiments === "object"
         ? item.payload.experiments
         : null;
@@ -644,11 +644,11 @@ export function summarizeExperimentPerformance(events) {
     }
 
     Object.keys(experiments).forEach(function (experimentName) {
-      var variant = experiments[experimentName];
+      const variant = experiments[experimentName];
       if (!variant) {
         return;
       }
-      var bucket = ensureBucket(experimentName, variant);
+      const bucket = ensureBucket(experimentName, variant);
       if (item.type === "home_match_started") {
         bucket.homepage_starts += 1;
       } else if (item.type === "match_submitted") {
@@ -672,7 +672,7 @@ export function summarizeExperimentPerformance(events) {
 
   return Object.keys(buckets)
     .map(function (key) {
-      var bucket = buckets[key];
+      const bucket = buckets[key];
       bucket.match_rate = bucket.exposures ? bucket.matches / bucket.exposures : 0;
       bucket.shortlist_action_rate = bucket.matches ? bucket.shortlist_actions / bucket.matches : 0;
       bucket.outreach_rate = bucket.matches ? bucket.outreach_starts / bucket.matches : 0;
@@ -690,8 +690,8 @@ export function summarizeExperimentPerformance(events) {
 }
 
 export function summarizeExperimentDecisions(events) {
-  var performance = summarizeExperimentPerformance(events);
-  var grouped = {};
+  const performance = summarizeExperimentPerformance(events);
+  const grouped = {};
 
   performance.forEach(function (item) {
     if (!grouped[item.experiment_name]) {
@@ -702,7 +702,7 @@ export function summarizeExperimentDecisions(events) {
 
   return Object.keys(grouped)
     .map(function (experimentName) {
-      var variants = grouped[experimentName].slice().sort(function (a, b) {
+      const variants = grouped[experimentName].slice().sort(function (a, b) {
         return (
           b.composite_score - a.composite_score ||
           b.outreach_rate - a.outreach_rate ||
@@ -710,10 +710,10 @@ export function summarizeExperimentDecisions(events) {
           a.variant.localeCompare(b.variant)
         );
       });
-      var winner = variants[0] || null;
-      var runnerUp = variants[1] || null;
-      var promoted = getPromotedExperimentVariant(experimentName);
-      var confidence =
+      const winner = variants[0] || null;
+      const runnerUp = variants[1] || null;
+      const promoted = getPromotedExperimentVariant(experimentName);
+      const confidence =
         winner && runnerUp && winner.exposures >= 5 && runnerUp.exposures >= 5
           ? winner.composite_score - runnerUp.composite_score
           : 0;
@@ -738,36 +738,36 @@ export function summarizeExperimentDecisions(events) {
 }
 
 export function summarizeAdaptiveSignals(events, outcomes, activeSegments) {
-  var entries = Array.isArray(events) ? events : [];
-  var outcomeEntries = Array.isArray(outcomes) ? outcomes : [];
-  var segmentFilter = Array.isArray(activeSegments) ? activeSegments.filter(Boolean) : [];
+  const entries = Array.isArray(events) ? events : [];
+  const outcomeEntries = Array.isArray(outcomes) ? outcomes : [];
+  const segmentFilter = Array.isArray(activeSegments) ? activeSegments.filter(Boolean) : [];
 
   function matchesSegments(itemSegments) {
     if (!segmentFilter.length) {
       return true;
     }
-    var normalized = Array.isArray(itemSegments) ? itemSegments : [];
+    const normalized = Array.isArray(itemSegments) ? itemSegments : [];
     return segmentFilter.some(function (segment) {
       return normalized.includes(segment);
     });
   }
 
-  var filteredEntries = entries.filter(function (item) {
-    var itemSegments =
+  const filteredEntries = entries.filter(function (item) {
+    const itemSegments =
       item && item.payload && item.payload.strategy && Array.isArray(item.payload.strategy.segments)
         ? item.payload.strategy.segments
         : [];
     return matchesSegments(itemSegments);
   });
 
-  var filteredOutcomeEntries = outcomeEntries.filter(function (item) {
-    var itemSegments =
+  const filteredOutcomeEntries = outcomeEntries.filter(function (item) {
+    const itemSegments =
       item && item.context && item.context.strategy && Array.isArray(item.context.strategy.segments)
         ? item.context.strategy.segments
         : [];
     return matchesSegments(itemSegments);
   });
-  var sortCounts = {
+  const sortCounts = {
     best_match: 0,
     soonest_availability: 0,
     most_experienced: 0,
@@ -776,13 +776,13 @@ export function summarizeAdaptiveSignals(events, outcomes, activeSegments) {
   };
 
   filteredEntries.forEach(function (item) {
-    var sortBy = item && item.payload ? item.payload.sort_by : "";
+    const sortBy = item && item.payload ? item.payload.sort_by : "";
     if (sortBy && Object.prototype.hasOwnProperty.call(sortCounts, sortBy)) {
       sortCounts[sortBy] += 1;
     }
   });
 
-  var actionCounts = {
+  const actionCounts = {
     outreach: 0,
     help: 0,
     save: 0,
@@ -818,21 +818,21 @@ export function summarizeAdaptiveSignals(events, outcomes, activeSegments) {
     }
   });
 
-  var preferredDirectorySort = Object.keys(sortCounts).sort(function (a, b) {
+  const preferredDirectorySort = Object.keys(sortCounts).sort(function (a, b) {
     return sortCounts[b] - sortCounts[a] || a.localeCompare(b);
   })[0];
-  var preferredMatchActionByVolume = Object.keys(actionCounts).sort(function (a, b) {
+  const preferredMatchActionByVolume = Object.keys(actionCounts).sort(function (a, b) {
     return actionCounts[b] - actionCounts[a] || a.localeCompare(b);
   })[0];
 
-  var strategyPerformance = {
+  const strategyPerformance = {
     outreach: { strong: 0, friction: 0 },
     help: { strong: 0, friction: 0 },
     save: { strong: 0, friction: 0 },
   };
 
   filteredOutcomeEntries.forEach(function (item) {
-    var strategy =
+    const strategy =
       item &&
       item.context &&
       item.context.strategy &&
@@ -851,7 +851,7 @@ export function summarizeAdaptiveSignals(events, outcomes, activeSegments) {
     }
   });
 
-  var strategyScores = Object.keys(strategyPerformance).reduce(function (accumulator, key) {
+  const strategyScores = Object.keys(strategyPerformance).reduce(function (accumulator, key) {
     accumulator[key] =
       strategyPerformance[key].strong * 3 +
       actionCounts[key] -
@@ -859,11 +859,11 @@ export function summarizeAdaptiveSignals(events, outcomes, activeSegments) {
     return accumulator;
   }, {});
 
-  var preferredMatchActionByOutcome = Object.keys(strategyScores).sort(function (a, b) {
+  const preferredMatchActionByOutcome = Object.keys(strategyScores).sort(function (a, b) {
     return strategyScores[b] - strategyScores[a] || a.localeCompare(b);
   })[0];
 
-  var preferredHomeMode =
+  const preferredHomeMode =
     preferredDirectorySort === "soonest_availability"
       ? "speed"
       : preferredDirectorySort === "most_experienced"
@@ -872,7 +872,7 @@ export function summarizeAdaptiveSignals(events, outcomes, activeSegments) {
           ? "contact"
           : "trust";
 
-  var totalOutcomeSignals = filteredOutcomeEntries.filter(function (item) {
+  const totalOutcomeSignals = filteredOutcomeEntries.filter(function (item) {
     return (
       item &&
       item.context &&
@@ -883,17 +883,17 @@ export function summarizeAdaptiveSignals(events, outcomes, activeSegments) {
     );
   }).length;
 
-  var useOutcomeDrivenPreference =
+  const useOutcomeDrivenPreference =
     totalOutcomeSignals >= 3 &&
     strategyScores[preferredMatchActionByOutcome] > strategyScores[preferredMatchActionByVolume];
 
-  var matchActionPreference = useOutcomeDrivenPreference
+  const matchActionPreference = useOutcomeDrivenPreference
     ? preferredMatchActionByOutcome
     : actionCounts[preferredMatchActionByVolume] > 0
       ? preferredMatchActionByVolume
       : "help";
 
-  var matchActionCopy =
+  const matchActionCopy =
     matchActionPreference === "outreach"
       ? {
           title: "People like you often move fastest by starting one clear outreach.",
@@ -937,22 +937,22 @@ export function summarizeAdaptiveSignals(events, outcomes, activeSegments) {
 }
 
 export function summarizeProfileContactSignals(events) {
-  var entries = Array.isArray(events) ? events : [];
-  var routeCounts = {
+  const entries = Array.isArray(events) ? events : [];
+  const routeCounts = {
     booking: 0,
     website: 0,
     phone: 0,
     email: 0,
     unknown: 0,
   };
-  var profileCounts = {};
-  var sectionViews = 0;
-  var scriptEngagements = 0;
-  var questionEngagements = 0;
-  var variantBuckets = {};
+  const profileCounts = {};
+  let sectionViews = 0;
+  let scriptEngagements = 0;
+  let questionEngagements = 0;
+  const variantBuckets = {};
 
   function ensureVariant(variant) {
-    var key = String(variant || "unknown");
+    const key = String(variant || "unknown");
     if (!variantBuckets[key]) {
       variantBuckets[key] = {
         variant: key,
@@ -979,7 +979,7 @@ export function summarizeProfileContactSignals(events) {
       return;
     }
 
-    var variant =
+    const variant =
       item.payload &&
       item.payload.experiments &&
       item.payload.experiments.therapist_contact_guidance
@@ -1007,12 +1007,12 @@ export function summarizeProfileContactSignals(events) {
       return;
     }
 
-    var payload = item.payload || {};
-    var route =
+    const payload = item.payload || {};
+    const route =
       payload.route && Object.prototype.hasOwnProperty.call(routeCounts, payload.route)
         ? payload.route
         : "unknown";
-    var slug = payload.therapist_slug ? String(payload.therapist_slug) : "";
+    const slug = payload.therapist_slug ? String(payload.therapist_slug) : "";
     routeCounts[route] += 1;
     ensureVariant(variant).route_clicks += 1;
     if (slug) {
@@ -1033,7 +1033,7 @@ export function summarizeProfileContactSignals(events) {
     }
   });
 
-  var routeRows = Object.keys(routeCounts)
+  const routeRows = Object.keys(routeCounts)
     .map(function (route) {
       return {
         route: route,
@@ -1047,7 +1047,7 @@ export function summarizeProfileContactSignals(events) {
       return b.count - a.count || a.route.localeCompare(b.route);
     });
 
-  var topProfiles = Object.keys(profileCounts)
+  const topProfiles = Object.keys(profileCounts)
     .map(function (slug) {
       return profileCounts[slug];
     })
@@ -1056,18 +1056,18 @@ export function summarizeProfileContactSignals(events) {
     })
     .slice(0, 5);
 
-  var totalRouteClicks = routeRows.reduce(function (sum, item) {
+  const totalRouteClicks = routeRows.reduce(function (sum, item) {
     return sum + item.count;
   }, 0);
-  var guidanceEngagements = scriptEngagements + questionEngagements;
-  var guidanceEngagementRate = totalRouteClicks ? guidanceEngagements / totalRouteClicks : 0;
-  var topRoute = routeRows[0] || null;
-  var weakGuidanceProfiles = topProfiles.filter(function (item) {
+  const guidanceEngagements = scriptEngagements + questionEngagements;
+  const guidanceEngagementRate = totalRouteClicks ? guidanceEngagements / totalRouteClicks : 0;
+  const topRoute = routeRows[0] || null;
+  const weakGuidanceProfiles = topProfiles.filter(function (item) {
     return item.clicks >= 2 && item.primary >= item.secondary;
   });
-  var variantRows = Object.keys(variantBuckets)
+  const variantRows = Object.keys(variantBuckets)
     .map(function (key) {
-      var item = variantBuckets[key];
+      const item = variantBuckets[key];
       item.guidance_engagements = item.script_engagements + item.question_engagements;
       item.route_click_rate = item.exposures ? item.route_clicks / item.exposures : 0;
       item.guidance_rate = item.route_clicks ? item.guidance_engagements / item.route_clicks : 0;
@@ -1105,7 +1105,7 @@ export function summarizeProfileContactSignals(events) {
 }
 
 export function summarizeTherapistContactRoutePerformance(events, therapistSlug) {
-  var slug = String(therapistSlug || "").trim();
+  const slug = String(therapistSlug || "").trim();
   if (!slug) {
     return {
       total_route_clicks: 0,
@@ -1116,15 +1116,15 @@ export function summarizeTherapistContactRoutePerformance(events, therapistSlug)
     };
   }
 
-  var entries = Array.isArray(events) ? events : [];
-  var routeCounts = {
+  const entries = Array.isArray(events) ? events : [];
+  const routeCounts = {
     booking: 0,
     website: 0,
     phone: 0,
     email: 0,
     unknown: 0,
   };
-  var priorityCounts = {
+  const priorityCounts = {
     primary: 0,
     secondary: 0,
     unknown: 0,
@@ -1137,11 +1137,11 @@ export function summarizeTherapistContactRoutePerformance(events, therapistSlug)
     if (String(item.payload.therapist_slug || "") !== slug) {
       return;
     }
-    var route =
+    const route =
       item.payload.route && Object.prototype.hasOwnProperty.call(routeCounts, item.payload.route)
         ? item.payload.route
         : "unknown";
-    var priority =
+    const priority =
       item.payload.priority &&
       Object.prototype.hasOwnProperty.call(priorityCounts, item.payload.priority)
         ? item.payload.priority
@@ -1150,7 +1150,7 @@ export function summarizeTherapistContactRoutePerformance(events, therapistSlug)
     priorityCounts[priority] += 1;
   });
 
-  var routeRows = Object.keys(routeCounts)
+  const routeRows = Object.keys(routeCounts)
     .map(function (route) {
       return {
         route: route,
@@ -1164,13 +1164,13 @@ export function summarizeTherapistContactRoutePerformance(events, therapistSlug)
       return b.count - a.count || a.route.localeCompare(b.route);
     });
 
-  var topRoute = routeRows[0] || null;
-  var runnerUp = routeRows[1] || null;
-  var totalRouteClicks = routeRows.reduce(function (sum, item) {
+  const topRoute = routeRows[0] || null;
+  const runnerUp = routeRows[1] || null;
+  const totalRouteClicks = routeRows.reduce(function (sum, item) {
     return sum + item.count;
   }, 0);
-  var topShare = totalRouteClicks && topRoute ? topRoute.count / totalRouteClicks : 0;
-  var confidence =
+  const topShare = totalRouteClicks && topRoute ? topRoute.count / totalRouteClicks : 0;
+  const confidence =
     topRoute && topRoute.count >= 4 && topShare >= 0.55
       ? "strong"
       : topRoute && topRoute.count >= 2 && topShare >= 0.45
@@ -1178,7 +1178,7 @@ export function summarizeTherapistContactRoutePerformance(events, therapistSlug)
         : topRoute
           ? "light"
           : "none";
-  var note = !topRoute
+  const note = !topRoute
     ? ""
     : confidence === "strong"
       ? "Observed profile behavior clearly leans toward " +
@@ -1208,8 +1208,8 @@ export function summarizeTherapistContactRoutePerformance(events, therapistSlug)
 }
 
 export function summarizeContactRouteOutcomePerformance(outcomes) {
-  var entries = Array.isArray(outcomes) ? outcomes : [];
-  var buckets = {
+  const entries = Array.isArray(outcomes) ? outcomes : [];
+  const buckets = {
     booking: { route: "booking", total: 0, strong: 0, friction: 0 },
     website: { route: "website", total: 0, strong: 0, friction: 0 },
     phone: { route: "phone", total: 0, strong: 0, friction: 0 },
@@ -1221,14 +1221,14 @@ export function summarizeContactRouteOutcomePerformance(outcomes) {
     if (!item || !item.outcome) {
       return;
     }
-    var route =
+    const route =
       item.actual_route_type &&
       Object.prototype.hasOwnProperty.call(buckets, item.actual_route_type)
         ? item.actual_route_type
         : item.route_type && Object.prototype.hasOwnProperty.call(buckets, item.route_type)
           ? item.route_type
           : "unknown";
-    var bucket = buckets[route];
+    const bucket = buckets[route];
     bucket.total += 1;
     if (["heard_back", "booked_consult", "good_fit_call"].includes(item.outcome)) {
       bucket.strong += 1;
@@ -1237,9 +1237,9 @@ export function summarizeContactRouteOutcomePerformance(outcomes) {
     }
   });
 
-  var rows = Object.keys(buckets)
+  const rows = Object.keys(buckets)
     .map(function (key) {
-      var bucket = buckets[key];
+      const bucket = buckets[key];
       bucket.net = bucket.strong - bucket.friction;
       bucket.strong_rate = bucket.total ? bucket.strong / bucket.total : 0;
       return bucket;
@@ -1270,11 +1270,11 @@ export function summarizeContactRouteOutcomePerformance(outcomes) {
 }
 
 export function summarizeDirectoryProfileOpenQuality(events) {
-  var entries = Array.isArray(events) ? events : [];
-  var buckets = {};
+  const entries = Array.isArray(events) ? events : [];
+  const buckets = {};
 
   function ensureBucket(source) {
-    var key = String(source || "unknown");
+    const key = String(source || "unknown");
     if (!buckets[key]) {
       buckets[key] = {
         source: key,
@@ -1292,8 +1292,8 @@ export function summarizeDirectoryProfileOpenQuality(events) {
     if (!item || item.type !== "directory_profile_open_quality") {
       return;
     }
-    var payload = item.payload || {};
-    var bucket = ensureBucket(payload.source);
+    const payload = item.payload || {};
+    const bucket = ensureBucket(payload.source);
     bucket.opens += 1;
     if (payload.readiness_score >= 85) {
       bucket.high_readiness += 1;
@@ -1309,9 +1309,9 @@ export function summarizeDirectoryProfileOpenQuality(events) {
     }
   });
 
-  var rows = Object.keys(buckets)
+  const rows = Object.keys(buckets)
     .map(function (key) {
-      var bucket = buckets[key];
+      const bucket = buckets[key];
       bucket.high_readiness_rate = bucket.opens ? bucket.high_readiness / bucket.opens : 0;
       bucket.fresh_profile_rate = bucket.opens ? bucket.fresh_profiles / bucket.opens : 0;
       bucket.accepting_rate = bucket.opens ? bucket.accepting_profiles / bucket.opens : 0;
@@ -1326,7 +1326,7 @@ export function summarizeDirectoryProfileOpenQuality(events) {
       );
     });
 
-  var leader = rows[0] || null;
+  const leader = rows[0] || null;
   return {
     rows: rows,
     leader: leader,
@@ -1339,21 +1339,21 @@ export function summarizeDirectoryProfileOpenQuality(events) {
 }
 
 export function summarizeProfileContactOutcomeValidation(events, outcomes) {
-  var entries = Array.isArray(events) ? events : [];
-  var outcomeEntries = Array.isArray(outcomes) ? outcomes : [];
-  var variantSlugMap = {};
+  const entries = Array.isArray(events) ? events : [];
+  const outcomeEntries = Array.isArray(outcomes) ? outcomes : [];
+  const variantSlugMap = {};
 
   entries.forEach(function (item) {
     if (!item || item.type !== "profile_contact_route_clicked") {
       return;
     }
-    var variant =
+    const variant =
       item.payload &&
       item.payload.experiments &&
       item.payload.experiments.therapist_contact_guidance
         ? item.payload.experiments.therapist_contact_guidance
         : "unknown";
-    var slug =
+    const slug =
       item.payload && item.payload.therapist_slug ? String(item.payload.therapist_slug) : "";
     if (!slug) {
       return;
@@ -1366,9 +1366,9 @@ export function summarizeProfileContactOutcomeValidation(events, outcomes) {
 
   return Object.keys(variantSlugMap)
     .map(function (variant) {
-      var slugSet = variantSlugMap[variant];
-      var strong = 0;
-      var friction = 0;
+      const slugSet = variantSlugMap[variant];
+      let strong = 0;
+      let friction = 0;
       outcomeEntries.forEach(function (item) {
         if (!item || !item.therapist_slug || !slugSet.has(String(item.therapist_slug))) {
           return;
@@ -1397,8 +1397,8 @@ export function summarizeProfileContactOutcomeValidation(events, outcomes) {
 }
 
 export function summarizeProfileQueueProgress(events) {
-  var entries = Array.isArray(events) ? events : [];
-  var totals = {
+  const entries = Array.isArray(events) ? events : [];
+  const totals = {
     updates: 0,
     reached_out: 0,
     heard_back: 0,
@@ -1407,13 +1407,13 @@ export function summarizeProfileQueueProgress(events) {
     waitlist: 0,
     insurance_mismatch: 0,
   };
-  var therapistCounts = {};
+  const therapistCounts = {};
 
   entries.forEach(function (item) {
     if (!item || item.type !== "profile_queue_outcome_recorded" || !item.payload) {
       return;
     }
-    var outcome = String(item.payload.outcome || "");
+    const outcome = String(item.payload.outcome || "");
     totals.updates += 1;
     if (Object.prototype.hasOwnProperty.call(totals, outcome)) {
       totals[outcome] += 1;
@@ -1423,8 +1423,8 @@ export function summarizeProfileQueueProgress(events) {
     }
   });
 
-  var strongestSignals = totals.heard_back + totals.good_fit_call;
-  var frictionSignals = totals.no_response + totals.waitlist + totals.insurance_mismatch;
+  const strongestSignals = totals.heard_back + totals.good_fit_call;
+  const frictionSignals = totals.no_response + totals.waitlist + totals.insurance_mismatch;
 
   return {
     updates: totals.updates,
@@ -1446,9 +1446,9 @@ export function summarizeProfileQueueProgress(events) {
 }
 
 export function summarizeProfileBackupSignals(events, therapistSlug) {
-  var entries = Array.isArray(events) ? events : [];
-  var slug = String(therapistSlug || "");
-  var totals = {
+  const entries = Array.isArray(events) ? events : [];
+  const slug = String(therapistSlug || "");
+  const totals = {
     opens: 0,
     compares: 0,
   };
@@ -1464,7 +1464,7 @@ export function summarizeProfileBackupSignals(events, therapistSlug) {
     }
   });
 
-  var preferredAction =
+  const preferredAction =
     totals.compares >= Math.max(2, totals.opens + 1)
       ? "compare"
       : totals.opens >= Math.max(2, totals.compares + 1)
@@ -1487,10 +1487,10 @@ export function summarizeProfileBackupSignals(events, therapistSlug) {
 }
 
 export function summarizeProfileContactExperimentDecision(events, outcomes) {
-  var summary = summarizeProfileContactSignals(events);
-  var outcomeValidation = summarizeProfileContactOutcomeValidation(events, outcomes);
-  var variants = Array.isArray(summary.variant_rows) ? summary.variant_rows.slice() : [];
-  var promoted = getPromotedExperimentVariant("therapist_contact_guidance");
+  const summary = summarizeProfileContactSignals(events);
+  const outcomeValidation = summarizeProfileContactOutcomeValidation(events, outcomes);
+  const variants = Array.isArray(summary.variant_rows) ? summary.variant_rows.slice() : [];
+  const promoted = getPromotedExperimentVariant("therapist_contact_guidance");
 
   if (!variants.length) {
     return {
@@ -1504,50 +1504,50 @@ export function summarizeProfileContactExperimentDecision(events, outcomes) {
   }
 
   variants.sort(function (a, b) {
-    var aOutcome = outcomeValidation.find(function (item) {
+    const aOutcome = outcomeValidation.find(function (item) {
       return item.variant === a.variant;
     });
-    var bOutcome = outcomeValidation.find(function (item) {
+    const bOutcome = outcomeValidation.find(function (item) {
       return item.variant === b.variant;
     });
-    var aScore =
+    const aScore =
       a.route_click_rate * 0.5 +
       a.guidance_rate * 0.2 +
       (aOutcome ? Math.max(-1, Math.min(1, aOutcome.downstream_score / 6)) * 0.3 : 0);
-    var bScore =
+    const bScore =
       b.route_click_rate * 0.5 +
       b.guidance_rate * 0.2 +
       (bOutcome ? Math.max(-1, Math.min(1, bOutcome.downstream_score / 6)) * 0.3 : 0);
     return bScore - aScore || b.route_clicks - a.route_clicks || a.variant.localeCompare(b.variant);
   });
 
-  var winner = variants[0] || null;
-  var runnerUp = variants[1] || null;
-  var winnerOutcome = winner
+  const winner = variants[0] || null;
+  const runnerUp = variants[1] || null;
+  const winnerOutcome = winner
     ? outcomeValidation.find(function (item) {
         return item.variant === winner.variant;
       })
     : null;
-  var runnerUpOutcome = runnerUp
+  const runnerUpOutcome = runnerUp
     ? outcomeValidation.find(function (item) {
         return item.variant === runnerUp.variant;
       })
     : null;
-  var winnerScore = winner
+  const winnerScore = winner
     ? winner.route_click_rate * 0.5 +
       winner.guidance_rate * 0.2 +
       (winnerOutcome ? Math.max(-1, Math.min(1, winnerOutcome.downstream_score / 6)) * 0.3 : 0)
     : 0;
-  var runnerUpScore = runnerUp
+  const runnerUpScore = runnerUp
     ? runnerUp.route_click_rate * 0.5 +
       runnerUp.guidance_rate * 0.2 +
       (runnerUpOutcome ? Math.max(-1, Math.min(1, runnerUpOutcome.downstream_score / 6)) * 0.3 : 0)
     : 0;
-  var confidenceGap =
+  const confidenceGap =
     winner && runnerUp && winner.exposures >= 5 && runnerUp.exposures >= 5
       ? winnerScore - runnerUpScore
       : 0;
-  var recommendation =
+  const recommendation =
     winner && confidenceGap >= 0.08
       ? "Promising winner"
       : winner && winner.exposures >= 5

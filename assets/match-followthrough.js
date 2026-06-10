@@ -12,20 +12,20 @@ export function getBaseFallbackWaitMs(profile) {
 }
 
 export function formatWaitWindow(ms) {
-  var hours = Math.round(ms / (60 * 60 * 1000));
+  const hours = Math.round(ms / (60 * 60 * 1000));
   if (hours <= 48) {
     return hours + " hours";
   }
 
-  var days = Math.round(hours / 24);
+  const days = Math.round(hours / 24);
   return days + (days === 1 ? " day" : " days");
 }
 
 export function getAdaptivePivotTiming(profile, outcomes, analyzePivotTimingByUrgency) {
-  var baseMs = getBaseFallbackWaitMs(profile);
-  var timing = analyzePivotTimingByUrgency(outcomes, profile);
-  var adjustedMs = baseMs;
-  var rationale = "";
+  const baseMs = getBaseFallbackWaitMs(profile);
+  const timing = analyzePivotTimingByUrgency(outcomes, profile);
+  let adjustedMs = baseMs;
+  let rationale = "";
 
   if (timing.early_pivots >= Math.max(2, timing.late_pivots + 1)) {
     adjustedMs = Math.max(24 * 60 * 60 * 1000, Math.round(baseMs * 0.75));
@@ -54,20 +54,20 @@ export function formatReminderDate(value) {
 }
 
 export function buildContactOrderPlan(profile, entries, options) {
-  var settings = options || {};
-  var first = settings.buildFirstContactRecommendation(profile, entries);
+  const settings = options || {};
+  const first = settings.buildFirstContactRecommendation(profile, entries);
   if (!first) {
     return null;
   }
 
-  var fallback = settings.buildFallbackRecommendation(profile, entries);
-  var adaptiveTiming = getAdaptivePivotTiming(
+  const fallback = settings.buildFallbackRecommendation(profile, entries);
+  const adaptiveTiming = getAdaptivePivotTiming(
     profile,
     settings.readOutreachOutcomes(),
     settings.analyzePivotTimingByUrgency,
   );
-  var waitWindow = adaptiveTiming.label;
-  var pivotAt = new Date(Date.now() + adaptiveTiming.ms);
+  const waitWindow = adaptiveTiming.label;
+  const pivotAt = new Date(Date.now() + adaptiveTiming.ms);
 
   return {
     first: first,

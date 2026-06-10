@@ -23,8 +23,8 @@ function formatAdaptiveLabel(value) {
 }
 
 function buildStrategyHealthSummary(summary) {
-  var strong = summary.booked_consult + summary.good_fit_call + summary.heard_back;
-  var friction = summary.no_response + summary.waitlist + summary.insurance_mismatch;
+  const strong = summary.booked_consult + summary.good_fit_call + summary.heard_back;
+  const friction = summary.no_response + summary.waitlist + summary.insurance_mismatch;
 
   if (!strong && !friction) {
     return {
@@ -54,14 +54,14 @@ function buildStrategyHealthSummary(summary) {
 }
 
 function analyzeStrategyPerformance(events, outcomes) {
-  var buckets = {
+  const buckets = {
     outreach: { matches: 0, saves: 0, help: 0, outreach_starts: 0, strong: 0, friction: 0 },
     save: { matches: 0, saves: 0, help: 0, outreach_starts: 0, strong: 0, friction: 0 },
     help: { matches: 0, saves: 0, help: 0, outreach_starts: 0, strong: 0, friction: 0 },
   };
 
   (Array.isArray(events) ? events : []).forEach(function (item) {
-    var strategy =
+    const strategy =
       item &&
       item.payload &&
       item.payload.strategy &&
@@ -84,7 +84,7 @@ function analyzeStrategyPerformance(events, outcomes) {
   });
 
   (Array.isArray(outcomes) ? outcomes : []).forEach(function (item) {
-    var strategy =
+    const strategy =
       item &&
       item.context &&
       item.context.strategy &&
@@ -132,7 +132,7 @@ function analyzeStrategyPerformance(events, outcomes) {
 }
 
 function buildSegmentStrategySnapshots(events, outcomes) {
-  var segments = [
+  const segments = [
     { label: "Urgent users", keys: ["urgency:asap", "urgency:within-2-weeks"] },
     { label: "Insurance-led users", keys: ["insurance:user"] },
     { label: "Psychiatry / medication users", keys: ["intent:psychiatry", "medication:yes"] },
@@ -140,8 +140,8 @@ function buildSegmentStrategySnapshots(events, outcomes) {
 
   return segments
     .map(function (segment) {
-      var adaptive = summarizeAdaptiveSignals(events, outcomes, segment.keys);
-      var signalCount =
+      const adaptive = summarizeAdaptiveSignals(events, outcomes, segment.keys);
+      const signalCount =
         adaptive.action_counts.outreach + adaptive.action_counts.help + adaptive.action_counts.save;
       return {
         label: segment.label,
@@ -744,8 +744,8 @@ export function renderFunnelInsightsPanel(options) {
 
   root.querySelectorAll("[data-promote-experiment]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var experimentName = button.getAttribute("data-promote-experiment") || "";
-      var variant = button.getAttribute("data-promote-variant") || "";
+      const experimentName = button.getAttribute("data-promote-experiment") || "";
+      const variant = button.getAttribute("data-promote-variant") || "";
       if (!experimentName || !variant) {
         return;
       }
@@ -756,7 +756,7 @@ export function renderFunnelInsightsPanel(options) {
 
   root.querySelectorAll("[data-clear-experiment-promotion]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var experimentName = button.getAttribute("data-clear-experiment-promotion") || "";
+      const experimentName = button.getAttribute("data-clear-experiment-promotion") || "";
       if (!experimentName) {
         return;
       }

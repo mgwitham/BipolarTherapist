@@ -1,14 +1,14 @@
 import { safeExternalUrl } from "./safe-url.js";
 
 export function getSourceReferenceMeta(record) {
-  var sourceUrl = String(
+  const sourceUrl = String(
     (record && (record.source_url || record.sourceUrl || record.website || record.booking_url)) ||
       "",
   ).trim();
-  var sourceType = String((record && (record.source_type || record.sourceType)) || "")
+  const sourceType = String((record && (record.source_type || record.sourceType)) || "")
     .trim()
     .toLowerCase();
-  var looksApiRecord =
+  const looksApiRecord =
     sourceType.includes("api") ||
     /(^|\/)api(\/|$)/i.test(sourceUrl) ||
     /[?&](format|output)=json\b/i.test(sourceUrl) ||

@@ -1,5 +1,5 @@
 export function renderIngestionScorecardPanel(options) {
-  var root = options.root;
+  const root = options.root;
   if (!root) {
     return;
   }
@@ -9,48 +9,48 @@ export function renderIngestionScorecardPanel(options) {
     return;
   }
 
-  var therapists = Array.isArray(options.therapists) ? options.therapists : [];
-  var candidates = Array.isArray(options.candidates) ? options.candidates : [];
-  var applications = Array.isArray(options.applications) ? options.applications : [];
-  var licensureRefreshQueue = Array.isArray(options.licensureRefreshQueue)
+  const therapists = Array.isArray(options.therapists) ? options.therapists : [];
+  const candidates = Array.isArray(options.candidates) ? options.candidates : [];
+  const applications = Array.isArray(options.applications) ? options.applications : [];
+  const licensureRefreshQueue = Array.isArray(options.licensureRefreshQueue)
     ? options.licensureRefreshQueue
     : [];
-  var licensureActivityFeed = Array.isArray(options.licensureActivityFeed)
+  const licensureActivityFeed = Array.isArray(options.licensureActivityFeed)
     ? options.licensureActivityFeed
     : [];
-  var coverageInsights = options.buildCoverageInsights(therapists);
-  var ingestionAutomationHistory = Array.isArray(options.ingestionAutomationHistory)
+  const coverageInsights = options.buildCoverageInsights(therapists);
+  const ingestionAutomationHistory = Array.isArray(options.ingestionAutomationHistory)
     ? options.ingestionAutomationHistory
     : [];
 
-  var publishableCandidates = candidates.filter(function (item) {
+  const publishableCandidates = candidates.filter(function (item) {
     return item.review_lane === "publish_now";
   }).length;
-  var duplicateCandidates = candidates.filter(function (item) {
+  const duplicateCandidates = candidates.filter(function (item) {
     return (
       item.dedupe_status === "possible_duplicate" || item.dedupe_status === "definite_duplicate"
     );
   }).length;
-  var confirmationCandidates = candidates.filter(function (item) {
+  const confirmationCandidates = candidates.filter(function (item) {
     return item.review_lane === "needs_confirmation";
   }).length;
-  var staleTherapists = therapists.filter(function (item) {
-    var freshness = options.getDataFreshnessSummary(item);
+  const staleTherapists = therapists.filter(function (item) {
+    const freshness = options.getDataFreshnessSummary(item);
     return freshness && freshness.tone !== "fresh";
   }).length;
-  var trustRiskTherapists = therapists.filter(function (item) {
+  const trustRiskTherapists = therapists.filter(function (item) {
     return options.getTherapistFieldTrustSummary(item).watchFields.length > 0;
   }).length;
-  var thinCities = (coverageInsights.thinnestCities || []).filter(function (city) {
+  const thinCities = (coverageInsights.thinnestCities || []).filter(function (city) {
     return Number(city.total || 0) < 3;
   }).length;
-  var updateApplications = applications.filter(function (item) {
+  const updateApplications = applications.filter(function (item) {
     return ["claim_existing", "update_existing", "confirmation_update"].includes(
       String(item.intake_type || ""),
     );
   }).length;
-  var licensureVerifiedTherapists = therapists.filter(function (item) {
-    var verification = item.licensure_verification || item.licensureVerification || null;
+  const licensureVerifiedTherapists = therapists.filter(function (item) {
+    const verification = item.licensure_verification || item.licensureVerification || null;
     return Boolean(
       verification &&
       (verification.profileUrl ||
@@ -59,35 +59,35 @@ export function renderIngestionScorecardPanel(options) {
         verification.verified_at),
     );
   }).length;
-  var licensureCoverageRate = therapists.length
+  const licensureCoverageRate = therapists.length
     ? Math.round((licensureVerifiedTherapists / therapists.length) * 100)
     : 0;
-  var licensureRefreshCount = licensureRefreshQueue.length;
-  var licensureActivityCount = licensureActivityFeed.length;
-  var lowLicensureCoverage = licensureCoverageRate < 60;
-  var latestAutomationRun = ingestionAutomationHistory.length
+  const licensureRefreshCount = licensureRefreshQueue.length;
+  const licensureActivityCount = licensureActivityFeed.length;
+  const lowLicensureCoverage = licensureCoverageRate < 60;
+  const latestAutomationRun = ingestionAutomationHistory.length
     ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
     : null;
-  var licensureDeferredCount =
+  const licensureDeferredCount =
     latestAutomationRun && latestAutomationRun.metrics
       ? Number(latestAutomationRun.metrics.licensureDeferredItems) || 0
       : 0;
-  var priorAutomationRun =
+  const priorAutomationRun =
     ingestionAutomationHistory.length > 1
       ? ingestionAutomationHistory[ingestionAutomationHistory.length - 2]
       : null;
 
-  var duplicateRate = candidates.length
+  const duplicateRate = candidates.length
     ? Math.round((duplicateCandidates / candidates.length) * 100)
     : 0;
-  var confirmationRate = candidates.length
+  const confirmationRate = candidates.length
     ? Math.round((confirmationCandidates / candidates.length) * 100)
     : 0;
-  var freshnessRiskRate = therapists.length
+  const freshnessRiskRate = therapists.length
     ? Math.round((staleTherapists / therapists.length) * 100)
     : 0;
 
-  var scorecards = [
+  const scorecards = [
     {
       label: "Publishable now",
       value: publishableCandidates,
@@ -161,7 +161,7 @@ export function renderIngestionScorecardPanel(options) {
     },
   ];
 
-  var nextMove =
+  const nextMove =
     publishableCandidates > 0
       ? "Publish-ready candidates are the fastest quality gain right now."
       : duplicateCandidates > 0
@@ -183,7 +183,7 @@ export function renderIngestionScorecardPanel(options) {
     if (current === previous) {
       return "Flat";
     }
-    var delta = current - previous;
+    const delta = current - previous;
     return (delta > 0 ? "+" : "") + delta;
   }
 
@@ -197,7 +197,7 @@ export function renderIngestionScorecardPanel(options) {
     return (trend.direction === "up" ? "Up " : "Down ") + Math.abs(trend.delta);
   }
 
-  var trendCards = latestAutomationRun
+  const trendCards = latestAutomationRun
     ? [
         {
           label: "Ops queue trend",
@@ -256,17 +256,17 @@ export function renderIngestionScorecardPanel(options) {
         },
       ]
     : [];
-  var automationAlerts =
+  const automationAlerts =
     latestAutomationRun && Array.isArray(latestAutomationRun.alerts)
       ? latestAutomationRun.alerts
       : [];
-  var automationAgeHours = latestAutomationRun
+  const automationAgeHours = latestAutomationRun
     ? Math.round(
         (Date.now() - new Date(latestAutomationRun.finishedAt).getTime()) / (1000 * 60 * 60),
       )
     : null;
-  var staleAutomationRun = automationAgeHours != null && automationAgeHours > 36;
-  var automationHealthAlerts = automationAlerts.slice();
+  const staleAutomationRun = automationAgeHours != null && automationAgeHours > 36;
+  const automationHealthAlerts = automationAlerts.slice();
   if (staleAutomationRun) {
     automationHealthAlerts.unshift({
       level: "warn",
@@ -275,7 +275,7 @@ export function renderIngestionScorecardPanel(options) {
         "The daily ingestion automation has not completed in the last 36 hours. Refresh the automation run before trusting this scorecard.",
     });
   }
-  var automationStatusLabel = latestAutomationRun
+  const automationStatusLabel = latestAutomationRun
     ? staleAutomationRun
       ? "Stale run"
       : latestAutomationRun.status === "attention"
@@ -284,9 +284,9 @@ export function renderIngestionScorecardPanel(options) {
           ? "Healthy"
           : "Failed"
     : "Not run yet";
-  var automationTrends =
+  const automationTrends =
     latestAutomationRun && latestAutomationRun.trends ? latestAutomationRun.trends : null;
-  var automationLicensureSprint =
+  const automationLicensureSprint =
     latestAutomationRun && latestAutomationRun.licensureSprint
       ? latestAutomationRun.licensureSprint
       : null;

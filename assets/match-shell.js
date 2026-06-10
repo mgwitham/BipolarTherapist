@@ -1,6 +1,6 @@
-var matchShellRefs = null;
+let matchShellRefs = null;
 
-var MATCH_JOURNEY_COPY = {
+const MATCH_JOURNEY_COPY = {
   intake: {
     builderTitle: "Refine your match",
     kicker: "Start broad, then narrow fast",
@@ -32,8 +32,8 @@ export function getMatchShellRefs() {
     return matchShellRefs;
   }
 
-  var builder = document.querySelector(".match-builder");
-  var builderAnchor = null;
+  const builder = document.querySelector(".match-builder");
+  let builderAnchor = null;
   if (builder && builder.parentNode) {
     builderAnchor = document.createElement("div");
     builderAnchor.hidden = true;
@@ -67,7 +67,7 @@ export function getMatchShellRefs() {
 }
 
 export function placeBuilderInResults(resultsRoot) {
-  var refs = getMatchShellRefs();
+  const refs = getMatchShellRefs();
   if (!refs.builder || !resultsRoot) {
     return;
   }
@@ -75,7 +75,7 @@ export function placeBuilderInResults(resultsRoot) {
   refs.builder.classList.add("is-inline-results");
 
   // Create collapsible refine wrapper
-  var refineWrapper = document.getElementById("matchRefineSection");
+  let refineWrapper = document.getElementById("matchRefineSection");
   if (!refineWrapper) {
     refineWrapper = document.createElement("details");
     refineWrapper.className = "match-refine-section";
@@ -102,13 +102,13 @@ export function placeBuilderInResults(resultsRoot) {
 }
 
 export function restoreBuilderPlacement() {
-  var refs = getMatchShellRefs();
+  const refs = getMatchShellRefs();
   if (!refs.builder || !refs.builderAnchor || !refs.builderAnchor.parentNode) {
     return;
   }
 
   // Unwrap from refine section if wrapped
-  var refineWrapper = document.getElementById("matchRefineSection");
+  const refineWrapper = document.getElementById("matchRefineSection");
   if (refineWrapper && refineWrapper.contains(refs.builder)) {
     refineWrapper.parentNode.insertBefore(refs.builder, refineWrapper);
     refineWrapper.parentNode.removeChild(refineWrapper);
@@ -119,7 +119,7 @@ export function restoreBuilderPlacement() {
 }
 
 export function renderMatchLandingShell() {
-  var refs = getMatchShellRefs();
+  const refs = getMatchShellRefs();
   if (!refs.resultsRoot) {
     return;
   }
@@ -130,7 +130,7 @@ export function renderMatchLandingShell() {
 }
 
 export function clearRenderedMatchPanels() {
-  var refs = getMatchShellRefs();
+  const refs = getMatchShellRefs();
 
   if (refs.compare) {
     refs.compare.innerHTML = "";
@@ -153,7 +153,7 @@ export function clearRenderedMatchPanels() {
 }
 
 export function setMatchJourneyMode(mode, starterResultsMode) {
-  var refs = getMatchShellRefs();
+  const refs = getMatchShellRefs();
 
   if (!refs.builder || !refs.builderTitle || !refs.kicker || !refs.title || !refs.copy) {
     return;
@@ -166,9 +166,9 @@ export function setMatchJourneyMode(mode, starterResultsMode) {
     refs.copy.dataset.defaultText = refs.copy.textContent || "";
   }
 
-  var configKey =
+  const configKey =
     mode === "results" ? (starterResultsMode ? "starterResults" : "personalizedResults") : "intake";
-  var config = MATCH_JOURNEY_COPY[configKey];
+  const config = MATCH_JOURNEY_COPY[configKey];
 
   refs.builder.classList.toggle("is-results-mode", mode === "results");
   refs.builderTitle.textContent = config.builderTitle;
@@ -190,7 +190,7 @@ export function setMatchJourneyMode(mode, starterResultsMode) {
     // so the user controls it via "More filters", don't auto-open.
     if (mode !== "results") {
       refs.refinements.open = false;
-      var moreBtn = document.getElementById("openAdvancedFiltersButton");
+      const moreBtn = document.getElementById("openAdvancedFiltersButton");
       if (moreBtn) {
         moreBtn.setAttribute("aria-expanded", "false");
         moreBtn.classList.remove("is-expanded");
@@ -203,7 +203,7 @@ export function setMatchJourneyMode(mode, starterResultsMode) {
 }
 
 export function setActionState(_enabled, message) {
-  var refs = getMatchShellRefs();
+  const refs = getMatchShellRefs();
   if (message && refs.status) {
     refs.status.textContent = message;
     refs.status.classList.remove("motion-pulse");

@@ -1,7 +1,7 @@
-var californiaZipcodes = {};
-var californiaZipcodesReady = null;
+let californiaZipcodes = {};
+let californiaZipcodesReady = null;
 
-var US_STATE_NAMES = {
+const US_STATE_NAMES = {
   AL: "Alabama",
   AK: "Alaska",
   AZ: "Arizona",
@@ -55,7 +55,7 @@ var US_STATE_NAMES = {
   DC: "District of Columbia",
 };
 
-var ZIP3_STATE_RANGES = [
+const ZIP3_STATE_RANGES = [
   { start: 5, end: 5, code: "NY" },
   { start: 6, end: 9, code: "PR" },
   { start: 10, end: 27, code: "MA" },
@@ -114,7 +114,7 @@ var ZIP3_STATE_RANGES = [
 ];
 
 function normalizeZip(zip) {
-  var normalizedZip = String(zip || "").trim();
+  const normalizedZip = String(zip || "").trim();
   return /^\d{5}$/.test(normalizedZip) ? normalizedZip : "";
 }
 
@@ -141,30 +141,30 @@ export function preloadZipcodes() {
 }
 
 function inferStateFromZip(zip) {
-  var normalizedZip = normalizeZip(zip);
+  const normalizedZip = normalizeZip(zip);
   if (!normalizedZip) {
     return "";
   }
 
-  var zip3 = Number(normalizedZip.slice(0, 3));
-  var match = ZIP3_STATE_RANGES.find(function (range) {
+  const zip3 = Number(normalizedZip.slice(0, 3));
+  const match = ZIP3_STATE_RANGES.find(function (range) {
     return zip3 >= range.start && zip3 <= range.end;
   });
   return match ? match.code : "";
 }
 
 export function lookupZipPlace(zip) {
-  var normalizedZip = normalizeZip(zip);
+  const normalizedZip = normalizeZip(zip);
   if (!normalizedZip) {
     return null;
   }
 
-  var result = californiaZipcodes[normalizedZip];
+  const result = californiaZipcodes[normalizedZip];
   if (!result || !result.city || !result.state) {
     return null;
   }
 
-  var state = String(result.state).trim().toUpperCase();
+  const state = String(result.state).trim().toUpperCase();
   return {
     zip: normalizedZip,
     city: String(result.city).trim(),
@@ -175,7 +175,7 @@ export function lookupZipPlace(zip) {
 }
 
 export function getZipMarketStatus(zip) {
-  var normalizedZip = normalizeZip(zip);
+  const normalizedZip = normalizeZip(zip);
   if (!normalizedZip) {
     return {
       status: "invalid",
@@ -184,7 +184,7 @@ export function getZipMarketStatus(zip) {
     };
   }
 
-  var place = lookupZipPlace(normalizedZip);
+  const place = lookupZipPlace(normalizedZip);
   if (place) {
     return {
       status: "live",
@@ -193,7 +193,7 @@ export function getZipMarketStatus(zip) {
     };
   }
 
-  var state = inferStateFromZip(normalizedZip);
+  const state = inferStateFromZip(normalizedZip);
   if (!state || state === "CA") {
     return {
       status: "unknown",
@@ -216,25 +216,25 @@ export function getZipMarketStatus(zip) {
 }
 
 export function getZipCoords(zip) {
-  var normalizedZip = normalizeZip(zip);
+  const normalizedZip = normalizeZip(zip);
   if (!normalizedZip) return null;
-  var entry = californiaZipcodes[normalizedZip];
+  const entry = californiaZipcodes[normalizedZip];
   if (!entry || entry.lat === undefined || entry.lng === undefined) return null;
   return { lat: entry.lat, lng: entry.lng };
 }
 
-var cityCoordsCache = null;
+let cityCoordsCache = null;
 
 // Many therapist records list city/state but no ZIP. To rank them by proximity
 // for in-person searches we compute a city centroid (average lat/lng across all
 // ZIPs in that city) once and cache it. Keyed on lower-cased "city|state".
 function getCityCoordsMap() {
   if (cityCoordsCache) return cityCoordsCache;
-  var sums = {};
-  for (var zip in californiaZipcodes) {
-    var entry = californiaZipcodes[zip];
+  const sums = {};
+  for (const zip in californiaZipcodes) {
+    const entry = californiaZipcodes[zip];
     if (!entry || entry.lat === undefined || entry.lng === undefined) continue;
-    var key =
+    const key =
       String(entry.city || "")
         .trim()
         .toLowerCase() +
@@ -248,35 +248,35 @@ function getCityCoordsMap() {
     sums[key].n += 1;
   }
   cityCoordsCache = {};
-  for (var k in sums) {
+  for (const k in sums) {
     cityCoordsCache[k] = { lat: sums[k].lat / sums[k].n, lng: sums[k].lng / sums[k].n };
   }
   return cityCoordsCache;
 }
 
 export function getCityCoords(city, state) {
-  var cityKey = String(city || "")
+  const cityKey = String(city || "")
     .trim()
     .toLowerCase();
   if (!cityKey) return null;
-  var stateKey = String(state || "")
+  const stateKey = String(state || "")
     .trim()
     .toUpperCase();
-  var map = getCityCoordsMap();
+  const map = getCityCoordsMap();
   if (stateKey) {
-    var hit = map[cityKey + "|" + stateKey];
+    const hit = map[cityKey + "|" + stateKey];
     if (hit) return hit;
   }
   // Without a state, fall back to any city match (CA-only dataset, so safe).
-  for (var k in map) {
+  for (const k in map) {
     if (k.indexOf(cityKey + "|") === 0) return map[k];
   }
   return null;
 }
 
 export function getZipDistanceMiles(fromZip, toZip) {
-  var from = getZipCoords(fromZip);
-  var to = getZipCoords(toZip);
+  const from = getZipCoords(fromZip);
+  const to = getZipCoords(toZip);
   if (!from || !to) return Number.POSITIVE_INFINITY;
   return haversine(from.lat, from.lng, to.lat, to.lng);
 }
@@ -284,10 +284,10 @@ export function getZipDistanceMiles(fromZip, toZip) {
 // Distance from a requested ZIP to a therapist using ZIP first, then city
 // centroid as a fallback when the therapist record has no ZIP on file.
 export function getDistanceMilesFromZipToTherapist(fromZip, therapist) {
-  var from = getZipCoords(fromZip);
+  const from = getZipCoords(fromZip);
   if (!from) return Number.POSITIVE_INFINITY;
-  var therapistZip = String((therapist && therapist.zip) || "").trim();
-  var to = /^\d{5}$/.test(therapistZip) ? getZipCoords(therapistZip) : null;
+  const therapistZip = String((therapist && therapist.zip) || "").trim();
+  let to = /^\d{5}$/.test(therapistZip) ? getZipCoords(therapistZip) : null;
   if (!to) {
     to = getCityCoords(therapist && therapist.city, therapist && therapist.state);
   }
@@ -317,10 +317,10 @@ export function getInPersonProximityBonus(miles) {
 }
 
 function haversine(lat1, lng1, lat2, lng2) {
-  var R = 3959;
-  var dLat = ((lat2 - lat1) * Math.PI) / 180;
-  var dLng = ((lng2 - lng1) * Math.PI) / 180;
-  var a =
+  const R = 3959;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
     Math.cos((lat1 * Math.PI) / 180) *
       Math.cos((lat2 * Math.PI) / 180) *

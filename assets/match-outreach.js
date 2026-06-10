@@ -1,7 +1,7 @@
 import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
 
 function buildJourneyState(latestOutcome, options) {
-  var settings = options || {};
+  const settings = options || {};
   if (!latestOutcome) {
     return {
       tone: "neutral",
@@ -14,8 +14,8 @@ function buildJourneyState(latestOutcome, options) {
     };
   }
 
-  var outcome = String(latestOutcome.outcome || "");
-  var label = settings.formatOutcomeLabel ? settings.formatOutcomeLabel(outcome) : outcome;
+  const outcome = String(latestOutcome.outcome || "");
+  const label = settings.formatOutcomeLabel ? settings.formatOutcomeLabel(outcome) : outcome;
 
   if (outcome === "reached_out") {
     return {
@@ -96,7 +96,7 @@ function buildJourneyState(latestOutcome, options) {
 }
 
 function renderJourneyState(latestOutcome, options) {
-  var state = buildJourneyState(latestOutcome, options);
+  const state = buildJourneyState(latestOutcome, options);
   return (
     '<div class="first-contact-journey tone-' +
     options.escapeHtml(state.tone) +
@@ -119,17 +119,17 @@ function renderJourneyState(latestOutcome, options) {
 }
 
 export function buildFirstContactRecommendation(profile, entries, options) {
-  var settings = options || {};
-  var picked = settings.pickRecommendedFirstContact(profile, entries);
+  const settings = options || {};
+  const picked = settings.pickRecommendedFirstContact(profile, entries);
   if (!picked) {
     return null;
   }
 
-  var therapist = picked.entry.therapist;
-  var readiness = picked.readiness;
-  var routeLearning = picked.routeLearning;
-  var shortcutSignal = picked.shortcutSignal;
-  var reasons = [];
+  const therapist = picked.entry.therapist;
+  const readiness = picked.readiness;
+  const routeLearning = picked.routeLearning;
+  const shortcutSignal = picked.shortcutSignal;
+  const reasons = [];
 
   if (readiness && readiness.tone === "high") {
     reasons.push("the contact path is especially friction-light");
@@ -189,13 +189,13 @@ export function buildFirstContactRecommendation(profile, entries, options) {
 }
 
 export function buildFallbackRecommendation(profile, entries, options) {
-  var settings = options || {};
-  var recommendation = settings.buildFirstContactRecommendation(profile, entries);
+  const settings = options || {};
+  const recommendation = settings.buildFirstContactRecommendation(profile, entries);
   if (!recommendation) {
     return null;
   }
 
-  var latestOutcome = settings.getLatestOutreachOutcome(recommendation.therapist.slug);
+  const latestOutcome = settings.getLatestOutreachOutcome(recommendation.therapist.slug);
   if (
     !latestOutcome ||
     ["no_response", "waitlist", "insurance_mismatch"].indexOf(latestOutcome.outcome) === -1
@@ -203,21 +203,21 @@ export function buildFallbackRecommendation(profile, entries, options) {
     return null;
   }
 
-  var outcomes = settings.readOutreachOutcomes();
-  var fallbackLearning = settings.buildFallbackLearningMap(outcomes);
-  var activeSegments = settings.buildLearningSegments(profile);
-  var fallbackCandidates = (entries || []).filter(function (entry) {
+  const outcomes = settings.readOutreachOutcomes();
+  const fallbackLearning = settings.buildFallbackLearningMap(outcomes);
+  const activeSegments = settings.buildLearningSegments(profile);
+  const fallbackCandidates = (entries || []).filter(function (entry) {
     return entry.therapist.slug !== recommendation.therapist.slug;
   });
-  var rankedFallbacks = fallbackCandidates
+  const rankedFallbacks = fallbackCandidates
     .map(function (entry, index) {
-      var learningScore = 0;
-      var learningWins = 0;
-      var learningAttempts = 0;
-      var routeLearning = settings.getRouteLearningForProfile(profile, entry, outcomes);
+      let learningScore = 0;
+      let learningWins = 0;
+      let learningAttempts = 0;
+      const routeLearning = settings.getRouteLearningForProfile(profile, entry, outcomes);
 
       activeSegments.forEach(function (segment) {
-        var bucket =
+        const bucket =
           fallbackLearning[latestOutcome.outcome + "::" + segment] &&
           fallbackLearning[latestOutcome.outcome + "::" + segment][entry.therapist.slug];
         if (!bucket) {
@@ -246,20 +246,20 @@ export function buildFallbackRecommendation(profile, entries, options) {
       );
     });
 
-  var fallbackPick = rankedFallbacks[0] || null;
-  var fallbackEntry = fallbackPick ? fallbackPick.entry : null;
+  const fallbackPick = rankedFallbacks[0] || null;
+  const fallbackEntry = fallbackPick ? fallbackPick.entry : null;
   if (!fallbackEntry) {
     return null;
   }
 
-  var fallbackRoute = settings.getPreferredOutreach(fallbackEntry);
-  var fallbackReason =
+  const fallbackRoute = settings.getPreferredOutreach(fallbackEntry);
+  const fallbackReason =
     latestOutcome.outcome === "no_response"
       ? "the first outreach has not gotten a reply yet"
       : latestOutcome.outcome === "waitlist"
         ? "the first outreach appears to be blocked by availability"
         : "the first outreach hit an insurance or cost mismatch";
-  var nextMove =
+  const nextMove =
     latestOutcome.outcome === "insurance_mismatch"
       ? "Lead by confirming coverage and expected out-of-pocket cost right away."
       : latestOutcome.outcome === "waitlist"
@@ -290,21 +290,21 @@ export function buildFallbackRecommendation(profile, entries, options) {
 }
 
 export function renderFallbackRecommendation(profile, entries, options) {
-  var settings = options || {};
-  var root = settings.root;
+  const settings = options || {};
+  const root = settings.root;
   if (!root) {
     return;
   }
 
-  var fallback = settings.buildFallbackRecommendation(profile, entries);
-  var contactPlan = settings.buildContactOrderPlan(profile, entries);
+  const fallback = settings.buildFallbackRecommendation(profile, entries);
+  const contactPlan = settings.buildContactOrderPlan(profile, entries);
   if (!fallback) {
     root.innerHTML = "";
     return;
   }
 
-  var preferredRoute = settings.getPreferredOutreach(fallback.entry);
-  var fallbackSummaryCopy =
+  const preferredRoute = settings.getPreferredOutreach(fallback.entry);
+  const fallbackSummaryCopy =
     "Open this only if your first outreach stalls, hits a waitlist, or turns into an insurance mismatch.";
 
   root.innerHTML =
@@ -367,7 +367,7 @@ export function renderFallbackRecommendation(profile, entries, options) {
 
   root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
     link.addEventListener("click", function () {
-      var slug = link.getAttribute("data-match-profile-link") || "";
+      const slug = link.getAttribute("data-match-profile-link") || "";
       settings.trackFunnelEvent(
         "match_result_profile_opened",
         settings.buildMatchTrackingPayload(slug, {
@@ -379,7 +379,7 @@ export function renderFallbackRecommendation(profile, entries, options) {
 
   root.querySelectorAll("[data-fallback-contact-link]").forEach(function (link) {
     link.addEventListener("click", function () {
-      var slug = link.getAttribute("data-fallback-contact-link") || "";
+      const slug = link.getAttribute("data-fallback-contact-link") || "";
       settings.trackFunnelEvent(
         "match_fallback_outreach_started",
         settings.buildMatchTrackingPayload(slug, {
@@ -391,8 +391,8 @@ export function renderFallbackRecommendation(profile, entries, options) {
 
   root.querySelectorAll("[data-copy-fallback-draft]").forEach(function (button) {
     button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-copy-fallback-draft") || "";
-      var entry = (entries || []).find(function (item) {
+      const slug = button.getAttribute("data-copy-fallback-draft") || "";
+      const entry = (entries || []).find(function (item) {
         return item && item.therapist && item.therapist.slug === slug;
       });
       if (!entry) {
@@ -418,25 +418,25 @@ export function renderFallbackRecommendation(profile, entries, options) {
 }
 
 export function renderFirstContactRecommendation(profile, entries, options) {
-  var settings = options || {};
-  var root = settings.root;
+  const settings = options || {};
+  const root = settings.root;
   if (!root) {
     return;
   }
 
-  var recommendation = settings.buildFirstContactRecommendation(profile, entries);
+  const recommendation = settings.buildFirstContactRecommendation(profile, entries);
   if (!recommendation) {
     root.innerHTML = "";
     return;
   }
 
-  var preferredRoute = settings.getPreferredOutreach(recommendation.entry);
-  var latestOutcome = settings.getLatestOutreachOutcome(recommendation.therapist.slug);
-  var trackerOpen = Boolean(latestOutcome);
-  var trackerSummaryCopy = latestOutcome
+  const preferredRoute = settings.getPreferredOutreach(recommendation.entry);
+  const latestOutcome = settings.getLatestOutreachOutcome(recommendation.therapist.slug);
+  const trackerOpen = Boolean(latestOutcome);
+  const trackerSummaryCopy = latestOutcome
     ? "Your first outreach already has a saved outcome. Open this to update what happened or change course."
     : "Open this after you contact the first provider so the backup plan can adapt if needed.";
-  var contactPlan = settings.buildContactOrderPlan
+  const contactPlan = settings.buildContactOrderPlan
     ? settings.buildContactOrderPlan(profile, entries)
     : null;
 
@@ -525,7 +525,7 @@ export function renderFirstContactRecommendation(profile, entries, options) {
 
   root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
     link.addEventListener("click", function () {
-      var slug = link.getAttribute("data-match-profile-link") || "";
+      const slug = link.getAttribute("data-match-profile-link") || "";
       settings.trackFunnelEvent(
         "match_result_profile_opened",
         settings.buildMatchTrackingPayload(slug, {
@@ -537,7 +537,7 @@ export function renderFirstContactRecommendation(profile, entries, options) {
 
   root.querySelectorAll("[data-entry-contact-link]").forEach(function (link) {
     link.addEventListener("click", function () {
-      var slug = link.getAttribute("data-entry-contact-link") || "";
+      const slug = link.getAttribute("data-entry-contact-link") || "";
       settings.trackFunnelEvent(
         "match_recommended_outreach_started",
         settings.buildMatchTrackingPayload(slug, {
@@ -549,8 +549,8 @@ export function renderFirstContactRecommendation(profile, entries, options) {
 
   root.querySelectorAll("[data-copy-entry-draft]").forEach(function (button) {
     button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-copy-entry-draft") || "";
-      var entry = (entries || []).find(function (item) {
+      const slug = button.getAttribute("data-copy-entry-draft") || "";
+      const entry = (entries || []).find(function (item) {
         return item && item.therapist && item.therapist.slug === slug;
       });
       if (!entry) {
@@ -585,8 +585,8 @@ export function renderFirstContactRecommendation(profile, entries, options) {
 }
 
 export function renderOutreachPanel(entries, options) {
-  var settings = options || {};
-  var root = settings.root;
+  const settings = options || {};
+  const root = settings.root;
   if (!root) {
     return;
   }
@@ -595,9 +595,10 @@ export function renderOutreachPanel(entries, options) {
     root.innerHTML = "";
     return;
   }
-  var topEntries = entries.slice(0, 3);
-  var focusSlug = settings.outreachFocusSlug || (topEntries[0] ? topEntries[0].therapist.slug : "");
-  var focusIndex = Math.max(
+  const topEntries = entries.slice(0, 3);
+  const focusSlug =
+    settings.outreachFocusSlug || (topEntries[0] ? topEntries[0].therapist.slug : "");
+  let focusIndex = Math.max(
     0,
     topEntries.findIndex(function (entry) {
       return entry.therapist.slug === focusSlug;
@@ -606,7 +607,7 @@ export function renderOutreachPanel(entries, options) {
   if (!topEntries[focusIndex]) {
     focusIndex = 0;
   }
-  var hasRecordedOutcome = topEntries.some(function (entry) {
+  const hasRecordedOutcome = topEntries.some(function (entry) {
     return Boolean(settings.getLatestOutreachOutcome(entry.therapist.slug));
   });
   root.innerHTML =
@@ -621,19 +622,20 @@ export function renderOutreachPanel(entries, options) {
     '>Next</button></div></div></div><div class="match-support-panel-body"><div class="outreach-carousel-frame">' +
     topEntries
       .map(function (entry, index) {
-        var therapist = entry.therapist;
-        var preferredRoute = settings.getPreferredOutreach(entry);
-        var latestOutcome = settings.getLatestOutreachOutcome(therapist.slug);
-        var journeyState = buildJourneyState(latestOutcome, settings);
-        var role = index === 0 ? "Contact first" : index === 1 ? "Contact second" : "Contact third";
-        var script = settings
+        const therapist = entry.therapist;
+        const preferredRoute = settings.getPreferredOutreach(entry);
+        const latestOutcome = settings.getLatestOutreachOutcome(therapist.slug);
+        const journeyState = buildJourneyState(latestOutcome, settings);
+        const role =
+          index === 0 ? "Contact first" : index === 1 ? "Contact second" : "Contact third";
+        const script = settings
           .buildEntryOutreachDraft(entry, settings.profile)
           .replace(/\n+/g, " ")
           .trim();
-        var preferredRouteKind = preferredRoute
+        const preferredRouteKind = preferredRoute
           ? String(preferredRoute.label || "").toLowerCase()
           : "";
-        var contactStrategyKind =
+        const contactStrategyKind =
           preferredRouteKind.indexOf("email") >= 0
             ? "email"
             : preferredRouteKind.indexOf("call") >= 0 || preferredRouteKind.indexOf("phone") >= 0
@@ -643,12 +645,12 @@ export function renderOutreachPanel(entries, options) {
                 : preferredRouteKind.indexOf("website") >= 0
                   ? "website"
                   : "";
-        var matchOutreachInner = renderOutreachPanelMarkup({
+        const matchOutreachInner = renderOutreachPanelMarkup({
           therapist: therapist,
           contactStrategy: contactStrategyKind ? { route: contactStrategyKind } : null,
           escapeHtml: settings.escapeHtml,
         });
-        var matchOutreachDetailsHtml = matchOutreachInner
+        const matchOutreachDetailsHtml = matchOutreachInner
           ? '<details class="match-outreach-details" data-match-outreach="' +
             settings.escapeHtml(therapist.slug) +
             '"><summary class="match-outreach-summary">' +
@@ -739,19 +741,19 @@ export function renderOutreachPanel(entries, options) {
       .join("") +
     "</div></div></section></div></details>";
 
-  var prevButton = document.getElementById("outreachPrev");
+  const prevButton = document.getElementById("outreachPrev");
   if (prevButton) {
     prevButton.addEventListener("click", function () {
-      var nextIndex = Math.max(0, focusIndex - 1);
+      const nextIndex = Math.max(0, focusIndex - 1);
       settings.setOutreachFocusSlug(topEntries[nextIndex].therapist.slug);
       settings.renderOutreachPanel(entries);
     });
   }
 
-  var nextButton = document.getElementById("outreachNext");
+  const nextButton = document.getElementById("outreachNext");
   if (nextButton) {
     nextButton.addEventListener("click", function () {
-      var nextIndex = Math.min(topEntries.length - 1, focusIndex + 1);
+      const nextIndex = Math.min(topEntries.length - 1, focusIndex + 1);
       settings.setOutreachFocusSlug(topEntries[nextIndex].therapist.slug);
       settings.renderOutreachPanel(entries);
     });
@@ -759,8 +761,8 @@ export function renderOutreachPanel(entries, options) {
 
   root.querySelectorAll("[data-copy-entry-draft]").forEach(function (button) {
     button.addEventListener("click", async function () {
-      var slug = button.getAttribute("data-copy-entry-draft");
-      var entry = entries.find(function (item) {
+      const slug = button.getAttribute("data-copy-entry-draft");
+      const entry = entries.find(function (item) {
         return item.therapist.slug === slug;
       });
       if (!entry) {
@@ -790,14 +792,14 @@ export function renderOutreachPanel(entries, options) {
 
   root.querySelectorAll("[data-outreach-copy-message]").forEach(function (copyBtn) {
     copyBtn.addEventListener("click", async function () {
-      var shell = copyBtn.closest(".outreach-script-shell");
-      var body = shell ? shell.querySelector("[data-outreach-message-body]") : null;
-      var text = body ? body.textContent || "" : "";
+      const shell = copyBtn.closest(".outreach-script-shell");
+      const body = shell ? shell.querySelector("[data-outreach-message-body]") : null;
+      const text = body ? body.textContent || "" : "";
       if (!text) return;
-      var labelEl = copyBtn.querySelector("span");
-      var originalLabel = labelEl ? labelEl.textContent : "";
-      var card = copyBtn.closest("[data-outreach-card]");
-      var slug = card ? card.getAttribute("data-outreach-card") : "";
+      const labelEl = copyBtn.querySelector("span");
+      const originalLabel = labelEl ? labelEl.textContent : "";
+      const card = copyBtn.closest("[data-outreach-card]");
+      const slug = card ? card.getAttribute("data-outreach-card") : "";
       try {
         await navigator.clipboard.writeText(text);
         if (labelEl) labelEl.textContent = "Copied";
@@ -821,7 +823,7 @@ export function renderOutreachPanel(entries, options) {
   root.querySelectorAll("[data-match-outreach]").forEach(function (details) {
     details.addEventListener("toggle", function () {
       if (!details.open) return;
-      var slug = details.getAttribute("data-match-outreach") || "";
+      const slug = details.getAttribute("data-match-outreach") || "";
       settings.trackFunnelEvent("outreach_panel_opened", {
         surface: "match_card",
         therapist_slug: slug,
@@ -831,8 +833,8 @@ export function renderOutreachPanel(entries, options) {
 
   root.querySelectorAll("[data-match-outreach] .outreach-script-call").forEach(function (link) {
     link.addEventListener("click", function () {
-      var details = link.closest("[data-match-outreach]");
-      var slug = details ? details.getAttribute("data-match-outreach") : "";
+      const details = link.closest("[data-match-outreach]");
+      const slug = details ? details.getAttribute("data-match-outreach") : "";
       settings.trackFunnelEvent("outreach_call_clicked", {
         surface: "match_card",
         therapist_slug: slug,
@@ -842,7 +844,7 @@ export function renderOutreachPanel(entries, options) {
 
   root.querySelectorAll("[data-entry-contact-link]").forEach(function (link) {
     link.addEventListener("click", function () {
-      var slug = link.getAttribute("data-entry-contact-link") || "";
+      const slug = link.getAttribute("data-entry-contact-link") || "";
       settings.trackFunnelEvent(
         "match_entry_outreach_started",
         settings.buildMatchTrackingPayload(slug, {
@@ -854,7 +856,7 @@ export function renderOutreachPanel(entries, options) {
 
   root.querySelectorAll("[data-match-profile-link]").forEach(function (link) {
     link.addEventListener("click", function () {
-      var slug = link.getAttribute("data-match-profile-link") || "";
+      const slug = link.getAttribute("data-match-profile-link") || "";
       settings.trackFunnelEvent(
         "match_result_profile_opened",
         settings.buildMatchTrackingPayload(slug, {
@@ -874,15 +876,15 @@ export function renderOutreachPanel(entries, options) {
     });
   });
 
-  var frame = root.querySelector(".outreach-carousel-frame");
+  const frame = root.querySelector(".outreach-carousel-frame");
   if (frame) {
-    var touchStartX = 0;
+    let touchStartX = 0;
     frame.addEventListener("touchstart", function (event) {
       touchStartX = event.touches[0] ? event.touches[0].clientX : 0;
     });
     frame.addEventListener("touchend", function (event) {
-      var touchEndX = event.changedTouches[0] ? event.changedTouches[0].clientX : 0;
-      var delta = touchEndX - touchStartX;
+      const touchEndX = event.changedTouches[0] ? event.changedTouches[0].clientX : 0;
+      const delta = touchEndX - touchStartX;
       if (Math.abs(delta) < 40) {
         return;
       }

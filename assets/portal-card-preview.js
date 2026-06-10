@@ -33,11 +33,11 @@ import { escapeHtml } from "./escape-html.js";
 // preview shows the clinician exactly what they selected, they need
 // full transparency about what they've added to their listing.
 function renderPortalSpecialtyPills(specialties) {
-  var list = Array.isArray(specialties) ? specialties.filter(Boolean) : [];
+  const list = Array.isArray(specialties) ? specialties.filter(Boolean) : [];
   if (!list.length) return "";
-  var visible = list.slice(0, 3);
-  var overflow = list.length - visible.length;
-  var html = visible
+  const visible = list.slice(0, 3);
+  const overflow = list.length - visible.length;
+  let html = visible
     .map(function (label) {
       return '<span class="bth-pill">' + escapeHtml(label) + "</span>";
     })
@@ -94,7 +94,7 @@ function renderPlaceholderInfoLine(label) {
 // ─── CTA ladder for portal preview ─────────────────────────────────────
 
 function getCtaLabel(state) {
-  var method = String((state && state.preferred_contact_method) || "").toLowerCase();
+  const method = String((state && state.preferred_contact_method) || "").toLowerCase();
   if (method === "phone") return "Call now";
   if (method === "booking") return "Book a consult";
   if (method === "website") return "Visit practice site";
@@ -106,12 +106,12 @@ function getCtaLabel(state) {
 // ─── Card render ───────────────────────────────────────────────────────
 
 export function renderPortalCardPreview(state, options) {
-  var s = state || {};
+  const s = state || {};
 
   // Avatar, when no photo, the round-avatar primitive renders a colored
   // initials circle. That's already a reasonable placeholder, so we don't
   // need a separate empty-state for it.
-  var avatarHtml =
+  const avatarHtml =
     '<div class="bth-card-avatar-slot">' +
     renderRoundAvatar(
       {
@@ -125,7 +125,7 @@ export function renderPortalCardPreview(state, options) {
     "</div>";
 
   // Name + credentials
-  var nameHtml =
+  const nameHtml =
     '<h3 class="bth-card-name">' +
     escapeHtml(s.name || "Your name") +
     (s.credentials
@@ -134,7 +134,7 @@ export function renderPortalCardPreview(state, options) {
     "</h3>";
 
   // Specialty pills (Zone 1), placeholder when empty
-  var pillsHtml = hasSpecialties(s)
+  const pillsHtml = hasSpecialties(s)
     ? renderPortalSpecialtyPills(s.specialties)
     : renderPlaceholderPills();
 
@@ -142,13 +142,13 @@ export function renderPortalCardPreview(state, options) {
   // populations / languages / modalities to fall through to. We force
   // the placeholder when the user simply hasn't filled the voice yet,
   // since that's the spec'd portal behavior.
-  var voiceHtml = hasCareApproach(s) ? renderVoiceCascade(s) : renderPlaceholderVoice();
+  const voiceHtml = hasCareApproach(s) ? renderVoiceCascade(s) : renderPlaceholderVoice();
 
   // Info row, location / cost / availability
-  var infoParts = [];
+  const infoParts = [];
 
   if (hasPracticeMode(s)) {
-    var locationLabel = getLocationModalityLabel(s);
+    const locationLabel = getLocationModalityLabel(s);
     if (locationLabel) {
       infoParts.push('<span class="bth-card-info-item">' + escapeHtml(locationLabel) + "</span>");
     }
@@ -157,19 +157,19 @@ export function renderPortalCardPreview(state, options) {
   }
 
   if (hasCostInfo(s)) {
-    var costLabel = getCostLabel(s);
+    const costLabel = getCostLabel(s);
     if (costLabel) {
       infoParts.push('<span class="bth-card-info-item">' + escapeHtml(costLabel) + "</span>");
     }
   }
 
-  var availabilityHtml = renderAvailabilityBadge(s);
+  const availabilityHtml = renderAvailabilityBadge(s);
   if (availabilityHtml) {
     infoParts.push('<span class="bth-card-info-item">' + availabilityHtml + "</span>");
   }
 
-  var filteredInfoParts = infoParts.filter(Boolean);
-  var infoRowHtml = filteredInfoParts.length
+  const filteredInfoParts = infoParts.filter(Boolean);
+  const infoRowHtml = filteredInfoParts.length
     ? '<div class="bth-card-info">' +
       filteredInfoParts.join('<span class="bth-card-info-dot" aria-hidden="true">·</span>') +
       "</div>"
@@ -177,8 +177,8 @@ export function renderPortalCardPreview(state, options) {
 
   // Actions, always render the spec'd CTA labels so the clinician can
   // see what patients will see. These are non-functional in the preview.
-  var ctaLabel = getCtaLabel(s);
-  var actionsHtml =
+  const ctaLabel = getCtaLabel(s);
+  const actionsHtml =
     '<div class="bth-card-actions">' +
     '<span class="bth-btn-primary bth-btn-primary-preview" aria-disabled="true">' +
     escapeHtml(ctaLabel) +
@@ -186,7 +186,7 @@ export function renderPortalCardPreview(state, options) {
     '<span class="bth-btn-secondary" aria-disabled="true">View profile →</span>' +
     "</div>";
 
-  var headerLabel = options && options.headerLabel;
+  const headerLabel = options && options.headerLabel;
   return (
     '<article class="bth-card bth-card-preview">' +
     (headerLabel ? '<p class="bth-card-preview-label">' + escapeHtml(headerLabel) + "</p>" : "") +

@@ -22,10 +22,10 @@ import { escapeHtml } from "./escape-html.js";
 import { PORTAL_COMPLETENESS_POINTS as PTS } from "../shared/portal-completeness-registry.mjs";
 
 function safeExternalUrl(value) {
-  var raw = String(value || "").trim();
+  const raw = String(value || "").trim();
   if (!raw) return "";
   try {
-    var url = new URL(raw);
+    const url = new URL(raw);
     return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
   } catch (_error) {
     return "";
@@ -60,7 +60,7 @@ function isFullBioComplete(t) {
 }
 function isContactRouteComplete(t) {
   if (!t) return false;
-  var method = String(t.preferred_contact_method || "").toLowerCase();
+  const method = String(t.preferred_contact_method || "").toLowerCase();
   if (method === "email") return Boolean(String(t.email || "").trim());
   if (method === "phone") return Boolean(String(t.phone || "").trim());
   if (method === "booking") return Boolean(String(t.booking_url || "").trim());
@@ -123,13 +123,13 @@ function isTotalYearsComplete(t) {
   return Number(t && t.years_experience) > 0;
 }
 function isGenderComplete(t) {
-  var g = String((t && t.gender) || "").trim();
+  const g = String((t && t.gender) || "").trim();
   return g === "male" || g === "female" || g === "non_binary";
 }
 
 // ─── Field registry ──────────────────────────────────────────────────
 
-var FIELD_REGISTRY = [
+const FIELD_REGISTRY = [
   {
     key: "card_bio",
     section: "essential",
@@ -324,15 +324,15 @@ var FIELD_REGISTRY = [
 // Registry-driven score. Sum of all `pts` values = 100 exactly, so the
 // score only reaches 100 when every field is complete.
 function _computeScoreFromRegistry(t) {
-  var score = 0;
-  for (var i = 0; i < FIELD_REGISTRY.length; i++) {
-    var f = FIELD_REGISTRY[i];
+  let score = 0;
+  for (let i = 0; i < FIELD_REGISTRY.length; i++) {
+    const f = FIELD_REGISTRY[i];
     if (f.isComplete(t)) score += f.pts;
   }
   return score;
 }
 
-var SECTIONS = [
+const SECTIONS = [
   { key: "essential", title: "Essential, required to go live" },
   { key: "profile", title: "Your profile" },
   { key: "practice", title: "Your practice" },
@@ -344,7 +344,7 @@ var SECTIONS = [
 // non-technical therapist would recognize. Map them to the same titles
 // shown in the row headers so a save toast reads naturally.
 function getFieldLabelFor(key) {
-  for (var i = 0; i < FIELD_REGISTRY.length; i++) {
+  for (let i = 0; i < FIELD_REGISTRY.length; i++) {
     if (FIELD_REGISTRY[i].key === key) {
       return String(FIELD_REGISTRY[i].title || "").trim();
     }
@@ -358,8 +358,8 @@ function getFieldLabelFor(key) {
 // the row has already collapsed by the time the eye catches up. This
 // renders a viewport-pinned confirmation that's visible regardless of
 // scroll position.
-var saveToastEl = null;
-var saveToastHideTimeout = null;
+let saveToastEl = null;
+let saveToastHideTimeout = null;
 function showSaveToast(message) {
   if (typeof document === "undefined") return;
   if (!saveToastEl) {
@@ -391,8 +391,8 @@ function showSaveToast(message) {
 // the guard is still "dirty" until the next save — but false negatives
 // would be the bad outcome. Use markPortalDirty() on input events and
 // clearPortalDirty() after a successful save.
-var portalDirty = false;
-var beforeunloadAttached = false;
+let portalDirty = false;
+let beforeunloadAttached = false;
 function markPortalDirty() {
   portalDirty = true;
   attachBeforeunloadOnce();
@@ -415,7 +415,7 @@ function attachBeforeunloadOnce() {
 }
 
 // Pre-set picker options (matching what Phase 2 was using).
-var INSURANCE_OPTIONS = [
+const INSURANCE_OPTIONS = [
   "Aetna",
   "BlueCross",
   "Cigna",
@@ -424,7 +424,7 @@ var INSURANCE_OPTIONS = [
   "Magellan",
   "Out of pocket only",
 ];
-var MODALITY_OPTIONS = [
+const MODALITY_OPTIONS = [
   "CBT",
   "DBT",
   "IPSRT",
@@ -435,7 +435,7 @@ var MODALITY_OPTIONS = [
   "Family therapy",
   "Medication mgmt",
 ];
-var POPULATION_OPTIONS = [
+const POPULATION_OPTIONS = [
   "Adults",
   "Adolescents",
   "Children",
@@ -446,13 +446,13 @@ var POPULATION_OPTIONS = [
   "Veterans",
   "Seniors",
 ];
-var FORMAT_OPTIONS = ["In-person", "Telehealth"];
+const FORMAT_OPTIONS = ["In-person", "Telehealth"];
 
 // ─── Markup builders ─────────────────────────────────────────────────
 
 // ─── Score ring constants ─────────────────────────────────────────
-var RING_R = 34;
-var RING_CIRC = Math.round(2 * Math.PI * RING_R * 100) / 100; // ≈ 213.63
+const RING_R = 34;
+const RING_CIRC = Math.round(2 * Math.PI * RING_R * 100) / 100; // ≈ 213.63
 
 function getScoreBand(score) {
   if (score >= 100) return { label: "Complete", tone: "complete" };
@@ -469,11 +469,11 @@ function getScoreBand(score) {
 // biggest score win for the least effort. Returns null when nothing
 // is incomplete.
 function getNextRequiredField(therapist) {
-  var essentials = FIELD_REGISTRY.filter(function (f) {
+  const essentials = FIELD_REGISTRY.filter(function (f) {
     return f.section === "essential" && !f.isComplete(therapist);
   });
   if (essentials.length > 0) return essentials[0];
-  var others = FIELD_REGISTRY.filter(function (f) {
+  const others = FIELD_REGISTRY.filter(function (f) {
     return !f.isComplete(therapist);
   }).sort(function (a, b) {
     return Number(b.pts || 0) - Number(a.pts || 0);
@@ -493,21 +493,21 @@ function ringOffset(score) {
 }
 
 function renderProgressHeader(score, fieldsRemaining, nextField) {
-  var band = getScoreBand(score);
-  var subline =
+  const band = getScoreBand(score);
+  const subline =
     fieldsRemaining > 0
       ? fieldsRemaining +
         " field" +
         (fieldsRemaining === 1 ? "" : "s") +
         " remaining, each one increases your inquiry rate."
       : "Profile complete, your listing is fully optimized.";
-  var offset = ringOffset(score);
-  var ringTone = getRingTone(score);
+  const offset = ringOffset(score);
+  const ringTone = getRingTone(score);
   // "Next up" CTA below the band label. Renders only when there's
   // something incomplete; otherwise hidden by leaving the element
   // empty (still in the DOM so refreshScore can populate it later if
   // the user un-saves a field somehow).
-  var nextUpHtml = nextField
+  const nextUpHtml = nextField
     ? '<button type="button" class="td-completeness-next" data-tdc-next="' +
       escapeHtml(nextField.key) +
       '" id="tdcNextUp">' +
@@ -585,17 +585,17 @@ function renderChevron() {
 function buildHint(field, therapist) {
   if (!field.isComplete(therapist)) return field.hint;
   // When complete, surface a preview of the saved value
-  var t = therapist || {};
+  const t = therapist || {};
   if (field.key === "card_bio") {
-    var cardBio = String(t.care_approach || "").trim();
+    const cardBio = String(t.care_approach || "").trim();
     return cardBio.length > 90 ? cardBio.slice(0, 87) + "…" : cardBio;
   }
   if (field.key === "full_bio") {
-    var fullBio = String(t.bio || "").trim();
+    const fullBio = String(t.bio || "").trim();
     return fullBio.length > 90 ? fullBio.slice(0, 87) + "…" : fullBio;
   }
   if (field.key === "contact") {
-    var m = String(t.preferred_contact_method || "").toLowerCase();
+    const m = String(t.preferred_contact_method || "").toLowerCase();
     if (m === "email") return "Email · " + (t.email || "");
     if (m === "phone") return "Phone · " + (t.phone || "");
     if (m === "booking") return "Booking link · " + (t.booking_url || "");
@@ -606,13 +606,13 @@ function buildHint(field, therapist) {
     return [t.name, t.credentials].filter(Boolean).join(", ");
   }
   if (field.key === "location") {
-    var locParts = [t.city, t.state].filter(Boolean).join(", ");
+    const locParts = [t.city, t.state].filter(Boolean).join(", ");
     return t.zip ? locParts + " · ZIP: " + t.zip : locParts;
   }
   if (field.key === "fee") {
-    var min = Number(t.session_fee_min);
-    var max = Number(t.session_fee_max);
-    var line = "";
+    const min = Number(t.session_fee_min);
+    const max = Number(t.session_fee_max);
+    let line = "";
     if (min > 0 && max > 0 && min !== max) line = "$" + min + "–$" + max + "/session";
     else if (min > 0) line = "$" + min + "/session";
     else if (max > 0) line = "$" + max + "/session";
@@ -623,7 +623,7 @@ function buildHint(field, therapist) {
     return (t.treatment_modalities || []).slice(0, 4).join(" · ");
   }
   if (field.key === "format") {
-    var formats = [];
+    const formats = [];
     if (t.accepts_in_person) formats.push("In-person");
     if (t.accepts_telehealth) formats.push("Telehealth");
     return formats.join(" · ");
@@ -635,11 +635,11 @@ function buildHint(field, therapist) {
     return (t.client_populations || []).slice(0, 4).join(" · ");
   }
   if (field.key === "years") {
-    var yrs = Number(t.bipolar_years_experience);
+    const yrs = Number(t.bipolar_years_experience);
     return yrs > 0 ? yrs + " year" + (yrs === 1 ? "" : "s") + " treating bipolar" : field.hint;
   }
   if (field.key === "total_years") {
-    var totalYrs = Number(t.years_experience);
+    const totalYrs = Number(t.years_experience);
     return totalYrs > 0
       ? totalYrs + " year" + (totalYrs === 1 ? "" : "s") + " in practice"
       : field.hint;
@@ -649,7 +649,7 @@ function buildHint(field, therapist) {
   if (field.key === "languages") return (t.languages || []).slice(0, 4).join(" · ");
   if (field.key === "wait_time") return String(t.estimated_wait_time || "");
   if (field.key === "first_step") {
-    var fs = String(t.first_step_expectation || "").trim();
+    const fs = String(t.first_step_expectation || "").trim();
     return fs.length > 90 ? fs.slice(0, 87) + "…" : fs;
   }
   if (field.key === "specialties") return (t.specialties || []).slice(0, 4).join(" · ");
@@ -657,9 +657,9 @@ function buildHint(field, therapist) {
 }
 
 function renderRow(field, therapist) {
-  var complete = field.isComplete(therapist);
-  var isEssential = field.section === "essential";
-  var matchingOnlyLabel =
+  const complete = field.isComplete(therapist);
+  const isEssential = field.section === "essential";
+  const matchingOnlyLabel =
     field.matchingOnly && !complete
       ? '<span class="td-row-matching-only">Used in matching, not shown on your card</span>'
       : "";
@@ -694,16 +694,16 @@ function renderRow(field, therapist) {
 }
 
 function renderSection(sectionKey, therapist) {
-  var section = SECTIONS.find(function (s) {
+  const section = SECTIONS.find(function (s) {
     return s.key === sectionKey;
   });
-  var fields = FIELD_REGISTRY.filter(function (f) {
+  const fields = FIELD_REGISTRY.filter(function (f) {
     return f.section === sectionKey;
   });
   if (!fields.length) return "";
-  var essentialDone =
+  const essentialDone =
     sectionKey === "essential" && isCardBioComplete(therapist) && isContactRouteComplete(therapist);
-  var titleHtml = essentialDone
+  const titleHtml = essentialDone
     ? '<h3 class="td-section-title td-section-title-done">' +
       '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" ' +
       'style="width:0.9em;height:0.9em;vertical-align:-0.1em;margin-right:0.3em" aria-hidden="true">' +
@@ -767,7 +767,7 @@ function renderShell(therapist, score, fieldsRemaining) {
 function renderPickerRow(options, selected, attr) {
   return options
     .map(function (label) {
-      var on = selected.indexOf(label) !== -1;
+      const on = selected.indexOf(label) !== -1;
       return (
         '<button type="button" class="td-pick' +
         (on ? " is-selected" : "") +
@@ -789,7 +789,7 @@ function renderPickerRow(options, selected, attr) {
 // row, so a clinician's previously-saved custom plan / modality stays
 // visible when they reopen the form.
 function renderCustomPills(options, selected, attr) {
-  var canonical = {};
+  const canonical = {};
   options.forEach(function (o) {
     canonical[o] = true;
   });
@@ -826,9 +826,9 @@ function renderAddOtherRow(attr, placeholder) {
   );
 }
 
-var CARD_BIO_MIN = 50;
-var CARD_BIO_CAP = 220;
-var FULL_BIO_CAP = 500;
+const CARD_BIO_MIN = 50;
+const CARD_BIO_CAP = 220;
+const FULL_BIO_CAP = 500;
 
 function getCardBioCounterText(len) {
   if (len === 0) return "0 / " + CARD_BIO_MIN + " minimum";
@@ -845,8 +845,8 @@ function getCardBioCounterClass(len) {
 }
 
 function renderCardBioForm(t) {
-  var cardBio = String(t.care_approach || "");
-  var len = cardBio.length;
+  const cardBio = String(t.care_approach || "");
+  const len = cardBio.length;
   return (
     '<div class="td-form td-form-bio">' +
     '<label class="td-form-row">' +
@@ -869,9 +869,9 @@ function renderCardBioForm(t) {
 }
 
 function renderFullBioForm(t) {
-  var fullBio = String(t.bio || "");
-  var len = fullBio.length;
-  var counterClass = len > FULL_BIO_CAP ? "is-short" : len >= FULL_BIO_CAP - 40 ? "is-warn" : "";
+  const fullBio = String(t.bio || "");
+  const len = fullBio.length;
+  const counterClass = len > FULL_BIO_CAP ? "is-short" : len >= FULL_BIO_CAP - 40 ? "is-warn" : "";
   return (
     '<div class="td-form td-form-bio">' +
     '<label class="td-form-row">' +
@@ -898,14 +898,14 @@ function renderFullBioForm(t) {
 }
 
 function renderContactRouteForm(t) {
-  var method = String(t.preferred_contact_method || "").toLowerCase();
-  var routes = [
+  const method = String(t.preferred_contact_method || "").toLowerCase();
+  const routes = [
     { key: "email", label: "Email" },
     { key: "phone", label: "Phone" },
     { key: "website", label: "Practice website" },
     { key: "booking", label: "Booking link" },
   ];
-  var pillsHtml = routes
+  const pillsHtml = routes
     .map(function (r) {
       return (
         '<button type="button" class="td-route-pill' +
@@ -920,26 +920,26 @@ function renderContactRouteForm(t) {
     .join("");
   // Capture all four values on render so switching pills doesn't lose
   // the value the clinician already had on file.
-  var cur = {
+  const cur = {
     email: String(t.email || ""),
     phone: String(t.phone || ""),
     website: String(t.website || ""),
     booking: String(t.booking_url || ""),
   };
   function inputBlock(key, visible) {
-    var labels = {
+    const labels = {
       email: "Your intake email",
       phone: "Your phone number",
       website: "Your practice website",
       booking: "Your booking URL",
     };
-    var placeholders = {
+    const placeholders = {
       email: "intake@yourpractice.com",
       phone: "(310) 555-0100",
       website: "yourpractice.com",
       booking: "yourbooking.com/schedule",
     };
-    var helpers = {
+    const helpers = {
       email: "We'll forward patient messages to this address.",
       phone: "Displayed publicly on your listing.",
       website: "Patients will be directed here to find the best way to contact you.",
@@ -991,8 +991,8 @@ function renderContactRouteForm(t) {
 }
 
 function renderHeadshotForm(t) {
-  var photoUrl = safeExternalUrl(t.photo_url);
-  var has = Boolean(photoUrl);
+  const photoUrl = safeExternalUrl(t.photo_url);
+  const has = Boolean(photoUrl);
   return (
     '<div class="td-form td-form-headshot">' +
     '<div class="td-headshot-row">' +
@@ -1081,8 +1081,8 @@ function renderLocationForm(t) {
 }
 
 function renderFeeForm(t) {
-  var min = Number(t.session_fee_min) > 0 ? t.session_fee_min : "";
-  var sliding = Boolean(t.sliding_scale);
+  const min = Number(t.session_fee_min) > 0 ? t.session_fee_min : "";
+  const sliding = Boolean(t.sliding_scale);
   return (
     '<div class="td-form">' +
     '<label class="td-form-row"><span class="td-form-label">Fee per session</span>' +
@@ -1107,7 +1107,9 @@ function renderFeeForm(t) {
 }
 
 function renderModalitiesForm(t) {
-  var current = Array.isArray(t.treatment_modalities) ? t.treatment_modalities.filter(Boolean) : [];
+  const current = Array.isArray(t.treatment_modalities)
+    ? t.treatment_modalities.filter(Boolean)
+    : [];
   return (
     '<div class="td-form">' +
     '<div class="td-pick-grid" data-tdc-pick-grid="tdc-modality">' +
@@ -1121,11 +1123,11 @@ function renderModalitiesForm(t) {
 }
 
 function renderFormatForm(t) {
-  var current = [];
+  const current = [];
   if (t.accepts_in_person) current.push("In-person");
   if (t.accepts_telehealth) current.push("Telehealth");
-  var teleStates = Array.isArray(t.telehealth_states) ? t.telehealth_states.filter(Boolean) : [];
-  var teleSelected = current.indexOf("Telehealth") !== -1;
+  const teleStates = Array.isArray(t.telehealth_states) ? t.telehealth_states.filter(Boolean) : [];
+  const teleSelected = current.indexOf("Telehealth") !== -1;
   return (
     '<div class="td-form">' +
     '<div class="td-pick-grid">' +
@@ -1150,7 +1152,7 @@ function renderFormatForm(t) {
 }
 
 function renderInsuranceForm(t) {
-  var current = Array.isArray(t.insurance_accepted) ? t.insurance_accepted.filter(Boolean) : [];
+  const current = Array.isArray(t.insurance_accepted) ? t.insurance_accepted.filter(Boolean) : [];
   return (
     '<div class="td-form">' +
     '<div class="td-pick-grid" data-tdc-pick-grid="tdc-insurance">' +
@@ -1164,7 +1166,7 @@ function renderInsuranceForm(t) {
 }
 
 function renderPopulationsForm(t) {
-  var current = Array.isArray(t.client_populations) ? t.client_populations.filter(Boolean) : [];
+  const current = Array.isArray(t.client_populations) ? t.client_populations.filter(Boolean) : [];
   return (
     '<div class="td-form">' +
     '<div class="td-pick-grid">' +
@@ -1176,7 +1178,7 @@ function renderPopulationsForm(t) {
 }
 
 function renderYearsForm(t) {
-  var yrs = Number(t.bipolar_years_experience);
+  const yrs = Number(t.bipolar_years_experience);
   return (
     '<div class="td-form">' +
     '<label class="td-form-row"><span class="td-form-label">Years specifically treating bipolar</span>' +
@@ -1191,7 +1193,7 @@ function renderYearsForm(t) {
 
 // ─── TF-B new fields ─────────────────────────────────────────────────
 
-var LANGUAGE_OPTIONS = [
+const LANGUAGE_OPTIONS = [
   "Spanish",
   "Mandarin",
   "Cantonese",
@@ -1201,8 +1203,8 @@ var LANGUAGE_OPTIONS = [
   "Korean",
   "Portuguese",
 ];
-var WAIT_TIME_OPTIONS = ["Same week", "1–2 weeks", "2–4 weeks", "1–2 months", "Waitlist"];
-var SPECIALTY_OPTIONS = [
+const WAIT_TIME_OPTIONS = ["Same week", "1–2 weeks", "2–4 weeks", "1–2 months", "Waitlist"];
+const SPECIALTY_OPTIONS = [
   "Bipolar I",
   "Bipolar II",
   "Cyclothymia",
@@ -1213,10 +1215,10 @@ var SPECIALTY_OPTIONS = [
   "Co-occurring anxiety",
   "Psychosis",
 ];
-var TELEHEALTH_STATE_OPTIONS = ["CA", "NY", "TX", "FL", "WA", "CO", "IL", "MA", "OR", "AZ", "NV"];
+const TELEHEALTH_STATE_OPTIONS = ["CA", "NY", "TX", "FL", "WA", "CO", "IL", "MA", "OR", "AZ", "NV"];
 
 function renderGenderForm(t) {
-  var current = String(t.gender || "");
+  const current = String(t.gender || "");
   return (
     '<div class="td-form">' +
     '<span class="td-form-label">Gender</span>' +
@@ -1263,7 +1265,7 @@ function renderWebsiteForm(t) {
 }
 
 function renderLanguagesForm(t) {
-  var current = Array.isArray(t.languages) ? t.languages.filter(Boolean) : [];
+  const current = Array.isArray(t.languages) ? t.languages.filter(Boolean) : [];
   return (
     '<div class="td-form">' +
     '<div class="td-pick-grid">' +
@@ -1276,7 +1278,7 @@ function renderLanguagesForm(t) {
 }
 
 function renderWaitTimeForm(t) {
-  var current = String(t.estimated_wait_time || "");
+  const current = String(t.estimated_wait_time || "");
   return (
     '<div class="td-form">' +
     '<div class="td-pick-grid">' +
@@ -1312,7 +1314,7 @@ function renderFirstStepForm(t) {
 }
 
 function renderSpecialtiesForm(t) {
-  var current = Array.isArray(t.specialties) ? t.specialties.filter(Boolean) : [];
+  const current = Array.isArray(t.specialties) ? t.specialties.filter(Boolean) : [];
   return (
     '<div class="td-form">' +
     '<div class="td-pick-grid">' +
@@ -1324,7 +1326,7 @@ function renderSpecialtiesForm(t) {
 }
 
 function renderTotalYearsForm(t) {
-  var yrs = Number(t.years_experience);
+  const yrs = Number(t.years_experience);
   return (
     '<div class="td-form">' +
     '<label class="td-form-row"><span class="td-form-label">Total years in practice</span>' +
@@ -1383,14 +1385,14 @@ export function shouldShowCompleteness(therapist) {
 // ─── 100/100 confetti (Section 5) ────────────────────────────────────
 
 function triggerConfetti(_container) {
-  var colors = ["#0f6e56", "#6ec49a", "#1a7a8f", "#d4f0e3", "#9ecdd4", "#f0c842", "#f07b42"];
-  var count = 90;
-  var confettiEl = document.createElement("div");
+  const colors = ["#0f6e56", "#6ec49a", "#1a7a8f", "#d4f0e3", "#9ecdd4", "#f0c842", "#f07b42"];
+  const count = 90;
+  const confettiEl = document.createElement("div");
   confettiEl.className = "td-confetti-burst td-confetti-burst-fullscreen";
   confettiEl.setAttribute("aria-hidden", "true");
 
-  for (var i = 0; i < count; i++) {
-    var piece = document.createElement("span");
+  for (let i = 0; i < count; i++) {
+    const piece = document.createElement("span");
     piece.className = "td-confetti-piece";
     piece.style.cssText = [
       "left:" + Math.random() * 100 + "%",
@@ -1412,8 +1414,8 @@ function triggerConfetti(_container) {
 
   // Update the subline with outcome-oriented copy
   window.setTimeout(function () {
-    var sublineEl = _container.querySelector("#tdcSubline");
-    var outcomeEl = _container.querySelector("#tdcOutcome");
+    const sublineEl = _container.querySelector("#tdcSubline");
+    const outcomeEl = _container.querySelector("#tdcOutcome");
     if (sublineEl) {
       sublineEl.textContent = "Your profile is complete.";
     }
@@ -1427,11 +1429,11 @@ function triggerConfetti(_container) {
 // ─── Going-live celebration ───────────────────────────────────────────
 
 function triggerGoingLiveMoment(container, therapist, score) {
-  var slot = container.querySelector("#tdcNotLiveSlot");
+  const slot = container.querySelector("#tdcNotLiveSlot");
   if (!slot) return;
 
-  var city = String(therapist.city || "").trim();
-  var confirmMsg = city
+  const city = String(therapist.city || "").trim();
+  const confirmMsg = city
     ? "You're live, patients searching for bipolar informed care in " + city + " can find you now."
     : "You're live, patients searching for bipolar informed care can find you now.";
 
@@ -1445,7 +1447,7 @@ function triggerGoingLiveMoment(container, therapist, score) {
 
   // After 3.5s fade out, then swap to slim persistent indicator
   window.setTimeout(function () {
-    var bar = slot.querySelector("#tdcGoingLiveBar");
+    const bar = slot.querySelector("#tdcGoingLiveBar");
     if (bar) {
       bar.style.transition = "opacity 0.4s ease";
       bar.style.opacity = "0";
@@ -1468,9 +1470,9 @@ function triggerGoingLiveMoment(container, therapist, score) {
   // Surface upgrade nudge below if score >= 75 and the nudge hasn't already shown
   if (score >= 75) {
     window.setTimeout(function () {
-      var existingNudge = container.querySelector("#tdcUpgradeNudge");
+      const existingNudge = container.querySelector("#tdcUpgradeNudge");
       if (existingNudge) return;
-      var nudge = document.createElement("div");
+      const nudge = document.createElement("div");
       nudge.id = "tdcUpgradeNudge";
       nudge.className = "td-upgrade-nudge";
       nudge.innerHTML =
@@ -1486,9 +1488,9 @@ function triggerGoingLiveMoment(container, therapist, score) {
 
 export function mountPortalTdCompleteness(container, therapist, options) {
   if (!container) return;
-  var opts = options || {};
-  var localTherapist = Object.assign({}, therapist);
-  var wasLive = isLive(localTherapist);
+  const opts = options || {};
+  const localTherapist = Object.assign({}, therapist);
+  let wasLive = isLive(localTherapist);
 
   // Mark the form dirty on any user-driven input/change so the
   // beforeunload guard can warn if they try to leave with unsaved
@@ -1499,9 +1501,9 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   container.addEventListener(
     "input",
     function (event) {
-      var target = event.target;
+      const target = event.target;
       if (!target) return;
-      var tag = String(target.tagName || "").toLowerCase();
+      const tag = String(target.tagName || "").toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select") {
         markPortalDirty();
       }
@@ -1511,9 +1513,9 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   container.addEventListener(
     "change",
     function (event) {
-      var target = event.target;
+      const target = event.target;
       if (!target) return;
-      var tag = String(target.tagName || "").toLowerCase();
+      const tag = String(target.tagName || "").toLowerCase();
       if (tag === "input" || tag === "textarea" || tag === "select") {
         markPortalDirty();
       }
@@ -1528,25 +1530,25 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   }
 
   function refreshPreview() {
-    var preview = container.querySelector("#tdcPreview");
+    const preview = container.querySelector("#tdcPreview");
     if (preview)
       updatePortalCardPreview(preview, localTherapist, { headerLabel: "Patient preview · live" });
   }
 
-  var lastScore = computeScore(localTherapist);
+  let lastScore = computeScore(localTherapist);
 
   function animateScoreNum(el, fromVal, toVal) {
-    var duration = Math.min(600, Math.abs(toVal - fromVal) * 30);
+    const duration = Math.min(600, Math.abs(toVal - fromVal) * 30);
     if (duration < 80 || fromVal === toVal) {
       el.textContent = String(toVal);
       return;
     }
-    var start = null;
-    var diff = toVal - fromVal;
+    let start = null;
+    const diff = toVal - fromVal;
     function step(ts) {
       if (!start) start = ts;
-      var progress = Math.min((ts - start) / duration, 1);
-      var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      const progress = Math.min((ts - start) / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
       el.textContent = String(Math.round(fromVal + diff * eased));
       if (progress < 1) window.requestAnimationFrame(step);
     }
@@ -1554,12 +1556,12 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   }
 
   function refreshScore() {
-    var score = computeScore(localTherapist);
-    var subline = container.querySelector("#tdcSubline");
-    var scoreEl = container.querySelector("#tdcScore");
-    var ringFill = container.querySelector("#tdcRingFill");
-    var bandLabel = container.querySelector("#tdcBandLabel");
-    var remaining = fieldsRemaining();
+    const score = computeScore(localTherapist);
+    const subline = container.querySelector("#tdcSubline");
+    const scoreEl = container.querySelector("#tdcScore");
+    const ringFill = container.querySelector("#tdcRingFill");
+    const bandLabel = container.querySelector("#tdcBandLabel");
+    const remaining = fieldsRemaining();
 
     if (subline) {
       subline.textContent =
@@ -1571,8 +1573,8 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           : "Profile complete, your listing is fully optimized.";
     }
 
-    var band = getScoreBand(score);
-    var ringTone = getRingTone(score);
+    const band = getScoreBand(score);
+    const ringTone = getRingTone(score);
 
     if (scoreEl) {
       animateScoreNum(scoreEl, lastScore, score);
@@ -1613,9 +1615,9 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   // therapist state. Wires the click handler so clicking it scrolls
   // to + opens the relevant row.
   function refreshNextUp() {
-    var nextEl = container.querySelector("#tdcNextUp");
+    let nextEl = container.querySelector("#tdcNextUp");
     if (!nextEl) return;
-    var nextField = getNextRequiredField(localTherapist);
+    const nextField = getNextRequiredField(localTherapist);
     if (!nextField) {
       nextEl.hidden = true;
       nextEl.innerHTML = "";
@@ -1626,7 +1628,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     nextEl.classList.remove("is-empty");
     // Re-create as a button if it was previously the empty-div state.
     if (nextEl.tagName.toLowerCase() !== "button") {
-      var newBtn = document.createElement("button");
+      const newBtn = document.createElement("button");
       newBtn.type = "button";
       newBtn.className = "td-completeness-next";
       newBtn.id = "tdcNextUp";
@@ -1647,18 +1649,18 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     if (!btn || btn.dataset.tdcNextBound === "1") return;
     btn.dataset.tdcNextBound = "1";
     btn.addEventListener("click", function () {
-      var key = btn.getAttribute("data-tdc-next");
+      const key = btn.getAttribute("data-tdc-next");
       if (!key) return;
-      var toggle = container.querySelector('[data-tdc-toggle="' + key + '"]');
+      const toggle = container.querySelector('[data-tdc-toggle="' + key + '"]');
       if (!toggle) return;
       // Scroll the target row into view first, then click. If the row
       // is already open the click will collapse it, so check first.
-      var row = container.querySelector('[data-tdc-row="' + key + '"]');
+      const row = container.querySelector('[data-tdc-row="' + key + '"]');
       if (row) {
         row.scrollIntoView({ behavior: "smooth", block: "center" });
       }
-      var body = container.querySelector('[data-tdc-body="' + key + '"]');
-      var alreadyOpen = body && !body.hidden;
+      const body = container.querySelector('[data-tdc-body="' + key + '"]');
+      const alreadyOpen = body && !body.hidden;
       if (!alreadyOpen) toggle.click();
       trackFunnelEvent("portal_td_next_up_clicked", {
         slug: localTherapist.slug,
@@ -1668,19 +1670,19 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   }
 
   function refreshNotLiveBar() {
-    var slot = container.querySelector("#tdcNotLiveSlot");
+    const slot = container.querySelector("#tdcNotLiveSlot");
     if (slot) slot.innerHTML = renderNotLiveBar(localTherapist);
   }
 
   function refreshRow(key) {
-    var field = FIELD_REGISTRY.find(function (f) {
+    const field = FIELD_REGISTRY.find(function (f) {
       return f.key === key;
     });
     if (!field) return;
-    var article = container.querySelector('[data-tdc-row="' + key + '"]');
+    const article = container.querySelector('[data-tdc-row="' + key + '"]');
     if (!article) return;
-    var newHtml = renderRow(field, localTherapist);
-    var wrapper = document.createElement("div");
+    const newHtml = renderRow(field, localTherapist);
+    const wrapper = document.createElement("div");
     wrapper.innerHTML = newHtml;
     if (article.parentElement)
       article.parentElement.replaceChild(wrapper.firstElementChild, article);
@@ -1688,11 +1690,11 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   }
 
   function refreshEssentialSectionTitle() {
-    var h3 = container.querySelector(
+    const h3 = container.querySelector(
       ".td-section:first-of-type .td-section-title, .td-section:first-of-type .td-section-title-done",
     );
     if (!h3) return;
-    var done = isCardBioComplete(localTherapist) && isContactRouteComplete(localTherapist);
+    const done = isCardBioComplete(localTherapist) && isContactRouteComplete(localTherapist);
     if (done) {
       h3.className = "td-section-title td-section-title-done";
       h3.innerHTML =
@@ -1707,7 +1709,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   }
 
   // Per-form draft state. Reset whenever a row is opened.
-  var formDraft = {};
+  let formDraft = {};
 
   function bindRowEvents() {
     container.querySelectorAll("[data-tdc-toggle]").forEach(function (btn) {
@@ -1715,9 +1717,9 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       if (btn.dataset.tdcBound === "1") return;
       btn.dataset.tdcBound = "1";
       btn.addEventListener("click", function () {
-        var key = btn.getAttribute("data-tdc-toggle");
-        var body = container.querySelector('[data-tdc-body="' + key + '"]');
-        var alreadyOpen = body && !body.hidden;
+        const key = btn.getAttribute("data-tdc-toggle");
+        const body = container.querySelector('[data-tdc-body="' + key + '"]');
+        const alreadyOpen = body && !body.hidden;
         // Close all bodies + collapse all rows.
         container.querySelectorAll(".td-row-body").forEach(function (b) {
           b.hidden = true;
@@ -1730,16 +1732,16 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         // on the preview, so the cursor doesn't linger when the
         // clinician moves on to a different field or toggles the
         // card-bio row shut.
-        var previewClose = container.querySelector("#tdcPreview");
+        const previewClose = container.querySelector("#tdcPreview");
         if (previewClose) previewClose.classList.remove("tdc-preview-bio-editing");
         if (!alreadyOpen && body) {
-          var field = FIELD_REGISTRY.find(function (f) {
+          const field = FIELD_REGISTRY.find(function (f) {
             return f.key === key;
           });
           if (!field) return;
           body.innerHTML = renderFormBody(field, localTherapist);
           body.hidden = false;
-          var article = body.closest(".td-row");
+          const article = body.closest(".td-row");
           if (article) article.classList.add("is-open");
           bindFormHandlers(key, body);
           // Save buttons are rendered dynamically into the body, bind them now.
@@ -1780,7 +1782,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           ? localTherapist.telehealth_states.filter(Boolean)
           : []
       ).slice();
-      var statesWrap = bodyEl.querySelector("[data-tdc-format-states]");
+      const statesWrap = bodyEl.querySelector("[data-tdc-format-states]");
       bodyEl.querySelectorAll("[data-tdc-format]").forEach(function (b) {
         b.addEventListener("click", function () {
           toggleListPick(b, "tdc-format");
@@ -1793,8 +1795,8 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       });
       bodyEl.querySelectorAll("[data-tdc-tele-state]").forEach(function (b) {
         b.addEventListener("click", function () {
-          var label = b.getAttribute("data-tdc-tele-state");
-          var idx = formDraft.teleStates.indexOf(label);
+          const label = b.getAttribute("data-tdc-tele-state");
+          const idx = formDraft.teleStates.indexOf(label);
           if (idx === -1) formDraft.teleStates.push(label);
           else formDraft.teleStates.splice(idx, 1);
           b.classList.toggle("is-selected");
@@ -1855,14 +1857,14 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         });
       });
     } else if (key === "headshot") {
-      var pickBtn = bodyEl.querySelector("[data-tdc-headshot-pick]");
-      var fileInput = bodyEl.querySelector(".td-headshot-file-input");
-      var feedbackEl = bodyEl.querySelector(".td-headshot-feedback");
-      var previewEl_hs = bodyEl.querySelector(".td-headshot-preview");
-      var dropTitle = bodyEl.querySelector(".td-headshot-drop-title");
-      var saveBtn_hs = bodyEl.querySelector("[data-tdc-headshot-save]");
-      var stagedDataUrl = null;
-      var stagedFilename = null;
+      const pickBtn = bodyEl.querySelector("[data-tdc-headshot-pick]");
+      const fileInput = bodyEl.querySelector(".td-headshot-file-input");
+      const feedbackEl = bodyEl.querySelector(".td-headshot-feedback");
+      const previewEl_hs = bodyEl.querySelector(".td-headshot-preview");
+      const dropTitle = bodyEl.querySelector(".td-headshot-drop-title");
+      const saveBtn_hs = bodyEl.querySelector("[data-tdc-headshot-save]");
+      let stagedDataUrl = null;
+      let stagedFilename = null;
 
       function setHsFeedback(msg, isError) {
         if (!feedbackEl) return;
@@ -1878,9 +1880,9 @@ export function mountPortalTdCompleteness(container, therapist, options) {
 
       if (fileInput) {
         fileInput.addEventListener("change", function () {
-          var file = fileInput.files && fileInput.files[0];
+          const file = fileInput.files && fileInput.files[0];
           if (!file) return;
-          var ALLOWED_HS = new Set(["image/jpeg", "image/png", "image/webp"]);
+          const ALLOWED_HS = new Set(["image/jpeg", "image/png", "image/webp"]);
           if (!ALLOWED_HS.has(file.type)) {
             setHsFeedback("Photo must be JPG, PNG, or WebP.", true);
             fileInput.value = "";
@@ -1892,7 +1894,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
             return;
           }
           setHsFeedback("", false);
-          var reader = new FileReader();
+          const reader = new FileReader();
           reader.onload = function () {
             stagedDataUrl = String(reader.result || "");
             stagedFilename = file.name || "headshot";
@@ -1919,7 +1921,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           saveBtn_hs.classList.add("is-saving");
           saveBtn_hs.textContent = "Saving…";
           try {
-            var hsResult = await uploadPortalPhoto(stagedDataUrl, stagedFilename || "headshot");
+            const hsResult = await uploadPortalPhoto(stagedDataUrl, stagedFilename || "headshot");
             if (hsResult && hsResult.photo_url) {
               localTherapist.photo_url = hsResult.photo_url;
               localTherapist.photo_source_type = "therapist_uploaded";
@@ -1929,7 +1931,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
               refreshScore();
               window.setTimeout(function () {
                 refreshRow("headshot");
-                var flashRow = container.querySelector('[data-tdc-row="headshot"]');
+                const flashRow = container.querySelector('[data-tdc-row="headshot"]');
                 if (flashRow) {
                   flashRow.classList.add("td-row-flash");
                   window.setTimeout(function () {
@@ -1962,19 +1964,19 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       // typing in real time so they see the patient-facing impact
       // immediately. Full bio (key === "full_bio") doesn't get this
       // treatment because it doesn't show on the match card.
-      var cardBioEl = bodyEl.querySelector("#tdcCardBio");
-      var cardBioCounter = bodyEl.querySelector("#tdcCardBioCounter");
+      const cardBioEl = bodyEl.querySelector("#tdcCardBio");
+      const cardBioCounter = bodyEl.querySelector("#tdcCardBioCounter");
       // TF-D: signal "you are editing the card bio right now" by
       // pulsing a green left border + blinking cursor on the preview
       // voice slot. The class lives on the preview container; the
       // .bth-voice CSS picks it up and renders the cursor.
-      var preview = container.querySelector("#tdcPreview");
+      const preview = container.querySelector("#tdcPreview");
       if (preview) {
         preview.classList.add("tdc-preview-bio-editing");
       }
       if (cardBioEl) {
         cardBioEl.addEventListener("input", function () {
-          var v = cardBioEl.value;
+          const v = cardBioEl.value;
           if (cardBioCounter) {
             cardBioCounter.textContent = getCardBioCounterText(v.length);
             cardBioCounter.className = "td-form-counter " + getCardBioCounterClass(v.length);
@@ -1982,11 +1984,11 @@ export function mountPortalTdCompleteness(container, therapist, options) {
           // Live-update the patient preview voice slot. This is a
           // throwaway state update, the actual care_approach field
           // only changes on save.
-          var previewState = Object.assign({}, localTherapist, {
+          const previewState = Object.assign({}, localTherapist, {
             care_approach: v,
             claim_status: "claimed",
           });
-          var previewEl = container.querySelector("#tdcPreview");
+          const previewEl = container.querySelector("#tdcPreview");
           if (previewEl) {
             updatePortalCardPreview(previewEl, previewState, {
               headerLabel: "Patient preview · live",
@@ -1998,11 +2000,11 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         });
       }
     } else if (key === "full_bio") {
-      var fullBioEl = bodyEl.querySelector("#tdcFullBio");
-      var fullBioCounter = bodyEl.querySelector("#tdcFullBioCounter");
+      const fullBioEl = bodyEl.querySelector("#tdcFullBio");
+      const fullBioCounter = bodyEl.querySelector("#tdcFullBioCounter");
       if (fullBioEl && fullBioCounter) {
         fullBioEl.addEventListener("input", function () {
-          var len = fullBioEl.value.length;
+          const len = fullBioEl.value.length;
           fullBioCounter.textContent = len + " / " + FULL_BIO_CAP + " characters";
           fullBioCounter.className =
             "td-form-counter " +
@@ -2010,7 +2012,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         });
       }
     } else if (key === "contact") {
-      var initialMethod = String(localTherapist.preferred_contact_method || "").toLowerCase();
+      const initialMethod = String(localTherapist.preferred_contact_method || "").toLowerCase();
       formDraft.method =
         ["email", "phone", "website", "booking"].indexOf(initialMethod) !== -1 ? initialMethod : "";
       bodyEl.querySelectorAll("[data-tdc-route]").forEach(function (pill) {
@@ -2026,7 +2028,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
             inputBlock.hidden =
               inputBlock.getAttribute("data-tdc-route-input") !== formDraft.method;
           });
-          var errEl = bodyEl.querySelector("[data-tdc-route-error]");
+          const errEl = bodyEl.querySelector("[data-tdc-route-error]");
           if (errEl) {
             errEl.hidden = true;
             errEl.textContent = "";
@@ -2050,8 +2052,8 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   }
 
   function toggleListPick(btn, attr) {
-    var label = btn.getAttribute("data-" + attr);
-    var idx = formDraft.list.indexOf(label);
+    const label = btn.getAttribute("data-" + attr);
+    const idx = formDraft.list.indexOf(label);
     if (idx === -1) formDraft.list.push(label);
     else formDraft.list.splice(idx, 1);
     btn.classList.toggle("is-selected");
@@ -2062,21 +2064,21 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   // the grid, and wires it for toggle so the clinician can also remove
   // their custom value.
   function wireAddOther(bodyEl, attr) {
-    var addBtn = bodyEl.querySelector('[data-tdc-other-add="' + attr + '"]');
-    var input = bodyEl.querySelector('[data-tdc-other-input="' + attr + '"]');
-    var grid = bodyEl.querySelector('[data-tdc-pick-grid="' + attr + '"]');
+    const addBtn = bodyEl.querySelector('[data-tdc-other-add="' + attr + '"]');
+    const input = bodyEl.querySelector('[data-tdc-other-input="' + attr + '"]');
+    const grid = bodyEl.querySelector('[data-tdc-pick-grid="' + attr + '"]');
     if (!addBtn || !input || !grid) return;
 
     function commit() {
-      var value = String(input.value || "").trim();
+      const value = String(input.value || "").trim();
       if (!value) return;
       // Case-insensitive dedup against the current list.
-      var existing = formDraft.list.find(function (label) {
+      const existing = formDraft.list.find(function (label) {
         return String(label).toLowerCase() === value.toLowerCase();
       });
       if (existing) {
         // Already there, flash the existing pill instead of duplicating.
-        var existingBtn = grid.querySelector("[data-" + attr + '="' + existing + '"]');
+        const existingBtn = grid.querySelector("[data-" + attr + '="' + existing + '"]');
         if (existingBtn) {
           existingBtn.classList.add("td-pick-flash");
           window.setTimeout(function () {
@@ -2088,7 +2090,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       }
       formDraft.list.push(value);
       input.value = "";
-      var pill = document.createElement("button");
+      const pill = document.createElement("button");
       pill.type = "button";
       pill.className = "td-pick is-selected td-pick-custom";
       pill.setAttribute("data-" + attr, value);
@@ -2109,16 +2111,16 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   }
 
   async function saveItem(key) {
-    var bodyEl = container.querySelector('[data-tdc-body="' + key + '"]');
+    const bodyEl = container.querySelector('[data-tdc-body="' + key + '"]');
     if (!bodyEl) return;
-    var saveBtn = bodyEl.querySelector("[data-tdc-save]");
+    const saveBtn = bodyEl.querySelector("[data-tdc-save]");
 
-    var payload = {};
+    const payload = {};
     if (key === "card_bio") {
-      var cardBioInput = bodyEl.querySelector("#tdcCardBio");
-      var cardBioVal = cardBioInput ? String(cardBioInput.value || "").trim() : "";
+      const cardBioInput = bodyEl.querySelector("#tdcCardBio");
+      const cardBioVal = cardBioInput ? String(cardBioInput.value || "").trim() : "";
       if (cardBioVal.length < CARD_BIO_MIN) {
-        var cardCounterEl = bodyEl.querySelector("#tdcCardBioCounter");
+        const cardCounterEl = bodyEl.querySelector("#tdcCardBioCounter");
         if (cardCounterEl) {
           cardCounterEl.classList.add("is-short");
           cardCounterEl.textContent =
@@ -2128,27 +2130,27 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       }
       payload.care_approach = cardBioVal;
     } else if (key === "full_bio") {
-      var fullBioInput = bodyEl.querySelector("#tdcFullBio");
+      const fullBioInput = bodyEl.querySelector("#tdcFullBio");
       payload.bio = fullBioInput ? String(fullBioInput.value || "").trim() : "";
     } else if (key === "contact") {
-      var method = formDraft.method;
-      var routeErr = bodyEl.querySelector("[data-tdc-route-error]");
+      const method = formDraft.method;
+      const routeErr = bodyEl.querySelector("[data-tdc-route-error]");
       // Collect all filled-in contact values regardless of which method is preferred.
-      var emailVal = String(
+      const emailVal = String(
         (bodyEl.querySelector('[data-tdc-route-value="email"]') || {}).value || "",
       ).trim();
-      var phoneVal = String(
+      const phoneVal = String(
         (bodyEl.querySelector('[data-tdc-route-value="phone"]') || {}).value || "",
       ).trim();
-      var websiteVal = String(
+      const websiteVal = String(
         (bodyEl.querySelector('[data-tdc-route-value="website"]') || {}).value || "",
       ).trim();
-      var bookingVal = String(
+      const bookingVal = String(
         (bodyEl.querySelector('[data-tdc-route-value="booking"]') || {}).value || "",
       ).trim();
       // Require that the preferred method's field is filled when a method is selected.
       if (method) {
-        var preferredVal =
+        const preferredVal =
           method === "email"
             ? emailVal
             : method === "phone"
@@ -2158,7 +2160,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
                 : bookingVal;
         if (!preferredVal) {
           if (routeErr) {
-            var methodLabel =
+            const methodLabel =
               method === "booking" ? "booking URL" : method === "website" ? "website URL" : method;
             routeErr.textContent = "Add your " + methodLabel + " so patients can reach you.";
             routeErr.hidden = false;
@@ -2172,10 +2174,10 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       if (bookingVal) payload.booking_url = bookingVal;
       payload.preferred_contact_method = method || "";
     } else if (key === "name") {
-      var nameVal = String(bodyEl.querySelector("#tdcName").value || "").trim();
-      var credsVal = String(bodyEl.querySelector("#tdcCredentials").value || "").trim();
+      const nameVal = String(bodyEl.querySelector("#tdcName").value || "").trim();
+      const credsVal = String(bodyEl.querySelector("#tdcCredentials").value || "").trim();
       if (!nameVal) {
-        var nameErr = bodyEl.querySelector(".td-form-error");
+        let nameErr = bodyEl.querySelector(".td-form-error");
         if (!nameErr) {
           nameErr = document.createElement("p");
           nameErr.className = "td-form-error";
@@ -2187,15 +2189,15 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       payload.name = nameVal;
       payload.credentials = credsVal;
     } else if (key === "location") {
-      var cityVal = String(bodyEl.querySelector("#tdcCity").value || "").trim();
-      var stateVal = String(bodyEl.querySelector("#tdcState").value || "").trim();
-      var zipInputEl = bodyEl.querySelector("#tdcZip");
-      var zipRaw = zipInputEl ? String(zipInputEl.value || "").trim() : "";
+      const cityVal = String(bodyEl.querySelector("#tdcCity").value || "").trim();
+      const stateVal = String(bodyEl.querySelector("#tdcState").value || "").trim();
+      const zipInputEl = bodyEl.querySelector("#tdcZip");
+      const zipRaw = zipInputEl ? String(zipInputEl.value || "").trim() : "";
       // Normalize: strip non-digits, pad/trim to 5. Empty string means
       // the clinician opted out, fallback city-centroid will run.
-      var zipDigits = zipRaw.replace(/\D+/g, "").slice(0, 5);
+      const zipDigits = zipRaw.replace(/\D+/g, "").slice(0, 5);
       if (!cityVal || !stateVal) {
-        var locErr = bodyEl.querySelector(".td-form-error");
+        let locErr = bodyEl.querySelector(".td-form-error");
         if (!locErr) {
           locErr = document.createElement("p");
           locErr.className = "td-form-error";
@@ -2205,7 +2207,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         return;
       }
       if (zipDigits && zipDigits.length !== 5) {
-        var zipErr = bodyEl.querySelector(".td-form-error");
+        let zipErr = bodyEl.querySelector(".td-form-error");
         if (!zipErr) {
           zipErr = document.createElement("p");
           zipErr.className = "td-form-error";
@@ -2219,7 +2221,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       payload.zip = zipDigits; // empty string is a valid "opt out" signal
     } else if (key === "modalities") payload.treatment_modalities = (formDraft.list || []).slice();
     else if (key === "format") {
-      var formats = formDraft.list || [];
+      const formats = formDraft.list || [];
       payload.accepts_in_person = formats.indexOf("In-person") !== -1;
       payload.accepts_telehealth = formats.indexOf("Telehealth") !== -1;
       // Only save telehealth states when Telehealth is currently
@@ -2234,7 +2236,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     else if (key === "specialties") payload.specialties = (formDraft.list || []).slice();
     else if (key === "wait_time") payload.estimated_wait_time = String(formDraft.value || "");
     else if (key === "fee") {
-      var fee = Number(bodyEl.querySelector("#tdcFee").value) || 0;
+      const fee = Number(bodyEl.querySelector("#tdcFee").value) || 0;
       payload.session_fee_min = fee || null;
       payload.session_fee_max = fee || null;
       payload.sliding_scale = Boolean(formDraft.sliding);
@@ -2243,7 +2245,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     } else if (key === "total_years") {
       payload.years_experience = Number(bodyEl.querySelector("#tdcTotalYears").value) || 0;
     } else if (key === "gender") {
-      var checkedGender = bodyEl.querySelector('input[name="tdcGender"]:checked');
+      const checkedGender = bodyEl.querySelector('input[name="tdcGender"]:checked');
       payload.gender = checkedGender ? checkedGender.value : "";
     } else if (key === "practice_name") {
       payload.practice_name = String(bodyEl.querySelector("#tdcPracticeName").value || "").trim();
@@ -2262,18 +2264,18 @@ export function mountPortalTdCompleteness(container, therapist, options) {
     }
 
     try {
-      var result = await patchTherapistProfile(payload);
+      const result = await patchTherapistProfile(payload);
       if (result && result.therapist) {
         Object.assign(localTherapist, result.therapist);
         if (typeof opts.onSaved === "function") opts.onSaved(result.therapist);
       } else {
         Object.assign(localTherapist, payload);
       }
-      var newScore = computeScore(localTherapist);
+      const newScore = computeScore(localTherapist);
       refreshPreview();
 
       // Preview pulse, signals the clinician that their save updated the card
-      var previewPulseEl = container.querySelector("#tdcPreview");
+      const previewPulseEl = container.querySelector("#tdcPreview");
       if (previewPulseEl) {
         previewPulseEl.classList.remove("tdc-preview-pulse");
         void previewPulseEl.offsetWidth; // reflow to restart animation
@@ -2285,7 +2287,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
 
       refreshScore();
 
-      var nowLive = isLive(localTherapist);
+      const nowLive = isLive(localTherapist);
       if (!wasLive && nowLive) {
         wasLive = true;
         triggerGoingLiveMoment(container, localTherapist, newScore);
@@ -2316,20 +2318,20 @@ export function mountPortalTdCompleteness(container, therapist, options) {
       // save succeeded even if they've already scrolled away from the
       // row. Falls back to a generic "Changes saved" when the field
       // key isn't in the registry (rare; defensive).
-      var savedLabel = getFieldLabelFor(key);
+      const savedLabel = getFieldLabelFor(key);
       showSaveToast(savedLabel ? savedLabel + " saved" : "Changes saved");
       // Clear the unsaved-changes guard — anything the user typed up
       // to this save is now persisted, so a tab close is safe.
       clearPortalDirty();
       if (key === "card_bio") {
-        var previewSaved = container.querySelector("#tdcPreview");
+        const previewSaved = container.querySelector("#tdcPreview");
         if (previewSaved) previewSaved.classList.remove("tdc-preview-bio-editing");
       }
       window.setTimeout(function () {
         refreshRow(key);
         if (key === "card_bio" || key === "contact") refreshEssentialSectionTitle();
         // Row save flash, animate the row briefly after it re-renders
-        var flashRow = container.querySelector('[data-tdc-row="' + key + '"]');
+        const flashRow = container.querySelector('[data-tdc-row="' + key + '"]');
         if (flashRow) {
           flashRow.classList.add("td-row-flash");
           window.setTimeout(function () {
@@ -2349,7 +2351,7 @@ export function mountPortalTdCompleteness(container, therapist, options) {
         saveBtn.classList.remove("is-saving");
         saveBtn.textContent = "Try again";
       }
-      var existingErr = bodyEl.querySelector(".td-form-error");
+      let existingErr = bodyEl.querySelector(".td-form-error");
       if (!existingErr) {
         existingErr = document.createElement("p");
         existingErr.className = "td-form-error";
@@ -2360,12 +2362,12 @@ export function mountPortalTdCompleteness(container, therapist, options) {
   }
 
   // First render
-  var score = computeScore(localTherapist);
-  var remaining = fieldsRemaining();
+  const score = computeScore(localTherapist);
+  const remaining = fieldsRemaining();
   container.innerHTML = renderShell(localTherapist, score, remaining);
   bindRowEvents();
   // Wire the "Next up" click target rendered in renderProgressHeader.
-  var initialNextEl = container.querySelector("#tdcNextUp");
+  const initialNextEl = container.querySelector("#tdcNextUp");
   if (initialNextEl && initialNextEl.tagName.toLowerCase() === "button") {
     bindNextUpClick(initialNextEl);
   }

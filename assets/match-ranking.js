@@ -15,11 +15,11 @@ export const FEEDBACK_REASON_OPTIONS = [
 ];
 
 function buildRouteLearningMap(outcomes, buildLearningSegments) {
-  var entries = Array.isArray(outcomes) ? outcomes : [];
-  var learning = {};
+  const entries = Array.isArray(outcomes) ? outcomes : [];
+  const learning = {};
 
   function ensureBucket(segment, routeType) {
-    var key = "route::" + segment;
+    const key = "route::" + segment;
     if (!learning[key]) {
       learning[key] = {};
     }
@@ -37,12 +37,12 @@ function buildRouteLearningMap(outcomes, buildLearningSegments) {
       return;
     }
 
-    var segments = buildLearningSegments(
+    const segments = buildLearningSegments(
       item.context && item.context.profile ? item.context.profile : null,
     );
 
     segments.forEach(function (segment) {
-      var bucket = ensureBucket(segment, item.route_type);
+      const bucket = ensureBucket(segment, item.route_type);
       bucket.attempts += 1;
       if (item.outcome === "booked_consult" || item.outcome === "good_fit_call") {
         bucket.success += 1;
@@ -54,8 +54,8 @@ function buildRouteLearningMap(outcomes, buildLearningSegments) {
 }
 
 export function rankEntriesForProfile(profile, options) {
-  var settings = options || {};
-  var baseEntries = settings.orderMatchEntries(
+  const settings = options || {};
+  const baseEntries = settings.orderMatchEntries(
     settings.rankTherapistsForUser(settings.therapists, profile, settings.latestLearningSignals),
     profile,
   );
@@ -66,7 +66,7 @@ export function getMatchAvailabilityBonus(therapist) {
   if (!therapist) {
     return 0;
   }
-  var bonus = 0;
+  let bonus = 0;
   if (therapist.accepting_new_patients) {
     bonus += 8;
   }
@@ -77,12 +77,12 @@ export function getMatchAvailabilityBonus(therapist) {
 }
 
 export function getMatchContactClarityBonus(entry, options) {
-  var settings = options || {};
-  var readiness = settings.getContactReadiness(entry);
+  const settings = options || {};
+  const readiness = settings.getContactReadiness(entry);
   if (!readiness) {
     return 0;
   }
-  var bonus = readiness.tone === "high" ? 8 : readiness.tone === "medium" ? 5 : 2;
+  let bonus = readiness.tone === "high" ? 8 : readiness.tone === "medium" ? 5 : 2;
   if (readiness.guidance) {
     bonus += 2;
   }
@@ -93,22 +93,22 @@ export function getMatchContactClarityBonus(entry, options) {
 }
 
 export function getSecondPassScore(entry, profile, mode, options) {
-  var settings = options || {};
-  var evaluation = entry && entry.evaluation ? entry.evaluation : {};
-  var breakdown = evaluation.score_breakdown || {};
-  var therapist = entry && entry.therapist ? entry.therapist : {};
-  var base = Number(evaluation.score || 0) || 0;
-  var trust = Number(breakdown.trust || 0) || 0;
-  var clinical = Number(breakdown.clinical || 0) || 0;
-  var access = Number(breakdown.access || 0) || 0;
-  var practical = Number(breakdown.practical || 0) || 0;
-  var learned = Number(breakdown.learned || 0) || 0;
-  var confidence = Number(evaluation.confidence_score || 0) || 0;
-  var completeness = Number(evaluation.completeness_score || 0) || 0;
-  var bipolarYears = Math.min(Number(therapist.bipolar_years_experience || 0) || 0, 15);
-  var responsiveness = settings.getPublicResponsivenessSignal(therapist) ? 3 : 0;
-  var availability = getMatchAvailabilityBonus(therapist);
-  var contactClarity = getMatchContactClarityBonus(entry, settings);
+  const settings = options || {};
+  const evaluation = entry && entry.evaluation ? entry.evaluation : {};
+  const breakdown = evaluation.score_breakdown || {};
+  const therapist = entry && entry.therapist ? entry.therapist : {};
+  const base = Number(evaluation.score || 0) || 0;
+  const trust = Number(breakdown.trust || 0) || 0;
+  const clinical = Number(breakdown.clinical || 0) || 0;
+  const access = Number(breakdown.access || 0) || 0;
+  const practical = Number(breakdown.practical || 0) || 0;
+  const learned = Number(breakdown.learned || 0) || 0;
+  const confidence = Number(evaluation.confidence_score || 0) || 0;
+  const completeness = Number(evaluation.completeness_score || 0) || 0;
+  const bipolarYears = Math.min(Number(therapist.bipolar_years_experience || 0) || 0, 15);
+  const responsiveness = settings.getPublicResponsivenessSignal(therapist) ? 3 : 0;
+  const availability = getMatchAvailabilityBonus(therapist);
+  const contactClarity = getMatchContactClarityBonus(entry, settings);
 
   if (mode === "reviewed") {
     return (
@@ -159,8 +159,8 @@ export function applySecondPassRefinement(entries, profile, mode, options) {
   }
 
   return (entries || []).slice().sort(function (a, b) {
-    var aScore = getSecondPassScore(a, profile, mode, options);
-    var bScore = getSecondPassScore(b, profile, mode, options);
+    const aScore = getSecondPassScore(a, profile, mode, options);
+    const bScore = getSecondPassScore(b, profile, mode, options);
 
     return (
       bScore - aScore ||
@@ -172,7 +172,7 @@ export function applySecondPassRefinement(entries, profile, mode, options) {
 }
 
 export function buildStarterProfile(options) {
-  var settings = options || {};
+  const settings = options || {};
   return settings.buildUserMatchProfile({
     care_state: "CA",
     care_intent: "Therapy",
@@ -192,8 +192,8 @@ export function buildStarterProfile(options) {
 }
 
 export function getResponsivenessScore(therapist, options) {
-  var settings = options || {};
-  var signal = settings.getPublicResponsivenessSignal(therapist);
+  const settings = options || {};
+  const signal = settings.getPublicResponsivenessSignal(therapist);
   if (!signal) {
     return 0;
   }
@@ -204,8 +204,8 @@ export function getResponsivenessScore(therapist, options) {
 }
 
 export function buildLearningSegments(profile) {
-  var normalized = profile || {};
-  var segments = ["all"];
+  const normalized = profile || {};
+  const segments = ["all"];
 
   if (normalized.care_format) {
     segments.push("format:" + normalized.care_format.toLowerCase());
@@ -233,9 +233,9 @@ export function buildLearningSegments(profile) {
 }
 
 export function buildFallbackLearningMap(outcomes, options) {
-  var settings = options || {};
-  var entries = Array.isArray(outcomes) ? outcomes : [];
-  var byJourney = entries.reduce(function (accumulator, item) {
+  const settings = options || {};
+  const entries = Array.isArray(outcomes) ? outcomes : [];
+  const byJourney = entries.reduce(function (accumulator, item) {
     if (!item || !item.journey_id) {
       return accumulator;
     }
@@ -245,10 +245,10 @@ export function buildFallbackLearningMap(outcomes, options) {
     accumulator[item.journey_id].push(item);
     return accumulator;
   }, {});
-  var learning = {};
+  const learning = {};
 
   function ensureBucket(trigger, segment, slug) {
-    var key = trigger + "::" + segment;
+    const key = trigger + "::" + segment;
     if (!learning[key]) {
       learning[key] = {};
     }
@@ -262,10 +262,10 @@ export function buildFallbackLearningMap(outcomes, options) {
   }
 
   Object.keys(byJourney).forEach(function (journeyId) {
-    var journey = byJourney[journeyId].slice().sort(function (a, b) {
+    const journey = byJourney[journeyId].slice().sort(function (a, b) {
       return new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime();
     });
-    var firstRankNegative = journey.find(function (item) {
+    const firstRankNegative = journey.find(function (item) {
       return (
         item.rank_position === 1 &&
         ["no_response", "waitlist", "insurance_mismatch"].includes(item.outcome)
@@ -276,18 +276,18 @@ export function buildFallbackLearningMap(outcomes, options) {
       return;
     }
 
-    var segments = settings.buildLearningSegments(
+    const segments = settings.buildLearningSegments(
       firstRankNegative.context && firstRankNegative.context.profile
         ? firstRankNegative.context.profile
         : null,
     );
-    var fallbackEvents = journey.filter(function (item) {
+    const fallbackEvents = journey.filter(function (item) {
       return item.rank_position > 1;
     });
 
     fallbackEvents.forEach(function (event) {
       segments.forEach(function (segment) {
-        var bucket = ensureBucket(firstRankNegative.outcome, segment, event.therapist_slug);
+        const bucket = ensureBucket(firstRankNegative.outcome, segment, event.therapist_slug);
         bucket.attempts += 1;
         if (event.outcome === "booked_consult" || event.outcome === "good_fit_call") {
           bucket.success += 1;
@@ -300,16 +300,16 @@ export function buildFallbackLearningMap(outcomes, options) {
 }
 
 export function getRouteLearningForProfile(profile, entry, outcomes, options) {
-  var settings = options || {};
-  var routeType = settings.getPreferredRouteType(entry);
-  var segments = settings.buildLearningSegments(profile);
-  var routeLearning = buildRouteLearningMap(outcomes, settings.buildLearningSegments);
-  var score = 0;
-  var success = 0;
-  var attempts = 0;
+  const settings = options || {};
+  const routeType = settings.getPreferredRouteType(entry);
+  const segments = settings.buildLearningSegments(profile);
+  const routeLearning = buildRouteLearningMap(outcomes, settings.buildLearningSegments);
+  let score = 0;
+  let success = 0;
+  let attempts = 0;
 
   segments.forEach(function (segment) {
-    var bucket =
+    const bucket =
       routeLearning["route::" + segment] && routeLearning["route::" + segment][routeType];
     if (!bucket) {
       return;
@@ -328,21 +328,21 @@ export function getRouteLearningForProfile(profile, entry, outcomes, options) {
 }
 
 export function getPreferredOutreach(entry, options) {
-  var settings = options || {};
+  const settings = options || {};
   if (!entry || !entry.therapist) {
     return null;
   }
 
-  var therapist = entry.therapist;
-  var customLabel = String(therapist.preferred_contact_label || "").trim();
-  var bookingHealthy = isBookingRouteHealthy(therapist);
-  var websiteHealthy = isWebsiteRouteHealthy(therapist);
-  var emailLink =
+  const therapist = entry.therapist;
+  const customLabel = String(therapist.preferred_contact_label || "").trim();
+  const bookingHealthy = isBookingRouteHealthy(therapist);
+  const websiteHealthy = isWebsiteRouteHealthy(therapist);
+  const emailLink =
     settings.getTherapistContactEmailLink && settings.getTherapistContactEmailLink(entry);
 
   // Build every working route in priority order: website → booking → email → phone
-  var available = [];
-  var websiteHref = normalizeExternalUrl(therapist.website);
+  const available = [];
+  const websiteHref = normalizeExternalUrl(therapist.website);
   if (websiteHref && websiteHealthy) {
     available.push({
       type: "website",
@@ -351,7 +351,7 @@ export function getPreferredOutreach(entry, options) {
       external: true,
     });
   }
-  var bookingHref = normalizeExternalUrl(therapist.booking_url);
+  const bookingHref = normalizeExternalUrl(therapist.booking_url);
   if (bookingHref && bookingHealthy) {
     available.push({
       type: "booking",
@@ -363,7 +363,7 @@ export function getPreferredOutreach(entry, options) {
   if (emailLink) {
     available.push({ type: "email", label: "Email therapist", href: emailLink, external: false });
   }
-  var telHref = normalizeTelHref(therapist.phone);
+  const telHref = normalizeTelHref(therapist.phone);
   if (telHref) {
     available.push({
       type: "phone",
@@ -378,27 +378,27 @@ export function getPreferredOutreach(entry, options) {
   }
 
   // Honour preferred method if it is actually reachable, otherwise fall back
-  var preferred = String(therapist.preferred_contact_method || "").trim();
-  var match = preferred
+  const preferred = String(therapist.preferred_contact_method || "").trim();
+  const match = preferred
     ? available.find(function (r) {
         return r.type === preferred;
       })
     : null;
-  var best = match || available[0];
+  const best = match || available[0];
 
   return { label: customLabel || best.label, href: best.href, external: best.external };
 }
 
 export function getPreferredRouteType(entry) {
-  var therapist = entry && entry.therapist ? entry.therapist : null;
+  const therapist = entry && entry.therapist ? entry.therapist : null;
   if (!therapist) {
     return "profile";
   }
-  var bookingHealthy = isBookingRouteHealthy(therapist);
-  var websiteHealthy = isWebsiteRouteHealthy(therapist);
+  const bookingHealthy = isBookingRouteHealthy(therapist);
+  const websiteHealthy = isWebsiteRouteHealthy(therapist);
 
   // Build working types in priority order (mirrors getPreferredOutreach): website → booking → email → phone
-  var available = [];
+  const available = [];
   if (normalizeExternalUrl(therapist.website) && websiteHealthy) available.push("website");
   if (normalizeExternalUrl(therapist.booking_url) && bookingHealthy) available.push("booking");
   if (therapist.email && therapist.email !== "contact@example.com") available.push("email");
@@ -406,7 +406,7 @@ export function getPreferredRouteType(entry) {
 
   if (!available.length) return "profile";
 
-  var preferred = String(therapist.preferred_contact_method || "").trim();
+  const preferred = String(therapist.preferred_contact_method || "").trim();
   if (preferred && available.indexOf(preferred) !== -1) return preferred;
   return available[0];
 }
@@ -439,21 +439,21 @@ export function hasCostClarity(therapist) {
 }
 
 export function pickRecommendedFirstContact(profile, entries, options) {
-  var settings = options || {};
-  var shortlist = (entries || []).slice(0, settings.shortlistLimit || 6);
+  const settings = options || {};
+  const shortlist = (entries || []).slice(0, settings.shortlistLimit || 6);
   if (!shortlist.length) {
     return null;
   }
-  var outreachOutcomes = settings.readOutreachOutcomes();
-  var shortcutInfluence = settings.getShortcutInfluence(profile, shortlist);
+  const outreachOutcomes = settings.readOutreachOutcomes();
+  const shortcutInfluence = settings.getShortcutInfluence(profile, shortlist);
 
-  var ranked = shortlist
+  const ranked = shortlist
     .map(function (entry, index) {
-      var therapist = entry.therapist;
-      var readiness = settings.getContactReadiness(entry);
-      var routeLearning = settings.getRouteLearningForProfile(profile, entry, outreachOutcomes);
-      var shortcutSignal = shortcutInfluence[therapist.slug] || null;
-      var score = 0;
+      const therapist = entry.therapist;
+      const readiness = settings.getContactReadiness(entry);
+      const routeLearning = settings.getRouteLearningForProfile(profile, entry, outreachOutcomes);
+      const shortcutSignal = shortcutInfluence[therapist.slug] || null;
+      let score = 0;
 
       score += Math.max(0, 30 - index * 8);
       score += settings.getRoutePriority(readiness) * 10;
@@ -493,8 +493,8 @@ export function pickRecommendedFirstContact(profile, entries, options) {
 }
 
 export function analyzeConciergePatterns(requests) {
-  var entries = Array.isArray(requests) ? requests : [];
-  var totals = {
+  const entries = Array.isArray(requests) ? requests : [];
+  const totals = {
     insurance: 0,
     availability: 0,
     medication: 0,
@@ -503,7 +503,7 @@ export function analyzeConciergePatterns(requests) {
   };
 
   entries.forEach(function (request) {
-    var haystack = [
+    const haystack = [
       request && request.help_topic ? request.help_topic : "",
       request && request.request_note ? request.request_note : "",
       request && request.request_summary ? request.request_summary : "",
@@ -554,9 +554,9 @@ export function analyzeConciergePatterns(requests) {
 }
 
 export function buildLearningSignals(feedback, outreachOutcomes) {
-  var entries = Array.isArray(feedback) ? feedback : [];
-  var outreach = Array.isArray(outreachOutcomes) ? outreachOutcomes : [];
-  var segmentMap = {};
+  const entries = Array.isArray(feedback) ? feedback : [];
+  const outreach = Array.isArray(outreachOutcomes) ? outreachOutcomes : [];
+  const segmentMap = {};
 
   function ensureSegment(name) {
     if (!segmentMap[name]) {
@@ -570,11 +570,11 @@ export function buildLearningSignals(feedback, outreachOutcomes) {
   }
 
   entries.forEach(function (item) {
-    var profile = item && item.context ? item.context.profile : null;
-    var segments = buildLearningSegments(profile);
+    const profile = item && item.context ? item.context.profile : null;
+    const segments = buildLearningSegments(profile);
 
     segments.forEach(function (segment) {
-      var bucket = ensureSegment(segment);
+      const bucket = ensureSegment(segment);
       if (item && item.value === "negative" && Array.isArray(item.reasons)) {
         bucket.negative_reasons = bucket.negative_reasons.concat(item.reasons);
       }
@@ -592,11 +592,11 @@ export function buildLearningSignals(feedback, outreachOutcomes) {
       return;
     }
 
-    var profile = item && item.context ? item.context.profile : null;
-    var segments = buildLearningSegments(profile);
+    const profile = item && item.context ? item.context.profile : null;
+    const segments = buildLearningSegments(profile);
 
     segments.forEach(function (segment) {
-      var bucket = ensureSegment(segment);
+      const bucket = ensureSegment(segment);
       if (!bucket.outreach_adjustments[item.therapist_slug]) {
         bucket.outreach_adjustments[item.therapist_slug] = 0;
       }
@@ -619,10 +619,10 @@ export function buildLearningSignals(feedback, outreachOutcomes) {
     });
   });
 
-  var normalizedSegments = Object.keys(segmentMap).reduce(function (accumulator, segment) {
-    var bucket = segmentMap[segment];
-    var reasonWeights = FEEDBACK_REASON_OPTIONS.reduce(function (reasonAccumulator, reason) {
-      var count = bucket.negative_reasons.filter(function (value) {
+  const normalizedSegments = Object.keys(segmentMap).reduce(function (accumulator, segment) {
+    const bucket = segmentMap[segment];
+    const reasonWeights = FEEDBACK_REASON_OPTIONS.reduce(function (reasonAccumulator, reason) {
+      const count = bucket.negative_reasons.filter(function (value) {
         return value === reason;
       }).length;
 
@@ -654,7 +654,7 @@ export function buildLearningSignals(feedback, outreachOutcomes) {
     return accumulator;
   }, {});
 
-  var global = normalizedSegments.all || {
+  const global = normalizedSegments.all || {
     reason_weights: {},
     therapist_adjustments: {},
     outreach_adjustments: {},
@@ -669,12 +669,12 @@ export function buildLearningSignals(feedback, outreachOutcomes) {
 }
 
 export function buildShortcutLearningMap(feedback, outreachOutcomes) {
-  var entries = Array.isArray(feedback) ? feedback : [];
-  var outcomes = Array.isArray(outreachOutcomes) ? outreachOutcomes : [];
-  var learning = {};
+  const entries = Array.isArray(feedback) ? feedback : [];
+  const outcomes = Array.isArray(outreachOutcomes) ? outreachOutcomes : [];
+  const learning = {};
 
   function ensureBucket(segment, shortcutType) {
-    var key = "shortcut::" + segment;
+    const key = "shortcut::" + segment;
     if (!learning[key]) {
       learning[key] = {};
     }
@@ -694,11 +694,11 @@ export function buildShortcutLearningMap(feedback, outreachOutcomes) {
       return;
     }
 
-    var segments = buildLearningSegments(
+    const segments = buildLearningSegments(
       item.context && item.context.profile ? item.context.profile : null,
     );
     segments.forEach(function (segment) {
-      var bucket = ensureBucket(segment, item.shortcut_type);
+      const bucket = ensureBucket(segment, item.shortcut_type);
       if (item.action === "copy_draft") {
         bucket.draft += 1;
       }
@@ -713,11 +713,11 @@ export function buildShortcutLearningMap(feedback, outreachOutcomes) {
       return;
     }
 
-    var segments = buildLearningSegments(
+    const segments = buildLearningSegments(
       item.context && item.context.profile ? item.context.profile : null,
     );
     segments.forEach(function (segment) {
-      var bucket = ensureBucket(segment, item.shortcut_type);
+      const bucket = ensureBucket(segment, item.shortcut_type);
       if (item.outcome === "booked_consult" || item.outcome === "good_fit_call") {
         bucket.strong += 1;
       }
@@ -735,15 +735,15 @@ export function buildShortcutLearningMap(feedback, outreachOutcomes) {
 }
 
 export function getShortcutPreference(profile, shortcutType, shortcutLearningMap) {
-  var segments = buildLearningSegments(profile);
-  var score = 0;
-  var draft = 0;
-  var compare = 0;
-  var strong = 0;
-  var weak = 0;
+  const segments = buildLearningSegments(profile);
+  let score = 0;
+  let draft = 0;
+  let compare = 0;
+  let strong = 0;
+  let weak = 0;
 
   segments.forEach(function (segment) {
-    var bucket =
+    const bucket =
       shortcutLearningMap["shortcut::" + segment] &&
       shortcutLearningMap["shortcut::" + segment][shortcutType];
     if (!bucket) {
@@ -767,8 +767,8 @@ export function getShortcutPreference(profile, shortcutType, shortcutLearningMap
 }
 
 export function analyzeOutreachJourneys(outcomes) {
-  var entries = Array.isArray(outcomes) ? outcomes : [];
-  var byJourney = entries.reduce(function (accumulator, item) {
+  const entries = Array.isArray(outcomes) ? outcomes : [];
+  const byJourney = entries.reduce(function (accumulator, item) {
     if (!item || !item.journey_id) {
       return accumulator;
     }
@@ -779,7 +779,7 @@ export function analyzeOutreachJourneys(outcomes) {
     return accumulator;
   }, {});
 
-  var totals = {
+  const totals = {
     fallback_after_no_response: 0,
     fallback_after_waitlist: 0,
     fallback_after_insurance_mismatch: 0,
@@ -787,10 +787,10 @@ export function analyzeOutreachJourneys(outcomes) {
   };
 
   Object.keys(byJourney).forEach(function (journeyId) {
-    var journey = byJourney[journeyId].slice().sort(function (a, b) {
+    const journey = byJourney[journeyId].slice().sort(function (a, b) {
       return new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime();
     });
-    var byRank = {};
+    const byRank = {};
 
     journey.forEach(function (item) {
       if (!byRank[item.rank_position]) {
@@ -799,8 +799,8 @@ export function analyzeOutreachJourneys(outcomes) {
       byRank[item.rank_position].push(item.outcome);
     });
 
-    var first = byRank[1] || [];
-    var second = byRank[2] || [];
+    const first = byRank[1] || [];
+    const second = byRank[2] || [];
 
     if (first.includes("no_response") && second.length) {
       totals.fallback_after_no_response += 1;
@@ -824,8 +824,8 @@ export function analyzeOutreachJourneys(outcomes) {
 }
 
 export function analyzePivotTiming(outcomes) {
-  var entries = Array.isArray(outcomes) ? outcomes : [];
-  var byJourney = entries.reduce(function (accumulator, item) {
+  const entries = Array.isArray(outcomes) ? outcomes : [];
+  const byJourney = entries.reduce(function (accumulator, item) {
     if (!item || !item.journey_id) {
       return accumulator;
     }
@@ -836,23 +836,23 @@ export function analyzePivotTiming(outcomes) {
     return accumulator;
   }, {});
 
-  var totals = {
+  const totals = {
     on_time_pivots: 0,
     early_pivots: 0,
     late_pivots: 0,
   };
 
   Object.keys(byJourney).forEach(function (journeyId) {
-    var journey = byJourney[journeyId].slice().sort(function (a, b) {
+    const journey = byJourney[journeyId].slice().sort(function (a, b) {
       return new Date(a.recorded_at).getTime() - new Date(b.recorded_at).getTime();
     });
-    var firstNegative = journey.find(function (item) {
+    const firstNegative = journey.find(function (item) {
       return (
         item.rank_position === 1 &&
         ["no_response", "waitlist", "insurance_mismatch"].includes(item.outcome)
       );
     });
-    var fallbackAttempt = journey.find(function (item) {
+    const fallbackAttempt = journey.find(function (item) {
       return item.rank_position > 1;
     });
 
@@ -860,10 +860,10 @@ export function analyzePivotTiming(outcomes) {
       return;
     }
 
-    var pivotAt = new Date(firstNegative.pivot_at).getTime();
-    var fallbackAt = new Date(fallbackAttempt.recorded_at).getTime();
-    var delta = fallbackAt - pivotAt;
-    var tolerance = 12 * 60 * 60 * 1000;
+    const pivotAt = new Date(firstNegative.pivot_at).getTime();
+    const fallbackAt = new Date(fallbackAttempt.recorded_at).getTime();
+    const delta = fallbackAt - pivotAt;
+    const tolerance = 12 * 60 * 60 * 1000;
 
     if (Math.abs(delta) <= tolerance) {
       totals.on_time_pivots += 1;
@@ -878,8 +878,8 @@ export function analyzePivotTiming(outcomes) {
 }
 
 export function analyzePivotTimingByUrgency(outcomes, profile) {
-  var entries = Array.isArray(outcomes) ? outcomes : [];
-  var targetUrgency = profile && profile.urgency ? String(profile.urgency) : "";
+  const entries = Array.isArray(outcomes) ? outcomes : [];
+  const targetUrgency = profile && profile.urgency ? String(profile.urgency) : "";
   if (!targetUrgency || targetUrgency === "ASAP") {
     return {
       on_time_pivots: 0,

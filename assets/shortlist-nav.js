@@ -2,7 +2,7 @@ import "./site-analytics.js";
 import { readList, subscribe } from "./saved-list.js";
 import { initSavedListPanel } from "./saved-list-panel.js";
 
-var lastShortlistCount = null;
+let lastShortlistCount = null;
 
 function buildShortlistHref(shortlist) {
   if (!shortlist.length) {
@@ -21,8 +21,8 @@ function buildShortlistHref(shortlist) {
 }
 
 function updateShortlistNav() {
-  var shortlist = readList();
-  var count = shortlist.length;
+  const shortlist = readList();
+  const count = shortlist.length;
 
   document.querySelectorAll("[data-shortlist-count]").forEach(function (element) {
     element.textContent = String(count);

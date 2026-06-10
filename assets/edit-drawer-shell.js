@@ -309,7 +309,7 @@ const EDIT_DRAWER_HTML = `
 // Inject the drawer into the document body if not already present.
 // Idempotent, safe to call multiple times. Returns the drawer element.
 export function mountEditDrawer() {
-  let drawer = document.getElementById("candidateEditDrawer");
+  const drawer = document.getElementById("candidateEditDrawer");
   if (drawer) return drawer;
   const wrap = document.createElement("div");
   wrap.innerHTML = EDIT_DRAWER_HTML.trim();

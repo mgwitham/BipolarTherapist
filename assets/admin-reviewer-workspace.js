@@ -3,7 +3,7 @@ const REVIEW_ENTITY_TASKS_KEY = "bth_review_entity_tasks_v1";
 export function createReviewerWorkspace(dependencies) {
   function readReviewEntityTasks() {
     try {
-      var tasks = JSON.parse(window.localStorage.getItem(REVIEW_ENTITY_TASKS_KEY) || "{}");
+      const tasks = JSON.parse(window.localStorage.getItem(REVIEW_ENTITY_TASKS_KEY) || "{}");
       return tasks && typeof tasks === "object" ? tasks : {};
     } catch (_error) {
       return {};
@@ -23,9 +23,9 @@ export function createReviewerWorkspace(dependencies) {
   }
 
   function getReviewEntityTask(entityType, entityId) {
-    var state = dependencies.getRuntimeState();
+    const state = dependencies.getRuntimeState();
     if (entityType === "therapist") {
-      var therapist = (dependencies.getPublishedTherapists() || []).find(function (item) {
+      const therapist = (dependencies.getPublishedTherapists() || []).find(function (item) {
         return String(item && item.id) === String(entityId);
       });
       if (therapist && therapist.review_follow_up) {
@@ -34,7 +34,7 @@ export function createReviewerWorkspace(dependencies) {
     }
     if (state.dataMode === "sanity") {
       if (entityType === "application") {
-        var remoteApplication = (state.remoteApplications || []).find(function (item) {
+        const remoteApplication = (state.remoteApplications || []).find(function (item) {
           return item.id === entityId;
         });
         return remoteApplication && remoteApplication.review_follow_up
@@ -42,7 +42,7 @@ export function createReviewerWorkspace(dependencies) {
           : null;
       }
       if (entityType === "candidate") {
-        var remoteCandidate = (state.remoteCandidates || []).find(function (item) {
+        const remoteCandidate = (state.remoteCandidates || []).find(function (item) {
           return item.id === entityId;
         });
         return remoteCandidate && remoteCandidate.review_follow_up
@@ -50,7 +50,7 @@ export function createReviewerWorkspace(dependencies) {
           : null;
       }
     }
-    var tasks = readReviewEntityTasks();
+    const tasks = readReviewEntityTasks();
     return tasks[buildReviewEntityTaskKey(entityType, entityId)] || null;
   }
 
@@ -58,9 +58,9 @@ export function createReviewerWorkspace(dependencies) {
     if (dependencies.getRuntimeState().dataMode === "sanity" && entityType !== "therapist") {
       return;
     }
-    var tasks = readReviewEntityTasks();
-    var key = buildReviewEntityTaskKey(entityType, entityId);
-    var current = tasks[key] || {};
+    const tasks = readReviewEntityTasks();
+    const key = buildReviewEntityTaskKey(entityType, entityId);
+    const current = tasks[key] || {};
     tasks[key] = {
       status: updates.status || current.status || "open",
       note: updates.note !== undefined ? updates.note : current.note || "",
@@ -71,21 +71,21 @@ export function createReviewerWorkspace(dependencies) {
   }
 
   function getStartOfToday() {
-    var today = new Date();
+    const today = new Date();
     today.setHours(0, 0, 0, 0);
     return today;
   }
 
   function getFollowUpDueLabel(item) {
     if (!item || !item.due_at) return "";
-    var dueDate = new Date(item.due_at);
-    var dueTime = dueDate.getTime();
+    const dueDate = new Date(item.due_at);
+    const dueTime = dueDate.getTime();
     if (!Number.isFinite(dueTime)) return "";
-    var today = getStartOfToday();
-    var dayMs = 24 * 60 * 60 * 1000;
-    var dayDiff = Math.round((dueTime - today.getTime()) / dayMs);
+    const today = getStartOfToday();
+    const dayMs = 24 * 60 * 60 * 1000;
+    const dayDiff = Math.round((dueTime - today.getTime()) / dayMs);
     if (item.status !== "done" && dueTime < today.getTime()) {
-      var overdueDays = Math.max(1, Math.round((today.getTime() - dueTime) / dayMs));
+      const overdueDays = Math.max(1, Math.round((today.getTime() - dueTime) / dayMs));
       return "Overdue by " + overdueDays + " day" + (overdueDays === 1 ? "" : "s");
     }
     if (item.status !== "done" && dayDiff === 0) {
@@ -102,15 +102,15 @@ export function createReviewerWorkspace(dependencies) {
 
   function isFollowUpStale(item) {
     if (!item || item.status === "done") return false;
-    var updatedTime = new Date(item.updated_at || 0).getTime();
+    const updatedTime = new Date(item.updated_at || 0).getTime();
     if (!Number.isFinite(updatedTime) || !updatedTime) return false;
     return Date.now() - updatedTime >= 3 * 24 * 60 * 60 * 1000;
   }
 
   function getFollowUpStaleLabel(item) {
     if (!isFollowUpStale(item)) return "";
-    var updatedTime = new Date(item.updated_at).getTime();
-    var staleDays = Math.max(3, Math.floor((Date.now() - updatedTime) / (24 * 60 * 60 * 1000)));
+    const updatedTime = new Date(item.updated_at).getTime();
+    const staleDays = Math.max(3, Math.floor((Date.now() - updatedTime) / (24 * 60 * 60 * 1000)));
     return "Stale for " + staleDays + " days";
   }
 
@@ -122,17 +122,17 @@ export function createReviewerWorkspace(dependencies) {
   }
 
   function renderReviewEntityTaskHtml(entityType, entityId) {
-    var task = getReviewEntityTask(entityType, entityId);
+    const task = getReviewEntityTask(entityType, entityId);
     if (!task || (!task.note && !task.due_at && task.status === "open")) {
       return "";
     }
-    var status = task.status || "open";
-    var note = task.note || "";
-    var dueAt = task.due_at || "";
-    var dueLabel = getFollowUpDueLabel(task);
-    var staleLabel = getFollowUpStaleLabel(task);
-    var updatedAt = task.updated_at ? dependencies.formatDate(task.updated_at) : "";
-    var metaParts = [
+    const status = task.status || "open";
+    const note = task.note || "";
+    const dueAt = task.due_at || "";
+    const dueLabel = getFollowUpDueLabel(task);
+    const staleLabel = getFollowUpStaleLabel(task);
+    const updatedAt = task.updated_at ? dependencies.formatDate(task.updated_at) : "";
+    const metaParts = [
       dueAt ? "Due: " + dependencies.formatDate(dueAt) : "",
       dueLabel,
       staleLabel,

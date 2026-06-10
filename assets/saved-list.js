@@ -19,11 +19,11 @@ function safeWindow() {
 
 export function normalizeEntry(value) {
   if (typeof value === "string") {
-    var slugFromString = String(value).trim();
+    const slugFromString = String(value).trim();
     return slugFromString ? { slug: slugFromString, priority: "", note: "" } : null;
   }
   if (!value || !value.slug) return null;
-  var slug = String(value.slug).trim();
+  const slug = String(value.slug).trim();
   if (!slug) return null;
   return {
     slug: slug,
@@ -35,7 +35,7 @@ export function normalizeEntry(value) {
 }
 
 export function normalizeList(value) {
-  var seen = Object.create(null);
+  const seen = Object.create(null);
   return (Array.isArray(value) ? value : [])
     .map(normalizeEntry)
     .filter(function (entry) {
@@ -48,7 +48,7 @@ export function normalizeList(value) {
 }
 
 export function readList() {
-  var win = safeWindow();
+  const win = safeWindow();
   if (!win || !win.localStorage) return [];
   try {
     return normalizeList(JSON.parse(win.localStorage.getItem(STORAGE_KEY) || "[]"));
@@ -58,9 +58,9 @@ export function readList() {
 }
 
 function writeList(value) {
-  var win = safeWindow();
+  const win = safeWindow();
   if (!win || !win.localStorage) return [];
-  var normalized = normalizeList(value);
+  const normalized = normalizeList(value);
   try {
     win.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalized));
   } catch (_error) {
@@ -71,7 +71,7 @@ function writeList(value) {
 }
 
 function notifyChange(list) {
-  var win = safeWindow();
+  const win = safeWindow();
   if (!win) return;
   if (typeof win.refreshShortlistNav === "function") {
     win.refreshShortlistNav();
@@ -84,7 +84,7 @@ function notifyChange(list) {
 }
 
 export function isSaved(slug) {
-  var target = String(slug || "").trim();
+  const target = String(slug || "").trim();
   if (!target) return false;
   return readList().some(function (item) {
     return item.slug === target;
@@ -92,9 +92,9 @@ export function isSaved(slug) {
 }
 
 export function addToList(slug, options) {
-  var target = String(slug || "").trim();
+  const target = String(slug || "").trim();
   if (!target) return { changed: false, reason: "invalid", list: readList() };
-  var current = readList();
+  const current = readList();
   if (
     current.some(function (item) {
       return item.slug === target;
@@ -105,13 +105,13 @@ export function addToList(slug, options) {
   if (current.length >= MAX_ENTRIES) {
     return { changed: false, reason: "full", list: current };
   }
-  var entry = normalizeEntry({
+  const entry = normalizeEntry({
     slug: target,
     priority: options && options.priority,
     note: options && options.note,
   });
   if (!entry) return { changed: false, reason: "invalid", list: current };
-  var next = writeList(current.concat(entry));
+  const next = writeList(current.concat(entry));
   trackFunnelEvent("saved_list_added", {
     therapist_slug: target,
     surface: (options && options.surface) || "",
@@ -121,9 +121,9 @@ export function addToList(slug, options) {
 }
 
 export function removeFromList(slug, options) {
-  var target = String(slug || "").trim();
+  const target = String(slug || "").trim();
   if (!target) return { changed: false, reason: "invalid", list: readList() };
-  var current = readList();
+  const current = readList();
   if (
     !current.some(function (item) {
       return item.slug === target;
@@ -131,7 +131,7 @@ export function removeFromList(slug, options) {
   ) {
     return { changed: false, reason: "not_saved", list: current };
   }
-  var next = writeList(
+  const next = writeList(
     current.filter(function (item) {
       return item.slug !== target;
     }),
@@ -149,7 +149,7 @@ export function toggleSaved(slug, options) {
 }
 
 export function updateNote(slug, note) {
-  var target = String(slug || "").trim();
+  const target = String(slug || "").trim();
   if (!target) return readList();
   return writeList(
     readList().map(function (item) {
@@ -166,7 +166,7 @@ export function updateNote(slug, note) {
 }
 
 export function updatePriority(slug, priority) {
-  var target = String(slug || "").trim();
+  const target = String(slug || "").trim();
   if (!target) return readList();
   return writeList(
     readList().map(function (item) {
@@ -187,12 +187,12 @@ export function replaceList(value) {
 // Subscribe to changes from any surface in this tab AND across tabs.
 // Returns an unsubscribe function.
 export function subscribe(handler) {
-  var win = safeWindow();
+  const win = safeWindow();
   if (!win || typeof handler !== "function") return function () {};
-  var onLocal = function (event) {
+  const onLocal = function (event) {
     handler((event && event.detail && event.detail.list) || readList());
   };
-  var onStorage = function (event) {
+  const onStorage = function (event) {
     if (event.key === STORAGE_KEY) {
       handler(readList());
     }
@@ -219,36 +219,36 @@ export function clearList() {
 export const LEGACY_STORAGE_KEY = "bth_saved_therapists";
 
 export function migrateLegacyStore() {
-  var win = safeWindow();
+  const win = safeWindow();
   if (!win || !win.localStorage) return { migrated: 0, skipped: 0 };
-  var raw = null;
+  let raw = null;
   try {
     raw = win.localStorage.getItem(LEGACY_STORAGE_KEY);
   } catch (_readError) {
     return { migrated: 0, skipped: 0 };
   }
   if (raw === null) return { migrated: 0, skipped: 0 };
-  var legacy = [];
+  let legacy = [];
   try {
-    var parsed = JSON.parse(raw);
+    const parsed = JSON.parse(raw);
     legacy = Array.isArray(parsed) ? parsed : [];
   } catch (_parseError) {
     legacy = [];
   }
-  var current = readList();
-  var seen = Object.create(null);
+  const current = readList();
+  const seen = Object.create(null);
   current.forEach(function (item) {
     seen[item.slug] = true;
   });
-  var migrated = 0;
-  var skipped = 0;
-  var next = current.slice();
-  for (var i = 0; i < legacy.length; i++) {
+  let migrated = 0;
+  let skipped = 0;
+  const next = current.slice();
+  for (let i = 0; i < legacy.length; i++) {
     if (next.length >= MAX_ENTRIES) {
       skipped += legacy.length - i;
       break;
     }
-    var entry = normalizeEntry(legacy[i]);
+    const entry = normalizeEntry(legacy[i]);
     if (!entry) {
       skipped++;
       continue;

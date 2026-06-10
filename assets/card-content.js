@@ -7,12 +7,12 @@ import { escapeHtml } from "./escape-html.js";
 import { sanityImageUrl } from "./sanity-image.js";
 
 // Rendered CSS pixel size for each avatar variant (see match-page.css).
-var AVATAR_SIZE_PX = { card: 56, "card-mobile": 48, modal: 68, profile: 80 };
+const AVATAR_SIZE_PX = { card: 56, "card-mobile": 48, modal: 68, profile: 80 };
 
-var NAME_TITLE_PREFIXES = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
+const NAME_TITLE_PREFIXES = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
 
 function getInitials(name) {
-  var words = String(name || "")
+  const words = String(name || "")
     .split(/\s+/)
     .filter(Boolean)
     .filter(function (w) {
@@ -31,7 +31,7 @@ function getInitials(name) {
 
 // Spec'd 4-color ramp. Deterministic per therapist so a clinician's avatar
 // is stable across sessions.
-var AVATAR_RAMPS = [
+const AVATAR_RAMPS = [
   { bg: "#E1F5EE", ink: "#085041", ring: "#9FE1CB" }, // Teal
   { bg: "#EEEDFE", ink: "#3C3489", ring: "#CECBF6" }, // Purple
   { bg: "#FAECE7", ink: "#712B13", ring: "#F5C4B3" }, // Coral
@@ -39,11 +39,11 @@ var AVATAR_RAMPS = [
 ];
 
 function getAvatarRamp(therapist) {
-  var key = String(
+  const key = String(
     (therapist && (therapist.id || therapist._id || therapist.slug || therapist.name)) || "",
   );
-  var hash = 0;
-  for (var i = 0; i < key.length; i += 1) {
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) {
     hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
   }
   return AVATAR_RAMPS[hash % AVATAR_RAMPS.length];
@@ -51,11 +51,11 @@ function getAvatarRamp(therapist) {
 
 // sizeKey: "card" (56) | "card-mobile" (48) | "modal" (68) | "profile" (80)
 export function renderRoundAvatar(therapist, sizeKey) {
-  var size = sizeKey || "card";
-  var t = therapist || {};
-  var className = "bth-avatar bth-avatar-" + size;
+  const size = sizeKey || "card";
+  const t = therapist || {};
+  const className = "bth-avatar bth-avatar-" + size;
   if (t.photo_url) {
-    var px = AVATAR_SIZE_PX[size] || 56;
+    const px = AVATAR_SIZE_PX[size] || 56;
     return (
       '<img src="' +
       escapeHtml(sanityImageUrl(t.photo_url, { width: px * 2, height: px * 2 })) +
@@ -68,8 +68,8 @@ export function renderRoundAvatar(therapist, sizeKey) {
       '" loading="lazy" decoding="async" />'
     );
   }
-  var ramp = getAvatarRamp(t);
-  var style =
+  const ramp = getAvatarRamp(t);
+  const style =
     "background:" +
     ramp.bg +
     ";color:" +
@@ -95,7 +95,7 @@ export function renderRoundAvatar(therapist, sizeKey) {
 //     reads as cold/diagnostic to patients, even when the clinician does
 //     treat it. The matching engine still uses these signals, only the
 //     card display drops them.
-var GENERIC_SPECIALTIES = {
+const GENERIC_SPECIALTIES = {
   bipolar: true,
   "bipolar disorder": true,
   "bipolar i": true,
@@ -114,7 +114,7 @@ var GENERIC_SPECIALTIES = {
 };
 
 function getDisplaySpecialties(therapist) {
-  var raw = Array.isArray(therapist && therapist.specialties)
+  const raw = Array.isArray(therapist && therapist.specialties)
     ? therapist.specialties.filter(Boolean)
     : [];
   return raw.filter(function (s) {
@@ -125,11 +125,11 @@ function getDisplaySpecialties(therapist) {
 // Zone 1, specialty pills. Cap at 3 visible, "+N" overflow.
 // All bipolar terms are stripped before this point; every pill uses neutral gray.
 export function renderSpecialtyPills(therapist) {
-  var pills = getDisplaySpecialties(therapist);
+  const pills = getDisplaySpecialties(therapist);
   if (!pills.length) return "";
-  var visible = pills.slice(0, 3);
-  var overflow = pills.length - visible.length;
-  var html = visible
+  const visible = pills.slice(0, 3);
+  const overflow = pills.length - visible.length;
+  let html = visible
     .map(function (label) {
       return '<span class="bth-pill bth-pill-neutral">' + escapeHtml(label) + "</span>";
     })
@@ -141,7 +141,7 @@ export function renderSpecialtyPills(therapist) {
 }
 
 function trimQuote(text, max) {
-  var s = String(text || "").trim();
+  const s = String(text || "").trim();
   if (s.length <= max) return s;
   return s.slice(0, max - 1).replace(/\s+\S*$/, "") + "…";
 }
@@ -151,27 +151,27 @@ function trimQuote(text, max) {
 // rendered, falling through to populations / languages / fallback gives
 // the card a second, distinct line of signal.
 export function renderVoiceCascade(therapist) {
-  var t = therapist || {};
+  const t = therapist || {};
 
   // 1. Clinician's own words (shown whenever present, regardless of source)
   if (t.care_approach && String(t.care_approach).trim()) {
-    var quote = trimQuote(t.care_approach, 220);
+    const quote = trimQuote(t.care_approach, 220);
     return '<p class="bth-voice bth-voice-quote">&ldquo;' + escapeHtml(quote) + "&rdquo;</p>";
   }
 
   // 2. Populations served
-  var pops = Array.isArray(t.client_populations) ? t.client_populations.filter(Boolean) : [];
+  const pops = Array.isArray(t.client_populations) ? t.client_populations.filter(Boolean) : [];
   if (pops.length) {
     return '<p class="bth-voice">' + escapeHtml(pops.slice(0, 4).join(" · ")) + "</p>";
   }
 
   // 3. Non-English languages
-  var langs = Array.isArray(t.languages) ? t.languages.filter(Boolean) : [];
-  var nonEnglish = langs.filter(function (l) {
+  const langs = Array.isArray(t.languages) ? t.languages.filter(Boolean) : [];
+  const nonEnglish = langs.filter(function (l) {
     return !/english/i.test(String(l));
   });
   if (nonEnglish.length) {
-    var labels = nonEnglish.slice(0, 2).map(function (l) {
+    const labels = nonEnglish.slice(0, 2).map(function (l) {
       if (/spanish|espa/i.test(l)) return "Habla español";
       return "Speaks " + l;
     });
@@ -179,31 +179,31 @@ export function renderVoiceCascade(therapist) {
   }
 
   // 4. Modalities (e.g. "CBT · IPSRT · Family-Focused Therapy")
-  var mods = Array.isArray(t.treatment_modalities) ? t.treatment_modalities.filter(Boolean) : [];
+  const mods = Array.isArray(t.treatment_modalities) ? t.treatment_modalities.filter(Boolean) : [];
   if (mods.length) {
     return '<p class="bth-voice">' + escapeHtml(mods.slice(0, 4).join(" · ")) + "</p>";
   }
 
   // 5. Specialties beyond what fit on the pill row (rare, pills cap at 3)
-  var specs = getDisplaySpecialties(t);
+  const specs = getDisplaySpecialties(t);
   if (specs.length > 3) {
     return '<p class="bth-voice">' + escapeHtml(specs.slice(3, 7).join(" · ")) + "</p>";
   }
 
   // 6. Synthesized fallback
-  var creds = t.credentials || "Licensed clinician";
-  var fmt = "";
+  const creds = t.credentials || "Licensed clinician";
+  let fmt = "";
   if (t.accepts_telehealth && t.accepts_in_person) fmt = "in-person and telehealth";
   else if (t.accepts_telehealth) fmt = "telehealth";
   else if (t.accepts_in_person) fmt = "in-person";
-  var state = t.state || "California";
-  var fallback = creds + (fmt ? " offering " + fmt + " sessions" : "") + " in " + state;
+  const state = t.state || "California";
+  const fallback = creds + (fmt ? " offering " + fmt + " sessions" : "") + " in " + state;
   return '<p class="bth-voice">' + escapeHtml(fallback) + "</p>";
 }
 
 // City + state only. No ZIP.
 export function getCityStateLine(therapist) {
-  var t = therapist || {};
+  const t = therapist || {};
   return [t.city, t.state].filter(Boolean).join(", ");
 }
 
@@ -213,7 +213,7 @@ export function getCityStateLine(therapist) {
 export function formatDistanceMiles(miles) {
   if (!Number.isFinite(miles) || miles < 0) return "";
   if (miles < 5) {
-    var rounded = Math.round(miles * 10) / 10;
+    const rounded = Math.round(miles * 10) / 10;
     return "~" + rounded.toFixed(1) + " mi";
   }
   return "~" + Math.round(miles) + " mi";
@@ -228,21 +228,21 @@ export function formatDistanceMiles(miles) {
 // Pass `distanceMiles` to surface a haversine result. Telehealth-only
 // records always omit distance per spec, even when miles is provided.
 export function getLocationModalityLabel(therapist, options) {
-  var t = therapist || {};
-  var opts = options || {};
-  var inPerson = Boolean(t.accepts_in_person);
-  var tele = Boolean(t.accepts_telehealth);
-  var cityState = getCityStateLine(t);
+  const t = therapist || {};
+  const opts = options || {};
+  const inPerson = Boolean(t.accepts_in_person);
+  const tele = Boolean(t.accepts_telehealth);
+  const cityState = getCityStateLine(t);
   if (tele && !inPerson) {
-    var states = Array.isArray(t.telehealth_states) ? t.telehealth_states.filter(Boolean) : [];
+    let states = Array.isArray(t.telehealth_states) ? t.telehealth_states.filter(Boolean) : [];
     if (!states.length && t.state) states = [t.state];
-    var visible = states.slice(0, 3).join(", ");
-    var overflow = states.length - 3;
-    var tail = visible + (overflow > 0 ? " +" + overflow + " more" : "");
+    const visible = states.slice(0, 3).join(", ");
+    const overflow = states.length - 3;
+    const tail = visible + (overflow > 0 ? " +" + overflow + " more" : "");
     return "Telehealth" + (tail ? " · " + tail : "");
   }
-  var distLabel = formatDistanceMiles(opts.distanceMiles);
-  var withDistance = cityState + (cityState && distLabel ? " · " + distLabel : "");
+  const distLabel = formatDistanceMiles(opts.distanceMiles);
+  const withDistance = cityState + (cityState && distLabel ? " · " + distLabel : "");
   if (tele && inPerson && cityState) {
     return withDistance + " · Also telehealth";
   }
@@ -251,15 +251,15 @@ export function getLocationModalityLabel(therapist, options) {
 
 // Cost, first non-null wins.
 export function getCostLabel(therapist) {
-  var t = therapist || {};
-  var ins = Array.isArray(t.insurance_accepted) ? t.insurance_accepted.filter(Boolean) : [];
+  const t = therapist || {};
+  const ins = Array.isArray(t.insurance_accepted) ? t.insurance_accepted.filter(Boolean) : [];
   if (ins.length) {
-    var top = ins.slice(0, 2).join(", ");
-    var more = ins.length - 2;
+    const top = ins.slice(0, 2).join(", ");
+    const more = ins.length - 2;
     return more > 0 ? top + " +" + more + " more" : top;
   }
-  var min = Number(t.session_fee_min);
-  var max = Number(t.session_fee_max);
+  const min = Number(t.session_fee_min);
+  const max = Number(t.session_fee_max);
   if (Number.isFinite(min) && min > 0 && Number.isFinite(max) && max > 0) {
     if (min === max) return "$" + min + "/session";
     return "$" + min + "–$" + max + "/session";
@@ -272,9 +272,9 @@ export function getCostLabel(therapist) {
 // Availability, green / amber / red dot. Returns null when
 // accepting_new_patients is null/undefined (slot is hidden entirely).
 export function getAvailabilityState(therapist) {
-  var t = therapist || {};
+  const t = therapist || {};
   if (t.accepting_new_patients === true) {
-    var wait = String(t.estimated_wait_time || "").trim();
+    const wait = String(t.estimated_wait_time || "").trim();
     if (wait) {
       return { tone: "wait", dot: "#BA7517", label: wait };
     }
@@ -287,9 +287,9 @@ export function getAvailabilityState(therapist) {
 }
 
 export function renderAvailabilityBadge(therapist) {
-  var state = getAvailabilityState(therapist);
+  const state = getAvailabilityState(therapist);
   if (!state) return "";
-  var dot = state.dot
+  const dot = state.dot
     ? '<span class="bth-avail-dot" style="background:' + state.dot + '"></span>'
     : "";
   return (
@@ -304,12 +304,12 @@ export function renderAvailabilityBadge(therapist) {
 
 // Fee label for card slot 3, fee + sliding scale only, no insurance mixing.
 export function getFeeLabel(therapist) {
-  var t = therapist || {};
-  var min = Number(t.session_fee_min);
-  var max = Number(t.session_fee_max);
-  var slide = t.sliding_scale === true;
+  const t = therapist || {};
+  const min = Number(t.session_fee_min);
+  const max = Number(t.session_fee_max);
+  const slide = t.sliding_scale === true;
   if (Number.isFinite(min) && min > 0 && Number.isFinite(max) && max > 0) {
-    var range = min === max ? "$" + min : "$" + min + "–$" + max;
+    const range = min === max ? "$" + min : "$" + min + "–$" + max;
     return slide ? range + " · Sliding scale" : range;
   }
   if (Number.isFinite(min) && min > 0) {
@@ -321,24 +321,24 @@ export function getFeeLabel(therapist) {
 
 // Insurance label for card slot 5, up to 3 names, then "+N more".
 export function getInsuranceLabel(therapist) {
-  var t = therapist || {};
-  var ins = Array.isArray(t.insurance_accepted) ? t.insurance_accepted.filter(Boolean) : [];
+  const t = therapist || {};
+  const ins = Array.isArray(t.insurance_accepted) ? t.insurance_accepted.filter(Boolean) : [];
   if (!ins.length) return "";
-  var visible = ins.slice(0, 3);
-  var overflow = ins.length - visible.length;
+  const visible = ins.slice(0, 3);
+  const overflow = ins.length - visible.length;
   return overflow > 0 ? visible.join(", ") + " +" + overflow + " more" : visible.join(", ");
 }
 
 // Location label for card slot 2, spec format (no city/state, just modality + distance).
 // options: { distanceMiles: number|null, teleSelected: boolean }
 export function getCardLocationLabel(therapist, options) {
-  var t = therapist || {};
-  var opts = options || {};
-  var inPerson = Boolean(t.accepts_in_person);
-  var tele = Boolean(t.accepts_telehealth);
+  const t = therapist || {};
+  const opts = options || {};
+  const inPerson = Boolean(t.accepts_in_person);
+  const tele = Boolean(t.accepts_telehealth);
   if (!inPerson && !tele) return "";
   if (tele && !inPerson) return "Telehealth available";
-  var distLabel =
+  const distLabel =
     !opts.teleSelected && Number.isFinite(opts.distanceMiles) && opts.distanceMiles !== null
       ? " · " + formatDistanceMiles(opts.distanceMiles)
       : "";

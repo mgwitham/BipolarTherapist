@@ -1,13 +1,13 @@
 (function () {
-  var toggle = document.getElementById("waitlistToggle");
-  var panel = document.getElementById("waitlistPanel");
-  var stateSelect = document.getElementById("waitlistState");
-  var emailInput = document.getElementById("waitlistEmail");
-  var submit = document.getElementById("waitlistSubmit");
-  var status = document.getElementById("waitlistStatus");
+  const toggle = document.getElementById("waitlistToggle");
+  const panel = document.getElementById("waitlistPanel");
+  const stateSelect = document.getElementById("waitlistState");
+  const emailInput = document.getElementById("waitlistEmail");
+  const submit = document.getElementById("waitlistSubmit");
+  const status = document.getElementById("waitlistStatus");
   if (!toggle || !panel || !stateSelect || !emailInput || !submit) return;
 
-  var STATES = [
+  const STATES = [
     ["AL", "Alabama"],
     ["AK", "Alaska"],
     ["AZ", "Arizona"],
@@ -60,19 +60,19 @@
     ["WY", "Wyoming"],
   ];
   STATES.forEach(function (s) {
-    var opt = document.createElement("option");
+    const opt = document.createElement("option");
     opt.value = s[0];
     opt.textContent = s[1];
     stateSelect.appendChild(opt);
   });
 
   function apiBase() {
-    var h = window.location.hostname;
+    const h = window.location.hostname;
     if (h === "localhost" || h === "127.0.0.1") return "http://localhost:8787";
     return "/api/review";
   }
 
-  var closeBtn = document.getElementById("waitlistClose");
+  const closeBtn = document.getElementById("waitlistClose");
   function setPanelOpen(opening) {
     panel.classList.toggle("is-open", opening);
     panel.setAttribute("aria-hidden", opening ? "false" : "true");
@@ -87,8 +87,8 @@
     }
   }
   toggle.addEventListener("click", function () {
-    var careTypeInput = document.getElementById("waitlistCareType");
-    var interestSel = document.getElementById("homepage_interest");
+    const careTypeInput = document.getElementById("waitlistCareType");
+    const interestSel = document.getElementById("homepage_interest");
     if (careTypeInput && interestSel) {
       careTypeInput.value = interestSel.value === "psychiatrist" ? "Psychiatry" : "Therapy";
     }
@@ -118,8 +118,8 @@
   }
 
   submit.addEventListener("click", function () {
-    var email = String(emailInput.value || "").trim();
-    var state = String(stateSelect.value || "").trim();
+    const email = String(emailInput.value || "").trim();
+    const state = String(stateSelect.value || "").trim();
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       setStatus("Enter a valid email.", "error");
       emailInput.focus();

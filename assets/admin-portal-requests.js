@@ -46,9 +46,9 @@ export function renderPortalRequestsQueuePanel(options) {
 
   root.innerHTML = filtered
     .map(function (item) {
-      var canMarkInReview = item.status !== "in_review";
-      var canResolve = item.status !== "resolved";
-      var priorityBadge = item.is_priority
+      const canMarkInReview = item.status !== "in_review";
+      const canResolve = item.status !== "resolved";
+      const priorityBadge = item.is_priority
         ? '<span class="tag" style="background:#fde68a;color:#78350f;font-weight:700" title="Paid-tier therapist, same-day edit review">PRIORITY</span>'
         : "";
       return (
@@ -106,18 +106,18 @@ export function renderPortalRequestsQueuePanel(options) {
 
   root.querySelectorAll("[data-portal-request-update]").forEach(function (button) {
     button.addEventListener("click", async function () {
-      var requestId = button.getAttribute("data-portal-request-update");
-      var nextStatus = button.getAttribute("data-next-status");
+      const requestId = button.getAttribute("data-portal-request-update");
+      const nextStatus = button.getAttribute("data-next-status");
       if (!requestId || !nextStatus) {
         return;
       }
 
-      var priorLabel = button.textContent;
+      const priorLabel = button.textContent;
       button.disabled = true;
       button.textContent = nextStatus === "resolved" ? "Resolving..." : "Updating...";
 
       try {
-        var updated = await options.updateTherapistPortalRequest(requestId, {
+        const updated = await options.updateTherapistPortalRequest(requestId, {
           status: nextStatus,
         });
         options.setRemotePortalRequests(

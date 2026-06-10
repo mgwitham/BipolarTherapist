@@ -9,20 +9,20 @@ import {
 } from "./funnel-analytics.js";
 import { getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
 
-var activeHomeExperimentVariant = "control";
-var HOME_LAST_SEARCH_KEY = "bth_last_search";
-var HOME_SEARCH_SESSION_KEY = "bth_search_session";
+let activeHomeExperimentVariant = "control";
+const HOME_LAST_SEARCH_KEY = "bth_last_search";
+const HOME_SEARCH_SESSION_KEY = "bth_search_session";
 
 function applyHomePageCopy(homePage) {
   if (!homePage) {
     return;
   }
 
-  var heroTitle = document.getElementById("heroTitle");
-  var heroDescription = document.getElementById("heroDescription");
-  var locationLabel = document.getElementById("locationLabel");
-  var locationInput = document.getElementById("location");
-  var searchButton = document.getElementById("searchButton");
+  const heroTitle = document.getElementById("heroTitle");
+  const heroDescription = document.getElementById("heroDescription");
+  const locationLabel = document.getElementById("locationLabel");
+  const locationInput = document.getElementById("location");
+  const searchButton = document.getElementById("searchButton");
 
   if (heroTitle && homePage.heroTitle) {
     heroTitle.textContent = homePage.heroTitle.replace(/\s*These do\.?\s*$/i, "").trim();
@@ -50,10 +50,10 @@ function applySiteSettings(siteSettings) {
     return;
   }
 
-  var navBrowseLink = document.getElementById("navBrowseLink");
-  var navCtaLink = document.getElementById("navCtaLink");
-  var footerTagline = document.getElementById("footerTagline");
-  var footerContactLink = document.getElementById("footerContactLink");
+  const navBrowseLink = document.getElementById("navBrowseLink");
+  const navCtaLink = document.getElementById("navCtaLink");
+  const footerTagline = document.getElementById("footerTagline");
+  const footerContactLink = document.getElementById("footerContactLink");
 
   if (
     navBrowseLink &&
@@ -82,13 +82,13 @@ function applySiteSettings(siteSettings) {
 }
 
 function syncHomeZipResolvedLabel(value) {
-  var resolved = document.getElementById("homeZipResolved");
-  var inline = resolved ? resolved.closest(".zip-inline") : null;
+  const resolved = document.getElementById("homeZipResolved");
+  const inline = resolved ? resolved.closest(".zip-inline") : null;
   if (!resolved) {
     return;
   }
 
-  var zipStatus = getZipMarketStatus(value);
+  const zipStatus = getZipMarketStatus(value);
   if (!zipStatus.place) {
     resolved.textContent = "";
     resolved.classList.remove("is-visible");
@@ -107,19 +107,19 @@ function syncHomeZipResolvedLabel(value) {
 }
 
 function syncHeroSearchState() {
-  var hiddenInput = document.getElementById("homepage_interest");
-  var locationInput = document.getElementById("location");
-  var searchButton = document.getElementById("searchButton");
-  var searchHelper = document.getElementById("searchHelper");
-  var interestField = hiddenInput ? hiddenInput.closest(".search-field--prompt") : null;
+  const hiddenInput = document.getElementById("homepage_interest");
+  const locationInput = document.getElementById("location");
+  const searchButton = document.getElementById("searchButton");
+  const searchHelper = document.getElementById("searchHelper");
+  const interestField = hiddenInput ? hiddenInput.closest(".search-field--prompt") : null;
 
   if (!hiddenInput || !locationInput) {
     return;
   }
 
-  var interest = String(hiddenInput.value || "").trim();
-  var hasLocation = Boolean(locationInput.value.trim());
-  var isReady = Boolean(interest) && hasLocation;
+  const interest = String(hiddenInput.value || "").trim();
+  const hasLocation = Boolean(locationInput.value.trim());
+  const isReady = Boolean(interest) && hasLocation;
 
   if (interestField) {
     interestField.classList.toggle("has-value", Boolean(interest));
@@ -135,7 +135,7 @@ function syncHeroSearchState() {
     renderHeroHelperCopy(searchHelper, interest, hasLocation);
   }
 
-  var careHint = document.getElementById("searchCareTypeHint");
+  const careHint = document.getElementById("searchCareTypeHint");
   if (careHint) {
     careHint.textContent =
       interest === "psychiatrist"
@@ -162,7 +162,7 @@ function replaceWithLabelCopy(node, label, copy) {
     return;
   }
 
-  var labelNode = document.createElement("strong");
+  const labelNode = document.createElement("strong");
   labelNode.textContent = label;
   node.replaceChildren(labelNode, document.createTextNode(" " + copy));
 }
@@ -205,7 +205,7 @@ function renderHeroHelperCopy(node, interest, hasLocation) {
 }
 
 function setHomePreviewText(id, value) {
-  var node = document.getElementById(id);
+  const node = document.getElementById(id);
   if (node) {
     node.textContent = value;
   }
@@ -222,8 +222,8 @@ function getHomeSupportLabel(interest) {
 }
 
 function renderHomeSearchPreview(interest, locationValue) {
-  var zipStatus = getZipMarketStatus(locationValue);
-  var supportLabel = getHomeSupportLabel(interest);
+  const zipStatus = getZipMarketStatus(locationValue);
+  const supportLabel = getHomeSupportLabel(interest);
 
   if (!interest && !locationValue) {
     setHomePreviewText("homePreviewStateTitle", "Start with two lightweight answers.");
@@ -308,10 +308,10 @@ function renderHomeSearchPreview(interest, locationValue) {
 }
 
 function getHeroValidationMessages() {
-  var hiddenInput = document.getElementById("homepage_interest");
-  var locationInput = document.getElementById("location");
-  var messages = [];
-  var zipStatus = locationInput ? getZipMarketStatus(locationInput.value) : null;
+  const hiddenInput = document.getElementById("homepage_interest");
+  const locationInput = document.getElementById("location");
+  const messages = [];
+  const zipStatus = locationInput ? getZipMarketStatus(locationInput.value) : null;
 
   if (!hiddenInput || !locationInput) {
     return messages;
@@ -335,8 +335,8 @@ function getHeroValidationMessages() {
 }
 
 function showHeroValidationPopup(messages) {
-  var popup = document.getElementById("heroValidationPopup");
-  var list = document.getElementById("heroValidationList");
+  const popup = document.getElementById("heroValidationPopup");
+  const list = document.getElementById("heroValidationList");
 
   if (!popup || !list) {
     return;
@@ -344,7 +344,7 @@ function showHeroValidationPopup(messages) {
 
   list.replaceChildren(
     ...(messages || []).map(function (message) {
-      var item = document.createElement("div");
+      const item = document.createElement("div");
       item.textContent = message;
       return item;
     }),
@@ -353,8 +353,8 @@ function showHeroValidationPopup(messages) {
 }
 
 function hideHeroValidationPopup() {
-  var popup = document.getElementById("heroValidationPopup");
-  var list = document.getElementById("heroValidationList");
+  const popup = document.getElementById("heroValidationPopup");
+  const list = document.getElementById("heroValidationList");
 
   if (!popup || !list) {
     return;
@@ -369,27 +369,27 @@ function applyAdaptiveHomepageMode() {
     return;
   }
 
-  var adaptiveSignals = summarizeAdaptiveSignals(readFunnelEvents(), []);
-  var mode =
+  const adaptiveSignals = summarizeAdaptiveSignals(readFunnelEvents(), []);
+  const mode =
     adaptiveSignals && adaptiveSignals.preferred_home_mode
       ? adaptiveSignals.preferred_home_mode
       : "trust";
-  var eyebrow = document.getElementById("heroEyebrow");
-  var toolTitle = document.getElementById("toolTitle");
-  var proofLabel1 = document.getElementById("heroProofLabel1");
-  var proofValue1 = document.getElementById("heroProofValue1");
-  var proofLabel2 = document.getElementById("heroProofLabel2");
-  var proofValue2 = document.getElementById("heroProofValue2");
-  var proofLabel3 = document.getElementById("heroProofLabel3");
-  var proofValue3 = document.getElementById("heroProofValue3");
-  var trustPill1 = document.getElementById("homeTrustPill1");
-  var trustPill2 = document.getElementById("homeTrustPill2");
-  var handoffTitle1 = document.getElementById("handoffTitle1");
-  var handoffCopy1 = document.getElementById("handoffCopy1");
-  var handoffTitle2 = document.getElementById("handoffTitle2");
-  var handoffCopy2 = document.getElementById("handoffCopy2");
-  var handoffTitle3 = document.getElementById("handoffTitle3");
-  var handoffCopy3 = document.getElementById("handoffCopy3");
+  const eyebrow = document.getElementById("heroEyebrow");
+  const toolTitle = document.getElementById("toolTitle");
+  const proofLabel1 = document.getElementById("heroProofLabel1");
+  const proofValue1 = document.getElementById("heroProofValue1");
+  const proofLabel2 = document.getElementById("heroProofLabel2");
+  const proofValue2 = document.getElementById("heroProofValue2");
+  const proofLabel3 = document.getElementById("heroProofLabel3");
+  const proofValue3 = document.getElementById("heroProofValue3");
+  const trustPill1 = document.getElementById("homeTrustPill1");
+  const trustPill2 = document.getElementById("homeTrustPill2");
+  const handoffTitle1 = document.getElementById("handoffTitle1");
+  const handoffCopy1 = document.getElementById("handoffCopy1");
+  const handoffTitle2 = document.getElementById("handoffTitle2");
+  const handoffCopy2 = document.getElementById("handoffCopy2");
+  const handoffTitle3 = document.getElementById("handoffTitle3");
+  const handoffCopy3 = document.getElementById("handoffCopy3");
 
   if (mode === "speed") {
     if (eyebrow) eyebrow.textContent = "Faster start for bipolar informed care";
@@ -520,7 +520,7 @@ function applyAdaptiveHomepageMode() {
 }
 
 function initHeroCareDropdown() {
-  var select = document.getElementById("homepage_interest");
+  const select = document.getElementById("homepage_interest");
 
   if (!select) {
     return;
@@ -535,8 +535,8 @@ function initHeroCareDropdown() {
 }
 
 function initHeroZipFocusRow() {
-  var zipField = document.querySelector(".search-field--zip");
-  var zipInput = document.getElementById("location");
+  const zipField = document.querySelector(".search-field--zip");
+  const zipInput = document.getElementById("location");
 
   if (!zipField || !zipInput) {
     return;
@@ -551,7 +551,7 @@ function initHeroZipFocusRow() {
 }
 
 function appendTextElement(parent, tagName, className, value) {
-  var node = document.createElement(tagName);
+  const node = document.createElement(tagName);
   if (className) {
     node.className = className;
   }
@@ -561,25 +561,25 @@ function appendTextElement(parent, tagName, className, value) {
 }
 
 function createSectionShell() {
-  var section = document.createElement("section");
+  const section = document.createElement("section");
   section.className = "home-cms-section--white";
   return section;
 }
 
 function renderIconCardsSection(section) {
-  var cards = Array.isArray(section.cards) ? section.cards : [];
-  var sectionNode = createSectionShell();
-  var header = document.createElement("div");
+  const cards = Array.isArray(section.cards) ? section.cards : [];
+  const sectionNode = createSectionShell();
+  const header = document.createElement("div");
   header.className = "section-header";
   appendTextElement(header, "div", "eyebrow", section.eyebrow || "");
   appendTextElement(header, "h2", "", section.title || "");
   appendTextElement(header, "p", "section-sub", section.description || "");
   sectionNode.appendChild(header);
 
-  var grid = document.createElement("div");
+  const grid = document.createElement("div");
   grid.className = "why-grid";
   cards.forEach(function (card) {
-    var cardNode = document.createElement("div");
+    const cardNode = document.createElement("div");
     cardNode.className = "why-card";
     if (card.icon) {
       appendTextElement(cardNode, "div", "why-icon", card.icon);
@@ -593,20 +593,20 @@ function renderIconCardsSection(section) {
 }
 
 function renderTestimonialsSection(section) {
-  var items = Array.isArray(section.items) ? section.items : [];
-  var sectionNode = createSectionShell();
+  const items = Array.isArray(section.items) ? section.items : [];
+  const sectionNode = createSectionShell();
   sectionNode.classList.add("home-cms-section--flush-top");
-  var header = document.createElement("div");
+  const header = document.createElement("div");
   header.className = "section-header";
   header.classList.add("home-cms-section-header--padded");
   appendTextElement(header, "div", "eyebrow", section.eyebrow || "");
   appendTextElement(header, "h2", "", section.title || "");
   sectionNode.appendChild(header);
 
-  var list = document.createElement("div");
+  const list = document.createElement("div");
   list.className = "testimonials";
   items.forEach(function (item) {
-    var testimonial = document.createElement("div");
+    const testimonial = document.createElement("div");
     testimonial.className = "testimonial";
     appendTextElement(testimonial, "div", "stars", item.stars || "★★★★★");
     appendTextElement(testimonial, "div", "t-text", item.quote || "");
@@ -745,17 +745,17 @@ function defaultSectionsFromLegacy(homePage) {
 }
 
 function renderPageSections(homePage) {
-  var root = document.getElementById("pageSections");
+  const root = document.getElementById("pageSections");
   if (!root) {
     return;
   }
 
-  var sections =
+  const sections =
     homePage && Array.isArray(homePage.sections) && homePage.sections.length
       ? homePage.sections
       : defaultSectionsFromLegacy(homePage);
 
-  var renderedSections = sections
+  const renderedSections = sections
     .map(function (section) {
       if (!section || !section._type) {
         return null;
@@ -806,9 +806,9 @@ function readHomeSearchInputs(elements) {
 }
 
 function syncHomeSearchHiddenFields(interest, elements) {
-  var refs = elements || getHomeSearchElements();
-  var careIntentInput = refs.careIntentInput;
-  var medicationNeedInput = refs.medicationNeedInput;
+  const refs = elements || getHomeSearchElements();
+  const careIntentInput = refs.careIntentInput;
+  const medicationNeedInput = refs.medicationNeedInput;
 
   if (!careIntentInput || !medicationNeedInput) {
     return;
@@ -831,9 +831,9 @@ function syncHomeSearchHiddenFields(interest, elements) {
 }
 
 function validateHomeSearchInputs(elements) {
-  var values = readHomeSearchInputs(elements);
-  var zipStatus = getZipMarketStatus(values.locationQuery);
-  var state = {
+  const values = readHomeSearchInputs(elements);
+  const zipStatus = getZipMarketStatus(values.locationQuery);
+  const state = {
     locationQuery: values.locationQuery,
     interest: values.interest,
     zipStatus: zipStatus,
@@ -863,7 +863,7 @@ function validateHomeSearchInputs(elements) {
 }
 
 function buildHomeSearchTarget(form) {
-  var params = new URLSearchParams();
+  const params = new URLSearchParams();
   if (form && form.elements) {
     Array.from(form.elements).forEach(function (field) {
       if (!field || !field.name || field.disabled) {
@@ -874,7 +874,7 @@ function buildHomeSearchTarget(form) {
         return;
       }
 
-      var normalized = String(field.value || "").trim();
+      const normalized = String(field.value || "").trim();
       if (!normalized) {
         return;
       }
@@ -883,13 +883,13 @@ function buildHomeSearchTarget(form) {
     });
   }
 
-  var action = (form && form.getAttribute("action")) || "match.html";
+  const action = (form && form.getAttribute("action")) || "match.html";
   return action + (params.toString() ? "?" + params.toString() : "");
 }
 
 function readHomeLastSearch() {
   try {
-    var raw =
+    const raw =
       window.sessionStorage.getItem(HOME_LAST_SEARCH_KEY) ||
       window.localStorage.getItem(HOME_LAST_SEARCH_KEY) ||
       "null";
@@ -923,8 +923,8 @@ function handleHomeSearch(event) {
     event.preventDefault();
   }
 
-  var elements = getHomeSearchElements();
-  var validation = validateHomeSearchInputs(elements);
+  const elements = getHomeSearchElements();
+  const validation = validateHomeSearchInputs(elements);
 
   if (validation.validationMessages.length) {
     showHeroValidationPopup(validation.validationMessages);
@@ -966,8 +966,8 @@ function handleHomeSearch(event) {
 }
 
 function initHomeSearchForm() {
-  var elements = getHomeSearchElements();
-  var form = elements.form;
+  const elements = getHomeSearchElements();
+  const form = elements.form;
   if (!form || form.dataset.bound === "true") {
     return;
   }
@@ -979,9 +979,9 @@ function initHomeSearchForm() {
   // sessionStorage is cleared when the tab is closed, so a fresh visit
   // (reopen site, bookmark, external link) always starts with a blank form.
   try {
-    var sessionActive = window.sessionStorage.getItem(HOME_SEARCH_SESSION_KEY);
+    const sessionActive = window.sessionStorage.getItem(HOME_SEARCH_SESSION_KEY);
     if (sessionActive) {
-      var lastSearch = readHomeLastSearch();
+      const lastSearch = readHomeLastSearch();
       if (lastSearch) {
         if (lastSearch.location_query && elements.locationInput) {
           elements.locationInput.value = lastSearch.location_query;
@@ -999,7 +999,8 @@ function initHomeSearchForm() {
 
 (async function () {
   try {
-    var isFreshVisit = !document.referrer || !document.referrer.includes(window.location.hostname);
+    const isFreshVisit =
+      !document.referrer || !document.referrer.includes(window.location.hostname);
     if (isFreshVisit) {
       clearHomeSearchSession();
       window.sessionStorage.removeItem("matchResultsUrl");
@@ -1015,9 +1016,9 @@ function initHomeSearchForm() {
   // location, so defer the fetch until they focus or start typing in
   // the location field. preloadZipcodes() is idempotent — calling it
   // twice is free.
-  var locationInput = document.getElementById("location");
+  const locationInput = document.getElementById("location");
   if (locationInput) {
-    var triggerZipPreload = function () {
+    const triggerZipPreload = function () {
       preloadZipcodes().catch(function () {
         return null;
       });
@@ -1034,7 +1035,7 @@ function initHomeSearchForm() {
       return null;
     });
   }
-  var interestInput = document.getElementById("homepage_interest");
+  const interestInput = document.getElementById("homepage_interest");
   if (interestInput) {
     interestInput.addEventListener("change", function () {
       syncHomeSearchHiddenFields(String(interestInput.value || "").trim());
@@ -1051,7 +1052,7 @@ function initHomeSearchForm() {
     link.addEventListener("click", function (event) {
       event.preventDefault();
       window.scrollTo({ top: 0, behavior: "smooth" });
-      var first = document.getElementById("homepage_interest");
+      const first = document.getElementById("homepage_interest");
       if (first) {
         window.setTimeout(function () {
           first.focus({ preventScroll: true });
@@ -1061,13 +1062,13 @@ function initHomeSearchForm() {
   });
 
   try {
-    var content = await fetchHomePageContent();
+    const content = await fetchHomePageContent();
 
-    var therapistCount =
+    const therapistCount =
       (content.stats && Number(content.stats.total_therapists)) ||
       (Array.isArray(content.therapists) ? content.therapists.length : 0);
     if (therapistCount > 0) {
-      var countEl = document.querySelector("[data-proof-therapist-count]");
+      const countEl = document.querySelector("[data-proof-therapist-count]");
       if (countEl) {
         countEl.textContent = String(therapistCount);
       }
