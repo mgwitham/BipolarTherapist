@@ -82,14 +82,12 @@ export async function handleCandidateRoutes(context) {
   const { client, config, deps, origin, request, response, routePath } = context;
 
   const {
-    addDays,
     buildCandidateReviewEvent,
     buildCandidateMergeFillFields,
     buildFieldTrustMeta,
     buildTherapistDocumentFromCandidate,
     buildTherapistObservationDocuments,
     computeCandidateReviewMeta,
-    computeTherapistVerificationMeta,
     getAuthorizedActor,
     isAuthorized,
     mergeLicensureVerification,

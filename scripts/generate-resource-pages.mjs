@@ -13,6 +13,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { escapeHtml } from "../shared/escape-html.mjs";
 
 import { articles } from "../content/resources/articles.mjs";
 
@@ -51,15 +52,6 @@ const HUB = {
   subtitle:
     "Clear, honest guidance on bipolar disorder care. What to look for, what to ask, and how to find the right help faster.",
 };
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function escapeAttribute(value) {
   return escapeHtml(value).replace(/`/g, "&#96;");

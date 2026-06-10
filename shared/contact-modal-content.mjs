@@ -9,20 +9,12 @@
 // should normalize at the boundary.
 
 import { phoneHref, emailHref, publicHttpUrl as normalizeUrlHref } from "./contact-href.mjs";
+import { escapeHtml } from "./escape-html.mjs";
 
 const HONORIFIC_PATTERN = /^(dr|mr|mrs|ms|mx|prof|professor)\.?$/i;
 const CREDENTIAL_PATTERN = /^(phd|psyd|md|lcsw|lmft|mft|lpcc|mscp|msw|ma|ms)\.?$/i;
 
 const CONTACT_METHODS = ["booking", "website", "phone", "email"];
-
-function escapeHtml(value) {
-  return String(value == null ? "" : value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 export function extractFirstName(name) {
   const raw = String(name || "").trim();
@@ -55,14 +47,6 @@ export function formatPhoneDisplay(phone) {
     return "(" + digits.slice(0, 3) + ") " + digits.slice(3, 6) + "-" + digits.slice(6);
   }
   return String(phone || "").trim();
-}
-
-function getDomainFromUrl(url) {
-  try {
-    return new URL(url).host.replace(/^www\./, "");
-  } catch (_e) {
-    return "";
-  }
 }
 
 // Resolves the preferredContactMethod for a therapist. If an explicit

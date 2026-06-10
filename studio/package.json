@@ -2,6 +2,9 @@
   "name": "bipolar-therapist-directory-studio",
   "private": true,
   "version": "1.0.0",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "sanity dev",
     "build": "sanity build",

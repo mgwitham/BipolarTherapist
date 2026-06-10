@@ -192,14 +192,6 @@ function getRowFields(row, key) {
     .filter(Boolean);
 }
 
-function getRowExtraAsks(row, key, sharedField) {
-  const promptMap = getPromptMap();
-  return getRowFields(row, key)
-    .filter((field) => field !== sharedField)
-    .map((field) => promptMap[field])
-    .filter(Boolean);
-}
-
 function getThemeDetails(rows, fieldKey, limit) {
   const topRows = (rows || []).slice(0, limit);
   const counts = {};

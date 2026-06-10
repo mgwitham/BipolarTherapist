@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "type": "module",
   "description": "BipolarTherapyHub local product workspace for guided bipolar-specialist discovery, matching, and therapist onboarding.",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "vite",
     "api:dev": "NODE_ENV=development node server/review-api.mjs",
@@ -94,7 +97,8 @@
     "cms:import:therapists:safe": "npm run cms:check:therapists:strict && node scripts/import-therapists.mjs",
     "cms:import:therapists": "node scripts/import-therapists.mjs",
     "test": "node --test \"test/**/*.test.mjs\"",
-    "lint": "eslint .",
+    "test:coverage": "node --test --experimental-test-coverage \"test/**/*.test.mjs\"",
+    "lint": "eslint . --max-warnings=0",
     "smoke:top-flows": "npm run build && node scripts/smoke-top-flows.mjs",
     "format": "prettier --write .",
     "format:check": "prettier --check .",

@@ -1,16 +1,9 @@
 // Renders the "Email me my saved list" message body. Pure function so we
 // can unit-test the output without a Resend round-trip.
 
-export const SAVED_LIST_EMAIL_SUBJECT = "Your saved bipolar-specialist therapists";
+import { escapeHtml } from "./escape-html.mjs";
 
-function escapeHtml(value) {
-  return String(value == null ? "" : value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
+export const SAVED_LIST_EMAIL_SUBJECT = "Your saved bipolar-specialist therapists";
 
 function buildProfileUrl(baseUrl, slug) {
   const cleanBase = String(baseUrl || "").replace(/\/+$/, "");

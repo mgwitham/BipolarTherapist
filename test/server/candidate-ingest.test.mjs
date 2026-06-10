@@ -357,7 +357,7 @@ test("candidate ingest: DCA name mismatch lowers confidence and writes a note", 
 });
 
 test("candidate ingest: flags within-candidate duplicates as possible_duplicate", async function () {
-  const { client, state } = createMemoryClient({
+  const { client } = createMemoryClient({
     existing: [
       {
         _id: "candidate-provider-ca-lmft55555",

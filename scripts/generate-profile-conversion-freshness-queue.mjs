@@ -117,17 +117,6 @@ function toTimestamp(value) {
   return Number.isNaN(date.getTime()) ? 0 : date.getTime();
 }
 
-function formatDate(value) {
-  if (!value) {
-    return "";
-  }
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return String(value);
-  }
-  return date.toISOString().slice(0, 10);
-}
-
 function daysSince(value) {
   const timestamp = toTimestamp(value);
   if (!timestamp) {

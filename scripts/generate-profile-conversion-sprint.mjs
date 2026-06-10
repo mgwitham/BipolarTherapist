@@ -130,14 +130,6 @@ function formatFieldLabel(field) {
   return FIELD_LABELS[field] || String(field || "").replace(/_/g, " ");
 }
 
-function truthy(value) {
-  return ["true", "1", "yes"].includes(
-    String(value || "")
-      .trim()
-      .toLowerCase(),
-  );
-}
-
 function getMissingConversionFields(queueRow) {
   return splitList(queueRow.warnings).filter((field) => FIELD_SCORES[field]);
 }

@@ -37,7 +37,6 @@ import {
   verifyAndParseWebhook,
 } from "./stripe-client.mjs";
 import {
-  hasEmailConfig,
   sendEmail as sendRawEmail,
   notifyAdminOfRecoveryRequest,
   notifyAdminOfSubmission,
@@ -86,7 +85,6 @@ import {
 import { handleOpsRoutes } from "./review-ops-routes.mjs";
 import { handleReadRoutes } from "./review-read-routes.mjs";
 import { handleEmailPreviewRoutes } from "./dev/email-preview-routes.mjs";
-import { normalizePortableApplication } from "../shared/application-domain.mjs";
 import {
   annotateMatchOutcomeForDisplay,
   annotateMatchRequestForDisplay,
@@ -117,11 +115,8 @@ import {
   compareDuplicateIdentity,
   createTherapistConfirmedFieldReviewStates,
   mapFieldReviewStatesToCamelCase,
-  mapFieldReviewStatesToSnakeCase,
   normalizeDisplayRole,
   normalizeFieldReviewStates,
-  normalizeLower,
-  normalizeText,
   resolveApplicationIntakeType,
   slugify,
 } from "../shared/therapist-domain.mjs";
@@ -172,14 +167,6 @@ const PUBLIC_WRITE_RATE_LIMITS = {
   "POST /stripe/checkout-session": { limit: 20, windowMs: 60 * 60 * 1000 },
   "POST /waitlist": { limit: 30, windowMs: 60 * 60 * 1000 },
 };
-
-function normalizeSlugCandidate(value) {
-  return slugify(value || "");
-}
-
-function normalizeEmail(value) {
-  return normalizeLower(value);
-}
 
 // Find an existing therapist or in-progress application that matches the
 // intake identity.

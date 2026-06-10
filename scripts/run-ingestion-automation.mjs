@@ -105,13 +105,6 @@ const steps = [
   },
 ];
 
-function formatDuration(ms) {
-  if (ms < 1000) {
-    return `${ms}ms`;
-  }
-  return `${(ms / 1000).toFixed(1)}s`;
-}
-
 function runStep(step) {
   const startedAt = new Date();
   const startMs = Date.now();

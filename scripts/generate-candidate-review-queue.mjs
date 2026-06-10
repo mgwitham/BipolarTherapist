@@ -69,10 +69,6 @@ function joinList(value) {
   return Array.isArray(value) ? value.filter(Boolean).join(" | ") : "";
 }
 
-function formatDate(value) {
-  return value ? String(value).slice(0, 10) : "";
-}
-
 function isDuplicateStatus(value) {
   return value === "possible_duplicate" || value === "definite_duplicate";
 }

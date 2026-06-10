@@ -21,7 +21,6 @@ import {
   readAdminSessionFromRequest,
   readSignedPayload,
   readSignedSession,
-  readTherapistSession,
   recordFailedLogin,
   recordIntakeAttempt,
   recordPortalAuthAttempt,

@@ -449,7 +449,6 @@ export function buildJsonLd(t) {
 // ─── SSR profile HTML ─────────────────────────────────────────────────────────
 
 function renderSSRProfile(t) {
-  const nameWithCreds = t.credentials ? t.name + ", " + t.credentials : t.name;
   const location = [t.city, t.state].filter(Boolean).join(", ");
   const ins = t.insurance_accepted.filter(Boolean);
   const specialties = t.specialties.filter(Boolean);

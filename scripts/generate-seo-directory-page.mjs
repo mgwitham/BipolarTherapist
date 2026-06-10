@@ -17,6 +17,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
+import { escapeHtml } from "../shared/escape-html.mjs";
 import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
@@ -64,15 +65,6 @@ function getConfig() {
       rootEnv.VITE_SANITY_DATASET ||
       studioEnv.SANITY_STUDIO_DATASET,
   };
-}
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 function escapeAttribute(value) {

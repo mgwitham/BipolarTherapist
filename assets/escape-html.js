@@ -1,12 +1,7 @@
-export function escapeHtml(value) {
-  return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
-    if (ch === "&") return "&amp;";
-    if (ch === "<") return "&lt;";
-    if (ch === ">") return "&gt;";
-    if (ch === '"') return "&quot;";
-    return "&#39;";
-  });
-}
+// Re-exported from the shared layer so the whole codebase (frontend, server,
+// scripts) uses one HTML escaper with one set of semantics. See
+// shared/escape-html.mjs.
+export { escapeHtml } from "../shared/escape-html.mjs";
 
 // Hard guard for render functions that take an `options` object with
 // an escapeHtml callback. Throws loudly when the callback is missing
