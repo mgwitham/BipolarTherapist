@@ -720,6 +720,16 @@ async function fetchFoundingSpots(client) {
   };
 }
 
+// Live listed-therapist count for marketing copy (pricing page). Served
+// here so the browser never queries the Sanity dataset directly — public
+// pages must only see what this handler's projections choose to expose.
+async function fetchTherapistCount(client) {
+  const result = await client.fetch(
+    `count(*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"])`,
+  );
+  return { count: Number.isFinite(result) ? result : Number(result) || 0 };
+}
+
 export function createPublicContentHandler(configOverride, clientOverride) {
   const config = configOverride || getReviewApiConfig();
   const client = clientOverride || createSanityClient(config);
@@ -775,6 +785,11 @@ export function createPublicContentHandler(configOverride, clientOverride) {
 
       if (routePath === "/founding-spots") {
         sendJson(response, 200, await fetchFoundingSpots(client), origin, config);
+        return;
+      }
+
+      if (routePath === "/therapist-count") {
+        sendJson(response, 200, await fetchTherapistCount(client), origin, config);
         return;
       }
 

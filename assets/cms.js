@@ -589,6 +589,20 @@ export async function fetchFoundingSpotsRemaining() {
   }
 }
 
+// Live listed-therapist count for marketing copy. Returns 0 on any
+// failure so callers keep their static fallback copy.
+export async function fetchPublicTherapistCount() {
+  if (!cmsEnabled) {
+    return 0;
+  }
+  try {
+    const result = await fetchPublicContentJson("/therapist-count");
+    return Number(result && result.count) || 0;
+  } catch (_error) {
+    return 0;
+  }
+}
+
 export async function fetchPublicTherapistBySlug(slug) {
   if (!cmsEnabled) {
     return getTherapistBySlug(slug);
