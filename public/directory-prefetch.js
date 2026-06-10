@@ -15,12 +15,12 @@
    Cache key + TTL are kept in sync with assets/cms.js. */
 (function () {
   try {
-    var KEY = "bth_directory_content_cache_v1";
-    var TTL = 30 * 60 * 1000;
+    const KEY = "bth_directory_content_cache_v1";
+    const TTL = 30 * 60 * 1000;
     try {
-      var raw = window.sessionStorage.getItem(KEY);
+      const raw = window.sessionStorage.getItem(KEY);
       if (raw) {
-        var parsed = JSON.parse(raw);
+        const parsed = JSON.parse(raw);
         if (parsed && typeof parsed.timestamp === "number" && Date.now() - parsed.timestamp < TTL) {
           return; /* fresh cache hit — cms.js reads it, no network */
         }
@@ -28,8 +28,8 @@
     } catch (_cacheError) {
       /* sessionStorage blocked — fall through to the live fetch */
     }
-    var host = window.location.hostname;
-    var base =
+    const host = window.location.hostname;
+    const base =
       host === "localhost" || host === "127.0.0.1"
         ? "http://localhost:8787/api/public"
         : "/api/public";

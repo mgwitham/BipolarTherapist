@@ -1006,7 +1006,7 @@ async function main() {
     .sort((a, b) => a.city.localeCompare(b.city));
 
   let written = 0;
-  let skipped = cities.length - eligibleCities.length;
+  const skipped = cities.length - eligibleCities.length;
   for (const city of eligibleCities) {
     const slug = citySlug(city.city, city.state);
     if (!slug) continue;

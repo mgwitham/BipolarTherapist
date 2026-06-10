@@ -290,7 +290,7 @@ function discoverPracticeWebsites(html, originUrl) {
   let m;
   HREF_RE.lastIndex = 0;
   while ((m = HREF_RE.exec(html)) !== null) {
-    let href = m[1].trim();
+    const href = m[1].trim();
     if (!href) continue;
     if (!/^https?:\/\//i.test(href)) continue; // absolute only
     if (seen.has(href)) continue;
@@ -378,7 +378,7 @@ async function main() {
   if (limit > 0) console.log(`(Limiting to first ${subject.length}.)`);
 
   const rows = [];
-  let lastFetchByHost = new Map();
+  const lastFetchByHost = new Map();
 
   async function processOne(t) {
     // Try the therapist's own website first (most likely to have email),
@@ -386,7 +386,7 @@ async function main() {
     const sources = [t.website, t.sourceUrl, ...(t.supportingSourceUrls || [])]
       .filter(Boolean)
       .filter((v, i, a) => a.indexOf(v) === i);
-    let result = {
+    const result = {
       _id: t._id,
       name: t.name,
       slug: t.slug || "",

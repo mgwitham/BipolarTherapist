@@ -24,8 +24,8 @@ function buildStarterProfile() {
 }
 
 test("starter profile produces visible match results from seed therapists", function () {
-  var therapists = getTherapists();
-  var results = rankTherapistsForUser(therapists, buildStarterProfile(), null);
+  const therapists = getTherapists();
+  const results = rankTherapistsForUser(therapists, buildStarterProfile(), null);
 
   assert.ok(Array.isArray(results), "expected ranked results array");
   assert.ok(results.length >= 3, "expected at least 3 starter results");
@@ -37,8 +37,8 @@ test("starter profile produces visible match results from seed therapists", func
 });
 
 test("homepage-style basic handoff profile returns at least one match", function () {
-  var therapists = getTherapists();
-  var profile = buildUserMatchProfile({
+  const therapists = getTherapists();
+  const profile = buildUserMatchProfile({
     care_state: "CA",
     care_intent: "Therapy",
     care_format: "In-Person",
@@ -47,7 +47,7 @@ test("homepage-style basic handoff profile returns at least one match", function
     priority_mode: "Best overall fit",
     urgency: "ASAP",
   });
-  var results = rankTherapistsForUser(therapists, profile, null);
+  const results = rankTherapistsForUser(therapists, profile, null);
 
   assert.ok(Array.isArray(results), "expected ranked results array");
   assert.ok(results.length >= 1, "expected at least one homepage handoff match");

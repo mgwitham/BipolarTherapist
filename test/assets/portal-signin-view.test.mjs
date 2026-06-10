@@ -76,7 +76,7 @@ test("sign-in view: preserves anti-enumeration success copy", () => {
 });
 
 test("sign-in view: blocks duplicate in-flight sign-in submissions", () => {
-  assert.match(portalJs, /var signInRequestInFlight = false/);
+  assert.match(portalJs, /\b(?:let|var) signInRequestInFlight = false/);
   assert.match(portalJs, /if \(signInRequestInFlight\)/);
   assert.match(portalJs, /signInRequestInFlight = true/);
   assert.match(portalJs, /signInRequestInFlight = false/);

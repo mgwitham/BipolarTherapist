@@ -986,13 +986,13 @@ function buildSentinelVerification(fullName) {
 }
 
 async function runDcaVerification(client, config, application, body) {
-  var { verifyLicense, resolveLicenseTypeCode } = await import("./dca-license-client.mjs");
-  var licenseType = body.license_type || "";
-  var licenseNumber = body.license_number || application.licenseNumber || "";
-  var typeCode = resolveLicenseTypeCode(licenseType);
+  const { verifyLicense, resolveLicenseTypeCode } = await import("./dca-license-client.mjs");
+  const licenseType = body.license_type || "";
+  const licenseNumber = body.license_number || application.licenseNumber || "";
+  const typeCode = resolveLicenseTypeCode(licenseType);
   if (!typeCode || !licenseNumber) return;
 
-  var result = await verifyLicense(config, typeCode, licenseNumber);
+  const result = await verifyLicense(config, typeCode, licenseNumber);
   if (!result.verified) {
     log.info("DCA verification not confirmed", { id: application._id, error: result.error });
     return;

@@ -50,10 +50,10 @@ const INSURANCE_ALIASES = new Map([
 // Falls back to the trimmed original for unrecognized inputs.
 export function resolveInsuranceName(value) {
   if (!value) return "";
-  var trimmed = String(value).trim();
-  var lower = trimmed.toLowerCase();
+  const trimmed = String(value).trim();
+  const lower = trimmed.toLowerCase();
   if (INSURANCE_ALIASES.has(lower)) return INSURANCE_ALIASES.get(lower);
-  var exact = INSURANCE_OPTIONS.find(function (opt) {
+  const exact = INSURANCE_OPTIONS.find(function (opt) {
     return opt.toLowerCase() === lower;
   });
   return exact || trimmed;
@@ -65,10 +65,10 @@ export function resolveInsuranceName(value) {
 //   2. Substring containment in either direction (handles partial names)
 export function insuranceMatches(userQuery, therapistValues) {
   if (!userQuery) return false;
-  var resolved = resolveInsuranceName(userQuery).toLowerCase();
+  const resolved = resolveInsuranceName(userQuery).toLowerCase();
   return (therapistValues || []).some(function (tv) {
-    var tvLower = String(tv || "").toLowerCase();
-    var tvResolved = resolveInsuranceName(tv).toLowerCase();
+    const tvLower = String(tv || "").toLowerCase();
+    const tvResolved = resolveInsuranceName(tv).toLowerCase();
     return (
       tvResolved === resolved ||
       tvLower.indexOf(resolved) !== -1 ||

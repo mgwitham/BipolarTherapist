@@ -50,7 +50,7 @@ export const ACCEPTABLE_STATUSES = new Set(["active"]);
 
 export function resolveLicenseTypeCode(label) {
   if (LICENSE_TYPE_MAP[label]) return LICENSE_TYPE_MAP[label];
-  var code = Object.values(LICENSE_TYPE_MAP).find(function (c) {
+  const code = Object.values(LICENSE_TYPE_MAP).find(function (c) {
     return c === label;
   });
   return code || null;
@@ -71,14 +71,14 @@ export async function verifyLicense(config, licenseTypeCode, licenseNumber) {
     return { verified: false, error: "Missing license type or number" };
   }
 
-  var url =
+  const url =
     DCA_BASE_URL +
     "/licenseSearchService/getLicenseNumberSearch?licType=" +
     encodeURIComponent(licenseTypeCode) +
     "&licNumber=" +
     encodeURIComponent(licenseNumber);
 
-  var response;
+  let response;
   try {
     response = await fetch(url, {
       headers: {
@@ -98,35 +98,35 @@ export async function verifyLicense(config, licenseTypeCode, licenseNumber) {
     return { verified: false, error: "DCA API returned " + response.status };
   }
 
-  var data;
+  let data;
   try {
     data = await response.json();
   } catch {
     return { verified: false, error: "DCA API returned invalid JSON" };
   }
 
-  var details = data.licenseDetails;
+  const details = data.licenseDetails;
   if (!details || !details.length) {
     return { verified: false, error: "License not found in DCA database" };
   }
 
-  var fullDetails = details[0].getFullLicenseDetail;
+  const fullDetails = details[0].getFullLicenseDetail;
   if (!fullDetails || !fullDetails.length) {
     return { verified: false, error: "No detail records returned" };
   }
 
   // Find the most current license record (prefer active, then most recent expiration)
-  var best = null;
-  for (var i = 0; i < fullDetails.length; i++) {
-    var record = fullDetails[i];
-    var lic = record.getLicenseDetails && record.getLicenseDetails[0];
+  let best = null;
+  for (let i = 0; i < fullDetails.length; i++) {
+    const record = fullDetails[i];
+    const lic = record.getLicenseDetails && record.getLicenseDetails[0];
     if (!lic) continue;
     if (!best) {
       best = { record: record, license: lic };
       continue;
     }
-    var bestStatus = best.license.primaryStatusCode;
-    var thisStatus = lic.primaryStatusCode;
+    const bestStatus = best.license.primaryStatusCode;
+    const thisStatus = lic.primaryStatusCode;
     if (thisStatus === "20" && bestStatus !== "20") {
       best = { record: record, license: lic };
     } else if (thisStatus === bestStatus && lic.expDate > best.license.expDate) {
@@ -138,14 +138,14 @@ export async function verifyLicense(config, licenseTypeCode, licenseNumber) {
     return { verified: false, error: "No parseable license record" };
   }
 
-  var record = best.record;
-  var lic = best.license;
+  const record = best.record;
+  const lic = best.license;
 
   // Extract name
-  var nameDetails = record.getNameDetails || [];
-  var name = null;
-  for (var n = 0; n < nameDetails.length; n++) {
-    var indiv = nameDetails[n].individualNameDetails;
+  const nameDetails = record.getNameDetails || [];
+  let name = null;
+  for (let n = 0; n < nameDetails.length; n++) {
+    const indiv = nameDetails[n].individualNameDetails;
     if (indiv && indiv.length) {
       name = {
         firstName: indiv[0].firstName || "",
@@ -157,10 +157,10 @@ export async function verifyLicense(config, licenseTypeCode, licenseNumber) {
   }
 
   // Extract address
-  var addressDetails = record.getAddressDetail || [];
-  var address = null;
-  for (var a = 0; a < addressDetails.length; a++) {
-    var addrs = addressDetails[a].address;
+  const addressDetails = record.getAddressDetail || [];
+  let address = null;
+  for (let a = 0; a < addressDetails.length; a++) {
+    const addrs = addressDetails[a].address;
     if (addrs && addrs.length) {
       address = {
         city: addrs[0].cityName || "",
@@ -173,14 +173,14 @@ export async function verifyLicense(config, licenseTypeCode, licenseNumber) {
   }
 
   // Check for discipline
-  var publicActions = record.getPublicRecordActions || [];
-  var hasDiscipline = publicActions.some(function (action) {
+  const publicActions = record.getPublicRecordActions || [];
+  const hasDiscipline = publicActions.some(function (action) {
     return action.publicRecordActionDetails && action.publicRecordActionDetails.length > 0;
   });
 
-  var statusCode = lic.primaryStatusCode || "";
-  var statusLabel = STATUS_MAP[statusCode] || "unknown";
-  var isActive = statusCode === "20";
+  const statusCode = lic.primaryStatusCode || "";
+  const statusLabel = STATUS_MAP[statusCode] || "unknown";
+  const isActive = statusCode === "20";
 
   return {
     verified: true,

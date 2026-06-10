@@ -6,13 +6,13 @@ import { getInPersonProximityBonus } from "../../assets/zip-lookup.js";
 test("getInPersonProximityBonus — close ZIPs beat far ZIPs", () => {
   // Mill Valley (~13mi from San Rafael) should rank above Pasadena (~350mi)
   // even if Pasadena has a modestly higher base score.
-  var nearbyBase = 90;
-  var farBase = 100;
-  var nearbyMiles = 13;
-  var farMiles = 350;
+  const nearbyBase = 90;
+  const farBase = 100;
+  const nearbyMiles = 13;
+  const farMiles = 350;
 
-  var nearbyAdjusted = nearbyBase + getInPersonProximityBonus(nearbyMiles);
-  var farAdjusted = farBase + getInPersonProximityBonus(farMiles);
+  const nearbyAdjusted = nearbyBase + getInPersonProximityBonus(nearbyMiles);
+  const farAdjusted = farBase + getInPersonProximityBonus(farMiles);
 
   assert.ok(
     nearbyAdjusted > farAdjusted,
@@ -21,10 +21,10 @@ test("getInPersonProximityBonus — close ZIPs beat far ZIPs", () => {
 });
 
 test("getInPersonProximityBonus — monotonic non-increasing with distance", () => {
-  var distances = [0.5, 1, 3, 5, 10, 20, 35, 60, 100, 500];
-  var previous = Infinity;
-  for (var distance of distances) {
-    var bonus = getInPersonProximityBonus(distance);
+  const distances = [0.5, 1, 3, 5, 10, 20, 35, 60, 100, 500];
+  let previous = Infinity;
+  for (const distance of distances) {
+    const bonus = getInPersonProximityBonus(distance);
     assert.ok(bonus <= previous, "bonus at " + distance + "mi should not exceed prior tier");
     previous = bonus;
   }

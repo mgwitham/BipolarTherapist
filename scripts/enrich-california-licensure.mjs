@@ -840,7 +840,7 @@ async function run() {
       );
       let profileUrl = "";
       let profilePage = null;
-      let searchUrl = "";
+      const searchUrl = "";
 
       if (!profileCandidates.length) {
         results.push({
