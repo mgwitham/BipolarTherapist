@@ -56,33 +56,52 @@ Six HTML entry points (`index.html`, `match.html`, `directory.html`, `therapist.
 **Vercel entry:** `api/review/[...path].mjs`  
 **Dispatcher:** `server/review-handler.mjs` — composes and routes all requests
 
-Route modules each own a cluster of endpoints:
+Route modules each own a cluster of endpoints (full set in `server/*-routes.mjs`):
 
-| Module                                 | Responsibility                         |
-| -------------------------------------- | -------------------------------------- |
-| `server/review-auth-portal-routes.mjs` | Auth, sessions, portal claims          |
-| `server/review-read-routes.mjs`        | Admin list/read, event stream, exports |
-| `server/review-application-routes.mjs` | Therapist application workflows        |
-| `server/review-candidate-routes.mjs`   | Candidate review and publish flows     |
-| `server/review-ops-routes.mjs`         | Therapist and licensure operations     |
-| `server/review-match-routes.mjs`       | Match persistence read endpoints       |
+| Module                                      | Responsibility                                          |
+| ------------------------------------------- | ------------------------------------------------------- |
+| `server/review-auth-routes.mjs`             | Admin login, sessions, dev-login guard                  |
+| `server/review-auth-portal-routes.mjs`      | Therapist portal auth/sessions                          |
+| `server/review-read-routes.mjs`             | Admin list/read, event stream, exports                  |
+| `server/review-application-routes.mjs`      | Therapist application intake + approval workflows       |
+| `server/review-candidate-routes.mjs`        | Candidate review, publish, merge/dedupe decisions       |
+| `server/review-candidate-ingest-routes.mjs` | Bulk candidate ingestion                                |
+| `server/review-ops-routes.mjs`              | Therapist + licensure operations (admin God-mode)       |
+| `server/review-match-routes.mjs`            | Match request/outcome persistence reads                 |
+| `server/review-claim-routes.mjs`            | Listing-claim flow (magic-link, quick-claim, sign-in)   |
+| `server/review-recovery-routes.mjs`         | Account recovery / ownership transfer                   |
+| `server/review-portal-profile-routes.mjs`   | Therapist self-service profile edits, photo, analytics  |
+| `server/review-stripe-routes.mjs`           | Stripe checkout, billing portal, webhook                |
+| `server/review-resend-webhook-routes.mjs`   | Resend delivery webhook (Svix-verified)                 |
+| `server/review-analytics-routes.mjs`        | Funnel event log + admin funnel dashboard               |
+| `server/review-engagement-routes.mjs`       | Public profile-view / CTA-click counters                |
+| `server/review-waitlist-routes.mjs`         | Out-of-state waitlist signups                           |
+| `server/review-saved-list-routes.mjs`       | "Email me my saved list"                                |
+| `server/review-patient-signal-routes.mjs`   | Patient demand signals                                  |
+| `server/review-cron-routes.mjs`             | Scheduled jobs (DCA freshness, license expiry, digests) |
 
-Supporting modules: `review-config.mjs` (env), `review-http-auth.mjs` (JWT sessions), `review-email.mjs` (Resend), `review-application-support.mjs` (document shaping).
+Supporting modules: `review-config.mjs` (env), `review-http-auth.mjs` (JWT sessions + session/origin helpers), `cron-auth.mjs` (cron Bearer gate), `review-email.mjs` (Resend), `review-application-support.mjs` (document shaping), `rate-limit-store.mjs` (Upstash/in-memory limiter).
 
 ### 3. Shared Domain Layer (`shared/`)
 
-Business logic shared by both the frontend and the API. Never duplicated across layers.
+Business logic shared by both the frontend and the API. Pure (no I/O — no `fs`,
+`fetch`, Sanity client, or `process.env`) and never duplicated across layers.
+~32 modules in `shared/`; the core ones:
 
-| Module                                         | Responsibility                                    |
-| ---------------------------------------------- | ------------------------------------------------- |
-| `shared/therapist-domain.mjs`                  | Identity, duplicate detection, field review state |
-| `shared/application-domain.mjs`                | Application shaping, portal state derivation      |
-| `shared/therapist-trust-domain.mjs`            | Trust scoring, freshness, verification priority   |
-| `shared/therapist-publishing-domain.mjs`       | Document shaping, publish events                  |
-| `shared/provider-field-observation-domain.mjs` | Field evidence with provenance                    |
-| `shared/match-persistence-domain.mjs`          | Match request/outcome normalization               |
+| Module                                         | Responsibility                                               |
+| ---------------------------------------------- | ------------------------------------------------------------ |
+| `shared/therapist-domain.mjs`                  | Identity, duplicate detection, `slugify`, field review state |
+| `shared/application-domain.mjs`                | Application shaping, portal state derivation                 |
+| `shared/therapist-trust-domain.mjs`            | Trust scoring, freshness, verification priority              |
+| `shared/therapist-publishing-domain.mjs`       | Document shaping, publish events                             |
+| `shared/therapist-subscription-domain.mjs`     | Stripe subscription state derivation                         |
+| `shared/provider-field-observation-domain.mjs` | Field evidence with provenance                               |
+| `shared/match-persistence-domain.mjs`          | Match request/outcome normalization                          |
+| `shared/escape-html.mjs`                       | Canonical HTML escaper (one source of truth)                 |
 
-Domain modules are the primary target for unit tests in `test/shared/`.
+Domain modules are the primary target for unit tests in `test/shared/`. The
+matching/scoring engine itself lives at `assets/matching-model.js` (client-side
+by design) with tests in `test/shared/matching-model-*.test.mjs`.
 
 ### 4. CMS — Sanity Studio (`studio/`)
 
