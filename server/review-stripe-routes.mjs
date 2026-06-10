@@ -544,13 +544,7 @@ export async function handleStripeRoutes(context) {
           }
           // Build a fresh activation link so they can still claim if they want
           let activationUrl = "";
-          if (
-            typeof buildPortalClaimToken === "function" &&
-            therapist.email &&
-            url &&
-            url.protocol &&
-            url.host
-          ) {
+          if (typeof buildPortalClaimToken === "function" && therapist.email) {
             try {
               const ttlMs = 24 * 60 * 60 * 1000;
               const token = buildPortalClaimToken(
