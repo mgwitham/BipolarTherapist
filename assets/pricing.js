@@ -3,6 +3,7 @@ import "./site-analytics.js";
 import "./funnel-analytics.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { safeStripeRedirectUrl } from "./safe-url.js";
+import { fetchPublicTherapistCount } from "./cms.js";
 import {
   createStripeBillingPortalSession,
   createStripeFeaturedCheckoutSession,
@@ -451,27 +452,13 @@ if (previewCard) {
 applyLoggedOutState();
 resolveSignedInState();
 
+// Count comes through the public content API, never a direct dataset
+// query from the browser — public pages must only see what the API's
+// projections expose. (The old direct apicdn.sanity.io fetch was also
+// blocked by the CSP connect-src in production.)
 async function fetchLiveTherapistCount() {
   try {
-    var projectId = import.meta.env.VITE_SANITY_PROJECT_ID;
-    var dataset = import.meta.env.VITE_SANITY_DATASET || "production";
-    var apiVersion = import.meta.env.VITE_SANITY_API_VERSION || "2026-04-02";
-    var query = encodeURIComponent(
-      'count(*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"])',
-    );
-    var url =
-      "https://" +
-      projectId +
-      ".apicdn.sanity.io/v" +
-      apiVersion +
-      "/data/query/" +
-      dataset +
-      "?query=" +
-      query;
-    var res = await fetch(url);
-    if (!res.ok) return;
-    var data = await res.json();
-    var count = data.result;
+    var count = await fetchPublicTherapistCount();
     if (typeof count === "number" && count > 0 && therapistCountEl) {
       var rounded = Math.floor(count / 10) * 10;
       therapistCountEl.textContent = rounded + "+";

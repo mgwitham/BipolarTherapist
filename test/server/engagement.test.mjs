@@ -90,3 +90,54 @@ test("engagement: missing therapist_slug returns 400", async function () {
 
   assert.equal(response.statusCode, 400);
 });
+
+test("engagement: malformed slug is rejected and writes no document", async function () {
+  // These public, unauthenticated endpoints interpolate the slug straight
+  // into a Sanity _id. An uncapped/unfiltered slug would let anyone create
+  // unbounded junk documents in the shared dataset. Reject non-slug input.
+  const malformed = [
+    "has spaces",
+    "café-münchen", // non-ascii
+    "trailing-hyphen-",
+    "-leading-hyphen",
+    "double--hyphen",
+    "slug_with_underscores",
+    "path/traversal",
+    "x".repeat(121), // over the length cap
+    "../../etc",
+    "drop.table",
+  ];
+
+  for (const therapist_slug of malformed) {
+    const { client, state } = createMemoryClient();
+    const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+    const response = await runHandlerRequest(handler, {
+      body: { therapist_slug, source: "directory" },
+      headers: standardHeaders(),
+      method: "POST",
+      url: "/engagement/view",
+    });
+
+    assert.equal(response.statusCode, 400, `expected 400 for slug: ${therapist_slug}`);
+    const docs = Array.from(state.documents.values()).filter(
+      (doc) => doc._type === "therapistEngagementSummary",
+    );
+    assert.equal(docs.length, 0, `no summary doc should be created for slug: ${therapist_slug}`);
+  }
+});
+
+test("engagement: a maximum-length valid slug is still accepted", async function () {
+  const { client } = createMemoryClient();
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { therapist_slug: "a".repeat(120), route: "email" },
+    headers: standardHeaders(),
+    method: "POST",
+    url: "/engagement/cta-click",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.ok, true);
+});

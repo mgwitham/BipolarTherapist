@@ -301,7 +301,11 @@ function firstHeaderEntry(value) {
 
 function getRequestOrigin(request) {
   const headers = (request && request.headers) || {};
-  const host = firstHeaderEntry(headers["x-forwarded-host"]) || firstHeaderEntry(headers.host);
+  // Self-origin for the same-origin CSRF fallback in isAllowedRequestOrigin.
+  // Use only the Host header (validated by the platform's routing layer) —
+  // never x-forwarded-host, which a direct client can set freely and pair
+  // with a matching Origin header to defeat the reflection check.
+  const host = firstHeaderEntry(headers.host);
   if (!host) return "";
   const proto = firstHeaderEntry(headers["x-forwarded-proto"]) || "https";
   return `${proto}://${host}`;

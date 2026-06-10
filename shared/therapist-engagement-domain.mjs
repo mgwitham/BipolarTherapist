@@ -7,6 +7,24 @@ function normalizeSlug(value) {
     .toLowerCase();
 }
 
+// Therapist slugs are produced by slugify(): lowercase [a-z0-9] segments
+// joined by single hyphens, no leading/trailing hyphen. The engagement
+// endpoints are PUBLIC and unauthenticated, and the slug is interpolated
+// straight into a Sanity document _id, so an uncapped/unfiltered slug lets
+// anyone create unbounded junk documents in the shared dataset. Reject
+// anything that isn't a plausible slug, and cap the length.
+export const MAX_SLUG_LENGTH = 120;
+const VALID_SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export function isValidTherapistSlug(slug) {
+  return (
+    typeof slug === "string" &&
+    slug.length > 0 &&
+    slug.length <= MAX_SLUG_LENGTH &&
+    VALID_SLUG_PATTERN.test(slug)
+  );
+}
+
 function normalizeViewSource(value) {
   const candidate = String(value || "")
     .trim()
@@ -110,6 +128,9 @@ export function normalizeEngagementInput(input) {
   const slug = normalizeSlug(input && input.therapist_slug);
   if (!slug) {
     throw new Error("Missing therapist_slug for engagement event.");
+  }
+  if (!isValidTherapistSlug(slug)) {
+    throw new Error("Invalid therapist_slug for engagement event.");
   }
   return {
     slug,

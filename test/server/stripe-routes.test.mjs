@@ -564,6 +564,47 @@ test("portal-session returns Stripe billing portal URL for authed therapist with
   assert.equal(response.payload.url, "https://billing.stripe.test/bps_1");
 });
 
+test("portal-session rejects a stale session whose email no longer owns the listing", async () => {
+  // After an ownership transfer, a previous owner's still-valid session must
+  // not be able to open a Stripe billing portal over the new owner's
+  // subscription (cancel it, change payment method, etc.).
+  const { client } = createMemoryClient({
+    "therapist-jamie": {
+      _id: "therapist-jamie",
+      _type: "therapist",
+      slug: { current: "jamie-rivera" },
+      claimStatus: "claimed",
+      claimedByEmail: "new-owner@example.com",
+    },
+    "therapistSubscription-jamie-rivera": {
+      _id: "therapistSubscription-jamie-rivera",
+      _type: "therapistSubscription",
+      therapistSlug: "jamie-rivera",
+      stripeCustomerId: "cus_portal_789",
+    },
+  });
+
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/portal-session",
+    client,
+    deps: {
+      getAuthorizedTherapist: () => ({ slug: "jamie-rivera", email: "old-owner@example.com" }),
+      parseBody: async () => ({}),
+      parseRawBody: async () => Buffer.alloc(0),
+      createBillingPortalSession: async () => {
+        throw new Error("billing portal must not be created for a stale session");
+      },
+      createFeaturedCheckoutSession: async () => null,
+      verifyAndParseWebhook: async () => null,
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 401);
+});
+
 test("portal-session returns 404 when therapist has no Stripe customer on file", async () => {
   const { client } = createMemoryClient();
   const { response, context } = buildContext({

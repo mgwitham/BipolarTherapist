@@ -40,7 +40,9 @@ export async function renderPortalCompletenessPanel() {
     rows = Array.isArray(result) ? result : result.therapists || result.data || [];
   } catch (err) {
     root.innerHTML =
-      '<p class="subtle" style="color:#c2410c">Failed to load: ' + err.message + "</p>";
+      '<p class="subtle" style="color:#c2410c">Failed to load: ' +
+      escapeHtml(err && err.message ? err.message : "request failed") +
+      "</p>";
     return;
   }
   if (!rows.length) {

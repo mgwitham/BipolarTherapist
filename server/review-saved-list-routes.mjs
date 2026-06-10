@@ -2,35 +2,23 @@ import { log } from "./logger.mjs";
 import { renderSavedListEmail } from "../shared/saved-list-email.mjs";
 import { validateEmail } from "../shared/contact-validation.mjs";
 import { getClientAddress } from "./review-http-auth.mjs";
+import { getRateLimiter } from "./rate-limit-store.mjs";
 import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 
 const MAX_ITEMS = 6;
 const MAX_NOTE_LENGTH = 120;
 const MAX_SLUG_LENGTH = 120;
 
-// Per-instance throttle: capped at 5 sends per email per hour. Resets when
-// the serverless instance recycles, which is fine for casual abuse — anyone
-// determined would route around it. Real anti-abuse comes later if signal
-// justifies it.
-const sendHistory = new Map();
+// Per-email throttle: 5 sends per hour. Backed by the shared rate-limit
+// store (Upstash in production), so the cap holds across serverless cold
+// starts and concurrent instances — a process-local Map here was bypassable
+// by spreading sends across instances. Every other sensitive limiter
+// already uses this store; this was the one holdout.
 const SEND_WINDOW_MS = 60 * 60 * 1000;
 const MAX_SENDS_PER_EMAIL_PER_HOUR = 5;
 
-function recordSend(email) {
-  const now = Date.now();
-  const previous = (sendHistory.get(email) || []).filter(function (timestamp) {
-    return now - timestamp < SEND_WINDOW_MS;
-  });
-  previous.push(now);
-  sendHistory.set(email, previous);
-}
-
-function isOverLimit(email) {
-  const now = Date.now();
-  const recent = (sendHistory.get(email) || []).filter(function (timestamp) {
-    return now - timestamp < SEND_WINDOW_MS;
-  });
-  return recent.length >= MAX_SENDS_PER_EMAIL_PER_HOUR;
+function getSendLimiter(config) {
+  return getRateLimiter("saved-list-email", SEND_WINDOW_MS, MAX_SENDS_PER_EMAIL_PER_HOUR, config);
 }
 
 function normalizeSavedItems(value) {
@@ -110,7 +98,7 @@ export async function handleSavedListRoutes(context) {
   }
 
   const normalizedEmail = rawEmail.toLowerCase();
-  if (isOverLimit(normalizedEmail)) {
+  if (!(await getSendLimiter(config).canAttempt(normalizedEmail))) {
     sendJson(
       response,
       429,
@@ -203,7 +191,7 @@ export async function handleSavedListRoutes(context) {
     return true;
   }
 
-  recordSend(normalizedEmail);
+  await getSendLimiter(config).record(normalizedEmail);
 
   sendJson(
     response,

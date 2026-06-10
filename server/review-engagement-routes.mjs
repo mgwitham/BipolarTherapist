@@ -31,8 +31,9 @@ export async function handleEngagementRoutes(context) {
   let normalized;
   try {
     normalized = normalizeEngagementInput(body || {});
-  } catch (error) {
-    sendJson(response, 400, { error: error.message }, origin, config);
+  } catch (_error) {
+    // Fixed string — never echo raw exception text to anonymous callers.
+    sendJson(response, 400, { error: "Invalid engagement event." }, origin, config);
     return true;
   }
 

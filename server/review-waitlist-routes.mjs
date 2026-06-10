@@ -151,14 +151,28 @@ async function appendWaitlistEvent(client, { email, state, userAgent }) {
     payload,
     userAgent: safeString(userAgent || "", 200),
   };
-  const logDoc = await getOrCreateLog(client);
-  const existing = Array.isArray(logDoc.events) ? logDoc.events : [];
-  const merged = [event].concat(existing).slice(0, MAX_EVENTS);
-  const totalAppended = Number(logDoc.totalAppended || 0) + 1;
-  await client
-    .patch(SINGLETON_ID)
-    .set({ events: merged, updatedAt: now, totalAppended })
-    .commit({ visibility: "async" });
+  // Optimistic concurrency: this writes to the same funnelEventLog
+  // singleton as the public analytics endpoint, so an unguarded
+  // read-merge-set can clobber (or be clobbered by) a concurrent append.
+  // Gate on the revision we read and retry on conflict.
+  let lastError = null;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const logDoc = await getOrCreateLog(client);
+    const existing = Array.isArray(logDoc.events) ? logDoc.events : [];
+    const merged = [event].concat(existing).slice(0, MAX_EVENTS);
+    const totalAppended = Number(logDoc.totalAppended || 0) + 1;
+    try {
+      await client
+        .patch(SINGLETON_ID)
+        .ifRevisionId(logDoc._rev || "")
+        .set({ events: merged, updatedAt: now, totalAppended })
+        .commit({ visibility: "async" });
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError;
 }
 
 async function notifyAdminOfWaitlist(config, sendEmail, { email, state }) {

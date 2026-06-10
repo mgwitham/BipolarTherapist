@@ -201,3 +201,110 @@ test("a merged candidate cannot be re-published over the merge target", async fu
   assert.equal(response.statusCode, 409);
   assert.equal(response.payload.therapistId, "therapist-existing");
 });
+
+// --- Slug-collision guards ---
+// The therapist _id is derived from slugify(name+city+state). Two different
+// providers with the same name in the same city collapse to the same id, and
+// publish/approve use createOrReplace — so without a guard, approving the
+// second silently replaces the first's live profile.
+
+test("approving an application whose derived id collides with a different live profile returns 409", async function () {
+  // "Dr. Robin Vale, Sacramento CA" → therapist-dr-robin-vale-sacramento-ca,
+  // which is already occupied by a different provider's live doc.
+  const { client, state } = createMemoryClient({
+    "therapist-dr-robin-vale-sacramento-ca": {
+      _id: "therapist-dr-robin-vale-sacramento-ca",
+      _type: "therapist",
+      name: "Dr. Robin Vale",
+      city: "Sacramento",
+      state: "CA",
+      licenseNumber: "LCSW11111", // different provider, same name/city/state
+      bio: "The original Robin Vale's live profile.",
+    },
+    "application-collider": pendingApplication("application-collider"),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: {},
+    headers: { cookie: sessionToken, host: "localhost:8787" },
+    method: "POST",
+    url: "/applications/application-collider/approve",
+  });
+
+  assert.equal(response.statusCode, 409);
+  assert.match(response.payload.error, /already exists/i);
+  assert.equal(response.payload.therapistId, "therapist-dr-robin-vale-sacramento-ca");
+  assert.equal(
+    state.documents.get("therapist-dr-robin-vale-sacramento-ca").bio,
+    "The original Robin Vale's live profile.",
+    "the occupant's live profile must not be overwritten",
+  );
+  assert.equal(state.documents.get("application-collider").status, "pending");
+});
+
+test("publishing a candidate whose derived id collides with a different live profile returns 409", async function () {
+  // "Dr. Casey North, Seattle WA" → therapist-dr-casey-north-seattle-wa,
+  // already occupied; the candidate was NOT matched to it via dedupe.
+  const { client, state } = createMemoryClient({
+    "therapist-dr-casey-north-seattle-wa": {
+      _id: "therapist-dr-casey-north-seattle-wa",
+      _type: "therapist",
+      name: "Dr. Casey North",
+      city: "Seattle",
+      state: "WA",
+      licenseNumber: "LMHC22222",
+      bio: "The original Casey North's live profile.",
+    },
+    "candidate-collider": queuedCandidate("candidate-collider"),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: { decision: "publish" },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
+    method: "POST",
+    url: "/candidates/candidate-collider/decision",
+  });
+
+  assert.equal(response.statusCode, 409);
+  assert.match(response.payload.error, /already exists/i);
+  assert.equal(
+    state.documents.get("therapist-dr-casey-north-seattle-wa").bio,
+    "The original Casey North's live profile.",
+    "the occupant's live profile must not be overwritten",
+  );
+});
+
+test("a candidate deliberately matched to an existing therapist still publishes over it", async function () {
+  // matchedTherapistId is the dedupe flow's explicit decision — the guard
+  // must not block the intentional update path.
+  const { client, state } = createMemoryClient({
+    "therapist-matched": {
+      _id: "therapist-matched",
+      _type: "therapist",
+      name: "Dr. Casey North",
+      city: "Seattle",
+      state: "WA",
+    },
+    "candidate-matched": {
+      ...queuedCandidate("candidate-matched"),
+      matchedTherapistId: "therapist-matched",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: { decision: "publish" },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
+    method: "POST",
+    url: "/candidates/candidate-matched/decision",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.therapistId, "therapist-matched");
+  assert.equal(state.documents.get("candidate-matched").publishedTherapistId, "therapist-matched");
+});
