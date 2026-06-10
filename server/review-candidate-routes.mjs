@@ -1,17 +1,10 @@
 import { log } from "./logger.mjs";
-
-// Mirrors server/dca-freshness-check.mjs cleanLicenseNumber. Strips
-// credential-prefix tokens, leading non-alnum, and reduces to the
-// trailing digit run with leading zeros removed (DCA API rejects
-// "060666" but accepts "60666").
-function cleanLicenseNumberForDca(raw) {
-  let s = String(raw || "").trim();
-  s = s.replace(/^(LMFT|MFC|LCSW|LPCC|LEP|PSYD|PHD|MD|DO|PMHNP|NP|APRN|LP|RN)\s+/i, "");
-  s = s.replace(/^[^A-Za-z0-9]+/, "");
-  const tail = s.match(/(\d+)$/);
-  if (!tail) return "";
-  return tail[1].replace(/^0+/, "") || "0";
-}
+// CA-specific number normalization lives with the CA verifier. This path is
+// DCA-only by construction: the boardCode gate below short-circuits any
+// candidate without a DCA board code, so a non-CA candidate never reaches
+// the normalize/verify calls. Route through getLicenseVerifierForState()
+// when candidates can carry non-CA verifications.
+import { cleanLicenseNumber as cleanLicenseNumberForDca } from "./dca-license-client.mjs";
 
 // Re-verify a candidate's CA license against DCA at publish time. The
 // stored licensureVerification snapshot may be stale; re-checking

@@ -1,3 +1,5 @@
+import { isLiveMarketState } from "../shared/live-markets.mjs";
+
 let californiaZipcodes = {};
 let californiaZipcodesReady = null;
 
@@ -184,8 +186,12 @@ export function getZipMarketStatus(zip) {
     };
   }
 
+  // Market liveness comes from shared/live-markets.mjs, not from "the ZIP
+  // exists in our dataset". Today the only ZIP dataset is CA's, so a table
+  // hit implies a live state — but the explicit check keeps the launch
+  // switch in one config file instead of implied by data presence.
   const place = lookupZipPlace(normalizedZip);
-  if (place) {
+  if (place && isLiveMarketState(place.state)) {
     return {
       status: "live",
       place: place,
@@ -193,8 +199,10 @@ export function getZipMarketStatus(zip) {
     };
   }
 
-  const state = inferStateFromZip(normalizedZip);
-  if (!state || state === "CA") {
+  const state = (place && place.state) || inferStateFromZip(normalizedZip);
+  if (!state || isLiveMarketState(state)) {
+    // A live-market state whose ZIP we can't resolve in the dataset stays
+    // "unknown" (same UX as today for an unrecognized CA ZIP).
     return {
       status: "unknown",
       place: null,

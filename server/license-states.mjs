@@ -62,18 +62,26 @@ export function getLicenseStateBoardInfo(licenseState) {
 
 // ─── License verifier routing ─────────────────────────────────────────────────
 
-// Returns an async function (config, licenseNumber) => verificationResult
-// for the given state, or null if no verifier is registered for that state.
+// Returns the state's verifier object (the interface documented on
+// caLicenseVerifier in dca-license-client.mjs: isConfigured,
+// normalizeLicenseNumber, resolveBoardCode, verifyByBoardCode,
+// verifyByNumber, interCallDelayMs), or null when no verifier is
+// registered for that state.
 //
-// The CA verifier is imported lazily to avoid loading DCA credentials in
-// contexts that don't need them (e.g. unit tests, non-CA branches).
+// State clients are imported lazily so contexts that never verify (unit
+// tests, non-CA branches) don't load them.
 //
-// TO ADD A NEW STATE: import its client module and add a case below.
+// TO ADD A NEW STATE: implement a verifier object with the same shape in
+// its own client module (e.g. server/wa-license-client.mjs wrapping the
+// data.wa.gov Socrata dataset) and add a case below. The number
+// normalizer is PER-STATE — do not reuse CA's digit-only cleanup for
+// states whose boards key on alphanumeric license IDs.
 export async function getLicenseVerifierForState(licenseState) {
   if (licenseState === "CA") {
-    const { verifyLicense } = await import("./dca-license-client.mjs");
-    return verifyLicense;
+    const { caLicenseVerifier } = await import("./dca-license-client.mjs");
+    return caLicenseVerifier;
   }
-  // No verifier registered for this state yet.
+  // No verifier registered for this state yet. Callers must treat this as
+  // "cannot verify" (intake: reject; cron: count as unmonitoredState).
   return null;
 }
