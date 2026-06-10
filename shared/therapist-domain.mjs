@@ -53,6 +53,18 @@ export function normalizeLicense(value) {
   return `${letters}${trimmed}`;
 }
 
+// Looser license normalizer used to MATCH a typed license against stored
+// values (claim / recovery / portal flows): strip non-alphanumerics, then
+// drop any leading letter prefix so "LMFT123456" and "123456" compare equal.
+// Distinct from normalizeLicense (which preserves the letter prefix and only
+// collapses zero-padding for dedupe).
+export function normalizeLicenseForMatch(value) {
+  return String(value || "")
+    .replace(/[^a-z0-9]/gi, "")
+    .replace(/^[a-z]+/i, "")
+    .trim();
+}
+
 export function normalizeKeySegment(value) {
   return String(value || "")
     .trim()

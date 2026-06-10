@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { normalizeLicenseForMatch } from "../shared/therapist-domain.mjs";
 import { log } from "./logger.mjs";
 import { sendPortalContactEmail } from "./review-email.mjs";
 import { getClientAddress } from "./review-http-auth.mjs";
@@ -12,13 +13,6 @@ const RECOVERY_REQUEST_SCHEMA = {
   prior_email: { type: "email" },
   reason: { type: "string", maxLength: 2000 },
 };
-
-function normalizeLicenseForMatch(value) {
-  return String(value || "")
-    .replace(/[^a-z0-9]/gi, "")
-    .replace(/^[a-z]+/i, "")
-    .trim();
-}
 
 function maskEmail(email) {
   const trimmed = String(email || "").trim();
