@@ -109,8 +109,8 @@ export async function verifyLicenseByNumber(config, licenseNumber) {
         .then(function (r) {
           return { option, result: r };
         })
-        .catch(function (error) {
-          return { option, result: { verified: false, error: String(error) } };
+        .catch(function (_error) {
+          return { option, result: { verified: false, error: "verification_error" } };
         });
     }),
   );
@@ -118,8 +118,7 @@ export async function verifyLicenseByNumber(config, licenseNumber) {
     return r.result && r.result.verified;
   });
   if (!hit) {
-    const lastError = (results[0] && results[0].result && results[0].result.error) || "not_found";
-    return { verified: false, error: lastError };
+    return { verified: false, error: "not_found" };
   }
   return {
     verified: true,
