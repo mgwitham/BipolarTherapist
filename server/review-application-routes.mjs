@@ -256,7 +256,6 @@ export async function handleApplicationRoutes(context) {
       } catch (error) {
         log.error("License verification threw at intake", {
           requestId,
-          licenseState,
           err: error?.message || String(error),
         });
         verification = { verified: false, error: "dca_unreachable" };
