@@ -157,7 +157,13 @@ test("freshness: an unparseable license number is skipped without calling the ve
   let dcaCalled = false;
   const original = globalThis.fetch;
   globalThis.fetch = async (url) => {
-    if (String(url).includes("iservices.dca.ca.gov")) dcaCalled = true;
+    let host = "";
+    try {
+      host = new URL(String(url)).host;
+    } catch (_error) {
+      /* relative URL — not the DCA endpoint */
+    }
+    if (host === "iservices.dca.ca.gov") dcaCalled = true;
     return { ok: true, status: 200, json: async () => ({ licenseDetails: [] }) };
   };
   try {
