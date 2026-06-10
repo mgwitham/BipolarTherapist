@@ -423,8 +423,10 @@ export default async function handler(req, res) {
         text: textBody,
       });
     } catch (err) {
-      console.error("resend test error:", err);
-      res.status(500).json({ error: "Failed to send test", detail: err.message });
+      // Resend errors can carry recipient addresses / config detail in their
+      // message — log server-side, keep the client response generic.
+      console.error("resend test error:", err?.message || String(err));
+      res.status(500).json({ error: "Failed to send test email." });
       return;
     }
     res.status(200).json({ ok: true, testTo });
@@ -442,8 +444,10 @@ export default async function handler(req, res) {
       text: textBody,
     });
   } catch (err) {
-    console.error("resend error:", err);
-    res.status(500).json({ error: "Failed to send email", detail: err.message });
+    // Resend errors can carry recipient addresses / config detail in their
+    // message — log server-side, keep the client response generic.
+    console.error("resend error:", err?.message || String(err));
+    res.status(500).json({ error: "Failed to send email." });
     return;
   }
 
