@@ -1,0 +1,26 @@
+{
+  // Static type-checking via JSDoc + checkJs. Scoped to the pure shared/
+  // domain layer for now — it's the highest-value, framework-free code and it
+  // already type-checks clean. Settings are intentionally lenient (no
+  // noImplicitAny / strict) so this is a green, enforceable floor that catches
+  // real mistakes (bad property access, wrong arg counts, impossible
+  // operations) and tightens automatically as JSDoc @typedefs are added.
+  //
+  // Run locally with `npm run typecheck`; CI runs it in the verify job.
+  // Expand "include" to server/ and assets/ once those layers are annotated.
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "lib": ["es2023"],
+    "types": ["node"],
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["shared/**/*.mjs"]
+}
