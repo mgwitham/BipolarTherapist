@@ -222,7 +222,7 @@ export async function handleWaitlistRoutes(context) {
 
   try {
     await appendWaitlistEvent(client, { email, state, userAgent });
-  } catch (error) {
+  } catch {
     sendJson(response, 500, { error: "Could not record waitlist signup." }, origin, config);
     return true;
   }

@@ -11,7 +11,7 @@ const INTAKE_SCHEMA = {
 };
 
 export async function handleApplicationRoutes(context) {
-  const { client, config, deps, origin, request, requestId, response, routePath, url } = context;
+  const { client, config, deps, origin, request, requestId, response, routePath } = context;
 
   const {
     canAttemptIntake,

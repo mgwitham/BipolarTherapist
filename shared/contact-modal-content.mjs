@@ -57,14 +57,6 @@ export function formatPhoneDisplay(phone) {
   return String(phone || "").trim();
 }
 
-function getDomainFromUrl(url) {
-  try {
-    return new URL(url).host.replace(/^www\./, "");
-  } catch (_e) {
-    return "";
-  }
-}
-
 // Resolves the preferredContactMethod for a therapist. If an explicit
 // value is set AND the corresponding field has content, use it.
 // Otherwise pick the first non-empty field in booking > website >

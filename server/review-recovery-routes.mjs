@@ -13,16 +13,6 @@ const RECOVERY_REQUEST_SCHEMA = {
   reason: { type: "string", maxLength: 2000 },
 };
 
-function normalizeNameForMatch(value) {
-  return String(value || "")
-    .toLowerCase()
-    .replace(/^(dr|mr|mrs|ms|mx|prof)\.?\s+/i, "")
-    .split(",")[0]
-    .replace(/[^a-z\s'-]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
 function normalizeLicenseForMatch(value) {
   return String(value || "")
     .replace(/[^a-z0-9]/gi, "")

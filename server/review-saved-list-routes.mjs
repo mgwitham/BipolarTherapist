@@ -42,7 +42,7 @@ function normalizeSavedItems(value) {
 }
 
 export async function handleSavedListRoutes(context) {
-  const { client, config, deps, origin, request, response, routePath, url } = context;
+  const { client, config, deps, origin, request, response, routePath } = context;
   const { parseBody, sendJson, sendEmail } = deps;
 
   if (request.method !== "POST" || routePath !== "/saved-list/email") {

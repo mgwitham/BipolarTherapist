@@ -1,5 +1,3 @@
-const LEVELS = { error: 50, warn: 40, info: 30 };
-
 function write(level, msg, ctx) {
   const entry = { level, msg, ...ctx, time: new Date().toISOString() };
   const line = JSON.stringify(entry);

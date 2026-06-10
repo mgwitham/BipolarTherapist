@@ -101,7 +101,7 @@ export async function verifyLicense(config, licenseTypeCode, licenseNumber) {
   var data;
   try {
     data = await response.json();
-  } catch (err) {
+  } catch {
     return { verified: false, error: "DCA API returned invalid JSON" };
   }
 

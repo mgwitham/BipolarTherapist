@@ -66,7 +66,7 @@ function extractTherapistSlug(stripeSubscription, eventObject) {
 }
 
 export async function handleStripeRoutes(context) {
-  const { client, config, deps, origin, request, response, routePath, url } = context;
+  const { client, config, deps, origin, request, response, routePath } = context;
   const {
     buildPortalClaimToken,
     cancelSubscriptionImmediately,
