@@ -446,6 +446,30 @@ export async function handleCandidateRoutes(context) {
       publishingHelpers,
     );
     therapistId = nextTherapist._id;
+
+    // Collision guard: the id is derived from name+city+state, so two
+    // different providers can slugify to the same id. When the candidate
+    // wasn't deliberately matched to an existing therapist (no
+    // matchedTherapistId) but a live doc already occupies the derived id,
+    // publishing would createOrReplace — silently replacing someone ELSE's
+    // live profile. Refuse and route the admin through dedupe instead.
+    if (!String(candidate.matchedTherapistId || "").trim()) {
+      const occupant = await client.getDocument(therapistId);
+      if (occupant) {
+        sendJson(
+          response,
+          409,
+          {
+            error:
+              "A live therapist profile already exists with this derived id (same name, city, and state). Publishing would overwrite it. Use the dedupe flow to merge, or adjust the candidate's identity fields first.",
+            therapistId,
+          },
+          origin,
+          config,
+        );
+        return true;
+      }
+    }
     // Refresh the candidate's licensureVerification with what DCA returned
     // just now so the published therapist doc carries the freshest snapshot.
     if (reverifyResult && reverifyResult.licensureVerification) {

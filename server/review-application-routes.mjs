@@ -789,6 +789,31 @@ export async function handleApplicationRoutes(context) {
       application.submittedSlug ||
       slugify([application.name, application.city, application.state].filter(Boolean).join(" "));
     const therapistId = application.publishedTherapistId || `therapist-${slug}`;
+
+    // Collision guard: the id is derived from name+city+state, so two
+    // different providers can slugify to the same id. When this application
+    // hasn't published before (no publishedTherapistId) but a live doc
+    // already occupies the derived id, approving would createOrReplace —
+    // silently replacing someone ELSE's live profile. Refuse and make the
+    // admin disambiguate.
+    if (!String(application.publishedTherapistId || "").trim()) {
+      const occupant = await client.getDocument(therapistId);
+      if (occupant) {
+        sendJson(
+          response,
+          409,
+          {
+            error:
+              "A live therapist profile already exists with this derived id (same name, city, and state). Approving would overwrite it. Adjust the applicant's identity fields or resolve the duplicate first.",
+            therapistId,
+          },
+          origin,
+          config,
+        );
+        return true;
+      }
+    }
+
     const actorName = getAuthorizedActor(request, config) || "admin";
     const body = await parseBody(request);
 
