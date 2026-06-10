@@ -465,7 +465,7 @@ export function reviseApplication(applicationId, updates) {
 
   const nextApplications = applications.map(function (item) {
     if (item.id !== applicationId) return item;
-    var isClaimConversion =
+    const isClaimConversion =
       item.status === "approved" &&
       item.submission_intent === "claim" &&
       String(updates.submission_intent || "").trim() === "full_profile";

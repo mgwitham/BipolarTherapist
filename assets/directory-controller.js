@@ -5,16 +5,16 @@ import { countActiveFilters, readFilterStateFromControls } from "./directory-fil
 // `visibleCount` option still works for callers that haven't migrated,
 // when present, it overrides paging and acts as a hard slice cap
 // (existing load-more code paths and tests rely on this).
-export var DIRECTORY_PAGE_SIZE = 12;
+export const DIRECTORY_PAGE_SIZE = 12;
 
 export function buildDirectoryRenderState(options) {
-  var results = options.results || [];
-  var filters = options.filters || {};
-  var directoryPage = options.directoryPage || null;
+  const results = options.results || [];
+  const filters = options.filters || {};
+  const directoryPage = options.directoryPage || null;
 
-  var pageItems;
-  var totalPages = 1;
-  var currentPage = 1;
+  let pageItems;
+  let totalPages = 1;
+  let currentPage = 1;
   if (options.visibleCount && !options.currentPage) {
     // Legacy load-more callers, keep working until they migrate to
     // numbered pagination.
@@ -22,10 +22,10 @@ export function buildDirectoryRenderState(options) {
   } else {
     totalPages = Math.max(1, Math.ceil(results.length / DIRECTORY_PAGE_SIZE));
     currentPage = Math.max(1, Math.min(totalPages, Number(options.currentPage || 1)));
-    var start = (currentPage - 1) * DIRECTORY_PAGE_SIZE;
+    const start = (currentPage - 1) * DIRECTORY_PAGE_SIZE;
     pageItems = results.slice(start, start + DIRECTORY_PAGE_SIZE);
   }
-  var resultsSuffix = (directoryPage && directoryPage.resultsSuffix) || "specialists found";
+  const resultsSuffix = (directoryPage && directoryPage.resultsSuffix) || "specialists found";
 
   return {
     results: results,

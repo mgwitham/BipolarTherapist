@@ -34,14 +34,14 @@ const REASON_LINE_GENERIC = {
 };
 
 export function buildMatchReasonLine(therapist) {
-  var t = therapist || {};
-  var years = Number(t.bipolar_years_experience || 0);
+  const t = therapist || {};
+  const years = Number(t.bipolar_years_experience || 0);
   if (years > 0) {
     return years + " yr" + (years === 1 ? "" : "s") + " bipolar experience";
   }
-  var specs = Array.isArray(t.specialties) ? t.specialties : [];
-  for (var i = 0; i < specs.length; i++) {
-    var s = String(specs[i] || "").trim();
+  const specs = Array.isArray(t.specialties) ? t.specialties : [];
+  for (let i = 0; i < specs.length; i++) {
+    const s = String(specs[i] || "").trim();
     if (/bipolar|cycl|mixed/i.test(s) && !REASON_LINE_GENERIC[s.toLowerCase()]) {
       return s + " specialist";
     }
@@ -59,7 +59,7 @@ export function getPersonalizedCtaLabel(routeType) {
 
 export function countActiveRefinements(profile) {
   if (!profile) return 0;
-  var count = 0;
+  let count = 0;
   if (profile.insurance) count += 1;
   if (profile.care_format) count += 1;
   if (profile.budget_max) count += 1;
@@ -75,7 +75,7 @@ export function countActiveRefinements(profile) {
 
 export function buildActiveFilterChipsHtml(profile) {
   if (!profile) return "";
-  var chips = [];
+  const chips = [];
 
   // Only chip for an explicit format choice, "Either" is the model's
   // internal default for "Any" and should not surface as an active filter.
@@ -93,7 +93,7 @@ export function buildActiveFilterChipsHtml(profile) {
     chips.push({ key: "budget_max", label: "Under $" + profile.budget_max + "/session" });
   }
   if (profile.priority_mode && profile.priority_mode !== "Best overall fit") {
-    var modeLabels = {
+    const modeLabels = {
       "Soonest availability": "Soonest",
       "Lowest cost": "Affordable",
       "Highest specialization": "Most experienced",
@@ -112,7 +112,7 @@ export function buildActiveFilterChipsHtml(profile) {
 
   if (!chips.length) return "";
 
-  var xIcon =
+  const xIcon =
     '<svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true" width="9" height="9">' +
     '<line x1="2" y1="2" x2="8" y2="8"/><line x1="8" y1="2" x2="2" y2="8"/>' +
     "</svg>";
@@ -136,13 +136,13 @@ export function buildActiveFilterChipsHtml(profile) {
 }
 
 export function buildResultsHeaderHtml(profile, totalCount, options) {
-  var settings = options || {};
-  var mirrorSentence = settings.buildIntakeMirrorSentence
+  const settings = options || {};
+  const mirrorSentence = settings.buildIntakeMirrorSentence
     ? settings.buildIntakeMirrorSentence(profile)
     : "";
 
-  var activeCount = countActiveRefinements(profile);
-  var countBadge = activeCount
+  const activeCount = countActiveRefinements(profile);
+  const countBadge = activeCount
     ? '<span class="mx-refine-btn-count">' + activeCount + "</span>"
     : '<span class="mx-refine-btn-count" hidden>0</span>';
 
@@ -182,21 +182,21 @@ export function buildResultsHeaderHtml(profile, totalCount, options) {
 // Build the "How to reach out" disclosure for a match card.
 // Returns "" when the therapist has no contactable channel.
 export function buildMatchOutreachDisclosure(entry, options) {
-  var therapist = entry && entry.therapist ? entry.therapist : null;
+  const therapist = entry && entry.therapist ? entry.therapist : null;
   if (!therapist) return "";
-  var settings = options || {};
-  var expanded = settings.expanded === true;
-  var routeType = getPreferredRouteType(entry) || "";
-  var inner = renderOutreachPanelMarkup({
+  const settings = options || {};
+  const expanded = settings.expanded === true;
+  const routeType = getPreferredRouteType(entry) || "";
+  const inner = renderOutreachPanelMarkup({
     therapist: therapist,
     contactStrategy: routeType ? { route: routeType } : null,
     escapeHtml: escapeHtml,
     inline: expanded,
   });
   if (!inner) return "";
-  var slug = String(therapist.slug || "");
+  const slug = String(therapist.slug || "");
   if (expanded) {
-    var firstName = String(therapist.name || "").split(" ")[0] || "them";
+    const firstName = String(therapist.name || "").split(" ")[0] || "them";
     return (
       '<details open class="mx-outreach mx-outreach--expanded" data-mx-outreach="' +
       escapeHtml(slug) +
@@ -231,14 +231,14 @@ export function buildMatchOutreachDisclosure(entry, options) {
 }
 
 export function renderLeadResultCard(entry, options) {
-  var settings = options || {};
-  var therapist = entry.therapist || {};
-  var preferredRoute = settings.getPreferredOutreach(entry);
-  var routeType = getPreferredRouteType(entry);
-  var ctaLabel = getPersonalizedCtaLabel(routeType);
-  var reasonLine = buildMatchReasonLine(therapist);
+  const settings = options || {};
+  const therapist = entry.therapist || {};
+  const preferredRoute = settings.getPreferredOutreach(entry);
+  const routeType = getPreferredRouteType(entry);
+  const ctaLabel = getPersonalizedCtaLabel(routeType);
+  const reasonLine = buildMatchReasonLine(therapist);
 
-  var topMatchLabel = settings.showBestBadge
+  const topMatchLabel = settings.showBestBadge
     ? '<span class="mx-top-match-label">Best fit for what you described</span>'
     : "";
 
@@ -287,12 +287,12 @@ export function renderLeadResultCard(entry, options) {
 }
 
 export function renderSupportingResultCard(entry, options) {
-  var settings = options || {};
-  var therapist = entry.therapist || {};
-  var preferredRoute = settings.getPreferredOutreach(entry);
-  var routeType = getPreferredRouteType(entry);
-  var ctaLabel = getPersonalizedCtaLabel(routeType);
-  var reasonLine = buildMatchReasonLine(therapist);
+  const settings = options || {};
+  const therapist = entry.therapist || {};
+  const preferredRoute = settings.getPreferredOutreach(entry);
+  const routeType = getPreferredRouteType(entry);
+  const ctaLabel = getPersonalizedCtaLabel(routeType);
+  const reasonLine = buildMatchReasonLine(therapist);
   return (
     '<article class="bth-card">' +
     '<div class="bth-card-header">' +
@@ -340,14 +340,14 @@ export function renderSupportingResultCard(entry, options) {
 // runner-ups, "show more", refine bar, compare trigger). Returns "" when
 // no contactable entries remain; the caller owns the DOM write + wiring.
 export function buildPrimaryMatchCardsMarkup(entries, profile, services) {
-  var settings = services || {};
-  var isAsap = profile && String(profile.urgency || "").toUpperCase() === "ASAP";
+  const settings = services || {};
+  const isAsap = profile && String(profile.urgency || "").toUpperCase() === "ASAP";
 
   // Hide entries with no working contact method, never render a card whose
   // only action would 404 or dead-end. A card must have at least one of:
   // booking_url, website, phone, or email.
   // When urgency is ASAP, also exclude therapists who are not accepting new patients.
-  var allEntries = (entries || [])
+  const allEntries = (entries || [])
     .filter(function (entry) {
       if (!settings.getPreferredOutreach(entry)) return false;
       if (isAsap && entry.therapist && entry.therapist.accepting_new_patients === false) {
@@ -361,18 +361,18 @@ export function buildPrimaryMatchCardsMarkup(entries, profile, services) {
     return { html: "", allEntries: [], leadEntry: null };
   }
 
-  var leadEntry = allEntries[0];
-  var runnerUps = allEntries.slice(1, 5); // ranks 2-5, 2×2 grid, always visible
-  var moreEntries = allEntries.slice(5); // ranks 6+, hidden behind Show more
+  const leadEntry = allEntries[0];
+  const runnerUps = allEntries.slice(1, 5); // ranks 2-5, 2×2 grid, always visible
+  const moreEntries = allEntries.slice(5); // ranks 6+, hidden behind Show more
 
   // Only show the "Best match" badge when rank 1 materially beats rank 2.
-  var leadScore = leadEntry && typeof leadEntry.score === "number" ? leadEntry.score : null;
-  var runnerScore =
+  const leadScore = leadEntry && typeof leadEntry.score === "number" ? leadEntry.score : null;
+  const runnerScore =
     runnerUps[0] && typeof runnerUps[0].score === "number" ? runnerUps[0].score : null;
-  var showBestBadge =
+  const showBestBadge =
     leadScore !== null && runnerScore !== null ? leadScore - runnerScore > 0.05 : true;
 
-  var runnersHtml = runnerUps.length
+  const runnersHtml = runnerUps.length
     ? '<div class="mx-runners">' +
       runnerUps
         .map(function (entry) {
@@ -382,7 +382,7 @@ export function buildPrimaryMatchCardsMarkup(entries, profile, services) {
       "</div>"
     : "";
 
-  var moreHtml = moreEntries.length
+  const moreHtml = moreEntries.length
     ? '<section class="mx-more-cards" hidden>' +
       moreEntries
         .map(function (entry) {
@@ -400,19 +400,19 @@ export function buildPrimaryMatchCardsMarkup(entries, profile, services) {
       "</div>"
     : "";
 
-  var compareTriggerHtml =
+  const compareTriggerHtml =
     allEntries.length >= 2
       ? '<div class="mx-compare-trigger-wrap">' +
         '<button type="button" class="mx-compare-trigger" id="matchCompareTrigger">Compare these</button>' +
         "</div>"
       : "";
 
-  var noFitLinkHtml =
+  const noFitLinkHtml =
     '<div id="matchNoFitLink" class="mx-no-fit-link-wrap">' +
     '<button type="button" class="mx-no-fit-link" id="matchNoFitOpen">Not seeing the right fit?</button>' +
     "</div>";
 
-  var refineBarHtml =
+  const refineBarHtml =
     '<div class="mx-refine-bar">' +
     '<button type="button" class="mx-refine-bar-btn" data-mx-refine-open="bar">' +
     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true" width="16" height="16">' +
@@ -426,7 +426,7 @@ export function buildPrimaryMatchCardsMarkup(entries, profile, services) {
     "</button>" +
     "</div>";
 
-  var html =
+  const html =
     '<div class="results-panel">' +
     buildResultsHeaderHtml(profile, allEntries.length, {
       buildIntakeMirrorSentence: settings.buildIntakeMirrorSentence,

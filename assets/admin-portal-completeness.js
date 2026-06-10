@@ -11,7 +11,7 @@ import {
 } from "../shared/portal-completeness-registry.mjs";
 
 // Per-session nudge tracking so the button reflects "Sent" without a page reload.
-let _portalNudgeSent = {};
+const _portalNudgeSent = {};
 
 // Preview-before-send for the completeness nudge. Thin wrapper over the
 // shared campaign modal with this campaign's copy + API functions.

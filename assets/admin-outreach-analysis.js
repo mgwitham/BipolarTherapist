@@ -1,6 +1,6 @@
 export function analyzeConciergePatterns(requests) {
-  var entries = Array.isArray(requests) ? requests : [];
-  var totals = {
+  const entries = Array.isArray(requests) ? requests : [];
+  const totals = {
     insurance: 0,
     availability: 0,
     medication: 0,
@@ -9,7 +9,7 @@ export function analyzeConciergePatterns(requests) {
   };
 
   entries.forEach(function (request) {
-    var haystack = [
+    const haystack = [
       request.help_topic || "",
       request.request_note || "",
       request.request_summary || "",
@@ -82,7 +82,7 @@ export function analyzeConciergePatterns(requests) {
 }
 
 export function analyzeOutreachOutcomes(outcomes) {
-  var entries = Array.isArray(outcomes) ? outcomes : [];
+  const entries = Array.isArray(outcomes) ? outcomes : [];
   return {
     reached_out: entries.filter(function (item) {
       return item.outcome === "reached_out";

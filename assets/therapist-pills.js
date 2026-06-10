@@ -4,10 +4,10 @@ function cleanList(items) {
   if (!Array.isArray(items)) {
     return [];
   }
-  var seen = Object.create(null);
-  var out = [];
-  for (var i = 0; i < items.length; i += 1) {
-    var value = String(items[i] == null ? "" : items[i]).trim();
+  const seen = Object.create(null);
+  const out = [];
+  for (let i = 0; i < items.length; i += 1) {
+    const value = String(items[i] == null ? "" : items[i]).trim();
     if (!value || seen[value.toLowerCase()]) continue;
     seen[value.toLowerCase()] = true;
     out.push(value);
@@ -16,13 +16,13 @@ function cleanList(items) {
 }
 
 function buildYearsPill(therapist) {
-  var years = Number(therapist.bipolar_years_experience || 0);
+  const years = Number(therapist.bipolar_years_experience || 0);
   if (!years) return null;
   return { key: "years", label: years + " yrs bipolar care" };
 }
 
 function buildInsurancePill(therapist) {
-  var list = cleanList(therapist.insurance_accepted);
+  const list = cleanList(therapist.insurance_accepted);
   if (!list.length) return null;
   if (list.length === 1) {
     return { key: "insurance", label: list[0] };
@@ -37,8 +37,8 @@ function buildInsurancePill(therapist) {
 }
 
 function buildFormatPill(therapist) {
-  var telehealth = Boolean(therapist.accepts_telehealth);
-  var inPerson = Boolean(therapist.accepts_in_person);
+  const telehealth = Boolean(therapist.accepts_telehealth);
+  const inPerson = Boolean(therapist.accepts_in_person);
   if (!telehealth && !inPerson) return null;
   if (telehealth && inPerson) {
     return {
@@ -53,7 +53,7 @@ function buildFormatPill(therapist) {
 }
 
 function buildPopulationPill(therapist) {
-  var list = cleanList(therapist.client_populations);
+  const list = cleanList(therapist.client_populations);
   if (!list.length) return null;
   if (list.length === 1) {
     return { key: "population", label: list[0] };
@@ -68,12 +68,12 @@ function buildPopulationPill(therapist) {
 }
 
 function buildFeePill(therapist) {
-  var min = therapist.session_fee_min;
-  var max = therapist.session_fee_max;
+  const min = therapist.session_fee_min;
+  const max = therapist.session_fee_max;
   if (min || max) {
-    var low = min || max;
-    var high = max && String(max) !== String(low) ? max : null;
-    var label = "$" + String(low) + (high ? "–$" + String(high) : "") + "/Session";
+    const low = min || max;
+    const high = max && String(max) !== String(low) ? max : null;
+    const label = "$" + String(low) + (high ? "–$" + String(high) : "") + "/Session";
     return { key: "fee", label: label };
   }
   if (therapist.sliding_scale) {
@@ -83,7 +83,7 @@ function buildFeePill(therapist) {
 }
 
 function buildLanguagesPill(therapist) {
-  var list = cleanList(therapist.languages);
+  const list = cleanList(therapist.languages);
   if (!list.length) return null;
   if (list.length === 1) {
     return { key: "languages", label: list[0] };
@@ -99,7 +99,7 @@ function buildLanguagesPill(therapist) {
 
 export function buildTherapistValuePills(therapist) {
   if (!therapist) return [];
-  var builders = [
+  const builders = [
     buildYearsPill,
     buildInsurancePill,
     buildFormatPill,
@@ -107,32 +107,32 @@ export function buildTherapistValuePills(therapist) {
     buildFeePill,
     buildLanguagesPill,
   ];
-  var out = [];
-  for (var i = 0; i < builders.length; i += 1) {
-    var pill = builders[i](therapist);
+  const out = [];
+  for (let i = 0; i < builders.length; i += 1) {
+    const pill = builders[i](therapist);
     if (pill) out.push(pill);
   }
   return out;
 }
 
-var pillDataStore = new Map();
-var pillDataCounter = 0;
+const pillDataStore = new Map();
+let pillDataCounter = 0;
 
 function storePillPayload(payload) {
   pillDataCounter += 1;
-  var id = "vp-" + pillDataCounter;
+  const id = "vp-" + pillDataCounter;
   pillDataStore.set(id, payload);
   return id;
 }
 
 export function renderValuePillRow(therapist, pillClass) {
-  var pills = buildTherapistValuePills(therapist);
+  const pills = buildTherapistValuePills(therapist);
   if (!pills.length) return "";
-  var baseClass = pillClass || "value-pill";
+  const baseClass = pillClass || "value-pill";
   return pills
     .map(function (pill) {
       if (pill.items && pill.items.length) {
-        var payloadId = storePillPayload({ title: pill.title || "", items: pill.items });
+        const payloadId = storePillPayload({ title: pill.title || "", items: pill.items });
         return (
           '<button type="button" class="' +
           escapeHtml(baseClass) +
@@ -151,9 +151,9 @@ export function renderValuePillRow(therapist, pillClass) {
     .join("");
 }
 
-var popoverEl = null;
-var popoverTrigger = null;
-var popoverInitialized = false;
+let popoverEl = null;
+let popoverTrigger = null;
+let popoverInitialized = false;
 
 function ensurePopover() {
   if (popoverEl) return popoverEl;
@@ -168,13 +168,13 @@ function ensurePopover() {
 
 function positionPopover(trigger) {
   if (!popoverEl) return;
-  var rect = trigger.getBoundingClientRect();
-  var scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
-  var scrollX = window.pageXOffset || document.documentElement.scrollLeft || 0;
+  const rect = trigger.getBoundingClientRect();
+  const scrollY = window.pageYOffset || document.documentElement.scrollTop || 0;
+  const scrollX = window.pageXOffset || document.documentElement.scrollLeft || 0;
   popoverEl.style.top = rect.bottom + scrollY + 6 + "px";
-  var width = popoverEl.offsetWidth || 240;
-  var left = rect.left + scrollX;
-  var maxLeft = scrollX + document.documentElement.clientWidth - width - 12;
+  const width = popoverEl.offsetWidth || 240;
+  let left = rect.left + scrollX;
+  const maxLeft = scrollX + document.documentElement.clientWidth - width - 12;
   if (left > maxLeft) left = maxLeft;
   if (left < scrollX + 12) left = scrollX + 12;
   popoverEl.style.left = left + "px";
@@ -196,15 +196,15 @@ function closePopover() {
 }
 
 function openPopover(trigger) {
-  var payloadId = trigger.getAttribute("data-value-pill");
+  const payloadId = trigger.getAttribute("data-value-pill");
   if (!payloadId) return;
-  var payload = pillDataStore.get(payloadId);
+  const payload = pillDataStore.get(payloadId);
   if (!payload) return;
   ensurePopover();
-  var titleHtml = payload.title
+  const titleHtml = payload.title
     ? '<h4 class="value-pill-popover-title">' + escapeHtml(payload.title) + "</h4>"
     : "";
-  var listHtml = payload.items
+  const listHtml = payload.items
     .map(function (item) {
       return "<li>" + escapeHtml(item) + "</li>";
     })
@@ -217,9 +217,9 @@ function openPopover(trigger) {
 }
 
 function handleDocumentClick(event) {
-  var target = event.target;
+  const target = event.target;
   if (!target || typeof target.closest !== "function") return;
-  var trigger = target.closest("[data-value-pill]");
+  const trigger = target.closest("[data-value-pill]");
   if (trigger) {
     event.preventDefault();
     if (popoverTrigger === trigger) {

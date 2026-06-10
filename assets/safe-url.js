@@ -25,10 +25,10 @@ function originBase() {
 // relative links relative; only the effective scheme is validated, which
 // the browser parses the same way when it follows the href.
 export function safeExternalUrl(value) {
-  var raw = String(value == null ? "" : value).trim();
+  const raw = String(value == null ? "" : value).trim();
   if (!raw) return "";
   try {
-    var url = new URL(raw, originBase());
+    const url = new URL(raw, originBase());
     return url.protocol === "http:" || url.protocol === "https:" ? raw : "";
   } catch (_error) {
     return "";
@@ -36,20 +36,20 @@ export function safeExternalUrl(value) {
 }
 
 export function safeStripeRedirectUrl(value) {
-  var raw = String(value == null ? "" : value).trim();
+  const raw = String(value == null ? "" : value).trim();
   if (!raw) return "";
   try {
-    var url = new URL(raw, originBase());
+    const url = new URL(raw, originBase());
     if (url.protocol !== "https:") return "";
-    var host = url.hostname.toLowerCase();
-    var isStripe = host === "stripe.com" || host.endsWith(".stripe.com");
-    var selfHost = "";
+    const host = url.hostname.toLowerCase();
+    const isStripe = host === "stripe.com" || host.endsWith(".stripe.com");
+    let selfHost = "";
     try {
       selfHost = window.location.hostname.toLowerCase();
     } catch (_error) {
       selfHost = "";
     }
-    var isSelf = Boolean(selfHost) && host === selfHost;
+    const isSelf = Boolean(selfHost) && host === selfHost;
     return isStripe || isSelf ? url.href : "";
   } catch (_error) {
     return "";

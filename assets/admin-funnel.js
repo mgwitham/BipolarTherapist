@@ -112,11 +112,11 @@ function buildFunnelRow(events, steps, window) {
 function formatPercentWithCi(successes, total, options) {
   options = options || {};
   if (!total) return "";
-  var ci = wilsonInterval(successes, total);
-  var pct = Math.round((successes / total) * 100);
+  const ci = wilsonInterval(successes, total);
+  const pct = Math.round((successes / total) * 100);
   // Below this floor, the confidence band is so wide that quoting a
   // point estimate misleads the eye. Show "too few" instead.
-  var minN = options.minN || 10;
+  const minN = options.minN || 10;
   if (total < minN) {
     return (
       '<span class="admin-funnel-low-n">' + pct + "% (n=" + total + ", too few sessions)</span>"
@@ -139,10 +139,10 @@ function formatPercentWithCi(successes, total, options) {
 // with conversion once data accumulates. Every percentage carries a
 // 95% Wilson CI so a tiny N doesn't look like a real signal.
 function renderMatchConversion(events) {
-  var cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-  var sessions = events.filter(function (e) {
+  const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const sessions = events.filter(function (e) {
     if (e.type !== "match_session_outcome") return false;
-    var at = new Date(e.occurredAt || 0).getTime();
+    const at = new Date(e.occurredAt || 0).getTime();
     return Number.isFinite(at) && at >= cutoff;
   });
 
@@ -150,17 +150,17 @@ function renderMatchConversion(events) {
     return '<p class="admin-funnel-empty">No match sessions logged yet. The metric appears here once /match.html sees its first visitor with results.</p>';
   }
 
-  var outcomes = { contacted: 0, explored: 0, bounced: 0 };
-  var photoBuckets = {
+  const outcomes = { contacted: 0, explored: 0, bounced: 0 };
+  const photoBuckets = {
     with_photo: { sessions: 0, contacted: 0 },
     without_photo: { sessions: 0, contacted: 0 },
   };
-  var totalContactClicks = 0;
-  var totalProfileClicks = 0;
+  let totalContactClicks = 0;
+  let totalProfileClicks = 0;
 
   sessions.forEach(function (event) {
-    var p = parsePayload(event.payload);
-    var outcome = p.outcome || "bounced";
+    const p = parsePayload(event.payload);
+    const outcome = p.outcome || "bounced";
     if (outcomes[outcome] !== undefined) {
       outcomes[outcome] += 1;
     } else {
@@ -168,23 +168,23 @@ function renderMatchConversion(events) {
     }
     totalContactClicks += Number(p.contact_clicks || 0);
     totalProfileClicks += Number(p.profile_clicks || 0);
-    var bucket = p.top_has_photo ? photoBuckets.with_photo : photoBuckets.without_photo;
+    const bucket = p.top_has_photo ? photoBuckets.with_photo : photoBuckets.without_photo;
     bucket.sessions += 1;
     if (p.contact_clicks > 0) bucket.contacted += 1;
   });
 
-  var total = sessions.length;
+  const total = sessions.length;
 
-  var photoLine = "";
+  let photoLine = "";
   if (photoBuckets.with_photo.sessions || photoBuckets.without_photo.sessions) {
-    var w = photoBuckets.with_photo;
-    var n = photoBuckets.without_photo;
-    var diffNote;
+    const w = photoBuckets.with_photo;
+    const n = photoBuckets.without_photo;
+    let diffNote;
     if (w.sessions < 10 || n.sessions < 10) {
       diffNote = " Need ≥10 sessions per arm before reading the difference.";
     } else if (proportionsAreSeparated(w.contacted, w.sessions, n.contacted, n.sessions)) {
-      var wCenter = wilsonInterval(w.contacted, w.sessions).center;
-      var nCenter = wilsonInterval(n.contacted, n.sessions).center;
+      const wCenter = wilsonInterval(w.contacted, w.sessions).center;
+      const nCenter = wilsonInterval(n.contacted, n.sessions).center;
       diffNote =
         wCenter > nCenter
           ? ' <strong class="admin-funnel-signal">Photo signal: significant.</strong>'
@@ -339,16 +339,16 @@ function renderHeadlineCounts(events) {
 }
 
 function renderWaitlistByState(events) {
-  var signups = events.filter(function (e) {
+  const signups = events.filter(function (e) {
     return e.type === "waitlist_signup";
   });
   if (!signups.length) {
     return '<p class="admin-funnel-empty">No out-of-state waitlist signups yet.</p>';
   }
-  var byState = {};
+  const byState = {};
   signups.forEach(function (e) {
-    var p = parsePayload(e.payload);
-    var state = (p && p.state) || "";
+    const p = parsePayload(e.payload);
+    const state = (p && p.state) || "";
     if (!byState[state]) byState[state] = { count: 0, recent: [] };
     byState[state].count += 1;
     if (byState[state].recent.length < 5) {
@@ -358,13 +358,13 @@ function renderWaitlistByState(events) {
       });
     }
   });
-  var sorted = Object.keys(byState).sort(function (a, b) {
+  const sorted = Object.keys(byState).sort(function (a, b) {
     return byState[b].count - byState[a].count;
   });
-  var rows = sorted
+  const rows = sorted
     .map(function (state) {
-      var bucket = byState[state];
-      var recentBits = bucket.recent
+      const bucket = byState[state];
+      const recentBits = bucket.recent
         .map(function (r) {
           return (
             escapeHtml(r.email) +

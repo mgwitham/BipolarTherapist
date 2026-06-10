@@ -503,8 +503,8 @@ async function submitIntake(form, status) {
       // (or wrong-board entry — e.g., a PSY number typed without
       // the prefix) is fast to diagnose. Falls back to the older
       // generic copy if the server returned its own error.
-      var detectedBoard = detectLicenseBoard(licenseNumber);
-      var defaultMsg =
+      const detectedBoard = detectLicenseBoard(licenseNumber);
+      const defaultMsg =
         "We couldn't verify license " +
         licenseNumber +
         (detectedBoard ? " on the " + detectedBoard.board : "") +

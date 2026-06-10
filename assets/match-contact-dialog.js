@@ -10,7 +10,7 @@ export function getDomainFromUrl(url) {
 }
 
 export function formatPhoneDisplay(phone) {
-  var digits = String(phone || "").replace(/[^\d]/g, "");
+  let digits = String(phone || "").replace(/[^\d]/g, "");
   if (digits.length === 11 && digits.charAt(0) === "1") {
     digits = digits.slice(1);
   }
@@ -21,9 +21,9 @@ export function formatPhoneDisplay(phone) {
 }
 
 export function getContactRoutes(entry) {
-  var therapist = (entry && entry.therapist) || {};
-  var routes = [];
-  var telLink = phoneHref(therapist.phone);
+  const therapist = (entry && entry.therapist) || {};
+  const routes = [];
+  const telLink = phoneHref(therapist.phone);
   if (telLink) {
     routes.push({
       type: "phone",
@@ -34,7 +34,7 @@ export function getContactRoutes(entry) {
     });
   }
   if (therapist.email && therapist.email !== "contact@example.com") {
-    var mailLink = emailHref(therapist.email);
+    const mailLink = emailHref(therapist.email);
     if (mailLink) {
       routes.push({
         type: "email",
@@ -45,7 +45,7 @@ export function getContactRoutes(entry) {
       });
     }
   }
-  var bookingHref = publicHttpUrl(therapist.booking_url);
+  const bookingHref = publicHttpUrl(therapist.booking_url);
   if (bookingHref) {
     routes.push({
       type: "booking",
@@ -55,7 +55,7 @@ export function getContactRoutes(entry) {
       raw: bookingHref,
     });
   }
-  var siteHref = publicHttpUrl(therapist.website);
+  const siteHref = publicHttpUrl(therapist.website);
   if (siteHref) {
     routes.push({
       type: "website",
@@ -71,7 +71,7 @@ export function getContactRoutes(entry) {
 // Maps the frontend's snake_case therapist viewmodel to the camelCase
 // shape the shared contact-modal module accepts.
 function toSharedContactTherapist(therapist) {
-  var t = therapist || {};
+  const t = therapist || {};
   return {
     name: t.name || "",
     phone: t.phone || "",
@@ -83,9 +83,9 @@ function toSharedContactTherapist(therapist) {
 }
 
 export function renderContactDialogBody(entry, options) {
-  var settings = options || {};
-  var therapist = (entry && entry.therapist) || {};
-  var result = buildContactModalContent(toSharedContactTherapist(therapist), {
+  const settings = options || {};
+  const therapist = (entry && entry.therapist) || {};
+  const result = buildContactModalContent(toSharedContactTherapist(therapist), {
     isMobile: settings.isMobile === true,
   });
   return result.html;

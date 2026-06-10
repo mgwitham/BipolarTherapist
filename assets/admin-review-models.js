@@ -4,7 +4,7 @@ export function createAdminReviewModels(dependencies) {
       return null;
     }
 
-    var therapistPool =
+    const therapistPool =
       dependencies.getDataMode() === "sanity"
         ? dependencies.getPublishedTherapists()
         : dependencies.getTherapists();
@@ -12,10 +12,10 @@ export function createAdminReviewModels(dependencies) {
       return null;
     }
 
-    var targetId = String(item.target_therapist_id || "").trim();
-    var targetSlug = String(item.target_therapist_slug || item.slug || "").trim();
-    var providerId = String(item.provider_id || item.providerId || "").trim();
-    var email = String(item.email || "")
+    const targetId = String(item.target_therapist_id || "").trim();
+    const targetSlug = String(item.target_therapist_slug || item.slug || "").trim();
+    const providerId = String(item.provider_id || item.providerId || "").trim();
+    const email = String(item.email || "")
       .trim()
       .toLowerCase();
 
@@ -40,7 +40,7 @@ export function createAdminReviewModels(dependencies) {
       return [];
     }
 
-    var rows = [
+    const rows = [
       {
         fieldKey: "credentials",
         label: "Credentials",
@@ -193,9 +193,9 @@ export function createAdminReviewModels(dependencies) {
 
     return rows
       .map(function (row) {
-        var applicationValue = row.application || "";
-        var liveValue = row.live || "";
-        var status =
+        const applicationValue = row.application || "";
+        const liveValue = row.live || "";
+        const status =
           applicationValue && liveValue
             ? applicationValue === liveValue
               ? "match"
@@ -219,7 +219,7 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getApplicationDiffSummary(rows) {
-    var changed = rows.filter(function (row) {
+    const changed = rows.filter(function (row) {
       return row.status === "changed" || row.status === "new" || row.status === "missing";
     });
     if (!changed.length) {
@@ -234,8 +234,8 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getLastAppliedLiveFieldsEntry(item) {
-    var history = Array.isArray(item && item.revision_history) ? item.revision_history : [];
-    for (var index = history.length - 1; index >= 0; index -= 1) {
+    const history = Array.isArray(item && item.revision_history) ? item.revision_history : [];
+    for (let index = history.length - 1; index >= 0; index -= 1) {
       if (history[index] && history[index].type === "applied_live_fields") {
         return history[index];
       }
@@ -258,35 +258,35 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function renderApplicationDiffHtml(item, therapist) {
-    var rows = buildApplicationDiffRows(item, therapist);
+    const rows = buildApplicationDiffRows(item, therapist);
     if (!rows.length) {
       return "";
     }
-    var summary = getApplicationDiffSummary(rows);
-    var matchedRows = rows.filter(function (row) {
+    const summary = getApplicationDiffSummary(rows);
+    const matchedRows = rows.filter(function (row) {
       return row.status === "match";
     });
-    var changedRows = rows.filter(function (row) {
+    const changedRows = rows.filter(function (row) {
       return row.status === "changed" || row.status === "new" || row.status === "missing";
     });
-    var trustCriticalRows = changedRows.filter(function (row) {
+    const trustCriticalRows = changedRows.filter(function (row) {
       return isTrustCriticalApplicationField(row.fieldKey);
     });
-    var lastAppliedEntry = getLastAppliedLiveFieldsEntry(item);
-    var syncProgressText =
+    const lastAppliedEntry = getLastAppliedLiveFieldsEntry(item);
+    const syncProgressText =
       matchedRows.length + " of " + rows.length + " core fields already match the live profile.";
-    var lastAppliedHtml = lastAppliedEntry
+    const lastAppliedHtml = lastAppliedEntry
       ? '<div class="mini-status" style="margin-top:0.55rem"><strong>Last applied:</strong> ' +
         dependencies.escapeHtml(
           lastAppliedEntry.message || "Live fields were applied on the previous review pass.",
         ) +
         "</div>"
       : "";
-    var syncProgressHtml =
+    const syncProgressHtml =
       '<div class="mini-status" style="margin-top:0.55rem"><strong>Sync progress:</strong> ' +
       dependencies.escapeHtml(syncProgressText) +
       "</div>";
-    var remainingDiffHtml = changedRows.length
+    const remainingDiffHtml = changedRows.length
       ? '<div class="mini-status" style="margin-top:0.55rem"><strong>Still different:</strong> ' +
         dependencies.escapeHtml(
           changedRows
@@ -297,7 +297,7 @@ export function createAdminReviewModels(dependencies) {
         ) +
         "</div>"
       : '<div class="mini-status" style="margin-top:0.55rem"><strong>Live sync:</strong> No remaining differences across the core operational fields shown here.</div>';
-    var trustCriticalHtml = trustCriticalRows.length
+    const trustCriticalHtml = trustCriticalRows.length
       ? '<div class="mini-status" style="margin-top:0.55rem"><strong>High-value changes:</strong> ' +
         dependencies.escapeHtml(
           trustCriticalRows
@@ -308,8 +308,8 @@ export function createAdminReviewModels(dependencies) {
         ) +
         "</div>"
       : "";
-    var recentApplySummary = dependencies.applicationLiveApplySummaries()[item.id] || null;
-    var recentApplyHtml = recentApplySummary
+    const recentApplySummary = dependencies.applicationLiveApplySummaries()[item.id] || null;
+    const recentApplyHtml = recentApplySummary
       ? '<div class="mini-status" style="margin-top:0.55rem"><strong>Just updated:</strong> ' +
         dependencies.escapeHtml(recentApplySummary.message) +
         "</div>"
@@ -334,7 +334,7 @@ export function createAdminReviewModels(dependencies) {
       '"></div><div class="candidate-compare-grid" style="margin-top:0.75rem">' +
       rows
         .map(function (row) {
-          var isSelectable = row.status !== "match";
+          const isSelectable = row.status !== "match";
           return (
             '<div class="candidate-compare-card"><div class="mini-status"><strong>' +
             (isSelectable
@@ -384,13 +384,13 @@ export function createAdminReviewModels(dependencies) {
     if (!item || !therapist) {
       return null;
     }
-    var rows = buildApplicationDiffRows(item, therapist);
+    const rows = buildApplicationDiffRows(item, therapist);
     if (!rows.length) {
       return null;
     }
-    var lastAppliedEntry = getLastAppliedLiveFieldsEntry(item);
-    var recentApplySummary = dependencies.applicationLiveApplySummaries()[item.id] || null;
-    var changedCount = rows.filter(function (row) {
+    const lastAppliedEntry = getLastAppliedLiveFieldsEntry(item);
+    const recentApplySummary = dependencies.applicationLiveApplySummaries()[item.id] || null;
+    const changedCount = rows.filter(function (row) {
       return row.status === "changed" || row.status === "new" || row.status === "missing";
     }).length;
     return {
@@ -408,18 +408,18 @@ export function createAdminReviewModels(dependencies) {
     if (!id || !application || !therapist) {
       return null;
     }
-    var rows = buildApplicationDiffRows(application, therapist);
-    var changedCount = rows.filter(function (row) {
+    const rows = buildApplicationDiffRows(application, therapist);
+    const changedCount = rows.filter(function (row) {
       return row.status === "changed" || row.status === "new" || row.status === "missing";
     }).length;
-    var labels = rows
+    const labels = rows
       .filter(function (row) {
         return Array.isArray(appliedFields) && appliedFields.includes(row.fieldKey);
       })
       .map(function (row) {
         return row.label;
       });
-    var labelText = labels.length ? labels.join(", ") : "selected live fields";
+    const labelText = labels.length ? labels.join(", ") : "selected live fields";
     return {
       tagLabel:
         "Updated " +
@@ -440,19 +440,19 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getApplicationReviewSnapshot(item) {
-    var readiness = dependencies.getTherapistMatchReadiness(item);
-    var isConfirmationRefresh = dependencies.isConfirmationRefreshApplication(item);
-    var isClaimConversion =
+    const readiness = dependencies.getTherapistMatchReadiness(item);
+    const isConfirmationRefresh = dependencies.isConfirmationRefreshApplication(item);
+    const isClaimConversion =
       item &&
       ["profile_submitted_after_claim", "profile_in_review_after_claim"].includes(
         item.portal_state,
       );
-    var claimFollowUpUrgency = dependencies.getClaimFollowUpUrgency(item);
-    var afterClaimReviewStall = dependencies.getAfterClaimReviewStall(item);
-    var missingCriticalFields = [];
-    var photoSourceType = item.photo_source_type || "";
-    var hasPhotoAsset = Boolean(item.photo_url);
-    var preferredPhotoSource = dependencies.hasPreferredPhotoSource(photoSourceType);
+    const claimFollowUpUrgency = dependencies.getClaimFollowUpUrgency(item);
+    const afterClaimReviewStall = dependencies.getAfterClaimReviewStall(item);
+    const missingCriticalFields = [];
+    const photoSourceType = item.photo_source_type || "";
+    const hasPhotoAsset = Boolean(item.photo_url);
+    const preferredPhotoSource = dependencies.hasPreferredPhotoSource(photoSourceType);
 
     if (!item.license_number) missingCriticalFields.push("license number");
     if (!item.preferred_contact_label) missingCriticalFields.push("CTA label");
@@ -465,9 +465,9 @@ export function createAdminReviewModels(dependencies) {
       missingCriticalFields.push("headshot source");
     }
 
-    var focus = "active_review";
-    var label = "Active review";
-    var note =
+    let focus = "active_review";
+    let label = "Active review";
+    let note =
       "Keep tightening the operational truth and make a clear decision on publish versus request changes.";
 
     if (claimFollowUpUrgency.tone === "urgent") {
@@ -540,9 +540,9 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getApplicationPriorityScore(item) {
-    var snapshot = getApplicationReviewSnapshot(item);
-    var readiness = dependencies.getTherapistMatchReadiness(item);
-    var score = 0;
+    const snapshot = getApplicationReviewSnapshot(item);
+    const readiness = dependencies.getTherapistMatchReadiness(item);
+    let score = 0;
     if (snapshot.focus === "claim_follow_up_due") score += 145;
     else if (snapshot.focus === "stalled_after_claim_review") score += 138;
     else if (snapshot.focus === "claim_conversion") score += 130;
@@ -622,8 +622,8 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getGoalAdjustedApplicationPriorityScore(item, goal) {
-    var snapshot = getApplicationReviewSnapshot(item);
-    var score = getApplicationPriorityScore(item);
+    const snapshot = getApplicationReviewSnapshot(item);
+    let score = getApplicationPriorityScore(item);
     if (goal === "publish_now") {
       if (snapshot.focus === "claim_follow_up_due") score += 120;
       else if (snapshot.focus === "stalled_after_claim_review") score += 115;
@@ -648,7 +648,7 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getApplicationBatchReason(item, goal) {
-    var snapshot = getApplicationReviewSnapshot(item);
+    const snapshot = getApplicationReviewSnapshot(item);
     if (goal === "publish_now") {
       if (snapshot.focus === "claim_follow_up_due")
         return "This approved claim is already overdue for follow-up, so it is the fastest place to prevent drop-off in the therapist funnel.";
@@ -710,7 +710,7 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getApplicationFilterChips() {
-    var chips = [];
+    const chips = [];
     if (dependencies.applicationFilters.status) {
       chips.push(
         "Status: " + dependencies.formatStatusLabel(dependencies.applicationFilters.status),
@@ -775,7 +775,7 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getCandidateOpsEvidence(item) {
-    var evidence = [];
+    const evidence = [];
     if (typeof item.readiness_score === "number")
       evidence.push("Readiness " + item.readiness_score + "/100");
     if (typeof item.dedupe_confidence === "number")
@@ -785,12 +785,12 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getCandidateTrustSummary(item) {
-    var strong = [];
-    var attention = [];
-    var hasSourceTrail =
+    const strong = [];
+    const attention = [];
+    const hasSourceTrail =
       Boolean(item.source_url) ||
       (Array.isArray(item.supporting_source_urls) && item.supporting_source_urls.length);
-    var extractionConfidence = Number(item.extraction_confidence || 0);
+    const extractionConfidence = Number(item.extraction_confidence || 0);
 
     if (hasSourceTrail) strong.push("Source trail");
     else attention.push("Source trail");
@@ -811,8 +811,8 @@ export function createAdminReviewModels(dependencies) {
     }
     if (item.dedupe_status === "definite_duplicate") attention.unshift("Confirmed duplicate");
     else if (item.dedupe_status === "possible_duplicate") attention.unshift("Duplicate risk");
-    var watchFields = attention.slice(0, 3);
-    var headline = watchFields.length
+    const watchFields = attention.slice(0, 3);
+    const headline = watchFields.length
       ? "Watch " + watchFields.join(", ")
       : strong.length
         ? "Strong on " + strong.slice(0, 2).join(", ")
@@ -821,7 +821,7 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getCandidateTrustRecommendation(item, summary) {
-    var trust = summary || getCandidateTrustSummary(item);
+    const trust = summary || getCandidateTrustSummary(item);
     if (item.dedupe_status === "definite_duplicate")
       return "This candidate matches an existing record on license and name. Flag it as a duplicate or merge before doing any publish work.";
     if (item.dedupe_status === "possible_duplicate")
@@ -842,10 +842,10 @@ export function createAdminReviewModels(dependencies) {
   }
 
   function getCandidatePublishPacket(item, summary) {
-    var trust = summary || getCandidateTrustSummary(item);
-    var strong = [];
-    var watch = [];
-    var blockers = [];
+    const trust = summary || getCandidateTrustSummary(item);
+    const strong = [];
+    const watch = [];
+    const blockers = [];
     if (item.dedupe_status === "definite_duplicate") blockers.push("Confirmed duplicate");
     else if (item.dedupe_status === "possible_duplicate") blockers.push("Duplicate risk");
     if (item.review_status === "needs_confirmation") watch.push("Confirmation pass");
@@ -863,11 +863,11 @@ export function createAdminReviewModels(dependencies) {
     if (trust.strong.includes("Extraction confidence")) strong.push("Extraction confidence");
     else if (trust.attention.includes("Extraction confidence")) watch.push("Extraction confidence");
 
-    var uniqueStrong = Array.from(new Set(strong));
-    var uniqueWatch = Array.from(new Set(watch)).filter(function (label) {
+    const uniqueStrong = Array.from(new Set(strong));
+    const uniqueWatch = Array.from(new Set(watch)).filter(function (label) {
       return !blockers.includes(label);
     });
-    var uniqueBlockers = Array.from(new Set(blockers));
+    const uniqueBlockers = Array.from(new Set(blockers));
     return {
       decision: uniqueBlockers.length
         ? "Not yet, issues need resolving"

@@ -1,6 +1,6 @@
 export function renderNoResultsStateSection(options) {
-  var settings = options || {};
-  var root = settings.root;
+  const settings = options || {};
+  const root = settings.root;
   if (!root) {
     return;
   }
@@ -23,8 +23,8 @@ export function renderNoResultsStateSection(options) {
 }
 
 export function renderAdaptiveGuidanceSection(options) {
-  var settings = options || {};
-  var root = settings.root;
+  const settings = options || {};
+  const root = settings.root;
   if (!root) {
     return;
   }
@@ -34,8 +34,8 @@ export function renderAdaptiveGuidanceSection(options) {
     return;
   }
 
-  var items = settings.items || [];
-  var escapeHtml =
+  const items = settings.items || [];
+  const escapeHtml =
     settings.escapeHtml ||
     function (value) {
       return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {

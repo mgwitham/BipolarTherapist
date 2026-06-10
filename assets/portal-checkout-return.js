@@ -1,4 +1,4 @@
-var THERAPIST_SESSION_HINT_KEY = "bt_therapist_session_hint_v1";
+const THERAPIST_SESSION_HINT_KEY = "bt_therapist_session_hint_v1";
 
 function hasTherapistSessionHint() {
   try {
@@ -9,7 +9,7 @@ function hasTherapistSessionHint() {
 }
 
 async function sendClaimLinkToSlug(slug) {
-  var response = await fetch("/api/review/portal/claim-by-slug", {
+  const response = await fetch("/api/review/portal/claim-by-slug", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
@@ -21,14 +21,14 @@ async function sendClaimLinkToSlug(slug) {
 }
 
 function hideElement(id) {
-  var element = document.getElementById(id);
+  const element = document.getElementById(id);
   if (element) {
     element.hidden = true;
   }
 }
 
 function bindDismiss(id, targetId) {
-  var button = document.getElementById(id);
+  const button = document.getElementById(id);
   if (!button) {
     return;
   }
@@ -42,8 +42,8 @@ function showStripeSuccessBanner(params, slug) {
     return;
   }
 
-  var bannerId = hasTherapistSessionHint() ? "checkoutSuccessClaimed" : "checkoutSuccess";
-  var banner = document.getElementById(bannerId);
+  const bannerId = hasTherapistSessionHint() ? "checkoutSuccessClaimed" : "checkoutSuccess";
+  const banner = document.getElementById(bannerId);
   if (banner) {
     banner.hidden = false;
     banner.dataset.slug = slug;
@@ -51,7 +51,7 @@ function showStripeSuccessBanner(params, slug) {
 
   params.delete("stripe");
   params.delete("session_id");
-  var clean =
+  const clean =
     window.location.pathname +
     (params.toString() ? "?" + params.toString() : "") +
     window.location.hash;
@@ -59,22 +59,22 @@ function showStripeSuccessBanner(params, slug) {
 }
 
 function bindResend(slug) {
-  var resend = document.getElementById("checkoutSuccessResend");
+  const resend = document.getElementById("checkoutSuccessResend");
   if (!resend) {
     return;
   }
 
   resend.addEventListener("click", async function () {
-    var banner = document.getElementById("checkoutSuccess");
-    var resendSlug = (banner && banner.dataset && banner.dataset.slug) || slug;
-    var status = document.getElementById("checkoutSuccessResendStatus");
+    const banner = document.getElementById("checkoutSuccess");
+    const resendSlug = (banner && banner.dataset && banner.dataset.slug) || slug;
+    const status = document.getElementById("checkoutSuccessResendStatus");
     if (!resendSlug) {
       if (status) status.textContent = "No listing to resend for.";
       return;
     }
 
     resend.disabled = true;
-    var original = resend.textContent;
+    const original = resend.textContent;
     resend.textContent = "Sending...";
     if (status) status.textContent = "";
 
@@ -91,8 +91,8 @@ function bindResend(slug) {
 }
 
 try {
-  var params = new URLSearchParams(window.location.search);
-  var slug = params.get("slug") || "";
+  const params = new URLSearchParams(window.location.search);
+  const slug = params.get("slug") || "";
   showStripeSuccessBanner(params, slug);
   bindDismiss("checkoutSuccessDismiss", "checkoutSuccess");
   bindDismiss("checkoutSuccessClaimedDismiss", "checkoutSuccessClaimed");

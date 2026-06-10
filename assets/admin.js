@@ -106,7 +106,7 @@ if (typeof window !== "undefined" && window.addEventListener && document.documen
     );
   });
   window.addEventListener("unhandledrejection", function (event) {
-    var reason = event ? event.reason : "";
+    const reason = event ? event.reason : "";
     document.documentElement.setAttribute("data-admin-boot", "boot-error");
     document.documentElement.setAttribute(
       "data-admin-boot-error",
@@ -216,7 +216,7 @@ let reviewActivityItems = [];
 let reviewActivityNextCursor = "";
 let reviewActivityLoading = false;
 let publishedTherapists = [];
-let applicationLiveApplySummaries = {};
+const applicationLiveApplySummaries = {};
 let ingestionAutomationHistory = [];
 let licensureRefreshQueue = [];
 let licensureActivityFeed = [];
@@ -225,7 +225,7 @@ let authErrorVisible = false;
 let reviewActivityFilter = "";
 let reviewActivitySavedViewId = "";
 let adminWorkflowUrlParamsApplied = false;
-let portalRequestFilters = {
+const portalRequestFilters = {
   status: "",
 };
 let adminInspectorSelection = {
@@ -252,7 +252,7 @@ const COMMAND_PALETTE_FAVORITES_KEY = "bth_admin_command_palette_favorites_v1";
 // (reviewModels), so we need to mutate the same object in place
 // rather than re-assigning a new one on hydration.
 const APPLICATION_FILTERS_STORAGE_KEY = "bth_admin_application_filters_v1";
-let applicationFilters = {
+const applicationFilters = {
   q: "",
   status: "",
   focus: "",
@@ -281,13 +281,13 @@ function persistApplicationFilters() {
     // founder loses persistence this session, not a functional break.
   }
 }
-let candidateFilters = {
+const candidateFilters = {
   q: "",
   review_status: "",
   dedupe_status: "",
   review_lane: "",
 };
-let reviewFilters = {
+const reviewFilters = {
   q: "",
   dedupe_status: "",
 };
@@ -338,7 +338,7 @@ const reviewModels = createAdminReviewModels({
 // legacy `let reviewActivityFilter` in sync.
 reviewActivityFilter = adminStore.get("filters.reviewActivity") || "";
 if (typeof window !== "undefined") {
-  var reviewActivityLaneParam = new URL(window.location.href).searchParams.get(
+  const reviewActivityLaneParam = new URL(window.location.href).searchParams.get(
     "reviewActivityLane",
   );
   if (typeof reviewActivityLaneParam === "string") {
@@ -399,8 +399,8 @@ function setQuickNavActiveState(activeId) {
     return;
   }
   document.querySelectorAll("#adminQuickNav a[href^='#']").forEach(function (link) {
-    var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
-    var isActive = Boolean(activeId) && targetId === activeId;
+    const targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
+    const isActive = Boolean(activeId) && targetId === activeId;
     link.classList.toggle("is-active", isActive);
     if (isActive) {
       link.setAttribute("aria-current", "true");
@@ -415,8 +415,8 @@ function setOperatorGuideActiveState(activeId) {
     return;
   }
   document.querySelectorAll(".operator-guide-main[href^='#']").forEach(function (link) {
-    var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
-    var isActive = Boolean(activeId) && targetId === activeId;
+    const targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
+    const isActive = Boolean(activeId) && targetId === activeId;
     link.classList.toggle("is-active", isActive);
     if (isActive) {
       link.setAttribute("aria-current", "true");
@@ -430,17 +430,17 @@ function syncAdminQuickNavFromViewport() {
   if (typeof document === "undefined" || authRequired) {
     return;
   }
-  var activeId = "";
-  var bestOffset = Number.POSITIVE_INFINITY;
+  let activeId = "";
+  let bestOffset = Number.POSITIVE_INFINITY;
 
   ADMIN_REGION_IDS.forEach(function (sectionId) {
-    var section = document.getElementById(sectionId);
+    const section = document.getElementById(sectionId);
     if (!section) {
       return;
     }
-    var rect = section.getBoundingClientRect();
-    var offset = Math.abs(rect.top - 128);
-    var isCandidate = rect.top <= 180 && rect.bottom > 160;
+    const rect = section.getBoundingClientRect();
+    const offset = Math.abs(rect.top - 128);
+    const isCandidate = rect.top <= 180 && rect.bottom > 160;
     if (isCandidate && offset < bestOffset) {
       bestOffset = offset;
       activeId = sectionId;
@@ -449,11 +449,11 @@ function syncAdminQuickNavFromViewport() {
 
   if (!activeId) {
     ADMIN_REGION_IDS.some(function (sectionId) {
-      var section = document.getElementById(sectionId);
+      const section = document.getElementById(sectionId);
       if (!section) {
         return false;
       }
-      var rect = section.getBoundingClientRect();
+      const rect = section.getBoundingClientRect();
       if (rect.top > 0) {
         activeId = sectionId;
         return true;
@@ -474,18 +474,18 @@ function focusAdminAnchorTarget(targetId, options) {
     return;
   }
   prefetchAdminModulesForTarget(targetId);
-  var target = document.getElementById(targetId);
+  const target = document.getElementById(targetId);
   if (!target) {
     return;
   }
-  var viewHost = target.closest("[data-view-group]");
-  var targetGroup = viewHost ? viewHost.getAttribute("data-view-group") : "";
-  var currentView = document.body.getAttribute("data-admin-view") || "today";
-  var needsViewSwitch = targetGroup && targetGroup !== currentView;
+  const viewHost = target.closest("[data-view-group]");
+  const targetGroup = viewHost ? viewHost.getAttribute("data-view-group") : "";
+  const currentView = document.body.getAttribute("data-admin-view") || "today";
+  const needsViewSwitch = targetGroup && targetGroup !== currentView;
   if (needsViewSwitch) {
     setActiveAdminView(targetGroup);
   }
-  var runFocus = function () {
+  const runFocus = function () {
     if (options && options.useWorkflowMode) {
       applyWorkflowFocusMode(target);
       spotlightSection(target);
@@ -498,7 +498,7 @@ function focusAdminAnchorTarget(targetId, options) {
     runFocus();
   }
   if (typeof window !== "undefined") {
-    var nextHash = "#" + targetId;
+    const nextHash = "#" + targetId;
     if (window.location.hash !== nextHash) {
       window.history.replaceState(null, "", nextHash);
     }
@@ -512,7 +512,7 @@ function bindAdminNavigationInteractions() {
     return;
   }
   document.querySelectorAll("#adminQuickNav a[href^='#']").forEach(function (link) {
-    var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
+    const targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
     link.addEventListener("mouseenter", function () {
       prefetchAdminModulesForTarget(targetId);
     });
@@ -529,7 +529,7 @@ function bindAdminNavigationInteractions() {
   });
 
   document.querySelectorAll(".operator-guide-main[href^='#']").forEach(function (link) {
-    var targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
+    const targetId = String(link.getAttribute("href") || "").replace(/^#/, "");
     link.addEventListener("mouseenter", function () {
       prefetchAdminModulesForTarget(targetId);
     });
@@ -550,7 +550,7 @@ function readAdminWorkflowUrlParams() {
   if (typeof window === "undefined") {
     return { owner: "", therapistSlug: "", ticketKind: "", ticketId: "" };
   }
-  var params = new URLSearchParams(window.location.search || "");
+  const params = new URLSearchParams(window.location.search || "");
   return {
     owner: String(params.get("owner") || "").trim(),
     therapistSlug: String(params.get("therapistSlug") || "").trim(),
@@ -563,7 +563,7 @@ function applyAdminWorkflowUrlParams() {
   if (typeof window === "undefined" || adminWorkflowUrlParamsApplied) {
     return;
   }
-  var params = readAdminWorkflowUrlParams();
+  const params = readAdminWorkflowUrlParams();
   if (
     params.ticketId &&
     (params.ticketKind === "candidate" || params.ticketKind === "application")
@@ -580,7 +580,7 @@ function syncAdminInspectorUrl() {
   if (typeof window === "undefined" || !window.history || !window.location) {
     return;
   }
-  var params = new URLSearchParams(window.location.search || "");
+  const params = new URLSearchParams(window.location.search || "");
   if (adminInspectorSelection.kind && adminInspectorSelection.id) {
     params.set("ticketKind", adminInspectorSelection.kind);
     params.set("ticketId", adminInspectorSelection.id);
@@ -588,8 +588,8 @@ function syncAdminInspectorUrl() {
     params.delete("ticketKind");
     params.delete("ticketId");
   }
-  var query = params.toString();
-  var nextUrl =
+  const query = params.toString();
+  const nextUrl =
     window.location.pathname + (query ? "?" + query : "") + (window.location.hash || "");
   window.history.replaceState({}, "", nextUrl);
 }
@@ -598,16 +598,16 @@ function syncAdminWorkflowUrlFocus() {
   if (typeof window === "undefined") {
     return;
   }
-  var params = readAdminWorkflowUrlParams();
+  const params = readAdminWorkflowUrlParams();
   if (!params.therapistSlug) {
     return;
   }
 
-  var hash = window.location.hash ? window.location.hash.slice(1) : "";
-  var sectionTarget = hash ? document.getElementById(hash) : null;
-  var safeSlug = params.therapistSlug.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
-  var scopedTarget = document.querySelector('[data-admin-therapist-slug="' + safeSlug + '"]');
-  var target = scopedTarget || sectionTarget;
+  const hash = window.location.hash ? window.location.hash.slice(1) : "";
+  const sectionTarget = hash ? document.getElementById(hash) : null;
+  const safeSlug = params.therapistSlug.replace(/\\/g, "\\\\").replace(/"/g, '\\"');
+  const scopedTarget = document.querySelector('[data-admin-therapist-slug="' + safeSlug + '"]');
+  const target = scopedTarget || sectionTarget;
   if (!target) {
     return;
   }
@@ -638,9 +638,9 @@ if (typeof window !== "undefined") {
     }, 120);
   });
   document.addEventListener("click", function (event) {
-    var link = event.target.closest(".admin-mode-links a[href^='#']");
+    const link = event.target.closest(".admin-mode-links a[href^='#']");
     if (!link) return;
-    var targetHash = link.getAttribute("href");
+    const targetHash = link.getAttribute("href");
     if (!targetHash || targetHash === "#") return;
     if (window.location.hash === targetHash) {
       syncWorkflowFocusFromHash();
@@ -669,7 +669,7 @@ if (typeof window !== "undefined") {
   }, 0);
 
   document.addEventListener("click", function (event) {
-    var candidateCard = event.target.closest("[data-candidate-card-id]");
+    const candidateCard = event.target.closest("[data-candidate-card-id]");
     if (candidateCard) {
       setAdminInspectorSelection(
         "candidate",
@@ -678,7 +678,7 @@ if (typeof window !== "undefined") {
       renderAdminRecordInspector();
     }
 
-    var applicationCard = event.target.closest("[data-application-card-id]");
+    const applicationCard = event.target.closest("[data-application-card-id]");
     if (applicationCard) {
       setAdminInspectorSelection(
         "application",
@@ -687,26 +687,30 @@ if (typeof window !== "undefined") {
       renderAdminRecordInspector();
     }
 
-    var inspectorFocusButton = event.target.closest("[data-inspector-focus-kind]");
+    const inspectorFocusButton = event.target.closest("[data-inspector-focus-kind]");
     if (inspectorFocusButton) {
-      var focusKind = String(inspectorFocusButton.getAttribute("data-inspector-focus-kind") || "");
-      var focusId = String(inspectorFocusButton.getAttribute("data-inspector-focus-id") || "");
-      var selector =
+      const focusKind = String(
+        inspectorFocusButton.getAttribute("data-inspector-focus-kind") || "",
+      );
+      const focusId = String(inspectorFocusButton.getAttribute("data-inspector-focus-id") || "");
+      const selector =
         focusKind === "candidate"
           ? '[data-candidate-card-id="' + focusId.replace(/"/g, '\\"') + '"]'
           : '[data-application-card-id="' + focusId.replace(/"/g, '\\"') + '"]';
-      var target = document.querySelector(selector);
+      const target = document.querySelector(selector);
       if (target) {
         spotlightSection(target);
         scrollToElementWithOffset(target, "start");
       }
     }
 
-    var inspectorNavButton = event.target.closest("[data-inspector-nav-direction]");
+    const inspectorNavButton = event.target.closest("[data-inspector-nav-direction]");
     if (inspectorNavButton) {
-      var direction = String(inspectorNavButton.getAttribute("data-inspector-nav-direction") || "");
-      var sequenceMeta = getInspectorSequenceMeta();
-      var targetEntry = direction === "prev" ? sequenceMeta.previous : sequenceMeta.next;
+      const direction = String(
+        inspectorNavButton.getAttribute("data-inspector-nav-direction") || "",
+      );
+      const sequenceMeta = getInspectorSequenceMeta();
+      const targetEntry = direction === "prev" ? sequenceMeta.previous : sequenceMeta.next;
       if (targetEntry) {
         setAdminInspectorSelection(targetEntry.kind, targetEntry.id);
         renderAdminRecordInspector();
@@ -717,12 +721,12 @@ if (typeof window !== "undefined") {
       }
     }
 
-    var inspectorActionButton = event.target.closest("[data-inspector-action]");
+    const inspectorActionButton = event.target.closest("[data-inspector-action]");
     if (inspectorActionButton) {
-      var inspectorAction = String(
+      const inspectorAction = String(
         inspectorActionButton.getAttribute("data-inspector-action") || "",
       );
-      var inspectorId = String(inspectorActionButton.getAttribute("data-inspector-id") || "");
+      const inspectorId = String(inspectorActionButton.getAttribute("data-inspector-id") || "");
       if (!inspectorId || !inspectorAction) {
         return;
       }
@@ -738,7 +742,7 @@ if (typeof window !== "undefined") {
           // validation failure. The fallback "try the full card
           // controls" stays as suffix because it's still good advice
           // when the inspector itself is the broken path.
-          var detail =
+          const detail =
             (error && (error.message || error.error || error.detail)) ||
             (typeof error === "string" ? error : "");
           adminInspectorActionStatus = detail
@@ -753,8 +757,8 @@ if (typeof window !== "undefined") {
   });
 
   document.addEventListener("keydown", function (event) {
-    var target = event.target;
-    var isTypingTarget =
+    const target = event.target;
+    const isTypingTarget =
       target &&
       (target.tagName === "INPUT" ||
         target.tagName === "TEXTAREA" ||
@@ -782,7 +786,7 @@ if (typeof window !== "undefined") {
       closeCommandPalette();
       return;
     }
-    var commands = getFilteredCommandPaletteCommands();
+    const commands = getFilteredCommandPaletteCommands();
     if (event.key === "ArrowDown") {
       event.preventDefault();
       commandPaletteActiveIndex = Math.min(commandPaletteActiveIndex + 1, commands.length - 1);
@@ -814,19 +818,19 @@ if (typeof window !== "undefined") {
       closeCommandPalette();
       return;
     }
-    var paletteFavoriteButton = event.target.closest("[data-command-palette-favorite]");
+    const paletteFavoriteButton = event.target.closest("[data-command-palette-favorite]");
     if (paletteFavoriteButton) {
-      var favoriteIndex = Number(
+      const favoriteIndex = Number(
         paletteFavoriteButton.getAttribute("data-command-palette-favorite") || "0",
       );
-      var favoriteCommand = getFilteredCommandPaletteCommands()[favoriteIndex];
+      const favoriteCommand = getFilteredCommandPaletteCommands()[favoriteIndex];
       if (favoriteCommand) {
         toggleCommandPaletteFavorite(favoriteCommand.id || favoriteCommand.key || "");
         renderCommandPalette();
       }
       return;
     }
-    var paletteItem = event.target.closest("[data-command-palette-index]");
+    const paletteItem = event.target.closest("[data-command-palette-index]");
     if (paletteItem) {
       runCommandPaletteSelection(
         Number(paletteItem.getAttribute("data-command-palette-index") || "0"),
@@ -937,7 +941,7 @@ function createLazyAdminController(config) {
 }
 
 function getAdminPrefetchModulesForTarget(targetId) {
-  var map = {
+  const map = {
     supplyReviewRegion: ["./admin-candidate-queue.js", "./admin-application-review.js"],
     candidateQueuePanel: ["./admin-candidate-queue.js"],
     applicationsPanel: ["./admin-application-review.js"],
@@ -989,7 +993,7 @@ function withLazyAdminModule(path, onReady, onError) {
 
 function readReviewActivitySavedViews() {
   try {
-    var views = JSON.parse(window.localStorage.getItem(REVIEW_ACTIVITY_SAVED_VIEWS_KEY) || "[]");
+    const views = JSON.parse(window.localStorage.getItem(REVIEW_ACTIVITY_SAVED_VIEWS_KEY) || "[]");
     return Array.isArray(views) ? views : [];
   } catch (_error) {
     return [];
@@ -1011,7 +1015,7 @@ function buildReviewActivityDeepLink() {
   if (typeof window === "undefined") {
     return "";
   }
-  var nextUrl = new URL(window.location.href);
+  const nextUrl = new URL(window.location.href);
   if (reviewActivityFilter) {
     nextUrl.searchParams.set("reviewActivityLane", reviewActivityFilter);
   } else {
@@ -1028,11 +1032,11 @@ function syncReviewActivityDeepLink() {
 }
 
 function renderReviewActivitySavedViews() {
-  var select = document.getElementById("reviewActivitySavedView");
+  const select = document.getElementById("reviewActivitySavedView");
   if (!select) {
     return;
   }
-  var views = readReviewActivitySavedViews();
+  const views = readReviewActivitySavedViews();
   select.innerHTML =
     '<option value="">Saved views</option>' +
     views
@@ -1061,16 +1065,16 @@ function getActiveReviewActivitySavedView() {
 }
 
 function renderReviewActivitySavedViewMeta() {
-  var root = document.getElementById("reviewActivitySavedViewMeta");
+  const root = document.getElementById("reviewActivitySavedViewMeta");
   if (!root) {
     return;
   }
-  var activeView = getActiveReviewActivitySavedView();
+  const activeView = getActiveReviewActivitySavedView();
   if (!activeView) {
     root.innerHTML = "";
     return;
   }
-  var statusLabel =
+  const statusLabel =
     activeView.status === "resolved"
       ? "Resolved"
       : activeView.status === "blocked"
@@ -1103,8 +1107,8 @@ function getRecordValue(record, keys) {
   if (!record || typeof record !== "object") {
     return "";
   }
-  for (var index = 0; index < keys.length; index += 1) {
-    var key = keys[index];
+  for (let index = 0; index < keys.length; index += 1) {
+    const key = keys[index];
     if (record[key] !== undefined && record[key] !== null && String(record[key]).trim() !== "") {
       return record[key];
     }
@@ -1116,8 +1120,8 @@ function getBooleanRecordValue(record, keys) {
   if (!record || typeof record !== "object") {
     return null;
   }
-  for (var index = 0; index < keys.length; index += 1) {
-    var key = keys[index];
+  for (let index = 0; index < keys.length; index += 1) {
+    const key = keys[index];
     if (record[key] === true || record[key] === false) {
       return record[key];
     }
@@ -1139,9 +1143,9 @@ function normalizeListValue(value) {
 }
 
 function formatLocationLine(record) {
-  var city = getRecordValue(record, ["city"]);
-  var state = getRecordValue(record, ["state"]);
-  var zip = getRecordValue(record, ["zip"]);
+  const city = getRecordValue(record, ["city"]);
+  const state = getRecordValue(record, ["state"]);
+  const zip = getRecordValue(record, ["zip"]);
   return [city, state ? (city ? state : state) : "", zip]
     .filter(Boolean)
     .join(city && state ? ", " : " ");
@@ -1156,7 +1160,7 @@ function buildConfirmationLink(slug) {
 }
 
 function setPortalRequestActionStatus(root, id, message) {
-  var status = root.querySelector('[data-portal-request-status-id="' + id + '"]');
+  const status = root.querySelector('[data-portal-request-status-id="' + id + '"]');
   if (status) {
     status.textContent = message;
   }
@@ -1194,13 +1198,13 @@ function getAfterClaimReviewStall(item) {
     return { stalled: false, ageDays: 0, label: "", note: "" };
   }
 
-  var portalState = String(item.portal_state || "");
+  const portalState = String(item.portal_state || "");
   if (portalState !== "profile_in_review_after_claim") {
     return { stalled: false, ageDays: 0, label: "", note: "" };
   }
 
-  var updatedAt = item.updated_at ? new Date(item.updated_at) : null;
-  var ageDays =
+  const updatedAt = item.updated_at ? new Date(item.updated_at) : null;
+  const ageDays =
     updatedAt && !Number.isNaN(updatedAt.getTime())
       ? Math.max(
           0,
@@ -1228,7 +1232,7 @@ function formatPercent(value) {
 }
 
 function buildOverdueClaimFollowUpPacket(items) {
-  var rows = (Array.isArray(items) ? items : []).filter(function (item) {
+  const rows = (Array.isArray(items) ? items : []).filter(function (item) {
     return getClaimFollowUpUrgency(item).tone === "urgent";
   });
 
@@ -1244,8 +1248,8 @@ function buildOverdueClaimFollowUpPacket(items) {
   ]
     .concat(
       rows.map(function (item, index) {
-        var urgency = getClaimFollowUpUrgency(item);
-        var fullProfileLink = new URL(
+        const urgency = getClaimFollowUpUrgency(item);
+        const fullProfileLink = new URL(
           "signup.html?revise=" + encodeURIComponent(item.id),
           window.location.href,
         ).toString();
@@ -1267,12 +1271,12 @@ function buildOverdueClaimFollowUpPacket(items) {
 function getClaimLaunchCandidates(applications) {
   return (Array.isArray(applications) ? applications : [])
     .map(function (item) {
-      var portalState = String(item.portal_state || "");
-      var readiness = getTherapistMatchReadiness(item);
-      var snapshot = reviewModels.getApplicationReviewSnapshot(item);
-      var ageMs =
+      const portalState = String(item.portal_state || "");
+      const readiness = getTherapistMatchReadiness(item);
+      const snapshot = reviewModels.getApplicationReviewSnapshot(item);
+      const ageMs =
         new Date().getTime() - new Date(item.updated_at || item.created_at || 0).getTime();
-      var ageDays = Number.isFinite(ageMs)
+      const ageDays = Number.isFinite(ageMs)
         ? Math.max(0, Math.floor(ageMs / (1000 * 60 * 60 * 24)))
         : 0;
 
@@ -1323,11 +1327,11 @@ function getClaimLaunchCandidates(applications) {
 function getStalledAfterClaimReviews(applications) {
   return (Array.isArray(applications) ? applications : [])
     .map(function (item) {
-      var stall = getAfterClaimReviewStall(item);
+      const stall = getAfterClaimReviewStall(item);
       if (!stall.stalled) {
         return null;
       }
-      var readiness = getTherapistMatchReadiness(item);
+      const readiness = getTherapistMatchReadiness(item);
       return {
         id: item.id,
         name: item.name || "Unknown therapist",
@@ -1344,7 +1348,7 @@ function getStalledAfterClaimReviews(applications) {
 }
 
 function buildClaimLaunchPriorityPacket(items) {
-  var rows = getClaimLaunchCandidates(items);
+  const rows = getClaimLaunchCandidates(items);
 
   if (!rows.length) {
     return "";
@@ -1377,7 +1381,7 @@ function buildClaimLaunchPriorityPacket(items) {
 }
 
 function buildStalledAfterClaimReviewPacket(items) {
-  var rows = getStalledAfterClaimReviews(items);
+  const rows = getStalledAfterClaimReviews(items);
 
   if (!rows.length) {
     return "";
@@ -1427,16 +1431,16 @@ function getClaimFunnelBottleneck(claimFunnel, rates) {
 function getClaimActionQueue(applications) {
   return (Array.isArray(applications) ? applications : [])
     .map(function (item) {
-      var urgency = getClaimFollowUpUrgency(item);
-      var portalState = String(item.portal_state || "");
-      var readiness = getTherapistMatchReadiness(item);
-      var snapshot = reviewModels.getApplicationReviewSnapshot(item);
-      var ageMs =
+      const urgency = getClaimFollowUpUrgency(item);
+      const portalState = String(item.portal_state || "");
+      const readiness = getTherapistMatchReadiness(item);
+      const snapshot = reviewModels.getApplicationReviewSnapshot(item);
+      const ageMs =
         new Date().getTime() - new Date(item.updated_at || item.created_at || 0).getTime();
-      var ageDays = Number.isFinite(ageMs)
+      const ageDays = Number.isFinite(ageMs)
         ? Math.max(0, Math.floor(ageMs / (1000 * 60 * 60 * 24)))
         : 0;
-      var action = null;
+      let action = null;
 
       if (urgency.tone === "urgent") {
         action = {
@@ -1509,13 +1513,13 @@ function getClaimActionQueue(applications) {
 }
 
 function buildRecommendedReviewBatchPacket(items, goal) {
-  var rows = Array.isArray(items) ? items.slice(0, 3) : [];
+  const rows = Array.isArray(items) ? items.slice(0, 3) : [];
   if (!rows.length) {
     return "";
   }
-  var goalMeta = reviewModels.getApplicationReviewGoalMeta(goal);
+  const goalMeta = reviewModels.getApplicationReviewGoalMeta(goal);
 
-  var lines = [
+  const lines = [
     goalMeta.packetHeading,
     "",
     "Top application review targets right now.",
@@ -1524,15 +1528,15 @@ function buildRecommendedReviewBatchPacket(items, goal) {
   ];
 
   rows.forEach(function (item, index) {
-    var snapshot = reviewModels.getApplicationReviewSnapshot(item);
-    var coaching = getTherapistReviewCoaching(item);
-    var request = buildImprovementRequest(item, coaching);
-    var batchReason = reviewModels.getApplicationBatchReason(item, goal);
-    var revisionLink = new URL(
+    const snapshot = reviewModels.getApplicationReviewSnapshot(item);
+    const coaching = getTherapistReviewCoaching(item);
+    const request = buildImprovementRequest(item, coaching);
+    const batchReason = reviewModels.getApplicationBatchReason(item, goal);
+    const revisionLink = new URL(
       "signup.html?revise=" + encodeURIComponent(item.id),
       window.location.href,
     ).toString();
-    var confirmationLink = item.slug ? buildConfirmationLink(item.slug) : "";
+    const confirmationLink = item.slug ? buildConfirmationLink(item.slug) : "";
 
     lines.push("## " + (index + 1) + ". " + item.name);
     lines.push("");
@@ -1553,16 +1557,16 @@ function buildRecommendedReviewBatchPacket(items, goal) {
 }
 
 function buildRecommendedReviewBatchRequests(items, goal) {
-  var rows = Array.isArray(items) ? items.slice(0, 3) : [];
+  const rows = Array.isArray(items) ? items.slice(0, 3) : [];
   if (!rows.length) {
     return "";
   }
-  var goalMeta = reviewModels.getApplicationReviewGoalMeta(goal);
+  const goalMeta = reviewModels.getApplicationReviewGoalMeta(goal);
 
   return ["Reviewer goal: " + goalMeta.label, ""]
     .concat(
       rows.map(function (item, index) {
-        var coaching = getTherapistReviewCoaching(item);
+        const coaching = getTherapistReviewCoaching(item);
         return [
           index + 1 + ". " + item.name,
           buildImprovementRequest(item, coaching) || "No improvement request generated.",
@@ -1573,8 +1577,8 @@ function buildRecommendedReviewBatchRequests(items, goal) {
 }
 
 function buildFieldReviewControls(item) {
-  var states = item.field_review_states || {};
-  var fields = [
+  const states = item.field_review_states || {};
+  const fields = [
     { key: "estimated_wait_time", label: "Wait time" },
     { key: "insurance_accepted", label: "Insurance" },
     { key: "telehealth_states", label: "Telehealth states" },
@@ -1630,7 +1634,7 @@ function readOutreachOutcomes() {
 }
 
 function csvEscape(value) {
-  var stringValue = String(value || "");
+  const stringValue = String(value || "");
   if (/[",\n\r]/.test(stringValue)) {
     return '"' + stringValue.replace(/"/g, '""') + '"';
   }
@@ -1646,26 +1650,26 @@ function formatStatusLabel(value) {
 }
 
 function buildImprovementRequest(item, coaching) {
-  var suggestions = Array.isArray(coaching) ? coaching.filter(Boolean) : [];
-  var greeting = item && item.name ? "Hi " + item.name + "," : "Hi,";
-  var intro =
+  const suggestions = Array.isArray(coaching) ? coaching.filter(Boolean) : [];
+  const greeting = item && item.name ? "Hi " + item.name + "," : "Hi,";
+  const intro =
     "Thanks for submitting your profile to BipolarTherapyHub. Your application is promising, and a few clarifications would make it much stronger for trust, matching, and outreach conversion.";
-  var bullets = suggestions.length
+  const bullets = suggestions.length
     ? suggestions
         .map(function (suggestion) {
           return "- " + suggestion;
         })
         .join("\n")
     : "- Add a bit more clarity around trust, fit, and first-contact expectations.";
-  var close =
+  const close =
     "Once these details are tightened, the profile should be much easier for users to evaluate and act on.\n\nThank you,\nBipolarTherapyHub Review";
 
   return [greeting, "", intro, "", bullets, "", close].join("\n");
 }
 
 function buildClaimReviewRequest(item) {
-  var greeting = item && item.name ? "Hi " + item.name + "," : "Hi,";
-  var close =
+  const greeting = item && item.name ? "Hi " + item.name + "," : "Hi,";
+  const close =
     "Once those basics are confirmed, we can move your claim forward.\n\nThank you,\nBipolarTherapyHub Review";
   return [
     greeting,
@@ -1696,18 +1700,18 @@ function getClaimFollowUpUrgency(application) {
     };
   }
 
-  var followUpStatus = String(application.claim_follow_up_status || "not_started");
-  var sentAt = application.claim_follow_up_sent_at
+  const followUpStatus = String(application.claim_follow_up_status || "not_started");
+  const sentAt = application.claim_follow_up_sent_at
     ? new Date(application.claim_follow_up_sent_at)
     : null;
-  var approvedAt = application.updated_at ? new Date(application.updated_at) : null;
-  var now = new Date();
-  var msPerDay = 1000 * 60 * 60 * 24;
-  var ageFromApproval =
+  const approvedAt = application.updated_at ? new Date(application.updated_at) : null;
+  const now = new Date();
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const ageFromApproval =
     approvedAt && !Number.isNaN(approvedAt.getTime())
       ? Math.floor((now.getTime() - approvedAt.getTime()) / msPerDay)
       : 0;
-  var ageFromSend =
+  const ageFromSend =
     sentAt && !Number.isNaN(sentAt.getTime())
       ? Math.floor((now.getTime() - sentAt.getTime()) / msPerDay)
       : 0;
@@ -1744,7 +1748,7 @@ function getClaimFollowUpUrgency(application) {
 }
 
 function buildClaimFollowUpMessage(item) {
-  var revisionLink = new URL(
+  const revisionLink = new URL(
     "signup.html?revise=" + encodeURIComponent(item.id),
     window.location.href,
   ).toString();
@@ -1796,32 +1800,32 @@ function downloadText(filename, text, mimeType) {
 }
 
 function appendImprovementRequestToNotes(root, id, requestText) {
-  var field = root.querySelector('[data-notes-id="' + id + '"]');
+  const field = root.querySelector('[data-notes-id="' + id + '"]');
   if (!field) {
     return false;
   }
 
-  var current = field.value.trim();
+  const current = field.value.trim();
   field.value = current ? current + "\n\n" + requestText : requestText;
   return true;
 }
 
 function setCoachActionStatus(root, id, message) {
-  var status = root.querySelector('[data-coach-status-id="' + id + '"]');
+  const status = root.querySelector('[data-coach-status-id="' + id + '"]');
   if (status) {
     status.textContent = message;
   }
 }
 
 function setApplyLiveFieldsStatus(root, id, message) {
-  var status = root.querySelector('[data-apply-live-fields-status="' + id + '"]');
+  const status = root.querySelector('[data-apply-live-fields-status="' + id + '"]');
   if (status) {
     status.textContent = message;
   }
 }
 
 function buildRevisionHistoryHtml(item) {
-  var history = Array.isArray(item.revision_history) ? item.revision_history : [];
+  const history = Array.isArray(item.revision_history) ? item.revision_history : [];
   if (!history.length) {
     return "";
   }
@@ -1863,15 +1867,15 @@ function getSelectedInspectorRecord() {
     return null;
   }
   if (adminInspectorSelection.kind === "candidate") {
-    var candidateList = dataMode === "sanity" ? remoteCandidates : [];
-    var candidate = candidateList.find(function (item) {
+    const candidateList = dataMode === "sanity" ? remoteCandidates : [];
+    const candidate = candidateList.find(function (item) {
       return String(item.id) === String(adminInspectorSelection.id);
     });
     return candidate ? { kind: "candidate", item: candidate } : null;
   }
   if (adminInspectorSelection.kind === "application") {
-    var applicationList = dataMode === "sanity" ? remoteApplications : getApplications();
-    var application = applicationList.find(function (item) {
+    const applicationList = dataMode === "sanity" ? remoteApplications : getApplications();
+    const application = applicationList.find(function (item) {
       return String(item.id) === String(adminInspectorSelection.id);
     });
     return application ? { kind: "application", item: application } : null;
@@ -1883,7 +1887,7 @@ function getInspectorVisibleSequence() {
   if (typeof document === "undefined") {
     return [];
   }
-  var entries = [];
+  const entries = [];
   document.querySelectorAll("#candidateQueue [data-candidate-card-id]").forEach(function (node) {
     entries.push({
       kind: "candidate",
@@ -1906,8 +1910,8 @@ function getInspectorVisibleSequence() {
 }
 
 function getInspectorSequenceMeta() {
-  var sequence = getInspectorVisibleSequence();
-  var currentIndex = sequence.findIndex(function (entry) {
+  const sequence = getInspectorVisibleSequence();
+  const currentIndex = sequence.findIndex(function (entry) {
     return (
       entry.kind === adminInspectorSelection.kind &&
       String(entry.id) === String(adminInspectorSelection.id)
@@ -1938,13 +1942,13 @@ function setAdminInspectorSelection(kind, id) {
 }
 
 function ensureAdminInspectorSelection() {
-  var selected = getSelectedInspectorRecord();
+  const selected = getSelectedInspectorRecord();
   if (selected) {
     return selected;
   }
-  var candidates = dataMode === "sanity" ? remoteCandidates : [];
-  var applications = dataMode === "sanity" ? remoteApplications : getApplications();
-  var firstCandidate = Array.isArray(candidates)
+  const candidates = dataMode === "sanity" ? remoteCandidates : [];
+  const applications = dataMode === "sanity" ? remoteApplications : getApplications();
+  const firstCandidate = Array.isArray(candidates)
     ? candidates.find(function (item) {
         return item.review_status !== "published" && item.review_status !== "archived";
       })
@@ -2017,7 +2021,7 @@ async function executeInspectorAction(inspectorAction, inspectorId) {
     return;
   }
 
-  var application = (dataMode === "sanity" ? remoteApplications : getApplications()).find(
+  const application = (dataMode === "sanity" ? remoteApplications : getApplications()).find(
     function (item) {
       return String(item.id) === inspectorId;
     },
@@ -2040,7 +2044,7 @@ async function executeInspectorAction(inspectorAction, inspectorId) {
         await updateTherapistApplication(inspectorId, { status: "approved" });
         adminInspectorActionStatus = "Claim approved from the inspector.";
       } else {
-        var approveResult = await approveTherapistApplication(inspectorId);
+        const approveResult = await approveTherapistApplication(inspectorId);
         adminInspectorActionStatus = "Application approved for publish from the inspector.";
         if (approveResult && approveResult.email_warning) {
           adminInspectorActionStatus +=
@@ -2056,7 +2060,7 @@ async function executeInspectorAction(inspectorAction, inspectorId) {
     }
   } else if (inspectorAction === "application_reject") {
     if (dataMode === "sanity") {
-      var rejectResult = await rejectTherapistApplicationRemote(inspectorId);
+      const rejectResult = await rejectTherapistApplicationRemote(inspectorId);
       adminInspectorActionStatus = "Application rejected from the inspector.";
       if (rejectResult && rejectResult.email_warning) {
         adminInspectorActionStatus += " Warning: rejection email failed to send.";
@@ -2066,8 +2070,8 @@ async function executeInspectorAction(inspectorAction, inspectorId) {
       adminInspectorActionStatus = "Application rejected from the inspector.";
     }
   } else if (inspectorAction === "application_request_changes") {
-    var coaching = getTherapistReviewCoaching(application);
-    var requestText =
+    const coaching = getTherapistReviewCoaching(application);
+    const requestText =
       application.submission_intent === "claim"
         ? buildClaimReviewRequest(application)
         : buildImprovementRequest(application, coaching);
@@ -2093,7 +2097,7 @@ async function executeInspectorAction(inspectorAction, inspectorId) {
 }
 
 function getCommandPaletteCommands() {
-  var commands = [
+  const commands = [
     {
       id: "goto-control",
       key: "goto-control",
@@ -2151,7 +2155,7 @@ function getCommandPaletteCommands() {
     },
   ];
 
-  var selected = getSelectedInspectorRecord();
+  const selected = getSelectedInspectorRecord();
   if (selected && selected.item) {
     commands.push({
       id: "jump-active",
@@ -2161,11 +2165,11 @@ function getCommandPaletteCommands() {
       copy: "Scroll back to the pinned record in the queue.",
       priority: 6,
       run: function () {
-        var selector =
+        const selector =
           selected.kind === "candidate"
             ? '[data-candidate-card-id="' + String(selected.item.id).replace(/"/g, '\\"') + '"]'
             : '[data-application-card-id="' + String(selected.item.id).replace(/"/g, '\\"') + '"]';
-        var target = document.querySelector(selector);
+        const target = document.querySelector(selector);
         if (target) {
           spotlightSection(target);
           scrollToElementWithOffset(target, "start");
@@ -2228,7 +2232,7 @@ function getCommandPaletteCommands() {
   getInspectorVisibleSequence()
     .slice(0, 16)
     .forEach(function (entry, index) {
-      var label =
+      const label =
         entry.kind === "candidate"
           ? entry.node.querySelector("h3")?.textContent || "Candidate"
           : entry.node.querySelector("h3")?.textContent || "Application";
@@ -2255,15 +2259,15 @@ function getCommandPaletteCommands() {
 }
 
 function getFilteredCommandPaletteCommands() {
-  var query = String(commandPaletteQuery || "")
+  const query = String(commandPaletteQuery || "")
     .trim()
     .toLowerCase();
-  var commands = rankCommandPaletteCommands(getCommandPaletteCommands(), query);
+  const commands = rankCommandPaletteCommands(getCommandPaletteCommands(), query);
   if (!query) {
     return commands;
   }
   return commands.filter(function (command) {
-    var haystack = [command.title, command.kicker, command.copy].join(" ").toLowerCase();
+    const haystack = [command.title, command.kicker, command.copy].join(" ").toLowerCase();
     return haystack.includes(query);
   });
 }
@@ -2273,7 +2277,7 @@ function readStoredCommandPaletteKeys(storageKey) {
     if (typeof window === "undefined" || !window.localStorage) {
       return [];
     }
-    var stored = JSON.parse(window.localStorage.getItem(storageKey) || "[]");
+    const stored = JSON.parse(window.localStorage.getItem(storageKey) || "[]");
     return Array.isArray(stored)
       ? stored
           .map(function (value) {
@@ -2306,11 +2310,11 @@ function readCommandPaletteFavorites() {
 }
 
 function recordCommandPaletteRecent(commandId) {
-  var nextId = String(commandId || "").trim();
+  const nextId = String(commandId || "").trim();
   if (!nextId) {
     return;
   }
-  var nextValues = [nextId].concat(
+  const nextValues = [nextId].concat(
     readCommandPaletteRecents().filter(function (value) {
       return value !== nextId;
     }),
@@ -2319,12 +2323,12 @@ function recordCommandPaletteRecent(commandId) {
 }
 
 function toggleCommandPaletteFavorite(commandId) {
-  var nextId = String(commandId || "").trim();
+  const nextId = String(commandId || "").trim();
   if (!nextId) {
     return;
   }
-  var favorites = readCommandPaletteFavorites();
-  var nextValues = favorites.includes(nextId)
+  const favorites = readCommandPaletteFavorites();
+  const nextValues = favorites.includes(nextId)
     ? favorites.filter(function (value) {
         return value !== nextId;
       })
@@ -2340,25 +2344,25 @@ function getCommandPaletteMemorySets() {
 }
 
 function rankCommandPaletteCommands(commands) {
-  var memory = getCommandPaletteMemorySets();
+  const memory = getCommandPaletteMemorySets();
   return (Array.isArray(commands) ? commands.slice() : []).sort(function (left, right) {
-    var leftFavorite = memory.favorites.has(left.id) ? 1 : 0;
-    var rightFavorite = memory.favorites.has(right.id) ? 1 : 0;
+    const leftFavorite = memory.favorites.has(left.id) ? 1 : 0;
+    const rightFavorite = memory.favorites.has(right.id) ? 1 : 0;
     if (leftFavorite !== rightFavorite) {
       return rightFavorite - leftFavorite;
     }
-    var leftRecent = memory.recents.has(left.id) ? 1 : 0;
-    var rightRecent = memory.recents.has(right.id) ? 1 : 0;
+    const leftRecent = memory.recents.has(left.id) ? 1 : 0;
+    const rightRecent = memory.recents.has(right.id) ? 1 : 0;
     if (leftRecent !== rightRecent) {
       return rightRecent - leftRecent;
     }
-    var leftPriority = Number.isFinite(left.priority) ? left.priority : 100;
-    var rightPriority = Number.isFinite(right.priority) ? right.priority : 100;
+    const leftPriority = Number.isFinite(left.priority) ? left.priority : 100;
+    const rightPriority = Number.isFinite(right.priority) ? right.priority : 100;
     if (leftPriority !== rightPriority) {
       return leftPriority - rightPriority;
     }
-    var leftOrder = Number.isFinite(left.order) ? left.order : 1000;
-    var rightOrder = Number.isFinite(right.order) ? right.order : 1000;
+    const leftOrder = Number.isFinite(left.order) ? left.order : 1000;
+    const rightOrder = Number.isFinite(right.order) ? right.order : 1000;
     if (leftOrder !== rightOrder) {
       return leftOrder - rightOrder;
     }
@@ -2367,18 +2371,18 @@ function rankCommandPaletteCommands(commands) {
 }
 
 function buildCommandPaletteSections(commands, query) {
-  var list = Array.isArray(commands) ? commands : [];
-  var memory = getCommandPaletteMemorySets();
+  const list = Array.isArray(commands) ? commands : [];
+  const memory = getCommandPaletteMemorySets();
   if (query) {
     return [{ label: "Matching commands", commands: list }];
   }
-  var favoriteCommands = list.filter(function (command) {
+  const favoriteCommands = list.filter(function (command) {
     return memory.favorites.has(command.id);
   });
-  var recentCommands = list.filter(function (command) {
+  const recentCommands = list.filter(function (command) {
     return !memory.favorites.has(command.id) && memory.recents.has(command.id);
   });
-  var allOtherCommands = list.filter(function (command) {
+  const allOtherCommands = list.filter(function (command) {
     return !memory.favorites.has(command.id) && !memory.recents.has(command.id);
   });
   return [
@@ -2400,9 +2404,9 @@ function buildCommandPaletteSections(commands, query) {
 }
 
 function renderCommandPalette() {
-  var shell = document.getElementById("commandPaletteShell");
-  var list = document.getElementById("commandPaletteList");
-  var input = document.getElementById("commandPaletteInput");
+  const shell = document.getElementById("commandPaletteShell");
+  const list = document.getElementById("commandPaletteList");
+  const input = document.getElementById("commandPaletteInput");
   if (!shell || !list || !input) {
     return;
   }
@@ -2412,27 +2416,27 @@ function renderCommandPalette() {
     return;
   }
   input.value = commandPaletteQuery;
-  var query = String(commandPaletteQuery || "")
+  const query = String(commandPaletteQuery || "")
     .trim()
     .toLowerCase();
-  var commands = getFilteredCommandPaletteCommands();
+  const commands = getFilteredCommandPaletteCommands();
   if (commandPaletteActiveIndex >= commands.length) {
     commandPaletteActiveIndex = Math.max(0, commands.length - 1);
   }
-  var memory = getCommandPaletteMemorySets();
-  var flattenedIndex = 0;
+  const memory = getCommandPaletteMemorySets();
+  let flattenedIndex = 0;
   list.innerHTML = commands.length
     ? buildCommandPaletteSections(commands, query)
         .map(function (section) {
-          var sectionHtml =
+          const sectionHtml =
             '<div class="command-palette-section"><div class="command-palette-section-title">' +
             escapeHtml(section.label || "Commands") +
             "</div>" +
             section.commands
               .map(function (command) {
-                var index = flattenedIndex;
+                const index = flattenedIndex;
                 flattenedIndex += 1;
-                var badges = [];
+                const badges = [];
                 if (memory.favorites.has(command.id)) {
                   badges.push('<span class="tag is-highlight">Pinned</span>');
                 }
@@ -2499,8 +2503,8 @@ function closeCommandPalette() {
 }
 
 function runCommandPaletteSelection(index) {
-  var commands = getFilteredCommandPaletteCommands();
-  var command = commands[index];
+  const commands = getFilteredCommandPaletteCommands();
+  const command = commands[index];
   if (!command || typeof command.run !== "function") {
     return;
   }
@@ -2512,25 +2516,28 @@ function runCommandPaletteSelection(index) {
 }
 
 function renderAdminRecordInspector() {
-  var root = document.getElementById("adminRecordInspectorContent");
+  const root = document.getElementById("adminRecordInspectorContent");
   if (!root || authRequired) {
     if (root) {
       root.innerHTML = "";
     }
     return;
   }
-  var selected = ensureAdminInspectorSelection();
+  const selected = ensureAdminInspectorSelection();
   if (!selected || !selected.item) {
     root.innerHTML = "Select a listing or application ticket to load its profile workspace here.";
     return;
   }
   if (selected.kind === "candidate") {
-    var candidate = selected.item;
-    var candidateSequence = getInspectorSequenceMeta();
-    var trustSummary = reviewModels.getCandidateTrustSummary(candidate);
-    var trustRecommendation = reviewModels.getCandidateTrustRecommendation(candidate, trustSummary);
-    var laneLabel = reviewModels.getCandidateReviewLaneLabel(candidate);
-    var sourceMeta = getSourceReferenceMeta(candidate);
+    const candidate = selected.item;
+    const candidateSequence = getInspectorSequenceMeta();
+    const trustSummary = reviewModels.getCandidateTrustSummary(candidate);
+    const trustRecommendation = reviewModels.getCandidateTrustRecommendation(
+      candidate,
+      trustSummary,
+    );
+    const laneLabel = reviewModels.getCandidateReviewLaneLabel(candidate);
+    const sourceMeta = getSourceReferenceMeta(candidate);
     root.innerHTML =
       '<div class="inspector-kicker">Listing ticket workspace</div><div class="inspector-title">' +
       escapeHtml(candidate.name || "Unnamed listing") +
@@ -2609,12 +2616,12 @@ function renderAdminRecordInspector() {
     return;
   }
 
-  var application = selected.item;
-  var applicationSequence = getInspectorSequenceMeta();
-  var snapshot = reviewModels.getApplicationReviewSnapshot(application);
-  var readiness = getTherapistMatchReadiness(application);
-  var urgency = getClaimFollowUpUrgency(application);
-  var isClaim = application.submission_intent === "claim";
+  const application = selected.item;
+  const applicationSequence = getInspectorSequenceMeta();
+  const snapshot = reviewModels.getApplicationReviewSnapshot(application);
+  const readiness = getTherapistMatchReadiness(application);
+  const urgency = getClaimFollowUpUrgency(application);
+  const isClaim = application.submission_intent === "claim";
   root.innerHTML =
     '<div class="inspector-kicker">Application ticket workspace</div><div class="inspector-title">' +
     escapeHtml(application.name || "Unnamed application") +
@@ -2685,10 +2692,10 @@ function renderAdminRecordInspector() {
 }
 
 function updateHeroStatus(context) {
-  var heroStatus = document.getElementById("adminHeroStatus");
+  const heroStatus = document.getElementById("adminHeroStatus");
   if (!heroStatus) return;
-  var ctx = context || {};
-  var parts = [];
+  const ctx = context || {};
+  const parts = [];
   if (ctx.pendingApplicationsCount) {
     parts.push(
       ctx.pendingApplicationsCount +
@@ -2767,15 +2774,15 @@ function renderUnmetDemand() {
 }
 
 function renderIngestionScorecard() {
-  var latestAutomationRun = ingestionAutomationHistory.length
+  const latestAutomationRun = ingestionAutomationHistory.length
     ? ingestionAutomationHistory[ingestionAutomationHistory.length - 1]
     : null;
   Promise.all([
     loadAdminLazyModule("./admin-ingestion-scorecard.js"),
     loadAdminLazyModule("./admin-sourcing-intelligence.js"),
   ]).then(function (loadedModules) {
-    var module = loadedModules[0];
-    var sourcingIntelligenceModule = loadedModules[1];
+    const module = loadedModules[0];
+    const sourcingIntelligenceModule = loadedModules[1];
     module.renderIngestionScorecardPanel({
       root: document.getElementById("ingestionScorecard"),
       authRequired: authRequired,
@@ -2928,7 +2935,7 @@ function buildCandidateDecisionActions(item) {
     );
   }
 
-  var actions = [
+  const actions = [
     '<button class="btn-primary" data-candidate-decision="' +
       escapeHtml(item.id) +
       '" data-candidate-next="publish">Publish</button>',
@@ -3187,8 +3194,8 @@ function getAdminViewGroupForAnchor(anchorId) {
   if (typeof document === "undefined" || !anchorId) {
     return null;
   }
-  var el = document.getElementById(anchorId);
-  var host = el && typeof el.closest === "function" ? el.closest("[data-view-group]") : null;
+  const el = document.getElementById(anchorId);
+  const host = el && typeof el.closest === "function" ? el.closest("[data-view-group]") : null;
   return host ? host.getAttribute("data-view-group") : null;
 }
 
@@ -3201,9 +3208,9 @@ function getActiveAdminView() {
 
 // Sections rendered since the current renderAll() pass, plus the queue still
 // waiting on idle time. Used by the tab-switch fast-path to avoid empty panels.
-var adminRenderedSectionLabels = new Set();
-var adminDeferredRenderQueue = [];
-var adminDeferredRenderHandle = null;
+let adminRenderedSectionLabels = new Set();
+let adminDeferredRenderQueue = [];
+let adminDeferredRenderHandle = null;
 
 function cancelAdminDeferredRender() {
   if (!adminDeferredRenderHandle) {
@@ -3222,7 +3229,7 @@ function cancelAdminDeferredRender() {
 }
 
 function scheduleAdminDeferredRenderStep() {
-  var schedule =
+  const schedule =
     typeof window !== "undefined" && typeof window.requestIdleCallback === "function"
       ? function (fn) {
           return { idle: true, id: window.requestIdleCallback(fn, { timeout: 1000 }) };
@@ -3232,7 +3239,7 @@ function scheduleAdminDeferredRenderStep() {
         };
   adminDeferredRenderHandle = schedule(function step() {
     adminDeferredRenderHandle = null;
-    var section = adminDeferredRenderQueue.shift();
+    const section = adminDeferredRenderQueue.shift();
     if (!section) {
       return;
     }
@@ -3245,13 +3252,13 @@ function scheduleAdminDeferredRenderStep() {
 }
 
 function renderAll() {
-  var activeView = getActiveAdminView();
+  const activeView = getActiveAdminView();
   cancelAdminDeferredRender();
   adminRenderedSectionLabels = new Set();
   adminDeferredRenderQueue = [];
 
   getAdminRenderSections().forEach(function (section) {
-    var group = getAdminViewGroupForAnchor(section.anchor);
+    const group = getAdminViewGroupForAnchor(section.anchor);
     // Render the active view now; also render now anything whose group can't
     // be resolved from the DOM (defensive — never leave a section unrendered).
     if (group === null || group === activeView) {
@@ -3271,13 +3278,13 @@ function renderAll() {
 // rendered yet (still in the idle queue), flush them synchronously so the
 // panel is never momentarily empty.
 function onAdminViewChange(event) {
-  var nextView = event && event.detail ? event.detail.view : getActiveAdminView();
+  const nextView = event && event.detail ? event.detail.view : getActiveAdminView();
   if (!adminDeferredRenderQueue.length) {
     return;
   }
-  var remaining = [];
+  const remaining = [];
   adminDeferredRenderQueue.forEach(function (section) {
-    var group = getAdminViewGroupForAnchor(section.anchor);
+    const group = getAdminViewGroupForAnchor(section.anchor);
     if (group === nextView) {
       renderAdminSection(section.label, section.render);
       adminRenderedSectionLabels.add(section.label);
@@ -3650,7 +3657,7 @@ document.getElementById("navLogout").addEventListener("click", async function ()
   window.location.href = "/admin";
 });
 
-var applicationSearchEl = document.getElementById("applicationSearch");
+const applicationSearchEl = document.getElementById("applicationSearch");
 if (applicationSearchEl) {
   // Restore persisted value on first paint so the input visibly
   // reflects the active filter that was already applied by hydration.
@@ -3666,7 +3673,7 @@ if (applicationSearchEl) {
   });
 }
 
-var applicationStatusFilterEl = document.getElementById("applicationStatusFilter");
+const applicationStatusFilterEl = document.getElementById("applicationStatusFilter");
 if (applicationStatusFilterEl) {
   if (applicationFilters.status) applicationStatusFilterEl.value = applicationFilters.status;
   applicationStatusFilterEl.addEventListener("change", function (event) {
@@ -3681,7 +3688,7 @@ if (applicationStatusFilterEl) {
   });
 }
 
-var applicationFocusFilterEl = document.getElementById("applicationFocusFilter");
+const applicationFocusFilterEl = document.getElementById("applicationFocusFilter");
 if (applicationFocusFilterEl) {
   if (applicationFilters.focus) applicationFocusFilterEl.value = applicationFilters.focus;
   applicationFocusFilterEl.addEventListener("change", function (event) {
@@ -3691,7 +3698,7 @@ if (applicationFocusFilterEl) {
   });
 }
 
-var applicationReviewGoalEl = document.getElementById("applicationReviewGoal");
+const applicationReviewGoalEl = document.getElementById("applicationReviewGoal");
 if (applicationReviewGoalEl) {
   if (applicationFilters.goal) applicationReviewGoalEl.value = applicationFilters.goal;
   applicationReviewGoalEl.addEventListener("change", function (event) {
@@ -3701,7 +3708,7 @@ if (applicationReviewGoalEl) {
   });
 }
 
-var applicationClearFiltersEl = document.getElementById("applicationClearFilters");
+const applicationClearFiltersEl = document.getElementById("applicationClearFilters");
 if (applicationClearFiltersEl) {
   applicationClearFiltersEl.addEventListener("click", function () {
     applicationFilters.q = "";
@@ -3709,11 +3716,11 @@ if (applicationClearFiltersEl) {
     applicationFilters.focus = "";
     applicationFilters.goal = "balanced";
     persistApplicationFilters();
-    var searchInput = document.getElementById("applicationSearch");
+    const searchInput = document.getElementById("applicationSearch");
     if (searchInput) {
       searchInput.value = "";
     }
-    var statusFilter = document.getElementById("applicationStatusFilter");
+    const statusFilter = document.getElementById("applicationStatusFilter");
     if (statusFilter) {
       statusFilter.value = "";
     }
@@ -3781,11 +3788,11 @@ document.getElementById("reviewActivityFilter").addEventListener("change", async
 document
   .getElementById("reviewActivitySavedView")
   .addEventListener("change", async function (event) {
-    var selectedId = event.target.value || "";
+    const selectedId = event.target.value || "";
     if (!selectedId) {
       return;
     }
-    var nextView = readReviewActivitySavedViews().find(function (item) {
+    const nextView = readReviewActivitySavedViews().find(function (item) {
       return item.id === selectedId;
     });
     if (!nextView) {
@@ -3798,17 +3805,17 @@ document
   });
 
 document.getElementById("reviewActivitySaveView").addEventListener("click", function () {
-  var name = window.prompt("Name this review activity view:", "");
+  const name = window.prompt("Name this review activity view:", "");
   if (!name) {
     return;
   }
-  var trimmedName = name.trim();
+  const trimmedName = name.trim();
   if (!trimmedName) {
     return;
   }
-  var views = readReviewActivitySavedViews();
-  var nextId = "review-view-" + Date.now();
-  var nextViews = views
+  const views = readReviewActivitySavedViews();
+  const nextId = "review-view-" + Date.now();
+  const nextViews = views
     .filter(function (item) {
       return item.name !== trimmedName;
     })
@@ -3860,7 +3867,7 @@ document.getElementById("reviewActivityExportCsv").addEventListener("click", asy
 });
 
 document.getElementById("reviewActivityFeed").addEventListener("click", async function (event) {
-  var button = event.target.closest("#reviewActivityLoadMore");
+  const button = event.target.closest("#reviewActivityLoadMore");
   if (!button || reviewActivityLoading || !reviewActivityNextCursor) {
     return;
   }
@@ -3868,17 +3875,17 @@ document.getElementById("reviewActivityFeed").addEventListener("click", async fu
 });
 
 document.getElementById("reviewActivitySavedViewMeta").addEventListener("click", function (event) {
-  var activeView = getActiveReviewActivitySavedView();
+  const activeView = getActiveReviewActivitySavedView();
   if (!activeView) {
     return;
   }
 
   if (event.target.closest("#reviewActivityEditViewNote")) {
-    var nextNote = window.prompt("Reviewer note for this saved view:", activeView.note || "");
+    const nextNote = window.prompt("Reviewer note for this saved view:", activeView.note || "");
     if (nextNote === null) {
       return;
     }
-    var updatedViews = readReviewActivitySavedViews().map(function (item) {
+    const updatedViews = readReviewActivitySavedViews().map(function (item) {
       if (item.id !== activeView.id) {
         return item;
       }
@@ -3893,7 +3900,7 @@ document.getElementById("reviewActivitySavedViewMeta").addEventListener("click",
   }
 
   if (event.target.closest("#reviewActivityToggleResolved")) {
-    var updatedViews = readReviewActivitySavedViews().map(function (item) {
+    const updatedViews = readReviewActivitySavedViews().map(function (item) {
       if (item.id !== activeView.id) {
         return item;
       }
@@ -3908,7 +3915,7 @@ document.getElementById("reviewActivitySavedViewMeta").addEventListener("click",
   }
 
   if (event.target.closest("#reviewActivityDeleteView")) {
-    var shouldDelete = window.confirm("Delete this saved review activity view?");
+    const shouldDelete = window.confirm("Delete this saved review activity view?");
     if (!shouldDelete) {
       return;
     }
@@ -3924,9 +3931,9 @@ document.getElementById("reviewActivitySavedViewMeta").addEventListener("click",
 });
 
 document.addEventListener("click", function (event) {
-  var tab = event.target.closest("[data-admin-tab]");
+  const tab = event.target.closest("[data-admin-tab]");
   if (tab) {
-    var nextView = tab.getAttribute("data-admin-tab") || "";
+    const nextView = tab.getAttribute("data-admin-tab") || "";
     trackFunnelEvent(
       nextView === "reports" ? "admin_report_view_opened" : "admin_review_view_opened",
       {
@@ -3934,7 +3941,7 @@ document.addEventListener("click", function (event) {
       },
     );
   }
-  var primaryActionButton = event.target.closest("[data-workflow-primary-action]");
+  const primaryActionButton = event.target.closest("[data-workflow-primary-action]");
   if (primaryActionButton) {
     trackFunnelEvent("admin_queue_action_taken", {
       action: primaryActionButton.getAttribute("data-workflow-primary-action") || "",
@@ -3943,7 +3950,7 @@ document.addEventListener("click", function (event) {
     handleWorkflowPrimaryActionClick(primaryActionButton);
     return;
   }
-  var button = event.target.closest("[data-clear-workflow-focus]");
+  const button = event.target.closest("[data-clear-workflow-focus]");
   if (!button) {
     return;
   }
@@ -3951,7 +3958,7 @@ document.addEventListener("click", function (event) {
   clearWorkflowFocusMode();
   clearWorkflowHandoffs();
   if (typeof window !== "undefined") {
-    var nextUrl = window.location.pathname + window.location.search;
+    const nextUrl = window.location.pathname + window.location.search;
     window.history.replaceState({}, "", nextUrl);
   }
 });
@@ -3965,15 +3972,15 @@ bindResolveDuplicate();
 // rendered yet. Pulls both records from the in-memory data caches and
 // hands them to the modal.
 document.addEventListener("click", function (event) {
-  var btn = event.target.closest("[data-resolve-duplicate-therapist-id]");
+  const btn = event.target.closest("[data-resolve-duplicate-therapist-id]");
   if (!btn) return;
-  var therapistId = btn.dataset.resolveDuplicateTherapistId;
-  var counterpartId = btn.dataset.resolveDuplicateCounterpartId;
-  var counterpartKind = btn.dataset.resolveDuplicateCounterpartKind || "candidate";
-  var therapist = (publishedTherapists || []).find(function (t) {
+  const therapistId = btn.dataset.resolveDuplicateTherapistId;
+  const counterpartId = btn.dataset.resolveDuplicateCounterpartId;
+  const counterpartKind = btn.dataset.resolveDuplicateCounterpartKind || "candidate";
+  const therapist = (publishedTherapists || []).find(function (t) {
     return String(t.id || t._id) === String(therapistId);
   });
-  var counterpart =
+  const counterpart =
     counterpartKind === "therapist"
       ? (publishedTherapists || []).find(function (t) {
           return String(t.id || t._id) === String(counterpartId);
@@ -3991,20 +3998,20 @@ document.addEventListener("click", function (event) {
 });
 
 document.addEventListener("click", function (event) {
-  var editBtn = event.target.closest("[data-edit-candidate-id]");
+  const editBtn = event.target.closest("[data-edit-candidate-id]");
   if (!editBtn) return;
-  var candidateId = editBtn.dataset.editCandidateId;
-  var candidate = (remoteCandidates || []).find(function (c) {
+  const candidateId = editBtn.dataset.editCandidateId;
+  const candidate = (remoteCandidates || []).find(function (c) {
     return String(c.id || c._id) === String(candidateId);
   });
   if (candidate) openCandidateEditDrawer(candidate, loadData);
 });
 
 document.addEventListener("click", function (event) {
-  var editBtn = event.target.closest("[data-edit-therapist-id]");
+  const editBtn = event.target.closest("[data-edit-therapist-id]");
   if (!editBtn) return;
-  var therapistId = editBtn.dataset.editTherapistId;
-  var therapist = (publishedTherapists || []).find(function (t) {
+  const therapistId = editBtn.dataset.editTherapistId;
+  const therapist = (publishedTherapists || []).find(function (t) {
     return String(t.id || t._id) === String(therapistId);
   });
   if (therapist) {
@@ -4113,10 +4120,10 @@ profileSearch = initAdminProfileSearch({
       setActiveAdminView("review");
       applicationFilters.q = result.record.name || result.record.email || "";
       persistApplicationFilters();
-      var searchEl = document.getElementById("applicationSearch");
+      const searchEl = document.getElementById("applicationSearch");
       if (searchEl) searchEl.value = applicationFilters.q;
       renderApplications();
-      var panel = document.getElementById("applicationsPanel");
+      const panel = document.getElementById("applicationsPanel");
       if (panel)
         window.setTimeout(function () {
           panel.scrollIntoView({ behavior: "smooth" });

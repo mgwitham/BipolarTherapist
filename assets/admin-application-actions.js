@@ -21,17 +21,17 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-application-focus-card]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var focus = button.getAttribute("data-application-focus-card") || "";
-      var status = button.getAttribute("data-application-status-card") || "";
-      var sameSelection =
+      const focus = button.getAttribute("data-application-focus-card") || "";
+      const status = button.getAttribute("data-application-status-card") || "";
+      const sameSelection =
         options.applicationFilters.focus === focus && options.applicationFilters.status === status;
       options.applicationFilters.focus = sameSelection ? "" : focus;
       options.applicationFilters.status = sameSelection ? "" : status;
-      var focusFilter = document.getElementById("applicationFocusFilter");
+      const focusFilter = document.getElementById("applicationFocusFilter");
       if (focusFilter) {
         focusFilter.value = options.applicationFilters.focus;
       }
-      var statusFilter = document.getElementById("applicationStatusFilter");
+      const statusFilter = document.getElementById("applicationStatusFilter");
       if (statusFilter) {
         statusFilter.value = options.applicationFilters.status;
       }
@@ -41,8 +41,8 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-review-batch-export]").forEach(function (button) {
     button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-review-batch-export");
-      var text =
+      const mode = button.getAttribute("data-review-batch-export");
+      const text =
         mode === "requests"
           ? options.buildRecommendedReviewBatchRequests(
               options.recommendedBatch,
@@ -52,8 +52,8 @@ export function bindApplicationPanelInteractions(root, options) {
               options.recommendedBatch,
               options.applicationFilters.goal,
             );
-      var success = text ? await options.copyText(text) : false;
-      var status = root.querySelector("#reviewBatchExportStatus");
+      const success = text ? await options.copyText(text) : false;
+      const status = root.querySelector("#reviewBatchExportStatus");
       if (status) {
         status.textContent = success
           ? mode === "requests"
@@ -72,8 +72,8 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-claim-funnel-export]").forEach(function (button) {
     button.addEventListener("click", async function () {
-      var mode = button.getAttribute("data-claim-funnel-export");
-      var text =
+      const mode = button.getAttribute("data-claim-funnel-export");
+      const text =
         mode === "launch"
           ? options.buildClaimLaunchPriorityPacket(options.applications)
           : mode === "stalled"
@@ -81,8 +81,8 @@ export function bindApplicationPanelInteractions(root, options) {
             : mode === "overdue"
               ? options.buildOverdueClaimFollowUpPacket(options.applications)
               : "";
-      var success = text ? await options.copyText(text) : false;
-      var status = root.querySelector("#claimFunnelExportStatus");
+      const success = text ? await options.copyText(text) : false;
+      const status = root.querySelector("#claimFunnelExportStatus");
       if (status) {
         status.textContent = success
           ? mode === "launch"
@@ -101,9 +101,9 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-claim-funnel-focus]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var focus = button.getAttribute("data-claim-funnel-focus") || "";
+      const focus = button.getAttribute("data-claim-funnel-focus") || "";
       options.applicationFilters.focus = focus;
-      var focusFilter = document.getElementById("applicationFocusFilter");
+      const focusFilter = document.getElementById("applicationFocusFilter");
       if (focusFilter) {
         focusFilter.value = focus;
       }
@@ -113,8 +113,8 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-application-jump]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var id = button.getAttribute("data-application-jump");
-      var target = root.querySelector('[data-application-card-id="' + id + '"]');
+      const id = button.getAttribute("data-application-jump");
+      const target = root.querySelector('[data-application-card-id="' + id + '"]');
       if (target) {
         target.scrollIntoView({ behavior: "smooth", block: "start" });
         options.spotlightSection(target);
@@ -124,10 +124,10 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-open-review-details]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var id = button.getAttribute("data-open-review-details");
-      var details = root.querySelector('[data-review-details-id="' + id + '"]');
+      const id = button.getAttribute("data-open-review-details");
+      const details = root.querySelector('[data-review-details-id="' + id + '"]');
       if (details) {
-        var nextOpen = !details.open;
+        const nextOpen = !details.open;
         details.open = nextOpen;
         if (nextOpen) {
           details.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -139,9 +139,9 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-close-review-details]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var id = button.getAttribute("data-close-review-details");
-      var details = root.querySelector('[data-review-details-id="' + id + '"]');
-      var card = root.querySelector('[data-application-card-id="' + id + '"]');
+      const id = button.getAttribute("data-close-review-details");
+      const details = root.querySelector('[data-review-details-id="' + id + '"]');
+      const card = root.querySelector('[data-application-card-id="' + id + '"]');
       if (details) {
         details.open = false;
       }
@@ -156,19 +156,19 @@ export function bindApplicationPanelInteractions(root, options) {
     options.applicationFilters.status = "";
     options.applicationFilters.focus = "";
     options.applicationFilters.goal = "balanced";
-    var searchInput = document.getElementById("applicationSearch");
+    const searchInput = document.getElementById("applicationSearch");
     if (searchInput) {
       searchInput.value = "";
     }
-    var statusFilter = document.getElementById("applicationStatusFilter");
+    const statusFilter = document.getElementById("applicationStatusFilter");
     if (statusFilter) {
       statusFilter.value = "";
     }
-    var focusFilter = document.getElementById("applicationFocusFilter");
+    const focusFilter = document.getElementById("applicationFocusFilter");
     if (focusFilter) {
       focusFilter.value = "";
     }
-    var goalFilter = document.getElementById("applicationReviewGoal");
+    const goalFilter = document.getElementById("applicationReviewGoal");
     if (goalFilter) {
       goalFilter.value = "balanced";
     }
@@ -177,9 +177,9 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-review-details-open]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var id = button.getAttribute("data-review-details-open");
-      var card = button.closest("[data-application-card-id]");
-      var details = card
+      const id = button.getAttribute("data-review-details-open");
+      const card = button.closest("[data-application-card-id]");
+      const details = card
         ? card.querySelector('[data-review-details-id="' + id + '"]')
         : root.querySelector('[data-review-details-id="' + id + '"]');
       if (!details) {
@@ -187,7 +187,7 @@ export function bindApplicationPanelInteractions(root, options) {
       }
       details.open = true;
       button.setAttribute("aria-expanded", "true");
-      var summary = details.querySelector("summary");
+      const summary = details.querySelector("summary");
       if (summary) {
         summary.focus();
       }
@@ -293,8 +293,8 @@ export function bindApplicationPanelInteractions(root, options) {
               claim_follow_up_response_at: new Date().toISOString(),
             });
           }
-          var approveResult = null;
-          var rejectResult = null;
+          let approveResult = null;
+          let rejectResult = null;
           if (action === "publish") approveResult = await options.approveTherapistApplication(id);
           if (action === "reject")
             rejectResult = await options.rejectTherapistApplicationRemote(id);
@@ -321,7 +321,7 @@ export function bindApplicationPanelInteractions(root, options) {
             });
           }
           await options.loadData();
-          var successMessage =
+          let successMessage =
             action === "approve_claim"
               ? "Completed: profile claim approved and moved to the next step."
               : action === "mark-claim-follow-up-sent"
@@ -449,7 +449,7 @@ export function bindApplicationPanelInteractions(root, options) {
           if (action === "publish") options.publishApplication(id);
           if (action === "reject") options.rejectApplication(id);
           options.renderAll();
-          var offlineSuccessMessage =
+          const offlineSuccessMessage =
             action === "requested_changes"
               ? "Completed: therapist asked to make changes."
               : action === "approve_claim"
@@ -476,7 +476,7 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-select-all-live-fields]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var id = button.getAttribute("data-select-all-live-fields");
+      const id = button.getAttribute("data-select-all-live-fields");
       root
         .querySelectorAll('[data-application-apply-field="' + id + '"]')
         .forEach(function (input) {
@@ -489,9 +489,9 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-select-trust-live-fields]").forEach(function (button) {
     button.addEventListener("click", function () {
-      var id = button.getAttribute("data-select-trust-live-fields");
-      var allInputs = root.querySelectorAll('[data-application-apply-field="' + id + '"]');
-      var trustInputs = root.querySelectorAll(
+      const id = button.getAttribute("data-select-trust-live-fields");
+      const allInputs = root.querySelectorAll('[data-application-apply-field="' + id + '"]');
+      const trustInputs = root.querySelectorAll(
         '[data-application-apply-field="' + id + '"][data-trust-critical="true"]',
       );
 
@@ -520,8 +520,8 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-apply-live-fields]").forEach(function (button) {
     button.addEventListener("click", async function () {
-      var id = button.getAttribute("data-apply-live-fields");
-      var selectedFields = Array.from(
+      const id = button.getAttribute("data-apply-live-fields");
+      const selectedFields = Array.from(
         root.querySelectorAll('[data-application-apply-field="' + id + '"]:checked'),
       ).map(function (input) {
         return input.value;
@@ -536,8 +536,8 @@ export function bindApplicationPanelInteractions(root, options) {
       button.disabled = true;
       try {
         if (options.dataMode === "sanity") {
-          var result = await options.applyTherapistApplicationFields(id, selectedFields);
-          var applySummary = options.buildApplicationApplySummary(
+          const result = await options.applyTherapistApplicationFields(id, selectedFields);
+          const applySummary = options.buildApplicationApplySummary(
             id,
             result && result.application ? result.application : null,
             result && result.therapist ? result.therapist : null,
@@ -594,16 +594,16 @@ export function bindApplicationPanelInteractions(root, options) {
 
   root.querySelectorAll("[data-review-field]").forEach(function (select) {
     select.addEventListener("change", async function () {
-      var id = select.getAttribute("data-id");
-      var field = select.getAttribute("data-review-field");
-      var value = select.value;
+      const id = select.getAttribute("data-id");
+      const field = select.getAttribute("data-review-field");
+      const value = select.value;
       select.disabled = true;
       try {
         if (options.dataMode === "sanity") {
-          var target = options.remoteApplications.find(function (item) {
+          const target = options.remoteApplications.find(function (item) {
             return item.id === id;
           });
-          var nextStates = {
+          const nextStates = {
             field_review_states: {
               ...(target && target.field_review_states ? target.field_review_states : {}),
               [field]: value,

@@ -21,11 +21,11 @@ import {
 // is present in the therapist's list". Used by specialty / modality /
 // population matchers after the step-4 state-shape migration.
 function arrayAnyMatch(filterValue, therapistValues) {
-  var filterArr = toFilterArray(filterValue);
+  const filterArr = toFilterArray(filterValue);
   if (!filterArr.length) return true;
-  var therapistArr = Array.isArray(therapistValues) ? therapistValues : [];
+  const therapistArr = Array.isArray(therapistValues) ? therapistValues : [];
   if (!therapistArr.length) return false;
-  var therapistSet = new Set(
+  const therapistSet = new Set(
     therapistArr.map(function (v) {
       return String(v || "").trim();
     }),
@@ -40,18 +40,18 @@ function arrayAnyMatch(filterValue, therapistValues) {
 // "Blue Cross Blue Shield") still match. Returns true when ANY of the
 // user's selected carriers fuzzy-matches the therapist's accepted list.
 function insuranceFilterMatches(filterValue, therapistValues) {
-  var filterArr = toFilterArray(filterValue);
+  const filterArr = toFilterArray(filterValue);
   if (!filterArr.length) return true;
   return filterArr.some(function (v) {
     return insuranceMatches(v, therapistValues);
   });
 }
 
-var responsivenessRankCache = new WeakMap();
-var freshnessBadgeCache = new WeakMap();
-var freshnessRankCache = new WeakMap();
-var decisionReadyScoreCache = new WeakMap();
-var merchandisingQualityCache = new WeakMap();
+const responsivenessRankCache = new WeakMap();
+const freshnessBadgeCache = new WeakMap();
+const freshnessRankCache = new WeakMap();
+const decisionReadyScoreCache = new WeakMap();
+const merchandisingQualityCache = new WeakMap();
 
 // Per-sort memo for getMatchScore. The function is invoked from the sort
 // comparator (compareTherapistsWithFilters), so each therapist is scored
@@ -63,24 +63,24 @@ var merchandisingQualityCache = new WeakMap();
 // per sort (directory.js getFilters() returns a new object each call), so the
 // identity guard resets the memo exactly when the active filters change and
 // never returns a score computed against a different filter set.
-var matchScoreCache = new WeakMap();
-var matchScoreCacheFilterRef = null;
+let matchScoreCache = new WeakMap();
+let matchScoreCacheFilterRef = null;
 
 function getRankingZip(filterState) {
-  var rankingZip = String(
+  const rankingZip = String(
     (filterState && (filterState.explicit_zip || filterState.ranking_zip || filterState.zip)) || "",
   ).trim();
   return /^\d{5}$/.test(rankingZip) ? rankingZip : "";
 }
 
 function getTherapistZip(therapist) {
-  var zip = String((therapist && therapist.zip) || "").trim();
+  const zip = String((therapist && therapist.zip) || "").trim();
   return /^\d{5}$/.test(zip) ? zip : "";
 }
 
 function getDirectoryProximityBoost(filterState, therapist) {
-  var rankingZip = getRankingZip(filterState);
-  var therapistZip = getTherapistZip(therapist);
+  const rankingZip = getRankingZip(filterState);
+  const therapistZip = getTherapistZip(therapist);
 
   if (!rankingZip || !therapistZip || !therapist.accepts_in_person) {
     return 0;
@@ -102,7 +102,7 @@ function getCachedMerchandisingQuality(therapist) {
 }
 
 export function matchesDirectoryFilters(filterState, therapist) {
-  var isPsychiatrist = isPsychiatristProvider(therapist);
+  const isPsychiatrist = isPsychiatristProvider(therapist);
 
   if (filterState.state && therapist.state !== filterState.state) return false;
   if (!arrayAnyMatch(filterState.specialty, therapist.specialties)) {
@@ -135,11 +135,11 @@ export function matchesDirectoryFilters(filterState, therapist) {
   // Therapists with no fee data published bypass the filter (we don't
   // want to hide them just for missing data; step 5 doesn't introduce a
   // "show only with published fees" toggle).
-  var feeMinFilter = Number(filterState.session_fee_min || 0);
-  var feeMaxFilter = Number(filterState.session_fee_max || 0);
+  const feeMinFilter = Number(filterState.session_fee_min || 0);
+  const feeMaxFilter = Number(filterState.session_fee_max || 0);
   if (feeMinFilter > 0 || feeMaxFilter > 0) {
-    var tFeeMin = Number(therapist.session_fee_min || 0);
-    var tFeeMax = Number(therapist.session_fee_max || tFeeMin || 0);
+    const tFeeMin = Number(therapist.session_fee_min || 0);
+    const tFeeMax = Number(therapist.session_fee_max || tFeeMin || 0);
     if (tFeeMin > 0 || tFeeMax > 0) {
       if (feeMinFilter > 0 && tFeeMax > 0 && tFeeMax < feeMinFilter) return false;
       if (feeMaxFilter > 0 && tFeeMin > 0 && tFeeMin > feeMaxFilter) return false;
@@ -159,8 +159,8 @@ export function matchesDirectoryFilters(filterState, therapist) {
 }
 
 export function isPsychiatristProvider(therapist) {
-  var title = String((therapist && therapist.title) || "").toLowerCase();
-  var credentials = String((therapist && therapist.credentials) || "").toLowerCase();
+  const title = String((therapist && therapist.title) || "").toLowerCase();
+  const credentials = String((therapist && therapist.credentials) || "").toLowerCase();
 
   return (
     title.includes("psychiatric") ||
@@ -172,25 +172,25 @@ export function isPsychiatristProvider(therapist) {
 }
 
 export function getPreferredContactRoute(therapist) {
-  var bookingUrl = normalizePublicHttpUrl(therapist.booking_url);
-  var websiteUrl = normalizePublicHttpUrl(therapist.website);
-  var phoneHref = normalizePhoneHref(therapist.phone);
-  var emailHref =
+  const bookingUrl = normalizePublicHttpUrl(therapist.booking_url);
+  const websiteUrl = normalizePublicHttpUrl(therapist.website);
+  const phoneHref = normalizePhoneHref(therapist.phone);
+  const emailHref =
     therapist.email && therapist.email !== "contact@example.com"
       ? normalizeEmailHref(therapist.email)
       : "";
-  var emailAvailable = Boolean(emailHref);
-  var customLabel = String(therapist.preferred_contact_label || "").trim();
-  var bookingHealthy = Boolean(bookingUrl && isBookingRouteHealthy(therapist));
-  var websiteHealthy = Boolean(websiteUrl && isWebsiteRouteHealthy(therapist));
-  var suppressedRoutes = [];
+  const emailAvailable = Boolean(emailHref);
+  const customLabel = String(therapist.preferred_contact_label || "").trim();
+  const bookingHealthy = Boolean(bookingUrl && isBookingRouteHealthy(therapist));
+  const websiteHealthy = Boolean(websiteUrl && isWebsiteRouteHealthy(therapist));
+  const suppressedRoutes = [];
   if (therapist.booking_url && !bookingHealthy) {
     suppressedRoutes.push("booking link looks unavailable");
   }
   if (therapist.website && !websiteHealthy) {
     suppressedRoutes.push("website looks unavailable");
   }
-  var fallbackDetail = suppressedRoutes.length
+  const fallbackDetail = suppressedRoutes.length
     ? "Using another contact route because the " + suppressedRoutes.join(" and the ") + "."
     : "";
 
@@ -270,7 +270,7 @@ export function getPreferredContactRoute(therapist) {
 }
 
 export function getWaitPriority(value) {
-  var map = {
+  const map = {
     "Immediate availability": 0,
     "Within 1 week": 1,
     "Within 2 weeks": 2,
@@ -283,7 +283,7 @@ export function getWaitPriority(value) {
 }
 
 export function getPublicReadinessCopy(therapist) {
-  var readiness = getTherapistMatchReadiness(therapist);
+  const readiness = getTherapistMatchReadiness(therapist);
 
   if (readiness.score >= 85) {
     return "High match confidence";
@@ -301,8 +301,8 @@ export function getResponsivenessRank(therapist) {
     return responsivenessRankCache.get(therapist);
   }
 
-  var signal = getPublicResponsivenessSignal(therapist);
-  var rank = 0;
+  const signal = getPublicResponsivenessSignal(therapist);
+  let rank = 0;
 
   if (!signal) {
     rank = 0;
@@ -324,8 +324,8 @@ export function getFreshnessBadgeData(therapist) {
     return freshnessBadgeCache.get(therapist);
   }
 
-  var badge = null;
-  var recentApplied = getRecentAppliedSummary(therapist);
+  let badge = null;
+  const recentApplied = getRecentAppliedSummary(therapist);
   if (recentApplied) {
     badge = {
       label: recentApplied.short_label || recentApplied.label,
@@ -333,7 +333,7 @@ export function getFreshnessBadgeData(therapist) {
       tone: "fresh",
     };
   } else {
-    var recentConfirmation = getRecentConfirmationSummary(therapist);
+    const recentConfirmation = getRecentConfirmationSummary(therapist);
     if (recentConfirmation) {
       badge = {
         label: recentConfirmation.short_label || recentConfirmation.label,
@@ -341,7 +341,7 @@ export function getFreshnessBadgeData(therapist) {
         tone: recentConfirmation.tone === "fresh" ? "fresh" : "recent",
       };
     } else {
-      var freshness = getDataFreshnessSummary(therapist);
+      const freshness = getDataFreshnessSummary(therapist);
       badge = freshness
         ? {
             label: freshness.label,
@@ -364,16 +364,16 @@ export function getFreshnessRank(therapist) {
     return freshnessRankCache.get(therapist);
   }
 
-  var rank = 0;
-  var recentApplied = getRecentAppliedSummary(therapist);
+  let rank = 0;
+  const recentApplied = getRecentAppliedSummary(therapist);
   if (recentApplied) {
     rank = 3;
   } else {
-    var recentConfirmation = getRecentConfirmationSummary(therapist);
+    const recentConfirmation = getRecentConfirmationSummary(therapist);
     if (recentConfirmation) {
       rank = recentConfirmation.tone === "fresh" ? 3 : 2;
     } else {
-      var freshness = getDataFreshnessSummary(therapist);
+      const freshness = getDataFreshnessSummary(therapist);
       if (!freshness) {
         rank = 0;
       } else if (freshness.status === "fresh") {
@@ -396,12 +396,12 @@ export function getDecisionReadyScore(therapist) {
     return decisionReadyScoreCache.get(therapist);
   }
 
-  var score = 0;
-  var readiness = getTherapistMatchReadiness(therapist);
-  var freshnessRank = getFreshnessRank(therapist);
-  var reviewedCount = getEditoriallyVerifiedOperationalCount(therapist);
-  var contactRoute = getPreferredContactRoute(therapist);
-  var responsivenessRank = getResponsivenessRank(therapist);
+  let score = 0;
+  const readiness = getTherapistMatchReadiness(therapist);
+  const freshnessRank = getFreshnessRank(therapist);
+  const reviewedCount = getEditoriallyVerifiedOperationalCount(therapist);
+  const contactRoute = getPreferredContactRoute(therapist);
+  const responsivenessRank = getResponsivenessRank(therapist);
 
   score += Math.round((readiness.score || 0) * 0.35);
   score += freshnessRank * 10;
@@ -439,7 +439,7 @@ export function getDecisionReadyScore(therapist) {
 }
 
 export function getDecisionReadyLabel(therapist) {
-  var score = getDecisionReadyScore(therapist);
+  const score = getDecisionReadyScore(therapist);
 
   if (score >= 80) {
     return "Highly decision-ready";
@@ -455,10 +455,10 @@ export function getDecisionReadyLabel(therapist) {
 }
 
 export function buildDecisionReadySummary(therapist) {
-  var reasons = [];
-  var freshnessRank = getFreshnessRank(therapist);
-  var reviewedCount = getEditoriallyVerifiedOperationalCount(therapist);
-  var contactRoute = getPreferredContactRoute(therapist);
+  const reasons = [];
+  const freshnessRank = getFreshnessRank(therapist);
+  const reviewedCount = getEditoriallyVerifiedOperationalCount(therapist);
+  const contactRoute = getPreferredContactRoute(therapist);
 
   if (freshnessRank >= 2) {
     reasons.push("fresh confirmation signals");
@@ -484,7 +484,7 @@ export function buildDecisionReadySummary(therapist) {
 }
 
 export function buildLikelyFitCopy(therapist) {
-  var cues = [];
+  const cues = [];
 
   if (therapist.medication_management) {
     cues.push("people who may need psychiatry or medication support");
@@ -524,7 +524,7 @@ export function buildReviewedDetailsCopy(therapist) {
 }
 
 export function buildCardStandoutCopy(therapist) {
-  var reasons = [];
+  const reasons = [];
 
   if (therapist.verification_status === "editorially_verified") {
     reasons.push("editorial review is already in place");
@@ -550,8 +550,8 @@ export function buildCardStandoutCopy(therapist) {
 }
 
 export function buildCardReachabilityCopy(therapist) {
-  var route = getPreferredContactRoute(therapist);
-  var routeCopy = route ? route.label : "Review the profile for the best next step";
+  const route = getPreferredContactRoute(therapist);
+  const routeCopy = route ? route.label : "Review the profile for the best next step";
 
   if (therapist.accepting_new_patients && therapist.estimated_wait_time) {
     return (
@@ -583,9 +583,9 @@ export function buildCardReachabilityCopy(therapist) {
 }
 
 export function buildCardTrustSnapshot(therapist) {
-  var reviewedCount = getEditoriallyVerifiedOperationalCount(therapist);
-  var recentApplied = getRecentAppliedSummary(therapist);
-  var recentConfirmation = getRecentConfirmationSummary(therapist);
+  const reviewedCount = getEditoriallyVerifiedOperationalCount(therapist);
+  const recentApplied = getRecentAppliedSummary(therapist);
+  const recentConfirmation = getRecentConfirmationSummary(therapist);
 
   if (recentApplied) {
     return recentApplied.label + ". " + recentApplied.note;
@@ -606,41 +606,41 @@ export function buildCardTrustSnapshot(therapist) {
 }
 
 export function buildCardFitSummary(filterState, therapist) {
-  var reasons = [];
+  const reasons = [];
 
   // Find the first overlap so we can quote the actual matched value in
   // the fit-summary reason ("focuses on Bipolar II"). Multi-select keys
   // can hold N values; reason copy stays singular for readability.
   function findOverlap(filterValue, therapistValues) {
-    var filterArr = toFilterArray(filterValue);
+    const filterArr = toFilterArray(filterValue);
     if (!filterArr.length) return "";
-    var therapistArr = Array.isArray(therapistValues) ? therapistValues : [];
+    const therapistArr = Array.isArray(therapistValues) ? therapistValues : [];
     if (!therapistArr.length) return "";
-    var therapistSet = new Set(
+    const therapistSet = new Set(
       therapistArr.map(function (v) {
         return String(v || "").trim();
       }),
     );
-    for (var i = 0; i < filterArr.length; i += 1) {
+    for (let i = 0; i < filterArr.length; i += 1) {
       if (therapistSet.has(filterArr[i])) return filterArr[i];
     }
     return "";
   }
   function findInsuranceOverlap(filterValue, therapistValues) {
-    var filterArr = toFilterArray(filterValue);
-    for (var i = 0; i < filterArr.length; i += 1) {
+    const filterArr = toFilterArray(filterValue);
+    for (let i = 0; i < filterArr.length; i += 1) {
       if (insuranceMatches(filterArr[i], therapistValues)) return filterArr[i];
     }
     return "";
   }
 
-  var specMatch = findOverlap(filterState.specialty, therapist.specialties);
+  const specMatch = findOverlap(filterState.specialty, therapist.specialties);
   if (specMatch) reasons.push("focuses on " + specMatch.toLowerCase());
-  var modMatch = findOverlap(filterState.modality, therapist.treatment_modalities);
+  const modMatch = findOverlap(filterState.modality, therapist.treatment_modalities);
   if (modMatch) reasons.push("offers " + modMatch);
-  var popMatch = findOverlap(filterState.population, therapist.client_populations);
+  const popMatch = findOverlap(filterState.population, therapist.client_populations);
   if (popMatch) reasons.push("works with " + popMatch.toLowerCase());
-  var insMatch = findInsuranceOverlap(filterState.insurance, therapist.insurance_accepted);
+  const insMatch = findInsuranceOverlap(filterState.insurance, therapist.insurance_accepted);
   if (insMatch) reasons.push("accepts " + insMatch);
   if (filterState.telehealth && therapist.accepts_telehealth) {
     reasons.push("offers telehealth");
@@ -689,17 +689,17 @@ export function getMatchScore(filterState, therapist) {
     matchScoreCache = new WeakMap();
     matchScoreCacheFilterRef = filterState;
   }
-  var canCache = therapist !== null && typeof therapist === "object";
+  const canCache = therapist !== null && typeof therapist === "object";
   if (canCache) {
-    var cachedScore = matchScoreCache.get(therapist);
+    const cachedScore = matchScoreCache.get(therapist);
     if (cachedScore !== undefined) {
       return cachedScore;
     }
   }
 
-  var score = 0;
-  var quality = getCachedMerchandisingQuality(therapist);
-  var responsivenessRank = getResponsivenessRank(therapist);
+  let score = 0;
+  const quality = getCachedMerchandisingQuality(therapist);
+  const responsivenessRank = getResponsivenessRank(therapist);
 
   // Multi-select filters: award the score when ANY of the user's selected
   // values matches the therapist's array. (Pre-step-4 used .includes on a
@@ -766,8 +766,8 @@ export function getMatchScore(filterState, therapist) {
 // shuffle still operates within each tier, we don't want the top
 // row to be the same person every reload.
 function getCompletenessTier(therapist) {
-  var hasPhoto = Boolean(therapist && therapist.photo_url);
-  var hasBipolarYears = Number((therapist && therapist.bipolar_years_experience) || 0) >= 1;
+  const hasPhoto = Boolean(therapist && therapist.photo_url);
+  const hasBipolarYears = Number((therapist && therapist.bipolar_years_experience) || 0) >= 1;
   if (hasPhoto && hasBipolarYears) return 2;
   if (hasPhoto || hasBipolarYears) return 1;
   return 0;
@@ -780,7 +780,7 @@ function getCompletenessTier(therapist) {
 // providers unpredictably instead of sorting them last. Treat any
 // non-finite fee as unknown so it sorts to the bottom, like a missing fee.
 function feeSortValue(therapist) {
-  var fee = Number(
+  const fee = Number(
     (therapist && (therapist.session_fee_min || therapist.session_fee_max)) || 999999,
   );
   return Number.isFinite(fee) ? fee : 999999;
@@ -789,12 +789,16 @@ function feeSortValue(therapist) {
 export function compareTherapistsWithFilters(filterState, a, b) {
   if (filterState.sortBy === "stable_random" || filterState.sortBy === "near_zip") {
     if (filterState.sortBy === "near_zip") {
-      var sortZipVal = String(filterState.sortZip || "").trim();
+      const sortZipVal = String(filterState.sortZip || "").trim();
       if (/^\d{5}$/.test(sortZipVal)) {
-        var aZip = getTherapistZip(a);
-        var bZip = getTherapistZip(b);
-        var aProx = aZip ? getInPersonProximityBonus(getZipDistanceMiles(sortZipVal, aZip)) : -9999;
-        var bProx = bZip ? getInPersonProximityBonus(getZipDistanceMiles(sortZipVal, bZip)) : -9999;
+        const aZip = getTherapistZip(a);
+        const bZip = getTherapistZip(b);
+        const aProx = aZip
+          ? getInPersonProximityBonus(getZipDistanceMiles(sortZipVal, aZip))
+          : -9999;
+        const bProx = bZip
+          ? getInPersonProximityBonus(getZipDistanceMiles(sortZipVal, bZip))
+          : -9999;
         return (
           (b.accepting_new_patients ? 1 : 0) - (a.accepting_new_patients ? 1 : 0) ||
           bProx - aProx ||
@@ -802,12 +806,12 @@ export function compareTherapistsWithFilters(filterState, a, b) {
         );
       }
     }
-    var acceptDiff = (b.accepting_new_patients ? 1 : 0) - (a.accepting_new_patients ? 1 : 0);
+    const acceptDiff = (b.accepting_new_patients ? 1 : 0) - (a.accepting_new_patients ? 1 : 0);
     if (acceptDiff !== 0) return acceptDiff;
-    var tierDiff = getCompletenessTier(b) - getCompletenessTier(a);
+    const tierDiff = getCompletenessTier(b) - getCompletenessTier(a);
     if (tierDiff !== 0) return tierDiff;
-    var orderA = filterState.stableOrderMap ? filterState.stableOrderMap.get(a.slug) || 0 : 0;
-    var orderB = filterState.stableOrderMap ? filterState.stableOrderMap.get(b.slug) || 0 : 0;
+    const orderA = filterState.stableOrderMap ? filterState.stableOrderMap.get(a.slug) || 0 : 0;
+    const orderB = filterState.stableOrderMap ? filterState.stableOrderMap.get(b.slug) || 0 : 0;
     return orderA - orderB;
   }
 
@@ -843,8 +847,8 @@ export function compareTherapistsWithFilters(filterState, a, b) {
   }
 
   if (filterState.sortBy === "lowest_fee") {
-    var aFee = feeSortValue(a);
-    var bFee = feeSortValue(b);
+    const aFee = feeSortValue(a);
+    const bFee = feeSortValue(b);
 
     return (
       aFee - bFee ||

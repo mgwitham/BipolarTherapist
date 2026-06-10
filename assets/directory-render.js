@@ -4,8 +4,8 @@ import { escapeHtml } from "./escape-html.js";
 import { sanityImageUrl } from "./sanity-image.js";
 
 function buildTherapistProfileHref(slug, source) {
-  var cleanSlug = String(slug || "").trim();
-  var params = new URLSearchParams();
+  const cleanSlug = String(slug || "").trim();
+  const params = new URLSearchParams();
   params.set("ref", "directory");
   if (source) {
     params.set("source", String(source));
@@ -40,7 +40,7 @@ function renderTrustSignals(signals, className) {
 }
 
 function renderFitReasons(model, limit) {
-  var items = (model.fitReasons || []).slice(0, limit || 2);
+  const items = (model.fitReasons || []).slice(0, limit || 2);
   if (!items.length) {
     return "";
   }
@@ -73,7 +73,7 @@ export function renderEmptyStateMarkup(_directoryPage) {
 }
 
 export function renderDirectoryDecisionPreviewMarkup(options) {
-  var model = options.model;
+  const model = options.model;
   if (!model || !model.therapist) {
     return "";
   }
@@ -156,7 +156,7 @@ export function renderDirectoryDecisionPreviewMarkup(options) {
 }
 
 export function renderDirectoryRecommendationsMarkup(options) {
-  var model = options.model;
+  const model = options.model;
   if (!model || !model.featured) {
     return "";
   }
@@ -199,8 +199,8 @@ export function renderDirectoryRecommendationsMarkup(options) {
 }
 
 export function renderBackupCardMarkup(options) {
-  var model = options.model;
-  var therapist = model.therapist;
+  const model = options.model;
+  const therapist = model.therapist;
 
   return (
     '<article class="directory-backup-card" data-card-slug="' +
@@ -243,16 +243,16 @@ export function renderBackupCardMarkup(options) {
 
 // Bipolar subtype keywords used to derive the expertise-band line. Matches
 // the new design's "Bipolar I, Bipolar II, Cyclothymia" surface.
-var BIPOLAR_SUBTYPE_PATTERNS = [
+const BIPOLAR_SUBTYPE_PATTERNS = [
   { match: /bipolar\s*i+\b|bipolar\s*2/i, label: "Bipolar II" },
   { match: /bipolar\s*i\b|bipolar\s*1\b/i, label: "Bipolar I" },
   { match: /cyclothym/i, label: "Cyclothymia" },
 ];
 function getBipolarSubtypes(therapist) {
-  var specs = Array.isArray(therapist.specialties) ? therapist.specialties : [];
-  var found = [];
+  const specs = Array.isArray(therapist.specialties) ? therapist.specialties : [];
+  const found = [];
   BIPOLAR_SUBTYPE_PATTERNS.forEach(function (pat) {
-    var hit = specs.some(function (s) {
+    const hit = specs.some(function (s) {
       return pat.match.test(String(s || ""));
     });
     if (hit && found.indexOf(pat.label) === -1) found.push(pat.label);
@@ -261,18 +261,18 @@ function getBipolarSubtypes(therapist) {
 }
 
 function buildExpertiseBand(therapist) {
-  var t = therapist || {};
-  var years = Number(t.bipolar_years_experience || 0);
-  var subtypes = getBipolarSubtypes(t);
-  var modalities = (Array.isArray(t.treatment_modalities) ? t.treatment_modalities : [])
+  const t = therapist || {};
+  const years = Number(t.bipolar_years_experience || 0);
+  const subtypes = getBipolarSubtypes(t);
+  const modalities = (Array.isArray(t.treatment_modalities) ? t.treatment_modalities : [])
     .map(function (m) {
       return String(m || "").trim();
     })
     .filter(Boolean)
     .slice(0, 3);
 
-  var line1 = "";
-  var line2 = "";
+  let line1 = "";
+  let line2 = "";
   if (years > 0) {
     line1 = years + " yr" + (years === 1 ? "" : "s") + " bipolar experience";
     line2 = subtypes.concat(modalities).slice(0, 4).join(" · ");
@@ -296,7 +296,7 @@ function buildExpertiseBand(therapist) {
 }
 
 function buildAvailabilityRow(therapist) {
-  var t = therapist || {};
+  const t = therapist || {};
   if (t.accepting_new_patients === true) {
     return (
       '<div class="dir-card-avail dir-card-avail--open">' +
@@ -317,38 +317,38 @@ function buildAvailabilityRow(therapist) {
 }
 
 function buildFormatPriceRow(therapist) {
-  var t = therapist || {};
-  var mode = "";
+  const t = therapist || {};
+  let mode = "";
   if (t.accepts_telehealth && t.accepts_in_person) mode = "In-person & telehealth";
   else if (t.accepts_telehealth) mode = "Telehealth";
   else if (t.accepts_in_person) mode = "In-person";
 
-  var fee = "";
+  let fee = "";
   if (t.session_fee_min) {
-    var max = t.session_fee_max && t.session_fee_max !== t.session_fee_min;
+    const max = t.session_fee_max && t.session_fee_max !== t.session_fee_min;
     fee = "$" + t.session_fee_min + (max ? "–$" + t.session_fee_max : "") + "/session";
   }
 
-  var parts = [mode, fee].filter(Boolean);
+  const parts = [mode, fee].filter(Boolean);
   if (!parts.length) return "";
   return '<div class="dir-card-format">' + escapeHtml(parts.join(" · ")) + "</div>";
 }
 
 function buildInsuranceLine(therapist) {
-  var list = Array.isArray(therapist.insurance_accepted)
+  const list = Array.isArray(therapist.insurance_accepted)
     ? therapist.insurance_accepted.filter(Boolean)
     : [];
   if (!list.length) return "";
-  var visible = list.slice(0, 2);
-  var overflow = list.length - visible.length;
-  var copy = visible.join(", ") + (overflow > 0 ? " +" + overflow + " more" : "");
+  const visible = list.slice(0, 2);
+  const overflow = list.length - visible.length;
+  const copy = visible.join(", ") + (overflow > 0 ? " +" + overflow + " more" : "");
   return '<div class="dir-card-insurance">' + escapeHtml(copy) + "</div>";
 }
 
 export function renderCardMarkup(options) {
-  var model = options.model;
-  var therapist = model.therapist;
-  var primaryHref = buildTherapistProfileHref(therapist.slug, "card_primary");
+  const model = options.model;
+  const therapist = model.therapist;
+  const primaryHref = buildTherapistProfileHref(therapist.slug, "card_primary");
 
   return (
     '<article class="t-card dir-card" data-card-slug="' +
@@ -403,20 +403,20 @@ export function renderCardMarkup(options) {
 }
 
 export function renderDirectoryDetailsMarkup(options) {
-  var model = options.model;
+  const model = options.model;
   if (!model || !model.therapist) {
     return "";
   }
 
-  var therapist = model.therapist;
-  var contactHref = model.contactRoute
+  const therapist = model.therapist;
+  const contactHref = model.contactRoute
     ? model.contactRoute.href
     : buildTherapistProfileHref(therapist.slug, "details_contact");
-  var profileHref =
+  const profileHref =
     model.profileHref || buildTherapistProfileHref(therapist.slug, "details_profile");
 
   // Avatar: photo or clean initials block
-  var initials = therapist.name
+  const initials = therapist.name
     .split(/[\s,]+/)
     .filter(Boolean)
     .map(function (p) {
@@ -425,7 +425,7 @@ export function renderDirectoryDetailsMarkup(options) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-  var avatarHtml = therapist.photo_url
+  const avatarHtml = therapist.photo_url
     ? // Decorative: name is shown as adjacent text and the initials
       // fallback is aria-hidden, so an empty alt avoids a redundant
       // screen-reader announcement (consistent with the rest of the site).
@@ -437,12 +437,12 @@ export function renderDirectoryDetailsMarkup(options) {
       "</div>";
 
   // Credential + role line, prefer full title over abbreviation
-  var credLine = therapist.title
+  const credLine = therapist.title
     ? escapeHtml(therapist.title)
     : escapeHtml(therapist.credentials || "");
 
   // Identity strip
-  var identityHtml =
+  const identityHtml =
     '<div class="dir-panel-identity">' +
     '<div class="dir-panel-avatar">' +
     avatarHtml +
@@ -459,8 +459,8 @@ export function renderDirectoryDetailsMarkup(options) {
     "</div>";
 
   // Quick-answer pills (conditional, absent if all data missing)
-  var pills = Array.isArray(model.quickAnswerPills) ? model.quickAnswerPills : [];
-  var pillsHtml = pills.length
+  const pills = Array.isArray(model.quickAnswerPills) ? model.quickAnswerPills : [];
+  const pillsHtml = pills.length
     ? '<div class="dir-panel-pills" aria-label="Quick overview">' +
       pills
         .map(function (pill) {
@@ -471,7 +471,7 @@ export function renderDirectoryDetailsMarkup(options) {
     : "";
 
   // Bipolar approach section (conditional)
-  var bipolarHtml = model.bipolarApproach
+  const bipolarHtml = model.bipolarApproach
     ? '<div class="dir-panel-approach">' +
       '<div class="dir-panel-section-label">Bipolar approach</div>' +
       '<p class="dir-panel-approach-text">' +
@@ -481,13 +481,13 @@ export function renderDirectoryDetailsMarkup(options) {
     : "";
 
   // Trust strip (editorial/clinical signals only, conditional)
-  var panelTrust = Array.isArray(model.panelTrustSignals) ? model.panelTrustSignals : [];
-  var trustHtml = renderTrustSignals(panelTrust, "dir-panel-trust");
+  const panelTrust = Array.isArray(model.panelTrustSignals) ? model.panelTrustSignals : [];
+  const trustHtml = renderTrustSignals(panelTrust, "dir-panel-trust");
 
   // About/bio, more vertical presence when it carries the panel alone
-  var bioHtml = "";
+  let bioHtml = "";
   if (model.bio) {
-    var isMinimal = !pillsHtml && !bipolarHtml && !trustHtml;
+    const isMinimal = !pillsHtml && !bipolarHtml && !trustHtml;
     bioHtml =
       '<p class="dir-panel-bio' +
       (isMinimal ? " dir-panel-bio--prominent" : "") +
@@ -497,8 +497,8 @@ export function renderDirectoryDetailsMarkup(options) {
   }
 
   // Details grid (conditional, absent when no sections)
-  var sections = Array.isArray(model.detailSections) ? model.detailSections : [];
-  var detailsHtml = sections.length
+  const sections = Array.isArray(model.detailSections) ? model.detailSections : [];
+  const detailsHtml = sections.length
     ? '<div class="dir-panel-details-grid">' +
       sections
         .map(function (section) {
@@ -515,7 +515,7 @@ export function renderDirectoryDetailsMarkup(options) {
     : "";
 
   // Actions: Contact (primary), Save to list, View full profile
-  var actionsHtml =
+  const actionsHtml =
     '<div class="dir-panel-actions">' +
     (model.contactRoute
       ? '<a href="' +
@@ -566,12 +566,12 @@ export function renderPaginationMarkup(currentPage, pages) {
     return "";
   }
 
-  var html = "";
+  let html = "";
   if (currentPage > 1) {
     html += '<button class="page-btn" data-page="' + (currentPage - 1) + '">← Prev</button>';
   }
 
-  for (var i = 1; i <= pages; i += 1) {
+  for (let i = 1; i <= pages; i += 1) {
     if (i === currentPage) {
       html += '<button class="page-btn active">' + i + "</button>";
     } else if (i <= 3 || i > pages - 2 || Math.abs(i - currentPage) <= 1) {
@@ -591,7 +591,7 @@ export function renderPaginationMarkup(currentPage, pages) {
 // ── Bottom sheet helpers ──────────────────────────────────────────────────────
 
 function bshContactIcon(method, href) {
-  var resolved = method || "";
+  let resolved = method || "";
   if (!resolved && href) {
     if (href.startsWith("tel:")) resolved = "phone";
     else if (href.startsWith("mailto:")) resolved = "email";
@@ -611,7 +611,7 @@ function bshContactIcon(method, href) {
 }
 
 function bshInsuranceHtml(plans, slug) {
-  var safeSlug = escapeHtml(slug);
+  const safeSlug = escapeHtml(slug);
   if (!plans.length) {
     return (
       '<div class="bsh-ins-pill-wrap">' +
@@ -633,7 +633,7 @@ function bshInsuranceHtml(plans, slug) {
   }
   if (plans.length < 20) {
     // Collapsed: first 3 + chip. Expanded: ALL plans so nothing disappears on open.
-    var shown = plans.slice(0, 3);
+    const shown = plans.slice(0, 3);
     return (
       '<div data-ins-collapsed="' +
       safeSlug +
@@ -702,12 +702,12 @@ function bshInsuranceHtml(plans, slug) {
 }
 
 export function renderBottomSheetMarkup(options) {
-  var model = options.model;
-  var therapist = model.therapist;
-  var slug = therapist.slug || "";
+  const model = options.model;
+  const therapist = model.therapist;
+  const slug = therapist.slug || "";
 
   // Avatar
-  var initials = therapist.name
+  const initials = therapist.name
     .split(/[\s,]+/)
     .filter(Boolean)
     .map(function (p) {
@@ -716,7 +716,7 @@ export function renderBottomSheetMarkup(options) {
     .join("")
     .slice(0, 2)
     .toUpperCase();
-  var avatarInner = therapist.photo_url
+  const avatarInner = therapist.photo_url
     ? // Decorative: name is shown as adjacent text and the initials
       // fallback is aria-hidden, so an empty alt avoids a redundant
       // screen-reader announcement (consistent with the rest of the site).
@@ -726,13 +726,13 @@ export function renderBottomSheetMarkup(options) {
     : '<div class="bsh-avatar-initials" aria-hidden="true">' + escapeHtml(initials) + "</div>";
 
   // Credential line
-  var credLine = escapeHtml(therapist.credentials || "");
+  let credLine = escapeHtml(therapist.credentials || "");
   if (therapist.title) {
     credLine += (credLine ? " · " : "") + escapeHtml(therapist.title);
   }
 
   // Location + distance pill
-  var locationRowHtml = "";
+  let locationRowHtml = "";
   if (model.locationSummary || model.distancePill) {
     locationRowHtml = '<div class="bsh-location-row">';
     if (model.locationSummary) {
@@ -747,12 +747,12 @@ export function renderBottomSheetMarkup(options) {
   }
 
   // Price
-  var priceHtml = model.feeDisplay
+  const priceHtml = model.feeDisplay
     ? '<div class="bsh-price">' + escapeHtml(model.feeDisplay) + "</div>"
     : "";
 
   // Availability chips
-  var chipsHtml = "";
+  let chipsHtml = "";
   if (Array.isArray(model.availabilityChips) && model.availabilityChips.length) {
     chipsHtml =
       '<div class="bsh-avail-chips">' +
@@ -771,8 +771,8 @@ export function renderBottomSheetMarkup(options) {
   }
 
   // Bookmark button (top bar, left)
-  var bookmarkSaved = Boolean(model.shortlisted);
-  var bookmarkHtml =
+  const bookmarkSaved = Boolean(model.shortlisted);
+  const bookmarkHtml =
     '<button type="button" class="bsh-topbar-btn' +
     (bookmarkSaved ? " is-saved" : "") +
     '" data-shortlist-slug="' +
@@ -788,19 +788,19 @@ export function renderBottomSheetMarkup(options) {
     "</button>";
 
   // Close button (top bar, right), reuses existing ID for focus management
-  var closeHtml =
+  const closeHtml =
     '<button type="button" class="bsh-topbar-btn" id="directoryDetailsClose" aria-label="Close">' +
     '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 2l10 10M12 2L2 12" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>' +
     "</button>";
 
-  var topbarHtml =
+  const topbarHtml =
     '<div class="bsh-topbar">' +
     bookmarkHtml +
     '<div class="bsh-topbar-spacer"></div>' +
     closeHtml +
     "</div>";
 
-  var headerHtml =
+  const headerHtml =
     '<div class="bsh-header">' +
     '<div class="bsh-header-identity">' +
     '<div class="bsh-avatar">' +
@@ -819,7 +819,7 @@ export function renderBottomSheetMarkup(options) {
     "</div>";
 
   // Bio with gradient fade + read-more toggle
-  var bioHtml = "";
+  let bioHtml = "";
   if (model.bio) {
     bioHtml =
       '<div class="bsh-divider"></div>' +
@@ -841,7 +841,7 @@ export function renderBottomSheetMarkup(options) {
   }
 
   // Bipolar approach, the single most differentiating field for this directory
-  var bipolarHtml = "";
+  let bipolarHtml = "";
   if (model.bipolarApproach) {
     bipolarHtml =
       '<div class="bsh-divider"></div>' +
@@ -854,15 +854,17 @@ export function renderBottomSheetMarkup(options) {
   }
 
   // Specialties & Populations, "Bipolar disorder" always sorts first
-  var specialties = (Array.isArray(therapist.specialties) ? therapist.specialties : [])
+  const specialties = (Array.isArray(therapist.specialties) ? therapist.specialties : [])
     .slice()
     .sort(function (a, b) {
-      var aB = /bipolar/i.test(a);
-      var bB = /bipolar/i.test(b);
+      const aB = /bipolar/i.test(a);
+      const bB = /bipolar/i.test(b);
       return aB === bB ? 0 : aB ? -1 : 1;
     });
-  var populations = Array.isArray(therapist.client_populations) ? therapist.client_populations : [];
-  var specsHtml = "";
+  const populations = Array.isArray(therapist.client_populations)
+    ? therapist.client_populations
+    : [];
+  let specsHtml = "";
   if (specialties.length || populations.length) {
     specsHtml =
       '<div class="bsh-divider"></div><div class="bsh-specs-section"><div class="bsh-specs-row">';
@@ -894,8 +896,8 @@ export function renderBottomSheetMarkup(options) {
   }
 
   // Insurance
-  var plans = Array.isArray(therapist.insurance_accepted) ? therapist.insurance_accepted : [];
-  var insuranceHtml =
+  const plans = Array.isArray(therapist.insurance_accepted) ? therapist.insurance_accepted : [];
+  const insuranceHtml =
     '<div class="bsh-divider"></div>' +
     '<div class="bsh-insurance-section" data-ins-wrap="' +
     escapeHtml(slug) +
@@ -905,14 +907,14 @@ export function renderBottomSheetMarkup(options) {
     "</div>";
 
   // Outreach disclosure, collapsed by default; reveals draft message + phone script
-  var outreachInner = renderOutreachPanelMarkup({
+  const outreachInner = renderOutreachPanelMarkup({
     therapist: therapist,
     contactStrategy: model.contactRoute
       ? { route: model.contactRoute.kind || model.contactRoute.type || "" }
       : null,
     escapeHtml: escapeHtml,
   });
-  var outreachHtml = "";
+  let outreachHtml = "";
   if (outreachInner) {
     outreachHtml =
       '<div class="bsh-divider"></div>' +
@@ -931,9 +933,9 @@ export function renderBottomSheetMarkup(options) {
   }
 
   // Actions, View full profile is the primary; the contact action is secondary
-  var profileHref = model.profileHref || "/therapists/" + encodeURIComponent(slug) + "/";
+  const profileHref = model.profileHref || "/therapists/" + encodeURIComponent(slug) + "/";
 
-  var profileCta =
+  const profileCta =
     '<a href="' +
     escapeHtml(profileHref) +
     '" class="bsh-cta-primary" target="_blank" rel="noopener noreferrer" data-primary-cta="' +
@@ -942,10 +944,10 @@ export function renderBottomSheetMarkup(options) {
     '<svg class="bsh-cta-icon" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true"><path d="M2 12L12 2M12 2H7M12 2V7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
     "</a>";
 
-  var contactCtaHtml = "";
+  let contactCtaHtml = "";
   if (model.contactRoute) {
-    var contactHref = model.contactRoute.href || "";
-    var contactIcon = bshContactIcon(therapist.preferred_contact_method || "", contactHref);
+    const contactHref = model.contactRoute.href || "";
+    const contactIcon = bshContactIcon(therapist.preferred_contact_method || "", contactHref);
     contactCtaHtml =
       '<a href="' +
       escapeHtml(contactHref) +
@@ -959,11 +961,11 @@ export function renderBottomSheetMarkup(options) {
       "</a>";
   }
 
-  var footnoteHtml = model.contactFootnote
+  const footnoteHtml = model.contactFootnote
     ? '<div class="bsh-footnote">' + escapeHtml(model.contactFootnote) + "</div>"
     : "";
 
-  var actionsHtml =
+  const actionsHtml =
     '<div class="bsh-divider"></div>' +
     '<div class="bsh-actions">' +
     profileCta +

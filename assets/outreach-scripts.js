@@ -16,14 +16,14 @@ import { escapeHtml as defaultEscapeHtml } from "./escape-html.js";
 
 function isRealEmailAddress(value) {
   if (!value) return false;
-  var s = String(value).trim().toLowerCase();
+  const s = String(value).trim().toLowerCase();
   if (!s || s.indexOf("@") < 0) return false;
   return !/example\.com$|noemail|placeholder/.test(s);
 }
 
 export function buildCallScript(therapist) {
-  var t = therapist || {};
-  var formatLine = "";
+  const t = therapist || {};
+  let formatLine = "";
   if (t.accepts_telehealth && t.accepts_in_person) {
     formatLine = "Either telehealth or in-person would work for me.";
   } else if (t.accepts_telehealth) {
@@ -31,21 +31,21 @@ export function buildCallScript(therapist) {
   } else if (t.accepts_in_person) {
     formatLine = "I'm hoping for in-person care if that's available.";
   }
-  var medicationLine = t.medication_management
+  const medicationLine = t.medication_management
     ? "Medication support or coordination may also be part of the picture."
     : "";
-  var insuranceLine =
+  const insuranceLine =
     t.insurance_accepted && t.insurance_accepted.length
       ? "I'd also love to confirm insurance or fee details before going further."
       : "I'd also love to briefly confirm fees or payment options.";
 
-  var liveOpener =
+  const liveOpener =
     "Hi, my name is [your name]. I found your profile on BipolarTherapyHub and I'm looking for a therapist who works with bipolar disorder. Are you currently taking new clients?";
 
-  var liveContextParts = [formatLine, medicationLine, insuranceLine].filter(Boolean);
-  var liveContext = liveContextParts.length ? "If they are: " + liveContextParts.join(" ") : "";
+  const liveContextParts = [formatLine, medicationLine, insuranceLine].filter(Boolean);
+  const liveContext = liveContextParts.length ? "If they are: " + liveContextParts.join(" ") : "";
 
-  var voicemail =
+  const voicemail =
     "Hi, my name is [your name] and my number is [your number]. I found your profile on BipolarTherapyHub and I'm looking for a therapist experienced with bipolar disorder. Please give me a call back when you have a moment. Thank you so much.";
 
   return {
@@ -56,16 +56,16 @@ export function buildCallScript(therapist) {
 }
 
 export function buildOutreachScript(therapist, contactStrategy) {
-  var t = therapist || {};
-  var route = contactStrategy && contactStrategy.route ? contactStrategy.route : "profile";
+  const t = therapist || {};
+  const route = contactStrategy && contactStrategy.route ? contactStrategy.route : "profile";
 
-  var firstName = (t.name || "").split(" ")[0];
-  var greeting = firstName ? "Hi " + firstName + "," : "Hi,";
+  const firstName = (t.name || "").split(" ")[0];
+  const greeting = firstName ? "Hi " + firstName + "," : "Hi,";
 
-  var intro =
+  const intro =
     "I found your profile on BipolarTherapyHub and wanted to see if you might be a good fit for bipolar-focused support.";
 
-  var contextParts = [];
+  const contextParts = [];
   if (t.accepts_telehealth && t.accepts_in_person) {
     contextParts.push("I'm open to either telehealth or in-person care");
   } else if (t.accepts_telehealth) {
@@ -79,14 +79,14 @@ export function buildOutreachScript(therapist, contactStrategy) {
   if (t.insurance_accepted && t.insurance_accepted.length) {
     contextParts.push("and I'd love to confirm insurance or cost details before going further");
   }
-  var contextLine = contextParts.length
+  let contextLine = contextParts.length
     ? contextParts.join(", ").replace(/, and /g, " and ") + "."
     : "";
   if (contextLine) {
     contextLine = contextLine.charAt(0).toUpperCase() + contextLine.slice(1);
   }
 
-  var questions = ["Are you currently taking new clients?"];
+  const questions = ["Are you currently taking new clients?"];
   if (t.accepts_telehealth && t.accepts_in_person) {
     questions.push("Would you recommend starting with telehealth or in-person care?");
   } else if (t.accepts_telehealth) {
@@ -99,7 +99,7 @@ export function buildOutreachScript(therapist, contactStrategy) {
       "Anything I should know about insurance, fees, or out-of-pocket costs before scheduling?",
     );
   }
-  var closingQuestion;
+  let closingQuestion;
   if (route === "booking") {
     closingQuestion = "If it seems like a fit, is the booking link the best place to start?";
   } else if (route === "email") {
@@ -114,7 +114,7 @@ export function buildOutreachScript(therapist, contactStrategy) {
   }
   questions.push(closingQuestion);
 
-  var questionsBlock =
+  const questionsBlock =
     "A few quick questions:\n\n" +
     questions
       .map(function (q) {
@@ -122,7 +122,7 @@ export function buildOutreachScript(therapist, contactStrategy) {
       })
       .join("\n\n");
 
-  var closing = "Thanks so much,";
+  const closing = "Thanks so much,";
 
   return [greeting, intro, contextLine, questionsBlock, closing].filter(Boolean).join("\n\n");
 }
@@ -143,26 +143,26 @@ export function buildOutreachScript(therapist, contactStrategy) {
  * @returns {String} HTML markup, or "" if neither channel applies
  */
 export function renderOutreachPanelMarkup(options) {
-  var opts = options || {};
-  var therapist = opts.therapist || {};
-  var escapeHtml = typeof opts.escapeHtml === "function" ? opts.escapeHtml : defaultEscapeHtml;
-  var allowEmail = opts.allowEmail !== false;
-  var allowPhone = opts.allowPhone !== false;
-  var inline = opts.inline === true;
+  const opts = options || {};
+  const therapist = opts.therapist || {};
+  const escapeHtml = typeof opts.escapeHtml === "function" ? opts.escapeHtml : defaultEscapeHtml;
+  const allowEmail = opts.allowEmail !== false;
+  const allowPhone = opts.allowPhone !== false;
+  const inline = opts.inline === true;
 
-  var hasEmail = isRealEmailAddress(therapist.email);
-  var hasWebsite = Boolean(therapist.website);
-  var hasBooking = Boolean(therapist.booking_url);
-  var hasTextChannel = allowEmail && (hasEmail || hasWebsite || hasBooking);
-  var hasPhone = allowPhone && Boolean(therapist.phone);
+  const hasEmail = isRealEmailAddress(therapist.email);
+  const hasWebsite = Boolean(therapist.website);
+  const hasBooking = Boolean(therapist.booking_url);
+  const hasTextChannel = allowEmail && (hasEmail || hasWebsite || hasBooking);
+  const hasPhone = allowPhone && Boolean(therapist.phone);
 
   if (!hasTextChannel && !hasPhone) {
     return "";
   }
 
-  var emailBlock = "";
+  let emailBlock = "";
   if (hasTextChannel) {
-    var emailDraft = buildOutreachScript(therapist, opts.contactStrategy || null);
+    const emailDraft = buildOutreachScript(therapist, opts.contactStrategy || null);
     emailBlock =
       '<section class="outreach-script-section outreach-script-section--message">' +
       '<div class="outreach-script-label">Draft first message</div>' +
@@ -179,10 +179,10 @@ export function renderOutreachPanelMarkup(options) {
       "</section>";
   }
 
-  var phoneBlock = "";
+  let phoneBlock = "";
   if (hasPhone) {
-    var callScript = buildCallScript(therapist);
-    var phoneDigits = String(therapist.phone || "").replace(/[^0-9+]/g, "");
+    const callScript = buildCallScript(therapist);
+    const phoneDigits = String(therapist.phone || "").replace(/[^0-9+]/g, "");
     phoneBlock =
       '<section class="outreach-script-section outreach-script-section--call">' +
       '<div class="outreach-script-label">Calling? Here\'s what to say</div>' +
@@ -214,7 +214,7 @@ export function renderOutreachPanelMarkup(options) {
       "</section>";
   }
 
-  var closeButton = inline
+  const closeButton = inline
     ? ""
     : '<div class="outreach-script-close-row">' +
       '<button type="button" class="outreach-script-close" data-outreach-close>Close</button>' +

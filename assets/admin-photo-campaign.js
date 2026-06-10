@@ -7,7 +7,7 @@ import { openEmailCampaignPreview } from "./admin-email-campaign-preview.js";
 import { escapeHtml } from "./escape-html.js";
 
 // Per-session send tracking so a button reads "Sent" without a reload.
-let _photoRequestSent = {};
+const _photoRequestSent = {};
 
 // Preview-before-send for the "add your photo" campaign. Thin wrapper over
 // the shared campaign modal with this campaign's copy + API functions.

@@ -178,15 +178,15 @@ function getFieldReviewStates(therapist) {
 }
 
 export function getEditoriallyVerifiedOperationalCount(therapist) {
-  var states = getFieldReviewStates(therapist);
+  const states = getFieldReviewStates(therapist);
   return Object.values(states).filter(function (value) {
     return value === "editorially_verified";
   }).length;
 }
 
 export function getOperationalTrustSummary(therapist) {
-  var editorialCount = getEditoriallyVerifiedOperationalCount(therapist);
-  var therapistConfirmedCount = Array.isArray(therapist && therapist.therapist_reported_fields)
+  const editorialCount = getEditoriallyVerifiedOperationalCount(therapist);
+  const therapistConfirmedCount = Array.isArray(therapist && therapist.therapist_reported_fields)
     ? therapist.therapist_reported_fields.length
     : 0;
 
@@ -212,21 +212,21 @@ function daysSince(value) {
     return null;
   }
 
-  var date = new Date(value);
+  const date = new Date(value);
   if (Number.isNaN(date.getTime())) {
     return null;
   }
 
-  var now = new Date();
-  var diff = now.getTime() - date.getTime();
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
   return Math.max(0, Math.round(diff / 86400000));
 }
 
 export function getRecentConfirmationSummary(therapist) {
-  var fields = Array.isArray(therapist && therapist.therapist_reported_fields)
+  const fields = Array.isArray(therapist && therapist.therapist_reported_fields)
     ? therapist.therapist_reported_fields.filter(Boolean)
     : [];
-  var confirmedDays = daysSince(therapist && therapist.therapist_reported_confirmed_at);
+  const confirmedDays = daysSince(therapist && therapist.therapist_reported_confirmed_at);
 
   if (!fields.length || confirmedDays === null) {
     return null;
@@ -262,7 +262,7 @@ export function getRecentConfirmationSummary(therapist) {
 }
 
 export function getRecentAppliedSummary(therapist) {
-  var appliedDays = daysSince(therapist && therapist.confirmation_applied_at);
+  const appliedDays = daysSince(therapist && therapist.confirmation_applied_at);
   if (appliedDays === null || appliedDays > 21) {
     return null;
   }
@@ -285,15 +285,15 @@ export function getRecentAppliedSummary(therapist) {
 }
 
 export function getDataFreshnessSummary(therapist) {
-  var sourceDays = daysSince(therapist && therapist.source_reviewed_at);
-  var therapistDays = daysSince(therapist && therapist.therapist_reported_confirmed_at);
-  var appliedDays = daysSince(therapist && therapist.confirmation_applied_at);
-  var states = getFieldReviewStates(therapist);
-  var needsReconfirmation = Object.keys(states).filter(function (key) {
+  const sourceDays = daysSince(therapist && therapist.source_reviewed_at);
+  const therapistDays = daysSince(therapist && therapist.therapist_reported_confirmed_at);
+  const appliedDays = daysSince(therapist && therapist.confirmation_applied_at);
+  const states = getFieldReviewStates(therapist);
+  let needsReconfirmation = Object.keys(states).filter(function (key) {
     return states[key] === "needs_reconfirmation";
   });
-  var staleReasons = [];
-  var recentlyApplied = appliedDays !== null && appliedDays <= 21;
+  const staleReasons = [];
+  const recentlyApplied = appliedDays !== null && appliedDays <= 21;
 
   if (recentlyApplied) {
     needsReconfirmation = [];
@@ -314,11 +314,11 @@ export function getDataFreshnessSummary(therapist) {
     );
   }
 
-  var status = "fresh";
-  var label = "Freshly reviewed";
-  var note = "Source-backed trust details were reviewed recently.";
-  var recentConfirmation = getRecentConfirmationSummary(therapist);
-  var recentApplied = getRecentAppliedSummary(therapist);
+  let status = "fresh";
+  let label = "Freshly reviewed";
+  let note = "Source-backed trust details were reviewed recently.";
+  const recentConfirmation = getRecentConfirmationSummary(therapist);
+  const recentApplied = getRecentAppliedSummary(therapist);
 
   if (recentConfirmation && !staleReasons.length) {
     note = recentConfirmation.note;
@@ -361,8 +361,8 @@ function getTelehealthStatesList(therapist) {
 }
 
 export function getTherapistConfirmationAgenda(therapist) {
-  var states = getFieldReviewStates(therapist);
-  var appliedDays = daysSince(therapist && therapist.confirmation_applied_at);
+  const states = getFieldReviewStates(therapist);
+  const appliedDays = daysSince(therapist && therapist.confirmation_applied_at);
   if (appliedDays !== null && appliedDays <= 21) {
     return {
       needs_confirmation: false,
@@ -372,7 +372,7 @@ export function getTherapistConfirmationAgenda(therapist) {
       summary: "Recently applied confirmation updates are still within the grace window.",
     };
   }
-  var unknowns = [];
+  const unknowns = [];
 
   if (
     !normalizeText(therapist && therapist.bipolar_years_experience) ||
@@ -395,16 +395,16 @@ export function getTherapistConfirmationAgenda(therapist) {
     unknowns.push("license_number");
   }
 
-  var dedupedUnknowns = Array.from(new Set(unknowns));
-  var priority =
+  const dedupedUnknowns = Array.from(new Set(unknowns));
+  const priority =
     dedupedUnknowns.length >= 4 ? "high" : dedupedUnknowns.length >= 2 ? "medium" : "low";
-  var askMap = {
+  const askMap = {
     bipolar_years_experience: "bipolar-specific years of experience",
     insurance_accepted: "insurance or superbill reality",
     telehealth_states: "current telehealth coverage",
     license_number: "license number",
   };
-  var promptMap = {
+  const promptMap = {
     bipolar_years_experience:
       "About how many years have you been treating bipolar-spectrum conditions specifically?",
     insurance_accepted:
@@ -413,7 +413,7 @@ export function getTherapistConfirmationAgenda(therapist) {
     license_number:
       "What is your current license number for the license you want displayed on your profile?",
   };
-  var ask = dedupedUnknowns
+  const ask = dedupedUnknowns
     .slice(0, 3)
     .map(function (field) {
       return askMap[field] || field.replace(/_/g, " ");
@@ -448,7 +448,7 @@ function getTherapistConfirmationPromptMap() {
 }
 
 function getTherapistConfirmationAsks(fields) {
-  var promptMap = getTherapistConfirmationPromptMap();
+  const promptMap = getTherapistConfirmationPromptMap();
   return (Array.isArray(fields) ? fields : [])
     .map(function (field) {
       return promptMap[field];
@@ -457,25 +457,25 @@ function getTherapistConfirmationAsks(fields) {
 }
 
 export function buildTherapistFieldConfirmationPrompt(therapist, fields, options) {
-  var profile = therapist || {};
-  var name = normalizeText(profile.name);
-  var asks = getTherapistConfirmationAsks(fields);
+  const profile = therapist || {};
+  const name = normalizeText(profile.name);
+  const asks = getTherapistConfirmationAsks(fields);
   if (!asks.length) {
     return "";
   }
-  var promptOptions = options || {};
-  var intro =
+  const promptOptions = options || {};
+  const intro =
     promptOptions.intro ||
     "We are tightening your BipolarTherapyHub profile so the information people rely on most stays accurate and trustable.";
-  var guidance =
+  const guidance =
     promptOptions.guidance ||
     "Please confirm only the details below that you are comfortable stating directly. If something is not current or you would rather not list it, it is completely fine to leave it blank.";
-  var bullets = asks
+  const bullets = asks
     .map(function (ask) {
       return "- " + ask;
     })
     .join("\n");
-  var close =
+  const close =
     promptOptions.close ||
     "Once you confirm these details, we can update the profile to reflect the latest accurate information.\n\nThank you,\nBipolarTherapyHub";
 
@@ -485,8 +485,8 @@ export function buildTherapistFieldConfirmationPrompt(therapist, fields, options
 }
 
 export function buildTherapistConfirmationPrompt(therapist) {
-  var profile = therapist || {};
-  var agenda = getTherapistConfirmationAgenda(profile);
+  const profile = therapist || {};
+  const agenda = getTherapistConfirmationAgenda(profile);
 
   if (!agenda.needs_confirmation) {
     return "";
@@ -496,7 +496,7 @@ export function buildTherapistConfirmationPrompt(therapist) {
 }
 
 function listOverlaps(a, b) {
-  var left = new Set(
+  const left = new Set(
     normalizeList(a).map(function (item) {
       return item.toLowerCase();
     }),
@@ -560,7 +560,7 @@ function getCompletenessScore(therapist) {
   // Weights total 100. Photo is a tiebreaker signal only, it never
   // outranks clinical fit (it doesn't appear in `breakdown.clinical`),
   // but a complete profile rises slightly when other factors are even.
-  var weightedFields = [
+  const weightedFields = [
     { value: therapist.phone, weight: 18 },
     { value: therapist.email, weight: 18 },
     { value: therapist.website, weight: 14 },
@@ -573,14 +573,14 @@ function getCompletenessScore(therapist) {
     { value: therapist.bipolar_years_experience, weight: 5 },
   ];
 
-  var score = weightedFields.reduce(function (sum, f) {
+  const score = weightedFields.reduce(function (sum, f) {
     return sum + (f.value ? f.weight : 0);
   }, 0);
   return Math.round(score);
 }
 
 function getMissingReadinessItems(therapist) {
-  var items = [];
+  const items = [];
 
   if (!therapist.phone) {
     items.push("Add a public phone number so patients can reach out.");
@@ -617,10 +617,10 @@ function getMissingReadinessItems(therapist) {
 }
 
 export function getTherapistMatchReadiness(therapist) {
-  var completeness = getCompletenessScore(therapist || {});
-  var score = completeness;
-  var strengths = [];
-  var missingItems = getMissingReadinessItems(therapist || {});
+  const completeness = getCompletenessScore(therapist || {});
+  let score = completeness;
+  const strengths = [];
+  const missingItems = getMissingReadinessItems(therapist || {});
 
   if (therapist.verification_status === "editorially_verified") {
     score += 8;
@@ -649,7 +649,7 @@ export function getTherapistMatchReadiness(therapist) {
 
   score = clamp(Math.round(score), 0, 100);
 
-  var label = "Needs work";
+  let label = "Needs work";
   if (score >= 85) {
     label = "Match-ready";
   } else if (score >= 65) {
@@ -666,8 +666,8 @@ export function getTherapistMatchReadiness(therapist) {
 }
 
 export function getTherapistReviewCoaching(therapist) {
-  var profile = therapist || {};
-  var suggestions = [];
+  const profile = therapist || {};
+  const suggestions = [];
 
   if (!profile.care_approach) {
     suggestions.push(
@@ -722,12 +722,12 @@ export function getTherapistReviewCoaching(therapist) {
 }
 
 export function getTherapistMerchandisingQuality(therapist) {
-  var profile = therapist || {};
-  var readiness = getTherapistMatchReadiness(profile);
-  var freshness = getDataFreshnessSummary(profile);
-  var recentConfirmation = getRecentConfirmationSummary(profile);
-  var score = Number(readiness.score || 0) || 0;
-  var reasons = [];
+  const profile = therapist || {};
+  const readiness = getTherapistMatchReadiness(profile);
+  const freshness = getDataFreshnessSummary(profile);
+  const recentConfirmation = getRecentConfirmationSummary(profile);
+  let score = Number(readiness.score || 0) || 0;
+  const reasons = [];
 
   if (profile.verification_status === "editorially_verified") {
     score += 10;
@@ -785,7 +785,7 @@ export function getTherapistMerchandisingQuality(therapist) {
     score -= 3;
   }
 
-  var label = "Solid profile";
+  let label = "Solid profile";
   if (score >= 105) {
     label = "Standout profile";
   } else if (score >= 90) {
@@ -830,7 +830,7 @@ function getOutreachAdjustment(_signals, _slug) {
 }
 
 function getLearningSegments(profile) {
-  var segments = ["all"];
+  const segments = ["all"];
 
   if (profile.care_format && profile.care_format !== "Either") {
     segments.push("format:" + profile.care_format.toLowerCase());
@@ -866,7 +866,7 @@ function resolveLearningSignals(signals, profile) {
     };
   }
 
-  var resolved = {
+  const resolved = {
     reason_weights: Object.assign({}, signals.reason_weights || {}),
     therapist_adjustments: Object.assign({}, signals.therapist_adjustments || {}),
     outreach_adjustments: Object.assign({}, signals.outreach_adjustments || {}),
@@ -878,7 +878,7 @@ function resolveLearningSignals(signals, profile) {
       return;
     }
 
-    var overlay = signals.segments[segment];
+    const overlay = signals.segments[segment];
     resolved.active_segments.push(segment);
 
     Object.keys(overlay.reason_weights || {}).forEach(function (reason) {
@@ -939,7 +939,7 @@ export function buildUserMatchProfile(input) {
 }
 
 function getProviderKind(therapist) {
-  var haystack = [therapist.title, therapist.credentials, therapist.treatment_modalities]
+  const haystack = [therapist.title, therapist.credentials, therapist.treatment_modalities]
     .flat()
     .filter(Boolean)
     .join(" ")
@@ -958,8 +958,8 @@ function getProviderKind(therapist) {
 }
 
 export function getMatchTier(scoreOrEvaluation) {
-  var score = typeof scoreOrEvaluation === "number" ? scoreOrEvaluation : scoreOrEvaluation.score;
-  var confidence =
+  const score = typeof scoreOrEvaluation === "number" ? scoreOrEvaluation : scoreOrEvaluation.score;
+  const confidence =
     typeof scoreOrEvaluation === "number"
       ? 70
       : Number(scoreOrEvaluation.confidence_score || 0) || 0;
@@ -985,14 +985,14 @@ export function getMatchTier(scoreOrEvaluation) {
 }
 
 export function evaluateTherapistAgainstProfile(therapist, userProfile, learningSignals) {
-  var profile = buildUserMatchProfile(userProfile || {});
-  var resolvedLearning = resolveLearningSignals(learningSignals, profile);
-  var freshness = getDataFreshnessSummary(therapist);
-  var recentConfirmation = getRecentConfirmationSummary(therapist);
-  var reasons = [];
-  var cautions = [];
-  var hardFailures = [];
-  var breakdown = {
+  const profile = buildUserMatchProfile(userProfile || {});
+  const resolvedLearning = resolveLearningSignals(learningSignals, profile);
+  const freshness = getDataFreshnessSummary(therapist);
+  const recentConfirmation = getRecentConfirmationSummary(therapist);
+  const reasons = [];
+  const cautions = [];
+  const hardFailures = [];
+  const breakdown = {
     access: 0,
     practical: 0,
     clinical: 0,
@@ -1005,9 +1005,9 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     throw new Error("User match profile must include care_state.");
   }
 
-  var telehealthSupport = supportsTelehealthInState(therapist, profile.care_state);
-  var inPersonSupport = supportsInPersonInState(therapist, profile.care_state);
-  var completeness = getCompletenessScore(therapist);
+  const telehealthSupport = supportsTelehealthInState(therapist, profile.care_state);
+  const inPersonSupport = supportsInPersonInState(therapist, profile.care_state);
+  const completeness = getCompletenessScore(therapist);
 
   if (profile.care_format === "Telehealth") {
     if (telehealthSupport === false) {
@@ -1069,7 +1069,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     }
   }
 
-  var providerKind = getProviderKind(therapist);
+  const providerKind = getProviderKind(therapist);
   if (profile.care_intent !== "Either") {
     if (providerKind !== profile.care_intent) {
       hardFailures.push(
@@ -1115,7 +1115,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
   }
 
   if (profile.budget_max) {
-    var minFee = getFeeFloor(therapist);
+    const minFee = getFeeFloor(therapist);
     if (minFee && minFee <= profile.budget_max) {
       breakdown.practical += 12;
       reasons.push({
@@ -1188,7 +1188,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     }
   }
   if (profile.priority_mode === "Lowest cost") {
-    var feeFloor = getFeeFloor(therapist);
+    const feeFloor = getFeeFloor(therapist);
     if (feeFloor) {
       breakdown.practical += clamp(18 - Math.round(feeFloor / 25), 0, 18);
     }
@@ -1201,10 +1201,10 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     // Primary: bipolar_years_experience when available (1% of therapists)
     breakdown.clinical += clamp(Number(therapist.bipolar_years_experience || 0), 0, 12);
     // Proxy: breadth of bipolar specialties listed (98% populated)
-    var specialtyCount = (therapist.specialties || []).length;
+    const specialtyCount = (therapist.specialties || []).length;
     breakdown.clinical += clamp(specialtyCount * 3, 0, 12);
     // Proxy: number of treatment modalities (85% populated), more = deeper toolbox
-    var modalityCount = (therapist.treatment_modalities || []).length;
+    const modalityCount = (therapist.treatment_modalities || []).length;
     breakdown.clinical += clamp(modalityCount * 1.5, 0, 6);
   }
 
@@ -1218,7 +1218,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     cautions.push("Accepting-patient status not confirmed.");
   }
 
-  var specialtyMatches = listOverlaps(profile.bipolar_focus, therapist.specialties);
+  const specialtyMatches = listOverlaps(profile.bipolar_focus, therapist.specialties);
   if (specialtyMatches.length) {
     breakdown.clinical += Math.min(28, specialtyMatches.length * 9);
     reasons.push({
@@ -1227,7 +1227,10 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     });
   }
 
-  var modalityMatches = listOverlaps(profile.preferred_modalities, therapist.treatment_modalities);
+  const modalityMatches = listOverlaps(
+    profile.preferred_modalities,
+    therapist.treatment_modalities,
+  );
   if (modalityMatches.length) {
     breakdown.clinical += Math.min(20, modalityMatches.length * 7);
     reasons.push({
@@ -1239,7 +1242,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     cautions.push("Preferred treatment modalities do not clearly overlap.");
   }
 
-  var populationMatches = listOverlaps(profile.population_fit, therapist.client_populations);
+  const populationMatches = listOverlaps(profile.population_fit, therapist.client_populations);
   if (populationMatches.length) {
     breakdown.clinical += Math.min(18, populationMatches.length * 6);
     reasons.push({
@@ -1248,7 +1251,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     });
   }
 
-  var languageMatches = listOverlaps(profile.language_preferences, therapist.languages);
+  const languageMatches = listOverlaps(profile.language_preferences, therapist.languages);
   if (languageMatches.length) {
     breakdown.clinical += Math.min(14, languageMatches.length * 7);
     reasons.push({
@@ -1308,7 +1311,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     cautions.push("Cultural fit is not yet strongly modeled.");
   }
 
-  var verifiedOperationalCount = getEditoriallyVerifiedOperationalCount(therapist);
+  const verifiedOperationalCount = getEditoriallyVerifiedOperationalCount(therapist);
   if (verifiedOperationalCount) {
     breakdown.trust += verifiedOperationalCount * 2;
     reasons.push({
@@ -1356,24 +1359,24 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
     breakdown.learned += 4;
   }
 
-  var therapistAdjustment = getTherapistFeedbackAdjustment(resolvedLearning, therapist.slug);
+  const therapistAdjustment = getTherapistFeedbackAdjustment(resolvedLearning, therapist.slug);
   if (therapistAdjustment) {
     breakdown.learned += therapistAdjustment;
   }
-  var outreachAdjustment = getOutreachAdjustment(resolvedLearning, therapist.slug);
+  const outreachAdjustment = getOutreachAdjustment(resolvedLearning, therapist.slug);
   if (outreachAdjustment) {
     breakdown.learned += outreachAdjustment;
   }
 
-  var score =
+  const score =
     breakdown.access +
     breakdown.practical +
     breakdown.clinical +
     breakdown.trust +
     breakdown.uncertainty +
     breakdown.learned;
-  var hardConstraintFailed = hardFailures.length > 0;
-  var confidenceScore = clamp(
+  const hardConstraintFailed = hardFailures.length > 0;
+  const confidenceScore = clamp(
     58 +
       Math.round(completeness * 0.22) +
       (therapist.verification_status === "editorially_verified" ? 8 : 0) +
@@ -1448,7 +1451,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
 export function rankTherapistsForUser(therapists, userProfile, learningSignals) {
   return (therapists || [])
     .map(function (therapist) {
-      var evaluation = evaluateTherapistAgainstProfile(therapist, userProfile, learningSignals);
+      const evaluation = evaluateTherapistAgainstProfile(therapist, userProfile, learningSignals);
       return {
         therapist: therapist,
         evaluation: evaluation,
@@ -1475,8 +1478,8 @@ export function buildMatchExplanation(entry) {
     return "";
   }
 
-  var reasons = entry.evaluation.reasons || [];
-  var confidence = entry.evaluation.confidence_score || 0;
+  const reasons = entry.evaluation.reasons || [];
+  const confidence = entry.evaluation.confidence_score || 0;
   if (!reasons.length) {
     return (
       entry.therapist.name +

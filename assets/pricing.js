@@ -12,29 +12,29 @@ import {
   getTherapistSessionToken,
 } from "./review-api.js";
 
-var searchParams = new URLSearchParams(window.location.search);
-var slugParam = String(searchParams.get("slug") || "").trim();
-var emailParam = String(searchParams.get("email") || "").trim();
-var therapistSessionToken = getTherapistSessionToken();
+const searchParams = new URLSearchParams(window.location.search);
+let slugParam = String(searchParams.get("slug") || "").trim();
+const emailParam = String(searchParams.get("email") || "").trim();
+const therapistSessionToken = getTherapistSessionToken();
 
-var therapistCountEl = document.getElementById("pricingTherapistCount");
+const therapistCountEl = document.getElementById("pricingTherapistCount");
 
-var freeCard = document.querySelector('[data-plan-card="free"]');
-var paidCard = document.querySelector('[data-plan-card="paid"]');
-var freeCta = document.getElementById("pricingFreeCta");
-var paidCta = document.getElementById("pricingPaidCta");
-var freeBadge = document.getElementById("pricingFreePlanBadge");
-var paidBadge = document.getElementById("pricingPaidPlanBadge");
-var freeState = document.getElementById("pricingFreeState");
-var paidState = document.getElementById("pricingPaidState");
-var paidHelper = document.getElementById("pricingPaidHelper");
-var trialClarity = document.getElementById("pricingTrialClarity");
-var freeFeedback = document.getElementById("pricingFreeFeedback");
-var paidFeedback = document.getElementById("pricingPaidFeedback");
-var previewCard = document.getElementById("pricingPreviewCard");
-var freeFeatureClaim = document.getElementById("pricingFreeFeatureClaim");
+const freeCard = document.querySelector('[data-plan-card="free"]');
+const paidCard = document.querySelector('[data-plan-card="paid"]');
+const freeCta = document.getElementById("pricingFreeCta");
+const paidCta = document.getElementById("pricingPaidCta");
+const freeBadge = document.getElementById("pricingFreePlanBadge");
+const paidBadge = document.getElementById("pricingPaidPlanBadge");
+const freeState = document.getElementById("pricingFreeState");
+const paidState = document.getElementById("pricingPaidState");
+const paidHelper = document.getElementById("pricingPaidHelper");
+const trialClarity = document.getElementById("pricingTrialClarity");
+const freeFeedback = document.getElementById("pricingFreeFeedback");
+const paidFeedback = document.getElementById("pricingPaidFeedback");
+const previewCard = document.getElementById("pricingPreviewCard");
+const freeFeatureClaim = document.getElementById("pricingFreeFeatureClaim");
 
-var pricingState = {
+const pricingState = {
   branch: therapistSessionToken ? "signed_in_loading" : "logged_out",
   therapist: null,
   subscription: null,
@@ -67,9 +67,9 @@ function setCardCurrent(card, isCurrent) {
 }
 
 function buildHref(path, params) {
-  var query = new URLSearchParams();
+  const query = new URLSearchParams();
   Object.keys(params || {}).forEach(function (key) {
-    var value = params[key];
+    const value = params[key];
     if (value !== undefined && value !== null && value !== "") {
       query.set(key, String(value));
     }
@@ -158,8 +158,8 @@ function applyLoggedOutState() {
 }
 
 function applySignedInFreeState(me, subscription) {
-  var therapist = (me && me.therapist) || {};
-  var therapistSlug = therapist.slug || slugParam || "";
+  const therapist = (me && me.therapist) || {};
+  const therapistSlug = therapist.slug || slugParam || "";
   pricingState.branch = "signed_in_free";
   pricingState.therapist = me;
   pricingState.subscription = subscription;
@@ -203,9 +203,9 @@ function applySignedInFreeState(me, subscription) {
 }
 
 function applySignedInPaidState(me, subscription) {
-  var therapist = (me && me.therapist) || {};
-  var therapistSlug = therapist.slug || slugParam || "";
-  var isTrial = Boolean(subscription && subscription.status === "trialing");
+  const therapist = (me && me.therapist) || {};
+  const therapistSlug = therapist.slug || slugParam || "";
+  const isTrial = Boolean(subscription && subscription.status === "trialing");
 
   pricingState.branch = isTrial ? "signed_in_trial" : "signed_in_paid";
   pricingState.therapist = me;
@@ -266,7 +266,7 @@ function applyResolvedBranchTracking() {
 }
 
 function applyPricingState(me, subscription) {
-  var hasActivePaid = Boolean(subscription && subscription.has_active_featured);
+  const hasActivePaid = Boolean(subscription && subscription.has_active_featured);
   if (me && me.therapist && hasActivePaid) {
     applySignedInPaidState(me, subscription);
   } else if (me && me.therapist) {
@@ -294,14 +294,14 @@ function handleFreeCtaClick(_event) {
 async function handleDirectCheckout(event) {
   event.preventDefault();
 
-  var me = pricingState.therapist;
-  var therapist = me && me.therapist;
+  const me = pricingState.therapist;
+  const therapist = me && me.therapist;
   if (!therapist || !therapist.slug) {
     window.location.href = buildSignupHref();
     return;
   }
 
-  var originalLabel = "Start free trial";
+  const originalLabel = "Start free trial";
   setCtaBusy(paidCta, "Opening secure checkout...");
   setFeedback(
     paidFeedback,
@@ -315,7 +315,7 @@ async function handleDirectCheckout(event) {
   });
 
   try {
-    var checkout = await createStripeFeaturedCheckoutSession({
+    const checkout = await createStripeFeaturedCheckoutSession({
       therapist_slug: therapist.slug,
       email: (me && me.session && me.session.email) || therapist.email || emailParam || "",
       plan: "paid_monthly",
@@ -326,7 +326,7 @@ async function handleDirectCheckout(event) {
       source: "pricing_page",
       therapist_slug: therapist.slug,
     });
-    var checkoutUrl = checkout && checkout.url ? safeStripeRedirectUrl(checkout.url) : "";
+    const checkoutUrl = checkout && checkout.url ? safeStripeRedirectUrl(checkout.url) : "";
     if (checkoutUrl) {
       window.location.href = checkoutUrl;
       return;
@@ -346,14 +346,14 @@ async function handleDirectCheckout(event) {
 async function handleManageSubscription(event) {
   event.preventDefault();
 
-  var me = pricingState.therapist;
-  var therapist = me && me.therapist;
+  const me = pricingState.therapist;
+  const therapist = me && me.therapist;
   if (!therapist || !therapist.slug) {
     window.location.href = buildPortalHref("");
     return;
   }
 
-  var originalLabel =
+  const originalLabel =
     pricingState.branch === "signed_in_trial" ? "Manage trial" : "Manage subscription";
   setCtaBusy(paidCta, "Opening billing...");
   setFeedback(paidFeedback, "Opening billing and cancellation controls...", "success");
@@ -364,10 +364,10 @@ async function handleManageSubscription(event) {
   });
 
   try {
-    var session = await createStripeBillingPortalSession({
+    const session = await createStripeBillingPortalSession({
       return_path: "/portal.html?slug=" + encodeURIComponent(therapist.slug),
     });
-    var sessionUrl = session && session.url ? safeStripeRedirectUrl(session.url) : "";
+    const sessionUrl = session && session.url ? safeStripeRedirectUrl(session.url) : "";
     if (sessionUrl) {
       window.location.href = sessionUrl;
       return;
@@ -417,10 +417,10 @@ async function resolveSignedInState() {
   }
 
   try {
-    var results = await Promise.all([fetchTherapistMe(), fetchTherapistSubscription()]);
-    var me = results[0];
-    var subscriptionPayload = results[1];
-    var subscription = subscriptionPayload && subscriptionPayload.subscription;
+    const results = await Promise.all([fetchTherapistMe(), fetchTherapistSubscription()]);
+    const me = results[0];
+    const subscriptionPayload = results[1];
+    const subscription = subscriptionPayload && subscriptionPayload.subscription;
     if (me && me.therapist && me.therapist.slug) {
       slugParam = me.therapist.slug;
     }
@@ -458,9 +458,9 @@ resolveSignedInState();
 // blocked by the CSP connect-src in production.)
 async function fetchLiveTherapistCount() {
   try {
-    var count = await fetchPublicTherapistCount();
+    const count = await fetchPublicTherapistCount();
     if (typeof count === "number" && count > 0 && therapistCountEl) {
-      var rounded = Math.floor(count / 10) * 10;
+      const rounded = Math.floor(count / 10) * 10;
       therapistCountEl.textContent = rounded + "+";
     }
   } catch (_e) {

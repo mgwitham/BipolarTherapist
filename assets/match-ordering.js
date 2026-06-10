@@ -5,15 +5,15 @@ import { getDistanceMilesFromZipToTherapist } from "./zip-lookup.js";
 // when no local supply exists, far-away listings would still rank top because
 // every entry shares the same penalty. Filtering out these entries lets the
 // empty-state (telehealth fallback) trigger as designed.
-var MAX_IN_PERSON_MILES = 60;
+const MAX_IN_PERSON_MILES = 60;
 
 function getRequestedZip(locationQuery) {
-  var raw = String(locationQuery || "").trim();
+  const raw = String(locationQuery || "").trim();
   return /^\d{5}$/.test(raw) ? raw : "";
 }
 
 function getTherapistZipValue(therapist) {
-  var zip = String((therapist && therapist.zip) || "").trim();
+  const zip = String((therapist && therapist.zip) || "").trim();
   return /^\d{5}$/.test(zip) ? zip : "";
 }
 
@@ -39,7 +39,7 @@ function getMatchProximityBonus(miles, isInPerson) {
 }
 
 export function getEntryRankScore(entry) {
-  var adjusted = entry && entry.ordering_score;
+  const adjusted = entry && entry.ordering_score;
   if (typeof adjusted === "number" && Number.isFinite(adjusted)) {
     return adjusted;
   }
@@ -47,9 +47,9 @@ export function getEntryRankScore(entry) {
 }
 
 export function applyZipAwareOrdering(entries, options) {
-  var list = (entries || []).slice();
-  var opts = options || {};
-  var requestedZip = getRequestedZip(opts.locationQuery);
+  let list = (entries || []).slice();
+  const opts = options || {};
+  const requestedZip = getRequestedZip(opts.locationQuery);
   if (!requestedZip) {
     list.forEach(function (entry) {
       if (entry) entry.ordering_score = Number(entry?.evaluation?.score) || 0;
@@ -57,17 +57,17 @@ export function applyZipAwareOrdering(entries, options) {
     return list;
   }
 
-  var careFormat = String(opts.careFormat || "").trim();
-  var isTelehealth = careFormat === "Telehealth";
-  var isInPerson = careFormat === "In-Person" || careFormat === "In-person";
-  var isAny = !isTelehealth && !isInPerson;
+  const careFormat = String(opts.careFormat || "").trim();
+  const isTelehealth = careFormat === "Telehealth";
+  const isInPerson = careFormat === "In-Person" || careFormat === "In-person";
+  const isAny = !isTelehealth && !isInPerson;
 
   list.forEach(function (entry) {
     if (!entry) return;
-    var baseScore = Number(entry?.evaluation?.score) || 0;
+    const baseScore = Number(entry?.evaluation?.score) || 0;
     // Prefer ZIP, fall back to city centroid so therapists with city-only
     // records (no ZIP on file) still get a real distance, not Infinity.
-    var distance = getDistanceMilesFromZipToTherapist(requestedZip, entry.therapist);
+    const distance = getDistanceMilesFromZipToTherapist(requestedZip, entry.therapist);
     if (!isTelehealth && Number.isFinite(distance)) {
       entry.ordering_score = baseScore + getMatchProximityBonus(distance, isInPerson);
     } else {
@@ -82,19 +82,19 @@ export function applyZipAwareOrdering(entries, options) {
     // beyond commute range so an in-person search at a specific ZIP never
     // surfaces records we can't place near the user.
     list = list.filter(function (entry) {
-      var distance = entry?.ordering_distance;
+      const distance = entry?.ordering_distance;
       return Number.isFinite(distance) && distance <= MAX_IN_PERSON_MILES;
     });
   }
 
   return list.sort(function (a, b) {
-    var aScore = Number(a?.evaluation?.score) || 0;
-    var bScore = Number(b?.evaluation?.score) || 0;
-    var scoreDiff = Math.abs(aScore - bScore);
-    var aZip = getTherapistZipValue(a && a.therapist);
-    var bZip = getTherapistZipValue(b && b.therapist);
-    var aDistance = a?.ordering_distance;
-    var bDistance = b?.ordering_distance;
+    const aScore = Number(a?.evaluation?.score) || 0;
+    const bScore = Number(b?.evaluation?.score) || 0;
+    const scoreDiff = Math.abs(aScore - bScore);
+    const aZip = getTherapistZipValue(a && a.therapist);
+    const bZip = getTherapistZipValue(b && b.therapist);
+    const aDistance = a?.ordering_distance;
+    const bDistance = b?.ordering_distance;
 
     if ((isInPerson || isAny) && Number.isFinite(aDistance) && Number.isFinite(bDistance)) {
       if (a.ordering_score !== b.ordering_score) {
@@ -103,8 +103,8 @@ export function applyZipAwareOrdering(entries, options) {
       return aDistance - bDistance;
     }
 
-    var aExact = aZip === requestedZip;
-    var bExact = bZip === requestedZip;
+    const aExact = aZip === requestedZip;
+    const bExact = bZip === requestedZip;
     if (aExact !== bExact && scoreDiff <= 18) {
       return Number(bExact) - Number(aExact);
     }
@@ -129,8 +129,8 @@ export function applyZipAwareOrdering(entries, options) {
 
 function sortByRankScore(entries) {
   return (entries || []).slice().sort(function (a, b) {
-    var aScore = getEntryRankScore(a);
-    var bScore = getEntryRankScore(b);
+    const aScore = getEntryRankScore(a);
+    const bScore = getEntryRankScore(b);
     return (
       bScore - aScore ||
       (Number(b?.evaluation?.confidence_score) || 0) -

@@ -114,7 +114,7 @@ test("drift: browser scoring uses registry points for every scored key", functio
   // Make sure the FIELD_REGISTRY array has the same length as the shared
   // registry — protects against someone adding a row to the browser side
   // and forgetting the shared definition.
-  const registryStart = src.indexOf("var FIELD_REGISTRY = [");
+  const registryStart = src.indexOf("FIELD_REGISTRY = [");
   const registryEnd = src.indexOf("\n];", registryStart);
   const registryBody = src.slice(registryStart, registryEnd);
   const rowCount = (registryBody.match(/\n\s*key:\s*"/g) || []).length;

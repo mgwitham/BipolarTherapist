@@ -10,15 +10,15 @@ import { renderValuePillRow } from "./therapist-pills.js";
 import { getZipDistanceMiles } from "./zip-lookup.js";
 
 // Strip scraped directory metadata: "Name, Credential, City, State, ZIP, (Phone), actual bio"
-var SCRAPED_PREFIX_RE = /^.+?\(\d{3}\)\s*\d{3}[- ]\d{4},?\s*/;
+const SCRAPED_PREFIX_RE = /^.+?\(\d{3}\)\s*\d{3}[- ]\d{4},?\s*/;
 // Suppress garbled aggregator blobs: "Find Psychiatrists in [City]: Name1; Name2..."
-var GARBLED_BIO_RE = /^Find\s+(?:Psychiatr|Therapist|Counselor|Psychologist)/i;
+const GARBLED_BIO_RE = /^Find\s+(?:Psychiatr|Therapist|Counselor|Psychologist)/i;
 
 function stripBioDisplay(value) {
   if (typeof value !== "string") return "";
-  var text = value.trim();
+  const text = value.trim();
   if (!text || GARBLED_BIO_RE.test(text)) return "";
-  var stripped = text.replace(SCRAPED_PREFIX_RE, "").trim();
+  const stripped = text.replace(SCRAPED_PREFIX_RE, "").trim();
   // Discard if the remaining text is too short to be a real bio
   return stripped.length >= 10 ? stripped : "";
 }
@@ -28,8 +28,8 @@ export function formatDirectoryFeeLabel(therapist, fallback) {
     return fallback || "Fees to confirm";
   }
 
-  var minFee = therapist.session_fee_min || therapist.session_fee_max;
-  var maxFee = therapist.session_fee_max;
+  const minFee = therapist.session_fee_min || therapist.session_fee_max;
+  const maxFee = therapist.session_fee_max;
 
   if (minFee) {
     return (
@@ -54,7 +54,7 @@ function cleanSentence(value) {
 }
 
 function buildLocationSummary(therapist) {
-  var parts = [];
+  const parts = [];
   if (therapist.city) {
     parts.push(therapist.city);
   }
@@ -65,7 +65,7 @@ function buildLocationSummary(therapist) {
 }
 
 function buildCareFormatSummary(therapist) {
-  var formats = [];
+  const formats = [];
   if (therapist.accepts_in_person) {
     formats.push("In person");
   }
@@ -76,15 +76,15 @@ function buildCareFormatSummary(therapist) {
 }
 
 function buildMetaLine(therapist) {
-  var parts = [];
-  var specialty = (therapist.specialties || [])[0] || "";
+  const parts = [];
+  const specialty = (therapist.specialties || [])[0] || "";
   if (specialty) {
     parts.push(specialty);
   }
   if (therapist.city) {
     parts.push(therapist.city);
   }
-  var formats = [];
+  const formats = [];
   if (therapist.accepts_in_person) {
     formats.push("In person");
   }
@@ -98,13 +98,13 @@ function buildMetaLine(therapist) {
 }
 
 function extractVoiceQuote(therapist) {
-  var src = stripBioDisplay(
+  const src = stripBioDisplay(
     String(therapist.care_approach || therapist.bio_preview || therapist.bio || ""),
   );
   if (!src) {
     return "";
   }
-  var match = src.match(/^[^.!?]+[.!?]/);
+  const match = src.match(/^[^.!?]+[.!?]/);
   if (match && match[0].length <= 140) {
     return match[0].trim();
   }
@@ -118,10 +118,10 @@ function buildMethodContactLabel(therapist, contactRoute) {
   if (!contactRoute) {
     return "View profile";
   }
-  var firstName = String(therapist.name || "")
+  const firstName = String(therapist.name || "")
     .split(/[\s,]/)[0]
     .trim();
-  var href = String(contactRoute.href || "");
+  const href = String(contactRoute.href || "");
   if (href.startsWith("tel:")) {
     return "Call " + firstName;
   }
@@ -131,7 +131,7 @@ function buildMethodContactLabel(therapist, contactRoute) {
   if (href.startsWith("http") && /book|calendly|acuity|schedule/i.test(href)) {
     return "Book with " + firstName;
   }
-  var method = therapist.preferred_contact_method || "";
+  const method = therapist.preferred_contact_method || "";
   if (method === "booking") {
     return "Book with " + firstName;
   }
@@ -142,9 +142,9 @@ function buildMethodContactLabel(therapist, contactRoute) {
 }
 
 function buildPrimaryFitReasons(filters, therapist) {
-  var reasons = [];
-  var locationSummary = buildLocationSummary(therapist);
-  var freshness = getFreshnessBadgeData(therapist);
+  const reasons = [];
+  const locationSummary = buildLocationSummary(therapist);
+  const freshness = getFreshnessBadgeData(therapist);
 
   if (filters.in_person && therapist.accepts_in_person && locationSummary) {
     reasons.push("Matches your preference for in person care in " + locationSummary);
@@ -202,8 +202,8 @@ function buildPrimaryFitReasons(filters, therapist) {
 }
 
 function buildTrustSignals(therapist) {
-  var signals = [];
-  var locationSummary = buildLocationSummary(therapist);
+  const signals = [];
+  const locationSummary = buildLocationSummary(therapist);
 
   if (therapist.verification_status === "editorially_verified") {
     signals.push("Verified profile");
@@ -224,26 +224,26 @@ function buildTrustSignals(therapist) {
 }
 
 function buildQuickAnswerPills(therapist) {
-  var pills = [];
+  const pills = [];
 
-  var feeLabel = formatDirectoryFeeLabel(therapist, "");
+  const feeLabel = formatDirectoryFeeLabel(therapist, "");
   if (feeLabel) {
     pills.push(feeLabel);
   }
 
-  var ins = Array.isArray(therapist.insurance_accepted) ? therapist.insurance_accepted : [];
+  const ins = Array.isArray(therapist.insurance_accepted) ? therapist.insurance_accepted : [];
   if (ins.length === 1) {
     pills.push("Accepts " + ins[0]);
   } else if (ins.length > 1) {
     pills.push("Accepts insurance");
   }
 
-  var avail = buildAvailabilitySummary(therapist);
+  const avail = buildAvailabilitySummary(therapist);
   if (avail) {
     pills.push(avail);
   }
 
-  var formats = [];
+  const formats = [];
   if (therapist.accepts_telehealth) {
     formats.push("Telehealth");
   }
@@ -271,9 +271,9 @@ function buildAvailabilitySummary(therapist) {
 }
 
 function buildDetailSections(therapist, filters) {
-  var sections = [];
-  var specialties = Array.isArray(therapist.specialties) ? therapist.specialties.slice(0, 4) : [];
-  var populations = Array.isArray(therapist.client_populations)
+  const sections = [];
+  const specialties = Array.isArray(therapist.specialties) ? therapist.specialties.slice(0, 4) : [];
+  const populations = Array.isArray(therapist.client_populations)
     ? therapist.client_populations.slice(0, 3)
     : [];
 
@@ -307,21 +307,21 @@ function buildDetailSections(therapist, filters) {
 }
 
 export function buildCardViewModel(options) {
-  var therapist = options.therapist;
-  var filters = options.filters || {};
-  var shortlist = Array.isArray(options.shortlist) ? options.shortlist : [];
-  var isShortlisted =
+  const therapist = options.therapist;
+  const filters = options.filters || {};
+  const shortlist = Array.isArray(options.shortlist) ? options.shortlist : [];
+  const isShortlisted =
     typeof options.isShortlisted === "function"
       ? options.isShortlisted
       : function () {
           return false;
         };
-  var shortlisted = isShortlisted(therapist.slug);
-  var shortlistEntry = shortlist.find(function (item) {
+  const shortlisted = isShortlisted(therapist.slug);
+  const shortlistEntry = shortlist.find(function (item) {
     return item.slug === therapist.slug;
   });
-  var contactRoute = getPreferredContactRoute(therapist);
-  var fitReasons = buildPrimaryFitReasons(filters, therapist);
+  const contactRoute = getPreferredContactRoute(therapist);
+  const fitReasons = buildPrimaryFitReasons(filters, therapist);
 
   return {
     therapist: therapist,
@@ -345,17 +345,17 @@ export function buildCardViewModel(options) {
 }
 
 export function buildDirectoryDecisionPreviewModel(options) {
-  var therapist = options.therapist;
-  var filters = options.filters;
-  var isShortlisted = options.isShortlisted;
-  var feeCopy = formatDirectoryFeeLabel(therapist, "Fees to confirm");
-  var contactRoute = getPreferredContactRoute(therapist);
-  var fitReasons = buildPrimaryFitReasons(filters, therapist);
+  const therapist = options.therapist;
+  const filters = options.filters;
+  const isShortlisted = options.isShortlisted;
+  const feeCopy = formatDirectoryFeeLabel(therapist, "Fees to confirm");
+  const contactRoute = getPreferredContactRoute(therapist);
+  const fitReasons = buildPrimaryFitReasons(filters, therapist);
 
   function buildPreviewOpenReason() {
-    var fitReason = buildCardFitSummary(filters, therapist);
-    var likelyFit = buildLikelyFitCopy(therapist);
-    var hasUserSelectedFitReason =
+    const fitReason = buildCardFitSummary(filters, therapist);
+    const likelyFit = buildLikelyFitCopy(therapist);
+    const hasUserSelectedFitReason =
       Boolean(filters.specialty) ||
       Boolean(filters.modality) ||
       Boolean(filters.population) ||
@@ -423,12 +423,12 @@ export function buildDirectoryDecisionPreviewModel(options) {
 }
 
 export function buildDirectoryRecommendationModel(options) {
-  var featured = options.featuredTherapist || null;
-  var backups = options.backupTherapists || [];
-  var filters = options.filters || {};
-  var shortlist = options.shortlist || [];
-  var isShortlisted = options.isShortlisted;
-  var presentation = options.presentation || {};
+  const featured = options.featuredTherapist || null;
+  const backups = options.backupTherapists || [];
+  const filters = options.filters || {};
+  const shortlist = options.shortlist || [];
+  const isShortlisted = options.isShortlisted;
+  const presentation = options.presentation || {};
 
   return {
     recommendationKicker: presentation.kicker || "Strong starting options",
@@ -460,36 +460,36 @@ export function buildDirectoryRecommendationModel(options) {
 }
 
 export function buildDirectoryDetailsViewModel(options) {
-  var therapist = options.therapist;
-  var filters = options.filters || {};
-  var shortlist = options.shortlist || [];
-  var isShortlisted = options.isShortlisted;
-  var baseModel = buildCardViewModel({
+  const therapist = options.therapist;
+  const filters = options.filters || {};
+  const shortlist = options.shortlist || [];
+  const isShortlisted = options.isShortlisted;
+  const baseModel = buildCardViewModel({
     therapist: therapist,
     filters: filters,
     shortlist: shortlist,
     isShortlisted: isShortlisted,
   });
 
-  var panelTrustSignals = (baseModel.trustSignals || []).filter(function (s) {
+  const panelTrustSignals = (baseModel.trustSignals || []).filter(function (s) {
     return s !== "Accepting new patients" && !/^Near /.test(s) && s !== "Telehealth available";
   });
 
   // Distance pill, uses search zip, never device location
-  var distancePill = "";
-  var sortZip = String(filters.sortZip || "").trim();
-  var providerZip = String(therapist.zip || "").trim();
+  let distancePill = "";
+  const sortZip = String(filters.sortZip || "").trim();
+  const providerZip = String(therapist.zip || "").trim();
   if (/^\d{5}$/.test(sortZip) && /^\d{5}$/.test(providerZip)) {
-    var miles = getZipDistanceMiles(sortZip, providerZip);
+    const miles = getZipDistanceMiles(sortZip, providerZip);
     if (miles !== null && miles >= 0) {
       distancePill = "~" + Math.round(miles) + " mi from " + sortZip;
     }
   }
 
   // Fee display for bottom sheet: "$150–$175 / session"
-  var feeDisplay = "";
-  var minFee = therapist.session_fee_min || therapist.session_fee_max;
-  var maxFee = therapist.session_fee_max;
+  let feeDisplay = "";
+  const minFee = therapist.session_fee_min || therapist.session_fee_max;
+  const maxFee = therapist.session_fee_max;
   if (minFee) {
     feeDisplay =
       "$" +
@@ -501,7 +501,7 @@ export function buildDirectoryDetailsViewModel(options) {
   }
 
   // Availability chips for bottom sheet
-  var availabilityChips = [];
+  const availabilityChips = [];
   if (therapist.accepting_new_patients) {
     availabilityChips.push({ label: "Accepting new patients", tone: "green" });
   }
@@ -517,19 +517,19 @@ export function buildDirectoryDetailsViewModel(options) {
   }
 
   // Contact footnote, names what's on the full profile but not in the CTA button
-  var contactFootnote = "";
-  var contactRoute = baseModel.contactRoute;
-  var contactHref = String((contactRoute && contactRoute.href) || "");
-  var hasEmail = Boolean(therapist.email && therapist.email !== "contact@example.com");
-  var hasPhone = Boolean(therapist.phone);
-  var isEmailCta = contactHref.startsWith("mailto:");
-  var isPhoneCta = contactHref.startsWith("tel:");
+  let contactFootnote = "";
+  const contactRoute = baseModel.contactRoute;
+  const contactHref = String((contactRoute && contactRoute.href) || "");
+  const hasEmail = Boolean(therapist.email && therapist.email !== "contact@example.com");
+  const hasPhone = Boolean(therapist.phone);
+  const isEmailCta = contactHref.startsWith("mailto:");
+  const isPhoneCta = contactHref.startsWith("tel:");
   if (isEmailCta) {
     if (hasPhone) contactFootnote = "Phone available on full profile.";
   } else if (isPhoneCta) {
     if (hasEmail) contactFootnote = "Email available on full profile.";
   } else {
-    var available = [];
+    const available = [];
     if (hasPhone) available.push("Phone");
     if (hasEmail) available.push("Email");
     if (available.length) {

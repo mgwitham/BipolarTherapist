@@ -14,17 +14,17 @@ export function splitCommaSeparated(value) {
 }
 
 export function deriveStateFromLocation(value, options) {
-  var settings = options || {};
-  var therapists = Array.isArray(settings.therapists) ? settings.therapists : [];
-  var stateMap = settings.stateMap || {};
-  var normalized = normalizeLocationQuery(value);
+  const settings = options || {};
+  const therapists = Array.isArray(settings.therapists) ? settings.therapists : [];
+  const stateMap = settings.stateMap || {};
+  const normalized = normalizeLocationQuery(value);
   if (!normalized) {
     return "";
   }
 
-  var upper = normalized.toUpperCase();
+  const upper = normalized.toUpperCase();
   if (/^\d{5}$/.test(normalized)) {
-    var zipStatus = getZipMarketStatus(normalized);
+    const zipStatus = getZipMarketStatus(normalized);
     return zipStatus.place ? zipStatus.place.state : "";
   }
   if (/^[A-Z]{2}$/.test(upper)) {
@@ -35,7 +35,7 @@ export function deriveStateFromLocation(value, options) {
     return stateMap[upper];
   }
 
-  var cityMatch = therapists.find(function (therapist) {
+  const cityMatch = therapists.find(function (therapist) {
     return (
       String(therapist.city || "")
         .trim()
@@ -52,21 +52,21 @@ export function deriveStateFromLocation(value, options) {
     return "CA";
   }
 
-  var knownState = Object.keys(stateMap).find(function (stateName) {
+  const knownState = Object.keys(stateMap).find(function (stateName) {
     return upper.indexOf(stateName) !== -1;
   });
   return knownState ? stateMap[knownState] : "";
 }
 
 export function syncZipResolvedLabel(value) {
-  var resolvedNodes = Array.from(document.querySelectorAll(".match-zip-resolved"));
+  const resolvedNodes = Array.from(document.querySelectorAll(".match-zip-resolved"));
   if (!resolvedNodes.length) {
     return;
   }
 
-  var zipStatus = getZipMarketStatus(value);
+  const zipStatus = getZipMarketStatus(value);
   if (zipStatus.status === "invalid") {
-    var invalidMessage = String(value || "").trim() ? "Enter a valid 5-digit ZIP code." : "";
+    const invalidMessage = String(value || "").trim() ? "Enter a valid 5-digit ZIP code." : "";
     resolvedNodes.forEach(function (resolved) {
       resolved.textContent = invalidMessage;
       resolved.classList.toggle("is-visible", Boolean(String(value || "").trim()));
@@ -82,7 +82,8 @@ export function syncZipResolvedLabel(value) {
     return;
   }
 
-  var resolvedText = zipStatus.status === "live" ? "- " + zipStatus.place.label : zipStatus.message;
+  const resolvedText =
+    zipStatus.status === "live" ? "- " + zipStatus.place.label : zipStatus.message;
   resolvedNodes.forEach(function (resolved) {
     resolved.textContent = resolvedText;
     resolved.classList.add("is-visible");
@@ -122,12 +123,12 @@ export function getMatchStartHelperCopy(careIntent, hasZip, escapeHtml) {
 }
 
 export function syncMatchStartState(options) {
-  var settings = options || {};
-  var form = settings.form || document.getElementById("matchForm");
-  var button = settings.button || document.getElementById("matchSearchButton");
-  var helper = settings.helper || document.getElementById("matchStartHelper");
-  var careField = settings.careField || document.querySelector("[data-match-care-field]");
-  var escapeHtml =
+  const settings = options || {};
+  const form = settings.form || document.getElementById("matchForm");
+  const button = settings.button || document.getElementById("matchSearchButton");
+  const helper = settings.helper || document.getElementById("matchStartHelper");
+  const careField = settings.careField || document.querySelector("[data-match-care-field]");
+  const escapeHtml =
     settings.escapeHtml ||
     function (value) {
       return String(value == null ? "" : value).replace(/[&<>"']/g, function (ch) {
@@ -147,8 +148,10 @@ export function syncMatchStartState(options) {
     return;
   }
 
-  var careIntent = String(form.elements.care_intent ? form.elements.care_intent.value : "").trim();
-  var hasZip = Boolean(
+  const careIntent = String(
+    form.elements.care_intent ? form.elements.care_intent.value : "",
+  ).trim();
+  const hasZip = Boolean(
     normalizeLocationQuery(form.elements.location_query ? form.elements.location_query.value : ""),
   );
 
@@ -168,8 +171,8 @@ export function syncMatchStartState(options) {
 }
 
 export function buildRequestSummary(profile, hasMeaningfulRefinements) {
-  var hasRefinements = hasMeaningfulRefinements(profile);
-  var summary = [
+  const hasRefinements = hasMeaningfulRefinements(profile);
+  const summary = [
     profile.location_query ? "Location: " + profile.location_query : "",
     !profile.location_query && profile.care_state ? "State: " + profile.care_state : "",
     profile.care_format && profile.care_format !== "Either" ? "Format: " + profile.care_format : "",
@@ -197,7 +200,7 @@ export function buildAppliedAnswerPills(profile) {
     return [];
   }
 
-  var pills = [];
+  const pills = [];
 
   if (profile.care_intent) {
     pills.push(profile.care_intent);
@@ -256,30 +259,30 @@ export function hasMeaningfulRefinements(profile) {
 }
 
 export function readCurrentIntakeProfile(options) {
-  var settings = options || {};
-  var form = settings.form || document.getElementById("matchForm");
+  const settings = options || {};
+  const form = settings.form || document.getElementById("matchForm");
   if (!form) {
     return null;
   }
   function readFieldValue(name) {
-    var nodes = Array.from(form.querySelectorAll('[name="' + name + '"]'));
+    const nodes = Array.from(form.querySelectorAll('[name="' + name + '"]'));
     if (!nodes.length) {
       return "";
     }
-    var firstNode = nodes[0];
+    const firstNode = nodes[0];
     if (firstNode.type === "radio") {
-      var checkedNode = nodes.find(function (node) {
+      const checkedNode = nodes.find(function (node) {
         return node.checked;
       });
       return checkedNode ? checkedNode.value : "";
     }
     if (firstNode.type === "checkbox") {
-      var checkedBox = nodes.find(function (node) {
+      const checkedBox = nodes.find(function (node) {
         return node.checked;
       });
       return checkedBox ? checkedBox.value : "";
     }
-    var activeNode =
+    const activeNode =
       typeof document !== "undefined" && document.activeElement
         ? nodes.find(function (node) {
             return node === document.activeElement;
@@ -288,17 +291,17 @@ export function readCurrentIntakeProfile(options) {
     if (activeNode) {
       return activeNode.value;
     }
-    for (var i = nodes.length - 1; i >= 0; i--) {
-      var value = String(nodes[i].value || "").trim();
+    for (let i = nodes.length - 1; i >= 0; i--) {
+      const value = String(nodes[i].value || "").trim();
       if (value) {
         return nodes[i].value;
       }
     }
     return firstNode.value || "";
   }
-  var urgencyField = form.elements.urgency;
-  var locationQuery = normalizeLocationQuery(readFieldValue("location_query"));
-  var profile = settings.buildUserMatchProfile({
+  const urgencyField = form.elements.urgency;
+  const locationQuery = normalizeLocationQuery(readFieldValue("location_query"));
+  const profile = settings.buildUserMatchProfile({
     care_state: settings.deriveStateFromLocation(locationQuery),
     care_format: readFieldValue("care_format"),
     care_intent: readFieldValue("care_intent"),
@@ -318,9 +321,9 @@ export function readCurrentIntakeProfile(options) {
 }
 
 export function serializeProfileToUrl(profile) {
-  var params = new URLSearchParams();
+  const params = new URLSearchParams();
   Object.keys(profile || {}).forEach(function (key) {
-    var value = profile[key];
+    const value = profile[key];
     if (!value || (Array.isArray(value) && !value.length)) {
       return;
     }
@@ -330,18 +333,18 @@ export function serializeProfileToUrl(profile) {
     }
     params.set(key, String(value));
   });
-  var next = params.toString() ? "match.html?" + params.toString() : "match.html";
+  const next = params.toString() ? "match.html?" + params.toString() : "match.html";
   window.history.replaceState({}, "", next);
 }
 
 export function restoreProfileFromUrl(options) {
-  var settings = options || {};
-  var params = new URLSearchParams(window.location.search);
+  const settings = options || {};
+  const params = new URLSearchParams(window.location.search);
   if (!params.toString()) {
     return null;
   }
 
-  var intakeKeys = [
+  const intakeKeys = [
     "location_query",
     "care_state",
     "care_format",
@@ -358,7 +361,7 @@ export function restoreProfileFromUrl(options) {
     "therapist_gender_preference",
   ];
 
-  var hasIntakeParams = intakeKeys.some(function (key) {
+  const hasIntakeParams = intakeKeys.some(function (key) {
     return String(params.get(key) || "").trim() !== "";
   });
 
@@ -366,8 +369,8 @@ export function restoreProfileFromUrl(options) {
     return null;
   }
 
-  var locationQuery = params.get("location_query") || "";
-  var profile = settings.buildUserMatchProfile({
+  const locationQuery = params.get("location_query") || "";
+  const profile = settings.buildUserMatchProfile({
     care_state: settings.deriveStateFromLocation(locationQuery) || params.get("care_state") || "",
     // Default to "" (Any) when not specified. Previously defaulted to
     // "In-Person", which silently narrowed every home-form-originated
@@ -392,8 +395,8 @@ export function restoreProfileFromUrl(options) {
 }
 
 export function restoreShortlistFromUrl(splitCommaSeparated) {
-  var params = new URLSearchParams(window.location.search);
-  var raw = params.get("shortlist") || "";
+  const params = new URLSearchParams(window.location.search);
+  const raw = params.get("shortlist") || "";
   if (!raw) {
     return [];
   }
@@ -406,10 +409,10 @@ export function hydrateForm(profile, options) {
     return;
   }
 
-  var settings = options || {};
-  var form = settings.form || document.getElementById("matchForm");
+  const settings = options || {};
+  const form = settings.form || document.getElementById("matchForm");
   function setFieldValue(name, value) {
-    var nodes = form.querySelectorAll('[name="' + name + '"], [data-sync-key="' + name + '"]');
+    const nodes = form.querySelectorAll('[name="' + name + '"], [data-sync-key="' + name + '"]');
     nodes.forEach(function (node) {
       if (node.type === "radio") {
         node.checked = node.value === value;
@@ -424,7 +427,7 @@ export function hydrateForm(profile, options) {
       node.value = value;
     });
   }
-  var locationValue = profile.location_query || profile.care_state || "";
+  const locationValue = profile.location_query || profile.care_state || "";
   setFieldValue("location_query", locationValue);
   settings.syncZipResolvedLabel(locationValue);
   // "Either" is the model's internal default for "no format preference";
@@ -445,7 +448,7 @@ export function hydrateForm(profile, options) {
   setFieldValue("therapist_gender_preference", profile.therapist_gender_preference || "");
 
   ["bipolar_focus", "preferred_modalities", "population_fit"].forEach(function (name) {
-    var selected = new Set(profile[name] || []);
+    const selected = new Set(profile[name] || []);
     form.querySelectorAll('input[name="' + name + '"]').forEach(function (input) {
       input.checked = selected.has(input.value);
     });

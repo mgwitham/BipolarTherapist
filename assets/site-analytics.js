@@ -1,4 +1,4 @@
-var measurementId = "G-Q22R5G7VB5";
+const measurementId = "G-Q22R5G7VB5";
 
 // Query params that carry patient search context or single-use tokens.
 // The match flow passes the ZIP and care type as URL query params
@@ -6,7 +6,7 @@ var measurementId = "G-Q22R5G7VB5";
 // must never reach an analytics property or session recording. We
 // redact the *values* (keeping the key so funnels still see "a ZIP was
 // entered") before any URL leaves the page.
-var SENSITIVE_QUERY_PARAMS = [
+const SENSITIVE_QUERY_PARAMS = [
   "location_query",
   "care_intent",
   "zip",
@@ -20,18 +20,18 @@ function redactSensitiveUrl(rawUrl) {
   if (typeof rawUrl !== "string" || !rawUrl) {
     return rawUrl;
   }
-  var queryIndex = rawUrl.indexOf("?");
+  const queryIndex = rawUrl.indexOf("?");
   if (queryIndex < 0) {
     return rawUrl;
   }
   try {
-    var base = rawUrl.slice(0, queryIndex);
-    var rest = rawUrl.slice(queryIndex + 1);
-    var hashIndex = rest.indexOf("#");
-    var query = hashIndex < 0 ? rest : rest.slice(0, hashIndex);
-    var hash = hashIndex < 0 ? "" : rest.slice(hashIndex);
-    var params = new URLSearchParams(query);
-    var changed = false;
+    const base = rawUrl.slice(0, queryIndex);
+    const rest = rawUrl.slice(queryIndex + 1);
+    const hashIndex = rest.indexOf("#");
+    const query = hashIndex < 0 ? rest : rest.slice(0, hashIndex);
+    const hash = hashIndex < 0 ? "" : rest.slice(hashIndex);
+    const params = new URLSearchParams(query);
+    let changed = false;
     SENSITIVE_QUERY_PARAMS.forEach(function (key) {
       if (params.has(key)) {
         params.set(key, "redacted");
@@ -41,7 +41,7 @@ function redactSensitiveUrl(rawUrl) {
     if (!changed) {
       return rawUrl;
     }
-    var nextQuery = params.toString();
+    const nextQuery = params.toString();
     return base + (nextQuery ? "?" + nextQuery : "") + hash;
   } catch (_err) {
     // If parsing fails, drop the query string entirely rather than risk
@@ -72,7 +72,7 @@ function loadGoogleAnalytics() {
     window.dataLayer.push(arguments);
   };
 
-  var script = document.createElement("script");
+  const script = document.createElement("script");
   script.async = true;
   script.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(measurementId);
   document.head.appendChild(script);
@@ -133,8 +133,8 @@ function loadPostHog() {
   if (!isPatientFacingPath()) {
     return;
   }
-  var key = "";
-  var host = "https://us.i.posthog.com";
+  let key = "";
+  let host = "https://us.i.posthog.com";
   try {
     if (import.meta.env) {
       key = import.meta.env.VITE_POSTHOG_KEY || "";
@@ -147,7 +147,7 @@ function loadPostHog() {
 
   import("posthog-js")
     .then(function (mod) {
-      var posthog = mod.default || mod;
+      const posthog = mod.default || mod;
       posthog.init(key, {
         api_host: host,
         // Honor browser-level privacy signals at PostHog's layer too.

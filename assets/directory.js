@@ -44,16 +44,16 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   // to time-to-render on slower connections. preloadZipcodes() is
   // idempotent — the await further down still works as a safety belt
   // if the zip data isn't ready in time.
-  var zipcodesPromise = preloadZipcodes().catch(function () {
+  const zipcodesPromise = preloadZipcodes().catch(function () {
     return null;
   });
-  var content = await fetchDirectoryPageContent();
-  var therapists = content.therapists || [];
-  var directoryPage = content.directoryPage || null;
-  var siteSettings = content.siteSettings || null;
+  const content = await fetchDirectoryPageContent();
+  const therapists = content.therapists || [];
+  const directoryPage = content.directoryPage || null;
+  const siteSettings = content.siteSettings || null;
 
   if (isDatasetEmpty(therapists)) {
-    var emptyHideIds = [
+    const emptyHideIds = [
       "directoryRecommendationZone",
       "directoryJourneySummary",
       "directorySparseNudge",
@@ -63,19 +63,19 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       "activeFilterChips",
     ];
     emptyHideIds.forEach(function (id) {
-      var node = document.getElementById(id);
+      const node = document.getElementById(id);
       if (node) {
         node.setAttribute("hidden", "");
       }
     });
-    var emptyHideSelectors = [".dir-vb-bar-wrap", ".dir-results-bar"];
+    const emptyHideSelectors = [".dir-vb-bar-wrap", ".dir-results-bar"];
     emptyHideSelectors.forEach(function (sel) {
       document.querySelectorAll(sel).forEach(function (node) {
         node.setAttribute("hidden", "");
         node.style.display = "none";
       });
     });
-    var emptyGrid = document.getElementById("resultsGrid");
+    const emptyGrid = document.getElementById("resultsGrid");
     if (emptyGrid) {
       emptyGrid.className = "dataset-empty-state-grid";
       emptyGrid.innerHTML = renderDatasetEmptyStateMarkup();
@@ -84,15 +84,15 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
   // Step 8: numbered pagination. Page size is 12 (constant in
   // directory-controller.js).
-  var currentPage = 1;
-  var activeDetailsSlug = "";
-  var lastDetailsTrigger = null;
-  var stableOrderMap = null;
-  var sortZip = "";
-  var DIRECTORY_IP_LOCATION_CACHE_KEY = "bth_directory_ip_location_v1";
-  var DIRECTORY_IP_LOCATION_TTL_MS = 12 * 60 * 60 * 1000;
-  var MULTI_SET = new Set(FILTER_MULTI_VALUE_KEYS);
-  var defaultFilters = {
+  let currentPage = 1;
+  let activeDetailsSlug = "";
+  let lastDetailsTrigger = null;
+  let stableOrderMap = null;
+  let sortZip = "";
+  const DIRECTORY_IP_LOCATION_CACHE_KEY = "bth_directory_ip_location_v1";
+  const DIRECTORY_IP_LOCATION_TTL_MS = 12 * 60 * 60 * 1000;
+  const MULTI_SET = new Set(FILTER_MULTI_VALUE_KEYS);
+  const defaultFilters = {
     state: "CA",
     zip: "",
     explicit_zip: "",
@@ -119,18 +119,18 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     stableOrderMap: null,
     sortZip: "",
   };
-  var filters = { ...defaultFilters };
-  var shortlist = readSavedList();
+  let filters = { ...defaultFilters };
+  let shortlist = readSavedList();
   subscribeToSavedList(function (next) {
     shortlist = next;
   });
-  var pendingMotionSlug = "";
-  var liveFilterTimer = 0;
-  var resizeTimer = 0;
-  var filteredResultsCacheKey = "";
-  var filteredResultsCache = [];
-  var optionIndexes = buildOptionIndexes();
-  var VALID_SORT_OPTIONS = new Set([
+  let pendingMotionSlug = "";
+  let liveFilterTimer = 0;
+  let resizeTimer = 0;
+  let filteredResultsCacheKey = "";
+  let filteredResultsCache = [];
+  const optionIndexes = buildOptionIndexes();
+  const VALID_SORT_OPTIONS = new Set([
     "stable_random",
     "near_zip",
     "most_experienced",
@@ -157,32 +157,32 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     return function () {
       seed |= 0;
       seed = (seed + 0x6d2b79f5) | 0;
-      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      let t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
       t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
       return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
     };
   }
 
   function buildStableOrderMap(items) {
-    var SEED_KEY = "bth_stable_sort_seed_v1";
-    var raw = null;
+    const SEED_KEY = "bth_stable_sort_seed_v1";
+    let raw = null;
     try {
       raw = window.sessionStorage.getItem(SEED_KEY);
     } catch (_err) {}
-    var seed = raw && !isNaN(Number(raw)) ? Number(raw) : Math.floor(Math.random() * 0xffffffff);
+    const seed = raw && !isNaN(Number(raw)) ? Number(raw) : Math.floor(Math.random() * 0xffffffff);
     if (!raw) {
       try {
         window.sessionStorage.setItem(SEED_KEY, String(seed));
       } catch (_err) {}
     }
-    var rng = mulberry32(seed);
-    var indices = items.map(function (_, i) {
+    const rng = mulberry32(seed);
+    const indices = items.map(function (_, i) {
       return i;
     });
     indices.sort(function () {
       return rng() - 0.5;
     });
-    var map = new Map();
+    const map = new Map();
     indices.forEach(function (origIdx, sortedIdx) {
       if (items[origIdx]) {
         map.set(items[origIdx].slug, sortedIdx);
@@ -192,10 +192,10 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function initSortZip() {
-    var SORT_ZIP_KEY = "bth_sort_zip_v1";
-    var urlZip = "";
+    const SORT_ZIP_KEY = "bth_sort_zip_v1";
+    let urlZip = "";
     try {
-      var paramZip = new URLSearchParams(window.location.search).get("sortZip");
+      const paramZip = new URLSearchParams(window.location.search).get("sortZip");
       if (paramZip && /^\d{5}$/.test(paramZip.trim())) {
         urlZip = paramZip.trim();
       }
@@ -207,24 +207,24 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       } catch (_err) {}
     } else {
       try {
-        var stored = window.sessionStorage.getItem(SORT_ZIP_KEY);
+        const stored = window.sessionStorage.getItem(SORT_ZIP_KEY);
         if (stored && /^\d{5}$/.test(stored)) {
           sortZip = stored;
         }
       } catch (_err) {}
     }
-    var sortZipInput = getElement("sortZip");
+    const sortZipInput = getElement("sortZip");
     if (sortZipInput) {
       sortZipInput.value = sortZip;
     }
     if (sortZip) {
       filters.sortBy = "near_zip";
       filters.sortZip = sortZip;
-      var nearZipOption = getElement("sortNearZipOption");
+      const nearZipOption = getElement("sortNearZipOption");
       if (nearZipOption) {
         nearZipOption.hidden = false;
       }
-      var sortByEl = getElement("sortBy");
+      const sortByEl = getElement("sortBy");
       if (sortByEl) {
         sortByEl.value = "near_zip";
       }
@@ -232,7 +232,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function saveSortZip(zip) {
-    var SORT_ZIP_KEY = "bth_sort_zip_v1";
+    const SORT_ZIP_KEY = "bth_sort_zip_v1";
     try {
       if (zip) {
         window.sessionStorage.setItem(SORT_ZIP_KEY, zip);
@@ -243,12 +243,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function normalizeZip(value) {
-    var normalized = String(value || "").trim();
+    const normalized = String(value || "").trim();
     return /^\d{5}$/.test(normalized) ? normalized : "";
   }
 
   function getRankingLocationLabel(zip, fallbackLabel) {
-    var place = lookupZipPlace(zip);
+    const place = lookupZipPlace(zip);
     if (place && place.label) {
       return place.label;
     }
@@ -256,9 +256,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function applyRankingLocationContext(options) {
-    var zip = normalizeZip(options && options.zip);
-    var label = getRankingLocationLabel(zip, options && options.label);
-    var source = String((options && options.source) || "").trim();
+    const zip = normalizeZip(options && options.zip);
+    const label = getRankingLocationLabel(zip, options && options.label);
+    const source = String((options && options.source) || "").trim();
 
     filters = Object.assign({}, filters, {
       explicit_zip: source === "explicit_zip" ? zip : normalizeZip(filters.explicit_zip),
@@ -278,7 +278,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function syncRankingLocationFromUserZip() {
-    var explicitZip = normalizeZip(filters.zip);
+    const explicitZip = normalizeZip(filters.zip);
     if (explicitZip) {
       applyRankingLocationContext({
         zip: explicitZip,
@@ -291,9 +291,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
           sortBy: "near_zip",
           sortZip: explicitZip,
         });
-        var nearZipOption = getElement("sortNearZipOption");
-        var sortByEl = getElement("sortBy");
-        var sortZipInput = getElement("sortZip");
+        const nearZipOption = getElement("sortNearZipOption");
+        const sortByEl = getElement("sortBy");
+        const sortZipInput = getElement("sortZip");
         if (nearZipOption) nearZipOption.hidden = false;
         if (sortByEl) sortByEl.value = "near_zip";
         if (sortZipInput && !sortZipInput.value.trim()) sortZipInput.value = explicitZip;
@@ -313,11 +313,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   function readCachedIpLocation() {
     try {
-      var raw = window.localStorage.getItem(DIRECTORY_IP_LOCATION_CACHE_KEY);
+      const raw = window.localStorage.getItem(DIRECTORY_IP_LOCATION_CACHE_KEY);
       if (!raw) {
         return null;
       }
-      var parsed = JSON.parse(raw);
+      const parsed = JSON.parse(raw);
       if (
         !parsed ||
         typeof parsed.cached_at !== "number" ||
@@ -333,7 +333,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   async function fetchIpRankingLocation() {
-    var cached = readCachedIpLocation();
+    const cached = readCachedIpLocation();
     if (cached && normalizeZip(cached.zip)) {
       return {
         zip: normalizeZip(cached.zip),
@@ -349,7 +349,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return false;
     }
 
-    var inferredLocation = await fetchIpRankingLocation();
+    const inferredLocation = await fetchIpRankingLocation();
     if (!inferredLocation || !normalizeZip(inferredLocation.zip)) {
       return false;
     }
@@ -385,7 +385,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function buildOptionIndexes() {
-    var indexes = {
+    const indexes = {
       state: new Map(),
       specialty: new Map(),
       insurance: new Map(),
@@ -418,12 +418,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   function toggleShortlist(slug) {
     if (isSavedSlug(slug)) {
-      var removed = removeFromSavedList(slug, { surface: "directory" });
+      const removed = removeFromSavedList(slug, { surface: "directory" });
       shortlist = removed.list;
       trackFunnelEvent("directory_shortlist_removed", { therapist_slug: slug });
       return false;
     }
-    var added = addToSavedList(slug, { surface: "directory" });
+    const added = addToSavedList(slug, { surface: "directory" });
     shortlist = added.list;
     if (added.changed) {
       trackFunnelEvent("directory_shortlist_saved", {
@@ -443,7 +443,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return;
     }
 
-    var mappings = [
+    const mappings = [
       ["directoryHeroTitle", "heroTitle"],
       ["directoryHeroDescription", "heroDescription"],
       ["locationPanelTitle", "locationPanelTitle"],
@@ -460,15 +460,15 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     ];
 
     mappings.forEach(function (entry) {
-      var element = getElement(entry[0]);
-      var value = directoryPage[entry[1]];
+      const element = getElement(entry[0]);
+      const value = directoryPage[entry[1]];
       if (element && value) {
         element.textContent = value;
       }
     });
 
-    var zipInput = getElement("zip");
-    var zipLabel = getElement("cityLabelText");
+    const zipInput = getElement("zip");
+    const zipLabel = getElement("cityLabelText");
     if (zipLabel) {
       zipLabel.textContent = directoryPage.zipLabel || "Zip code";
     }
@@ -476,8 +476,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       zipInput.placeholder = directoryPage.zipPlaceholder || "e.g. 90024";
     }
 
-    var stateSelect = getElement("state");
-    var specialtySelect = getElement("specialty");
+    const stateSelect = getElement("state");
+    const specialtySelect = getElement("specialty");
 
     if (stateSelect && directoryPage.stateAllLabel) {
       stateSelect.querySelector("option").textContent = directoryPage.stateAllLabel;
@@ -492,9 +492,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return;
     }
 
-    var navBrowseLink = getElement("navBrowseLink");
-    var navCtaLink = getElement("navCtaLink");
-    var footerTagline = getElement("footerTagline");
+    const navBrowseLink = getElement("navBrowseLink");
+    const navCtaLink = getElement("navCtaLink");
+    const footerTagline = getElement("footerTagline");
 
     if (
       navBrowseLink &&
@@ -519,7 +519,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function summarizeActiveFilters() {
-    var chips = [];
+    const chips = [];
     if (filters.state) {
       chips.push({ key: "state", label: filters.state });
     }
@@ -545,9 +545,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       chips.push({ key: "insurance", label: v });
     });
     if (filters.session_fee_min || filters.session_fee_max) {
-      var min = Number(filters.session_fee_min || 0);
-      var max = Number(filters.session_fee_max || 0);
-      var feeLabel;
+      const min = Number(filters.session_fee_min || 0);
+      const max = Number(filters.session_fee_max || 0);
+      let feeLabel;
       if (min > 0 && max > 0) feeLabel = "$" + min + "–$" + max + "/session";
       else if (min > 0) feeLabel = "$" + min + "+ /session";
       else feeLabel = "Up to $" + max + "/session";
@@ -608,7 +608,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     if (!(filterKey in filters)) {
       return;
     }
-    var nextValue;
+    let nextValue;
     if (MULTI_SET.has(filterKey)) {
       // Multi-select keys clear to an empty array (removes ALL selected
       // values for that key). Removing one specific selected value at a
@@ -628,14 +628,14 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function renderActiveFilterSummary(resultsLength) {
-    var summary = getElement("activeFilterSummary");
-    var chipsRoot = getElement("activeFilterChips");
-    var clearButton = getElement("focusClearFiltersButton");
+    const summary = getElement("activeFilterSummary");
+    const chipsRoot = getElement("activeFilterChips");
+    const clearButton = getElement("focusClearFiltersButton");
     if (!summary || !chipsRoot) {
       return;
     }
 
-    var active = summarizeActiveFilters();
+    const active = summarizeActiveFilters();
     if (!active.length) {
       summary.textContent = "No filters yet. Add one or two to narrow the list.";
       chipsRoot.innerHTML = "";
@@ -675,7 +675,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function renderJourneySummary(resultsLength, activeFilterCount) {
-    var summary = getElement("directoryJourneySummary");
+    const summary = getElement("directoryJourneySummary");
     if (!summary) {
       return;
     }
@@ -703,11 +703,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function updateSparseMatchNudge(resultsLength, activeFilterCount) {
-    var nudge = getElement("directorySparseNudge");
+    const nudge = getElement("directorySparseNudge");
     if (!nudge) {
       return;
     }
-    var shouldShow = activeFilterCount >= 1 && resultsLength <= 3;
+    const shouldShow = activeFilterCount >= 1 && resultsLength <= 3;
     if (shouldShow) {
       if (nudge.hidden) {
         trackFunnelEvent("directory_sparse_nudge_shown", {
@@ -722,7 +722,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function uniqueCounts(field, _nested) {
-    var counts =
+    const counts =
       field === "treatment_modalities"
         ? optionIndexes.modality
         : field === "client_populations"
@@ -745,13 +745,13 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function getConfiguredItems(field, nested) {
-    var sourceMap =
+    const sourceMap =
       field === "curatedStates"
         ? optionIndexes.state
         : field === "curatedSpecialties"
           ? optionIndexes.specialty
           : optionIndexes.insurance;
-    var configured =
+    const configured =
       directoryPage && Array.isArray(directoryPage[field]) ? directoryPage[field] : [];
     if (!configured.length) {
       return uniqueCounts(
@@ -773,10 +773,10 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function populateSelect(id, items) {
-    var select = getElement(id);
+    const select = getElement(id);
     if (!select) return;
     items.forEach(function (item) {
-      var option = document.createElement("option");
+      const option = document.createElement("option");
       option.value = item.value;
       option.textContent = item.value + (item.count ? " (" + item.count + ")" : "");
       select.appendChild(option);
@@ -784,27 +784,27 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function syncInsuranceDisplay() {
-    var hidden = getElement("insurance");
-    var display = getElement("insuranceDisplay");
-    var clearBtn = getElement("insuranceClearBtn");
+    const hidden = getElement("insurance");
+    const display = getElement("insuranceDisplay");
+    const clearBtn = getElement("insuranceClearBtn");
     if (!display) return;
-    var val = hidden ? hidden.value : "";
+    const val = hidden ? hidden.value : "";
     display.value = val;
     display.classList.toggle("has-value", Boolean(val));
     if (clearBtn) clearBtn.hidden = !val;
   }
 
   function initInsuranceTypeahead(items) {
-    var display = getElement("insuranceDisplay");
-    var hidden = getElement("insurance");
-    var list = getElement("insuranceSuggestions");
-    var clearBtn = getElement("insuranceClearBtn");
+    const display = getElement("insuranceDisplay");
+    const hidden = getElement("insurance");
+    const list = getElement("insuranceSuggestions");
+    const clearBtn = getElement("insuranceClearBtn");
     if (!display || !hidden || !list) return;
 
-    var activeIndex = -1;
+    let activeIndex = -1;
 
     function filtered(query) {
-      var q = (query || "").toLowerCase().trim();
+      const q = (query || "").toLowerCase().trim();
       if (!q) return items;
       return items.filter(function (item) {
         return item.value.toLowerCase().indexOf(q) !== -1;
@@ -857,7 +857,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
 
     function updateActive() {
-      var options = list.querySelectorAll(".ins-ta-option");
+      const options = list.querySelectorAll(".ins-ta-option");
       options.forEach(function (o, i) {
         o.classList.toggle("is-active", i === activeIndex);
       });
@@ -882,7 +882,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
 
     display.addEventListener("keydown", function (e) {
-      var options = list.querySelectorAll(".ins-ta-option");
+      const options = list.querySelectorAll(".ins-ta-option");
       if (e.key === "ArrowDown") {
         e.preventDefault();
         activeIndex = Math.min(activeIndex + 1, options.length - 1);
@@ -913,7 +913,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
 
     list.addEventListener("mousedown", function (e) {
-      var option = e.target.closest(".ins-ta-option");
+      const option = e.target.closest(".ins-ta-option");
       if (option) {
         e.preventDefault();
         commit(option.getAttribute("data-value"));
@@ -936,23 +936,23 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     populateSelect("modality", uniqueCounts("treatment_modalities", true));
     populateSelect("population", uniqueCounts("client_populations", true));
 
-    var params = new URLSearchParams(window.location.search);
+    const params = new URLSearchParams(window.location.search);
     FILTER_VALUE_KEYS.forEach(function (key) {
-      var raw = params.get(key);
+      const raw = params.get(key);
       if (!raw) return;
       if (MULTI_SET.has(key)) {
         // Multi-select keys parse comma-separated values. A single
         // value (?insurance=aetna) becomes a 1-element array, keeping
         // legacy bookmarks working.
         filters[key] = toFilterArray(raw);
-        var multiInput = getElement(key);
+        const multiInput = getElement(key);
         if (multiInput) {
           multiInput.value = filters[key].length ? filters[key][0] : "";
         }
         return;
       }
       filters[key] = key === "sortBy" && !VALID_SORT_OPTIONS.has(raw) ? defaultFilters.sortBy : raw;
-      var input = getElement(key);
+      const input = getElement(key);
       if (input) {
         input.value = filters[key];
       }
@@ -966,7 +966,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
 
     if (!params.get("sortBy")) {
-      var sortByInput = getElement("sortBy");
+      const sortByInput = getElement("sortBy");
       if (sortByInput) {
         sortByInput.value = filters.sortBy;
       }
@@ -975,7 +975,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     // Step 8: hydrate currentPage from `?page=N`. Clamped to >= 1; the
     // upper bound is enforced by buildDirectoryRenderState when the
     // filter result count is known.
-    var pageParam = Number(params.get("page") || 0);
+    const pageParam = Number(params.get("page") || 0);
     if (Number.isFinite(pageParam) && pageParam > 1) {
       currentPage = pageParam;
     }
@@ -990,8 +990,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function updateUrl() {
-    var params = new URLSearchParams();
-    var skipKeys = new Set([
+    const params = new URLSearchParams();
+    const skipKeys = new Set([
       "stableOrderMap",
       "sortZip",
       "ranking_zip",
@@ -1004,7 +1004,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         return;
       }
       if (MULTI_SET.has(key)) {
-        var arr = toFilterArray(filters[key]);
+        const arr = toFilterArray(filters[key]);
         if (arr.length) {
           // Comma-separated multi-value serialization keeps legacy
           // single-value bookmarks readable.
@@ -1028,14 +1028,14 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     if (currentPage > 1) {
       params.set("page", String(currentPage));
     }
-    var query = params.toString();
-    var basePath = window.location.pathname.replace(/\/$/, "") || "/directory";
-    var next = query ? basePath + "?" + query : basePath;
+    const query = params.toString();
+    const basePath = window.location.pathname.replace(/\/$/, "") || "/directory";
+    const next = query ? basePath + "?" + query : basePath;
     window.history.replaceState({}, "", next);
     // Noindex when filters beyond defaults are applied, keeps the canonical
     // /directory (and the always-default state=CA) indexable while avoiding
     // duplicate-content sprawl on filtered URLs Google might encounter.
-    var meaningfulFilters = Object.keys(filters).some(function (key) {
+    const meaningfulFilters = Object.keys(filters).some(function (key) {
       if (skipKeys.has(key)) return false;
       if (MULTI_SET.has(key)) {
         return toFilterArray(filters[key]).length > 0;
@@ -1043,13 +1043,13 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       if (!filters[key]) return false;
       return filters[key] !== defaultFilters[key];
     });
-    var robotsMeta = document.getElementById("dirRobots");
+    const robotsMeta = document.getElementById("dirRobots");
     if (robotsMeta) {
       robotsMeta.setAttribute("content", meaningfulFilters ? "noindex,follow" : "index,follow");
     }
   }
   function getFilteredWithFilters(filterState) {
-    var cacheKey = buildFilterCacheKey(filterState);
+    const cacheKey = buildFilterCacheKey(filterState);
     if (cacheKey === filteredResultsCacheKey) {
       return filteredResultsCache;
     }
@@ -1094,7 +1094,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function renderResultsGrid(pageItems) {
-    var grid = getElement("resultsGrid");
+    const grid = getElement("resultsGrid");
     if (!grid) {
       return;
     }
@@ -1104,12 +1104,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       // section. Build a loosened result set by dropping each active
       // filter one at a time and picking the variant that returns the
       // most therapists. Show up to 2 cards.
-      var emptyHtml = renderEmptyStateMarkup(directoryPage);
-      var loosenedHtml = renderLoosenedResultsSection();
+      const emptyHtml = renderEmptyStateMarkup(directoryPage);
+      const loosenedHtml = renderLoosenedResultsSection();
       grid.innerHTML = emptyHtml + loosenedHtml;
       // Bind the in-empty-state clear button to the same reset action
       // used by the active-filter strip's clear-all link.
-      var emptyClearBtn = document.getElementById("dirEmptyClearAll");
+      const emptyClearBtn = document.getElementById("dirEmptyClearAll");
       if (emptyClearBtn) {
         emptyClearBtn.addEventListener("click", resetFilters);
       }
@@ -1119,7 +1119,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     // Step 7: inject a match nudge after the 12th card (between rows 6
     // and 7 in the 2-col grid). Quiet, secondary-background card
     // spanning both columns, no icon, no illustration per spec.
-    var cardHtmlList = pageItems.map(renderCard);
+    const cardHtmlList = pageItems.map(renderCard);
     if (cardHtmlList.length > 12) {
       cardHtmlList.splice(12, 0, renderMatchNudgeMarkup());
     }
@@ -1132,7 +1132,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   // cards. If even the broadest single-drop returns nothing, render
   // nothing (the empty-state copy carries the message alone).
   function renderLoosenedResultsSection() {
-    var ACTIVE_VALUE_KEYS = [
+    const ACTIVE_VALUE_KEYS = [
       "specialty",
       "modality",
       "population",
@@ -1142,7 +1142,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       "session_fee_min",
       "session_fee_max",
     ];
-    var ACTIVE_BOOLEAN_KEYS = [
+    const ACTIVE_BOOLEAN_KEYS = [
       "therapist",
       "psychiatrist",
       "telehealth",
@@ -1151,21 +1151,21 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       "medication_management",
       "sliding_scale",
     ];
-    var allActive = ACTIVE_VALUE_KEYS.concat(ACTIVE_BOOLEAN_KEYS).filter(function (key) {
-      var val = filters[key];
+    const allActive = ACTIVE_VALUE_KEYS.concat(ACTIVE_BOOLEAN_KEYS).filter(function (key) {
+      const val = filters[key];
       if (Array.isArray(val)) return val.length > 0;
       if (typeof val === "boolean") return val;
       return Boolean(val);
     });
     if (!allActive.length) return ""; // No filters to drop.
 
-    var best = { dropped: null, results: [] };
+    let best = { dropped: null, results: [] };
     allActive.forEach(function (key) {
-      var probe = Object.assign({}, filters);
+      const probe = Object.assign({}, filters);
       if (Array.isArray(filters[key])) probe[key] = [];
       else if (typeof filters[key] === "boolean") probe[key] = false;
       else probe[key] = "";
-      var hits = therapists.filter(function (t) {
+      const hits = therapists.filter(function (t) {
         return matchesDirectoryFilters(probe, t);
       });
       if (hits.length > best.results.length) {
@@ -1175,8 +1175,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
     if (!best.results.length) return "";
 
-    var sampleCards = best.results.slice(0, 2).map(function (t) {
-      var model = buildCardViewModel({
+    const sampleCards = best.results.slice(0, 2).map(function (t) {
+      const model = buildCardViewModel({
         therapist: t,
         filters: filters,
         shortlist: shortlist,
@@ -1184,7 +1184,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return renderCardMarkup({ model: model });
     });
 
-    var droppedLabels = {
+    const droppedLabels = {
       specialty: "Bipolar subtype",
       modality: "Treatment approach",
       population: "Population",
@@ -1201,7 +1201,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       medication_management: "Medication management",
       sliding_scale: "Sliding scale",
     };
-    var droppedLabel = droppedLabels[best.dropped] || best.dropped;
+    const droppedLabel = droppedLabels[best.dropped] || best.dropped;
 
     return (
       '<section class="dir-loosened">' +
@@ -1232,8 +1232,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function renderDetailsModal(slug) {
-    var body = getElement("directoryDetailsBody");
-    var dialog = getElement("directoryDetailsModal");
+    const body = getElement("directoryDetailsBody");
+    const dialog = getElement("directoryDetailsModal");
     if (!body || !dialog) {
       return;
     }
@@ -1245,7 +1245,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return;
     }
 
-    var therapist = getTherapistBySlug(slug);
+    const therapist = getTherapistBySlug(slug);
     if (!therapist) {
       body.innerHTML = "";
       dialog.setAttribute("aria-hidden", "true");
@@ -1264,16 +1264,16 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
     // Set aria-label directly on the dialog, aria-labelledby can't be used because
     // the heading element is inside .dir-panel-head which is display:none on mobile.
-    var displayName = therapist.name.split(",")[0].trim();
-    var credSuffix = therapist.credentials ? ", " + therapist.credentials : "";
+    const displayName = therapist.name.split(",")[0].trim();
+    const credSuffix = therapist.credentials ? ", " + therapist.credentials : "";
     dialog.setAttribute("aria-label", displayName + credSuffix + ", Provider details");
 
     // Hide bio toggle + fade when the bio already fits without scrolling.
     // Must run after innerHTML is set so layout is measurable.
     window.requestAnimationFrame(function () {
-      var bioText = body.querySelector(".bsh-bio-text");
-      var bioFade = body.querySelector(".bsh-bio-fade");
-      var bioToggle = body.querySelector(".bsh-bio-toggle");
+      const bioText = body.querySelector(".bsh-bio-text");
+      const bioFade = body.querySelector(".bsh-bio-fade");
+      const bioToggle = body.querySelector(".bsh-bio-toggle");
       if (bioText && bioToggle) {
         if (bioText.scrollHeight <= bioText.clientHeight + 2) {
           bioText.classList.add("is-expanded");
@@ -1285,8 +1285,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function openDetailsModal(slug, trigger) {
-    var dialog = getElement("directoryDetailsModal");
-    var scrim = getElement("directoryDetailsScrim");
+    const dialog = getElement("directoryDetailsModal");
+    const scrim = getElement("directoryDetailsScrim");
     if (!dialog || !scrim || !slug) {
       return;
     }
@@ -1302,7 +1302,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       scrim.setAttribute("data-open", "true");
       // Mobile: #directoryDetailsClose is rendered inside the body.
       // Desktop: #directoryDetailsCloseDesktop is in the static panel head.
-      var closeButton =
+      const closeButton =
         getElement("directoryDetailsClose") || getElement("directoryDetailsCloseDesktop");
       if (closeButton) {
         closeButton.focus();
@@ -1317,8 +1317,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function closeDetailsModal() {
-    var dialog = getElement("directoryDetailsModal");
-    var scrim = getElement("directoryDetailsScrim");
+    const dialog = getElement("directoryDetailsModal");
+    const scrim = getElement("directoryDetailsScrim");
     if (!dialog || !scrim) {
       return;
     }
@@ -1347,12 +1347,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function pulsePendingCard() {
-    var grid = getElement("resultsGrid");
+    const grid = getElement("resultsGrid");
     if (!grid || !pendingMotionSlug) {
       return;
     }
 
-    var activeCard = grid.querySelector(dataSelector("data-card-slug", pendingMotionSlug));
+    const activeCard = grid.querySelector(dataSelector("data-card-slug", pendingMotionSlug));
     if (activeCard) {
       activeCard.classList.remove("motion-pulse");
       void activeCard.offsetWidth;
@@ -1367,12 +1367,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   // data-page attributes that the click handler reads. URL is
   // updated via updateUrl() so reload + back/forward work.
   function renderPagination(renderState) {
-    var wrap = getElement("dirLoadMoreWrap");
+    const wrap = getElement("dirLoadMoreWrap");
     if (!wrap) {
       return;
     }
-    var totalPages = renderState.totalPages || 1;
-    var page = renderState.currentPage || 1;
+    const totalPages = renderState.totalPages || 1;
+    const page = renderState.currentPage || 1;
     if (totalPages <= 1) {
       wrap.innerHTML = "";
       return;
@@ -1396,18 +1396,18 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
     // Build the visible page-number window. Always show first + last;
     // the spec says max 5 visible with ellipsis for the gap.
-    var nums = [];
-    var window = 1; // how many neighbors on each side of `page`
-    var start = Math.max(2, page - window);
-    var end = Math.min(totalPages - 1, page + window);
+    const nums = [];
+    const window = 1; // how many neighbors on each side of `page`
+    const start = Math.max(2, page - window);
+    const end = Math.min(totalPages - 1, page + window);
     nums.push(pageButton(1, page === 1));
     if (start > 2) nums.push('<span class="dir-pagination-gap">…</span>');
-    for (var n = start; n <= end; n += 1) nums.push(pageButton(n, n === page));
+    for (let n = start; n <= end; n += 1) nums.push(pageButton(n, n === page));
     if (end < totalPages - 1) nums.push('<span class="dir-pagination-gap">…</span>');
     if (totalPages > 1) nums.push(pageButton(totalPages, page === totalPages));
 
-    var prevDisabled = page <= 1;
-    var nextDisabled = page >= totalPages;
+    const prevDisabled = page <= 1;
+    const nextDisabled = page >= totalPages;
     wrap.innerHTML =
       '<nav class="dir-pagination" aria-label="Results pagination">' +
       '<button type="button" class="dir-pagination-step" data-page="' +
@@ -1427,11 +1427,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function updateJsonLd(results) {
-    var el = getElement("dirJsonLd");
+    const el = getElement("dirJsonLd");
     if (!el) {
       return;
     }
-    var items = results.slice(0, 20).map(function (t, i) {
+    const items = results.slice(0, 20).map(function (t, i) {
       return {
         "@type": "ListItem",
         position: i + 1,
@@ -1451,9 +1451,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function updateMeta(resultCount) {
-    var titleEl = getElement("dirPageTitle");
-    var descEl = getElement("dirPageDescription");
-    var label = resultCount + " Bipolar Therapists in California";
+    const titleEl = getElement("dirPageTitle");
+    const descEl = getElement("dirPageDescription");
+    const label = resultCount + " Bipolar Therapists in California";
     if (titleEl) {
       titleEl.textContent = label + " | BipolarTherapyHub";
     }
@@ -1468,8 +1468,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
   }
 
-  var impressionObserver = null;
-  var seenImpressions = new Set();
+  let impressionObserver = null;
+  const seenImpressions = new Set();
 
   function initImpressionObserver() {
     if (typeof window.IntersectionObserver !== "function") {
@@ -1484,7 +1484,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
           if (!entry.isIntersecting) {
             return;
           }
-          var slug = entry.target.getAttribute("data-card-slug");
+          const slug = entry.target.getAttribute("data-card-slug");
           if (!slug || seenImpressions.has(slug)) {
             return;
           }
@@ -1502,7 +1502,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return;
     }
     grid.querySelectorAll("[data-card-slug]").forEach(function (card) {
-      var slug = card.getAttribute("data-card-slug");
+      const slug = card.getAttribute("data-card-slug");
       if (slug && !seenImpressions.has(slug)) {
         impressionObserver.observe(card);
       }
@@ -1510,7 +1510,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function renderCurrentPageOnly(results) {
-    var renderState = buildDirectoryRenderState({
+    const renderState = buildDirectoryRenderState({
       results: results,
       currentPage: currentPage,
       filters: getFilters(),
@@ -1528,21 +1528,21 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function render() {
-    var currentFilters = getFilters();
-    var renderState = buildDirectoryRenderState({
+    const currentFilters = getFilters();
+    const renderState = buildDirectoryRenderState({
       results: getFilteredWithFilters(currentFilters),
       currentPage: currentPage,
       filters: currentFilters,
       directoryPage: directoryPage,
     });
     currentPage = renderState.currentPage;
-    var results = renderState.results;
-    var pageItems = renderState.pageItems;
-    var count = getElement("resultsCount");
-    var filterCount = getElement("filterCount");
-    var resultsSuffix = renderState.resultsSuffix;
-    var singularSuffix = renderState.singularSuffix;
-    var activeFilterCount = renderState.activeFilterCount;
+    const results = renderState.results;
+    const pageItems = renderState.pageItems;
+    const count = getElement("resultsCount");
+    const filterCount = getElement("filterCount");
+    const resultsSuffix = renderState.resultsSuffix;
+    const singularSuffix = renderState.singularSuffix;
+    const activeFilterCount = renderState.activeFilterCount;
 
     if (count) {
       count.innerHTML =
@@ -1581,20 +1581,20 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   // Patch only the bookmark button(s) inside the open panel without re-rendering
   // the whole body (which would collapse expanded bio / insurance state).
   function patchPanelBookmark(slug, isSaved) {
-    var body = getElement("directoryDetailsBody");
+    const body = getElement("directoryDetailsBody");
     if (!body || !slug) return;
-    var btns = body.querySelectorAll(dataSelector("data-shortlist-slug", slug));
+    const btns = body.querySelectorAll(dataSelector("data-shortlist-slug", slug));
     btns.forEach(function (btn) {
       btn.setAttribute("aria-pressed", isSaved ? "true" : "false");
       btn.setAttribute("aria-label", isSaved ? "Remove from saved list" : "Save to list");
       btn.classList.toggle("is-saved", isSaved);
-      var svg = btn.querySelector("svg");
+      const svg = btn.querySelector("svg");
       if (svg) svg.setAttribute("fill", isSaved ? "currentColor" : "none");
     });
   }
 
   function applyFilters() {
-    var nextState = applyDirectoryFiltersAction({
+    const nextState = applyDirectoryFiltersAction({
       filters: filters,
       getElement: getElement,
     });
@@ -1617,7 +1617,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function applyFiltersLive() {
-    var nextState = applyDirectoryFiltersAction({
+    const nextState = applyDirectoryFiltersAction({
       filters: filters,
       getElement: getElement,
     });
@@ -1643,7 +1643,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   // Replace the legacy single-value <select> dropdowns inside the
   // filters modal with multi-select chip groups. Wires directly to
   // filters[key] (the step-4 array shape) and re-renders results.
-  var DRAWER_CHIP_OPTIONS = {
+  const DRAWER_CHIP_OPTIONS = {
     specialty: {
       multi: true,
       title: "Bipolar subtype",
@@ -1699,24 +1699,24 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   function isChipPressed(filterKey, value) {
     if (DRAWER_CHIP_OPTIONS[filterKey].multi) {
-      var arr = Array.isArray(filters[filterKey]) ? filters[filterKey] : [];
+      const arr = Array.isArray(filters[filterKey]) ? filters[filterKey] : [];
       return arr.indexOf(value) !== -1;
     }
     return String(filters[filterKey] || "") === String(value);
   }
 
   function toggleChipValue(filterKey, value) {
-    var cfg = DRAWER_CHIP_OPTIONS[filterKey];
+    const cfg = DRAWER_CHIP_OPTIONS[filterKey];
     if (cfg.multi) {
-      var arr = Array.isArray(filters[filterKey]) ? filters[filterKey].slice() : [];
-      var idx = arr.indexOf(value);
+      const arr = Array.isArray(filters[filterKey]) ? filters[filterKey].slice() : [];
+      const idx = arr.indexOf(value);
       if (idx === -1) arr.push(value);
       else arr.splice(idx, 1);
       filters[filterKey] = arr;
     } else {
       // Single-select: clicking the already-pressed value clears it (so
       // "Any" works whether or not the user explicitly clicks it).
-      var current = String(filters[filterKey] || "");
+      const current = String(filters[filterKey] || "");
       if (current === String(value) && value !== "") {
         filters[filterKey] = "";
       } else {
@@ -1726,9 +1726,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function setupDrawerChipPicker(filterKey) {
-    var container = document.querySelector('[data-drawer-chip-picker="' + filterKey + '"]');
+    const container = document.querySelector('[data-drawer-chip-picker="' + filterKey + '"]');
     if (!container) return;
-    var cfg = DRAWER_CHIP_OPTIONS[filterKey];
+    const cfg = DRAWER_CHIP_OPTIONS[filterKey];
     container.innerHTML = cfg.options
       .map(function (opt) {
         return (
@@ -1748,9 +1748,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     if (container.getAttribute("data-chip-bound") === "true") return;
     container.setAttribute("data-chip-bound", "true");
     container.addEventListener("click", function (event) {
-      var button = event.target.closest("[data-chip-value]");
+      const button = event.target.closest("[data-chip-value]");
       if (!button) return;
-      var value = button.getAttribute("data-chip-value");
+      const value = button.getAttribute("data-chip-value");
       toggleChipValue(filterKey, value);
       // Refresh pressed state on every chip in this group (single-select
       // needs siblings cleared; multi-select only the clicked one flips).
@@ -1774,7 +1774,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   function syncDrawerChipPickers() {
     Object.keys(DRAWER_CHIP_OPTIONS).forEach(function (filterKey) {
-      var container = document.querySelector('[data-drawer-chip-picker="' + filterKey + '"]');
+      const container = document.querySelector('[data-drawer-chip-picker="' + filterKey + '"]');
       if (!container) return;
       Array.from(container.querySelectorAll("[data-chip-value]")).forEach(function (chip) {
         chip.setAttribute(
@@ -1786,7 +1786,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function resetFilters() {
-    var nextState = resetDirectoryFiltersAction(defaultFilters);
+    const nextState = resetDirectoryFiltersAction(defaultFilters);
     filters = nextState.filters;
     currentPage = 1;
     syncFilterControlsFromState(filters, getElement);
@@ -1801,8 +1801,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function updateFilterToggleState() {
-    var sidebar = getElement("sidebar");
-    var toggle = getElement("mobileFilterToggle");
+    const sidebar = getElement("sidebar");
+    const toggle = getElement("mobileFilterToggle");
     if (!sidebar || !toggle) {
       return;
     }
@@ -1811,7 +1811,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function toggleFilters() {
-    var sidebar = getElement("sidebar");
+    const sidebar = getElement("sidebar");
     if (!sidebar) {
       return;
     }
@@ -1821,7 +1821,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function syncSidebarForViewport() {
-    var sidebar = getElement("sidebar");
+    const sidebar = getElement("sidebar");
     if (!sidebar) {
       return;
     }
@@ -1841,14 +1841,14 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function handleResultsGridClick(event) {
-    var shortlistButton = event.target.closest("[data-shortlist-slug]");
+    const shortlistButton = event.target.closest("[data-shortlist-slug]");
     if (shortlistButton) {
-      var shortlistSlug = shortlistButton.getAttribute("data-shortlist-slug");
+      const shortlistSlug = shortlistButton.getAttribute("data-shortlist-slug");
       if (!shortlistSlug) {
         return;
       }
       pendingMotionSlug = shortlistSlug;
-      var saved = toggleShortlist(shortlistSlug);
+      const saved = toggleShortlist(shortlistSlug);
       trackFunnelEvent("directory_save_toggled", {
         therapist_slug: shortlistSlug,
         saved: saved,
@@ -1858,11 +1858,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return;
     }
 
-    var primaryLink = event.target.closest("[data-primary-cta]");
+    const primaryLink = event.target.closest("[data-primary-cta]");
     if (primaryLink) {
-      var primarySlug = primaryLink.getAttribute("data-primary-cta");
-      var therapist = getTherapistBySlug(primarySlug);
-      var ctaTier = primaryLink.getAttribute("data-cta-tier") || "browse";
+      const primarySlug = primaryLink.getAttribute("data-primary-cta");
+      const therapist = getTherapistBySlug(primarySlug);
+      const ctaTier = primaryLink.getAttribute("data-cta-tier") || "browse";
       if (therapist) {
         rememberTherapistContactRoute(
           primarySlug,
@@ -1881,9 +1881,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       return;
     }
 
-    var secondaryLink = event.target.closest("[data-secondary-cta]");
+    const secondaryLink = event.target.closest("[data-secondary-cta]");
     if (secondaryLink) {
-      var secondarySlug = secondaryLink.getAttribute("data-secondary-cta");
+      const secondarySlug = secondaryLink.getAttribute("data-secondary-cta");
       trackFunnelEvent("directory_bottom_sheet_secondary_cta_clicked", {
         therapist_slug: secondarySlug,
         sort_by: filters.sortBy,
@@ -1893,9 +1893,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
     // Card body click, open side panel (only when not clicking interactive elements)
     if (!event.target.closest("a, button")) {
-      var cardEl = event.target.closest("[data-card-click]");
+      const cardEl = event.target.closest("[data-card-click]");
       if (cardEl) {
-        var cardSlug = cardEl.getAttribute("data-card-click");
+        const cardSlug = cardEl.getAttribute("data-card-click");
         openDetailsModal(cardSlug, cardEl);
         trackFunnelEvent("directory_card_profile_viewed", {
           therapist_slug: cardSlug,
@@ -1907,7 +1907,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function handleResultsGridChange(event) {
-    var noteInput = event.target.closest("[data-shortlist-note]");
+    const noteInput = event.target.closest("[data-shortlist-note]");
     if (!noteInput) {
       return;
     }
@@ -1918,11 +1918,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   function handleLoadMoreClick(event) {
     // Step 8: this used to handle the load-more button. Now it handles
     // numbered pagination clicks (Previous / Next / page-number buttons).
-    var pageBtn = event.target.closest("[data-page]");
+    const pageBtn = event.target.closest("[data-page]");
     if (!pageBtn || pageBtn.hasAttribute("disabled")) {
       return;
     }
-    var nextPage = Number(pageBtn.getAttribute("data-page"));
+    const nextPage = Number(pageBtn.getAttribute("data-page"));
     if (!Number.isFinite(nextPage) || nextPage < 1) return;
     currentPage = nextPage;
     trackFunnelEvent("directory_pagination_clicked", {
@@ -1937,11 +1937,11 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
   }
 
-  var sortZipTimer = 0;
+  let sortZipTimer = 0;
 
   function setSortZipNotice(message) {
-    var input = getElement("sortZip");
-    var notice = getElement("sortZipNotice");
+    const input = getElement("sortZip");
+    const notice = getElement("sortZipNotice");
     if (input) {
       input.classList.toggle("is-invalid", Boolean(message));
       input.setAttribute("aria-invalid", message ? "true" : "false");
@@ -1953,15 +1953,15 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function applySortZipFromInput() {
-    var raw = String((getElement("sortZip") && getElement("sortZip").value) || "").trim();
-    var hasFiveDigits = /^\d{5}$/.test(raw);
-    var marketStatus = hasFiveDigits ? getZipMarketStatus(raw) : null;
-    var isInCalifornia = marketStatus && marketStatus.status === "live";
-    var normalized = isInCalifornia ? raw : "";
+    const raw = String((getElement("sortZip") && getElement("sortZip").value) || "").trim();
+    const hasFiveDigits = /^\d{5}$/.test(raw);
+    const marketStatus = hasFiveDigits ? getZipMarketStatus(raw) : null;
+    const isInCalifornia = marketStatus && marketStatus.status === "live";
+    const normalized = isInCalifornia ? raw : "";
     sortZip = normalized;
     saveSortZip(normalized);
-    var nearZipOption = getElement("sortNearZipOption");
-    var sortByEl = getElement("sortBy");
+    const nearZipOption = getElement("sortNearZipOption");
+    const sortByEl = getElement("sortBy");
     if (normalized) {
       setSortZipNotice("");
       if (nearZipOption) {
@@ -1974,7 +1974,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       trackFunnelEvent("directory_zip_entered", { zip: normalized });
     } else {
       if (hasFiveDigits && marketStatus && marketStatus.status === "out_of_state") {
-        var stateName = (marketStatus.place && marketStatus.place.stateName) || "your state";
+        const stateName = (marketStatus.place && marketStatus.place.stateName) || "your state";
         setSortZipNotice("We’re California-only right now, not yet live in " + stateName + ".");
         trackFunnelEvent("directory_zip_rejected", {
           zip: raw,
@@ -2012,7 +2012,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   function handleFocusBarClick(event) {
-    var removeButton = event.target.closest("[data-remove-filter]");
+    const removeButton = event.target.closest("[data-remove-filter]");
     if (!removeButton) {
       return;
     }
@@ -2024,42 +2024,42 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   window.resetFilters = resetFilters;
   window.toggleFilters = toggleFilters;
 
-  var applyFiltersButton = getElement("applyFiltersButton");
+  const applyFiltersButton = getElement("applyFiltersButton");
   if (applyFiltersButton) {
     applyFiltersButton.addEventListener("click", applyFilters);
   }
 
-  var resetFiltersButton = getElement("resetFiltersButton");
+  const resetFiltersButton = getElement("resetFiltersButton");
   if (resetFiltersButton) {
     resetFiltersButton.addEventListener("click", resetFilters);
   }
-  var focusClearFiltersButton = getElement("focusClearFiltersButton");
+  const focusClearFiltersButton = getElement("focusClearFiltersButton");
   if (focusClearFiltersButton) {
     focusClearFiltersButton.addEventListener("click", resetFilters);
   }
 
-  var activeFilterChips = getElement("activeFilterChips");
+  const activeFilterChips = getElement("activeFilterChips");
   if (activeFilterChips) {
     activeFilterChips.addEventListener("click", handleFocusBarClick);
   }
 
-  var resultsGrid = getElement("resultsGrid");
+  const resultsGrid = getElement("resultsGrid");
   if (resultsGrid) {
     resultsGrid.addEventListener("click", handleResultsGridClick);
     resultsGrid.addEventListener("change", handleResultsGridChange);
   }
 
-  var loadMoreWrap = getElement("dirLoadMoreWrap");
+  const loadMoreWrap = getElement("dirLoadMoreWrap");
   if (loadMoreWrap) {
     loadMoreWrap.addEventListener("click", handleLoadMoreClick);
   }
 
-  var sortZipInput = getElement("sortZip");
+  const sortZipInput = getElement("sortZip");
   if (sortZipInput) {
     sortZipInput.addEventListener("input", handleSortZipInput);
   }
 
-  var detailsBody = getElement("directoryDetailsBody");
+  const detailsBody = getElement("directoryDetailsBody");
   if (detailsBody) {
     detailsBody.addEventListener("click", handleResultsGridClick);
     detailsBody.addEventListener("change", handleResultsGridChange);
@@ -2073,13 +2073,13 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       }
 
       // Bio read-more / show-less toggle
-      var bioToggle = event.target.closest("[data-bio-toggle]");
+      const bioToggle = event.target.closest("[data-bio-toggle]");
       if (bioToggle) {
-        var bioSlug = bioToggle.getAttribute("data-bio-toggle");
-        var bioText = detailsBody.querySelector("#bsh-bio-" + bioSlug);
-        var bioFade = detailsBody.querySelector("#bsh-bio-fade-" + bioSlug);
+        const bioSlug = bioToggle.getAttribute("data-bio-toggle");
+        const bioText = detailsBody.querySelector("#bsh-bio-" + bioSlug);
+        const bioFade = detailsBody.querySelector("#bsh-bio-fade-" + bioSlug);
         if (bioText) {
-          var expanded = bioText.classList.contains("is-expanded");
+          const expanded = bioText.classList.contains("is-expanded");
           if (expanded) {
             bioText.classList.remove("is-expanded");
             if (bioFade) bioFade.classList.remove("is-hidden");
@@ -2095,18 +2095,18 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
       // Insurance: expand ("+N more" chip or "See all plans" button)
       // Both 4-19 and 20+ tiers use [data-ins-collapsed] for the collapsed wrapper.
-      var insExpand = event.target.closest("[data-ins-expand]");
+      const insExpand = event.target.closest("[data-ins-expand]");
       if (insExpand) {
-        var insWrap = detailsBody.querySelector(
+        const insWrap = detailsBody.querySelector(
           '[data-ins-wrap="' + insExpand.getAttribute("data-ins-expand") + '"]',
         );
         if (insWrap) {
-          var collapsedRow = insWrap.querySelector("[data-ins-collapsed]");
-          var expandedPanel = insWrap.querySelector(".bsh-ins-expanded");
+          const collapsedRow = insWrap.querySelector("[data-ins-collapsed]");
+          const expandedPanel = insWrap.querySelector(".bsh-ins-expanded");
           if (collapsedRow) collapsedRow.hidden = true;
           if (expandedPanel) {
             expandedPanel.hidden = false;
-            var searchInput = expandedPanel.querySelector(".bsh-ins-search");
+            const searchInput = expandedPanel.querySelector(".bsh-ins-search");
             if (searchInput) searchInput.focus();
           }
         }
@@ -2114,14 +2114,14 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       }
 
       // Insurance: collapse ("Show less" button)
-      var insCollapse = event.target.closest("[data-ins-collapse]");
+      const insCollapse = event.target.closest("[data-ins-collapse]");
       if (insCollapse) {
-        var insWrap2 = detailsBody.querySelector(
+        const insWrap2 = detailsBody.querySelector(
           '[data-ins-wrap="' + insCollapse.getAttribute("data-ins-collapse") + '"]',
         );
         if (insWrap2) {
-          var collapsedRow2 = insWrap2.querySelector("[data-ins-collapsed]");
-          var expandedPanel2 = insWrap2.querySelector(".bsh-ins-expanded");
+          const collapsedRow2 = insWrap2.querySelector("[data-ins-collapsed]");
+          const expandedPanel2 = insWrap2.querySelector(".bsh-ins-expanded");
           if (collapsedRow2) collapsedRow2.hidden = false;
           if (expandedPanel2) expandedPanel2.hidden = true;
         }
@@ -2129,18 +2129,18 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       }
 
       // Outreach: copy the drafted first message to clipboard
-      var copyBtn = event.target.closest("[data-outreach-copy-message]");
+      const copyBtn = event.target.closest("[data-outreach-copy-message]");
       if (copyBtn) {
-        var outreachWrap = copyBtn.closest("[data-bsh-outreach]");
-        var copySlug = outreachWrap ? outreachWrap.getAttribute("data-bsh-outreach") : "";
-        var messageBody = copyBtn
+        const outreachWrap = copyBtn.closest("[data-bsh-outreach]");
+        const copySlug = outreachWrap ? outreachWrap.getAttribute("data-bsh-outreach") : "";
+        const messageBody = copyBtn
           .closest(".outreach-script-shell")
           ?.querySelector("[data-outreach-message-body]");
-        var text = messageBody ? messageBody.textContent || "" : "";
+        const text = messageBody ? messageBody.textContent || "" : "";
         if (!text) return;
-        var label = copyBtn.querySelector("span");
-        var originalLabel = label ? label.textContent : "";
-        var markCopied = function (success) {
+        const label = copyBtn.querySelector("span");
+        const originalLabel = label ? label.textContent : "";
+        const markCopied = function (success) {
           if (label) label.textContent = success ? "Copied" : "Copy failed";
           copyBtn.classList.toggle("is-copied", Boolean(success));
           window.setTimeout(function () {
@@ -2168,9 +2168,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       }
 
       // Outreach: tel: link click in the phone script
-      var callLink = event.target.closest(".outreach-script-call");
+      const callLink = event.target.closest(".outreach-script-call");
       if (callLink && event.target.closest("[data-bsh-outreach]")) {
-        var callSlug = event.target
+        const callSlug = event.target
           .closest("[data-bsh-outreach]")
           .getAttribute("data-bsh-outreach");
         trackFunnelEvent("outreach_call_clicked", {
@@ -2182,17 +2182,17 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
       // Outreach: close button collapses the disclosure
       if (event.target.closest("[data-outreach-close]")) {
-        var closeDetails = event.target.closest("details");
+        const closeDetails = event.target.closest("details");
         if (closeDetails) closeDetails.open = false;
       }
     });
 
     // Outreach: track when the disclosure is opened
     detailsBody.addEventListener("toggle", function (event) {
-      var details = event.target;
+      const details = event.target;
       if (!details || !details.matches || !details.matches("[data-bsh-outreach]")) return;
       if (!details.open) return;
-      var slug = details.getAttribute("data-bsh-outreach") || "";
+      const slug = details.getAttribute("data-bsh-outreach") || "";
       trackFunnelEvent("outreach_panel_opened", {
         surface: "drawer",
         therapist_slug: slug,
@@ -2201,7 +2201,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
     // See full profile (collapsed card secondary link)
     document.addEventListener("click", function (event) {
-      var seeProfileLink = event.target.closest("[data-card-profile-link]");
+      const seeProfileLink = event.target.closest("[data-card-profile-link]");
       if (!seeProfileLink) return;
       trackFunnelEvent("directory_see_profile_clicked", {
         therapist_slug: seeProfileLink.getAttribute("data-card-profile-link") || "",
@@ -2211,25 +2211,25 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
     // Insurance live search filter
     detailsBody.addEventListener("input", function (event) {
-      var searchInput = event.target.closest("[data-ins-search]");
+      const searchInput = event.target.closest("[data-ins-search]");
       if (!searchInput) return;
-      var insSlug = searchInput.getAttribute("data-ins-search");
-      var planList = detailsBody.querySelector('[data-ins-plan-list="' + insSlug + '"]');
+      const insSlug = searchInput.getAttribute("data-ins-search");
+      const planList = detailsBody.querySelector('[data-ins-plan-list="' + insSlug + '"]');
       if (!planList) return;
-      var query = searchInput.value.toLowerCase().trim();
-      var pills = planList.querySelectorAll(".bsh-ins-pill");
+      const query = searchInput.value.toLowerCase().trim();
+      const pills = planList.querySelectorAll(".bsh-ins-pill");
       pills.forEach(function (pill) {
-        var name = pill.getAttribute("data-plan-name") || "";
+        const name = pill.getAttribute("data-plan-name") || "";
         pill.hidden = Boolean(query && !name.includes(query));
       });
     });
   }
 
   // Drag-to-dismiss on mobile: swipe the drag pill down to close
-  var dragPill = document.querySelector(".dir-panel-drag-pill-wrap");
-  var dragDialog = getElement("directoryDetailsModal");
+  const dragPill = document.querySelector(".dir-panel-drag-pill-wrap");
+  const dragDialog = getElement("directoryDetailsModal");
   if (dragPill && dragDialog) {
-    var dragStartY = 0;
+    let dragStartY = 0;
     dragPill.addEventListener(
       "touchstart",
       function (event) {
@@ -2240,7 +2240,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     dragPill.addEventListener(
       "touchend",
       function (event) {
-        var delta = event.changedTouches[0].clientY - dragStartY;
+        const delta = event.changedTouches[0].clientY - dragStartY;
         if (delta > 60) closeDetailsModal();
       },
       { passive: true },
@@ -2248,12 +2248,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   }
 
   // Desktop close button lives in the static panel head (always in DOM)
-  var detailsCloseDesktop = getElement("directoryDetailsCloseDesktop");
+  const detailsCloseDesktop = getElement("directoryDetailsCloseDesktop");
   if (detailsCloseDesktop) {
     detailsCloseDesktop.addEventListener("click", closeDetailsModal);
   }
 
-  var detailsScrim = getElement("directoryDetailsScrim");
+  const detailsScrim = getElement("directoryDetailsScrim");
   if (detailsScrim) {
     detailsScrim.addEventListener("click", closeDetailsModal);
   }
@@ -2261,7 +2261,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   FILTER_VALUE_KEYS.filter(function (key) {
     return key !== "sortBy";
   }).forEach(function (key) {
-    var input = getElement(key);
+    const input = getElement(key);
     if (!input) {
       return;
     }
@@ -2279,7 +2279,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
   });
 
   FILTER_BOOLEAN_KEYS.forEach(function (key) {
-    var input = getElement(key);
+    const input = getElement(key);
     if (!input) {
       return;
     }
@@ -2287,12 +2287,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     input.addEventListener("change", applyFiltersLive);
   });
 
-  var mobileFilterToggle = getElement("mobileFilterToggle");
+  const mobileFilterToggle = getElement("mobileFilterToggle");
   if (mobileFilterToggle) {
     mobileFilterToggle.addEventListener("click", toggleFilters);
   }
 
-  var sparseNudge = getElement("directorySparseNudge");
+  const sparseNudge = getElement("directorySparseNudge");
   if (sparseNudge) {
     sparseNudge.addEventListener("click", function () {
       trackFunnelEvent("directory_sparse_nudge_click", {
@@ -2301,10 +2301,10 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
   }
 
-  var sortByEl = getElement("sortBy");
+  const sortByEl = getElement("sortBy");
   if (sortByEl) {
     sortByEl.addEventListener("change", function () {
-      var nextState = changeDirectorySortAction({
+      const nextState = changeDirectorySortAction({
         filters: filters,
         sortBy: sortByEl.value,
       });
@@ -2319,7 +2319,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
 
   window.addEventListener("resize", scheduleViewportSync);
 
-  var filtersOpenButton = getElement("dirVbModalOpen");
+  const filtersOpenButton = getElement("dirVbModalOpen");
   if (filtersOpenButton) {
     filtersOpenButton.addEventListener("click", function () {
       trackFunnelEvent("directory_filters_opened", {
@@ -2335,9 +2335,9 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     }
 
     if (event.key === "Tab" && activeDetailsSlug) {
-      var dialog = getElement("directoryDetailsModal");
+      const dialog = getElement("directoryDetailsModal");
       if (!dialog || dialog.hidden) return;
-      var focusable = Array.from(
+      const focusable = Array.from(
         dialog.querySelectorAll(
           'a[href], button:not([disabled]), input:not([disabled]), [tabindex]:not([tabindex="-1"])',
         ),
@@ -2345,8 +2345,8 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
         return !el.hidden && el.offsetParent !== null;
       });
       if (focusable.length < 2) return;
-      var first = focusable[0];
-      var last = focusable[focusable.length - 1];
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
         last.focus();

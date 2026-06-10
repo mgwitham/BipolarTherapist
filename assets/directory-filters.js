@@ -1,4 +1,4 @@
-export var FILTER_VALUE_KEYS = [
+export const FILTER_VALUE_KEYS = [
   "state",
   "zip",
   "specialty",
@@ -15,13 +15,13 @@ export var FILTER_VALUE_KEYS = [
 // Multi-select keys hold an array of strings rather than a single value.
 // URL serialization uses comma separation so single-value bookmarks
 // (?insurance=aetna) keep working. Other keys remain scalar strings.
-export var FILTER_MULTI_VALUE_KEYS = ["specialty", "modality", "population", "insurance"];
+export const FILTER_MULTI_VALUE_KEYS = ["specialty", "modality", "population", "insurance"];
 
 // Numeric keys are stored as digit strings (empty string = unset).
 // Filter logic in directory-logic.js coerces to Number for comparison.
-export var FILTER_NUMERIC_VALUE_KEYS = ["session_fee_min", "session_fee_max"];
+export const FILTER_NUMERIC_VALUE_KEYS = ["session_fee_min", "session_fee_max"];
 
-export var FILTER_BOOLEAN_KEYS = [
+export const FILTER_BOOLEAN_KEYS = [
   "therapist",
   "psychiatrist",
   "telehealth",
@@ -38,7 +38,7 @@ export var FILTER_BOOLEAN_KEYS = [
   // confirmation timestamps are recorded.
 ];
 
-export var ACTIVE_FILTER_KEYS = FILTER_VALUE_KEYS.filter(function (key) {
+export const ACTIVE_FILTER_KEYS = FILTER_VALUE_KEYS.filter(function (key) {
   return key !== "sortBy";
 }).concat(FILTER_BOOLEAN_KEYS);
 
@@ -58,7 +58,7 @@ export function toFilterArray(value) {
       .filter(Boolean);
   }
   if (value === null || value === undefined) return [];
-  var raw = String(value).trim();
+  const raw = String(value).trim();
   if (!raw) return [];
   return raw
     .split(",")
@@ -83,7 +83,7 @@ export function countActiveFilters(filterState) {
 
 export function syncFilterControlsFromState(filterState, getElement) {
   FILTER_VALUE_KEYS.forEach(function (key) {
-    var input = getElement(key);
+    const input = getElement(key);
     if (!input) return;
     if (isMultiKey(key)) {
       // The legacy modal still uses single-value inputs. Surface the
@@ -91,7 +91,7 @@ export function syncFilterControlsFromState(filterState, getElement) {
       // specialty / modality / population selects) keep displaying
       // something coherent. Step 6 swaps these for multi-select chip
       // pickers that read the array directly.
-      var arr = toFilterArray(filterState[key]);
+      const arr = toFilterArray(filterState[key]);
       input.value = arr.length ? arr[0] : "";
     } else {
       input.value = filterState[key];
@@ -99,7 +99,7 @@ export function syncFilterControlsFromState(filterState, getElement) {
   });
 
   FILTER_BOOLEAN_KEYS.forEach(function (key) {
-    var input = getElement(key);
+    const input = getElement(key);
     if (input) {
       input.checked = Boolean(filterState[key]);
     }
@@ -107,10 +107,10 @@ export function syncFilterControlsFromState(filterState, getElement) {
 }
 
 export function readFilterStateFromControls(baseFilterState, getElement) {
-  var nextFilterState = Object.assign({}, baseFilterState);
+  const nextFilterState = Object.assign({}, baseFilterState);
 
   FILTER_VALUE_KEYS.forEach(function (key) {
-    var input = getElement(key);
+    const input = getElement(key);
     if (!input) {
       return;
     }
@@ -119,8 +119,8 @@ export function readFilterStateFromControls(baseFilterState, getElement) {
       // consumers always see an array. If the same key has been seeded
       // from a multi-value URL, preserve the existing array unless the
       // input has overwritten it with a different value.
-      var inputValue = input.value.trim();
-      var existing = toFilterArray(baseFilterState[key]);
+      const inputValue = input.value.trim();
+      const existing = toFilterArray(baseFilterState[key]);
       if (!inputValue) {
         nextFilterState[key] = [];
       } else if (existing.length && existing[0] === inputValue) {
@@ -134,7 +134,7 @@ export function readFilterStateFromControls(baseFilterState, getElement) {
   });
 
   FILTER_BOOLEAN_KEYS.forEach(function (key) {
-    var input = getElement(key);
+    const input = getElement(key);
     if (!input) {
       return;
     }

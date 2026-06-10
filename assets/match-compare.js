@@ -7,7 +7,7 @@ import {
 
 export function renderCompareValue(value, kind) {
   if (kind === "order") {
-    var tone = value === "#1 Best match" ? "positive" : "neutral";
+    const tone = value === "#1 Best match" ? "positive" : "neutral";
     return (
       '<div class="compare-cell-center"><span class="compare-chip compare-chip-' +
       tone +
@@ -64,8 +64,8 @@ export function getCompareCostLabel(therapist) {
     return "";
   }
 
-  var min = therapist.session_fee_min;
-  var max = therapist.session_fee_max;
+  const min = therapist.session_fee_min;
+  const max = therapist.session_fee_max;
   if (min && max && min !== max) {
     return "$" + min + "–$" + max;
   }
@@ -95,7 +95,7 @@ export function getCompareTimingLabel(therapist) {
 }
 
 export function getCompareTrustLabel(entry) {
-  var therapist = entry && entry.therapist ? entry.therapist : null;
+  const therapist = entry && entry.therapist ? entry.therapist : null;
   if (!therapist) {
     return "";
   }
@@ -109,12 +109,12 @@ export function getCompareTrustLabel(entry) {
 }
 
 export function getCompareFreshness(entry) {
-  var therapist = entry && entry.therapist ? entry.therapist : null;
+  const therapist = entry && entry.therapist ? entry.therapist : null;
   if (!therapist) {
     return null;
   }
 
-  var recentApplied = getRecentAppliedSummary(therapist);
+  const recentApplied = getRecentAppliedSummary(therapist);
   if (recentApplied) {
     return {
       label: recentApplied.short_label || recentApplied.label,
@@ -123,7 +123,7 @@ export function getCompareFreshness(entry) {
     };
   }
 
-  var recentConfirmation = getRecentConfirmationSummary(therapist);
+  const recentConfirmation = getRecentConfirmationSummary(therapist);
   if (recentConfirmation) {
     return {
       label: recentConfirmation.short_label || recentConfirmation.label,
@@ -132,7 +132,7 @@ export function getCompareFreshness(entry) {
     };
   }
 
-  var freshness = getDataFreshnessSummary(therapist);
+  const freshness = getDataFreshnessSummary(therapist);
   return freshness
     ? {
         label: freshness.label,
@@ -143,7 +143,7 @@ export function getCompareFreshness(entry) {
 }
 
 export function getCompareRole(entry, index) {
-  var rank = index + 1;
+  const rank = index + 1;
   if (index === 0) {
     return "#1 Best match";
   }
@@ -154,8 +154,8 @@ export function getCompareRole(entry, index) {
 // Booleans, strings, and arrays are all normalized to a comparable
 // signature so e.g. ["Aetna","BCBS"] vs ["BCBS","Aetna"] is the same.
 export function shortlistRowDiffers(row, topEntries) {
-  var sigs = topEntries.map(function (entry) {
-    var v = row.getValue(entry.therapist);
+  const sigs = topEntries.map(function (entry) {
+    const v = row.getValue(entry.therapist);
     if (Array.isArray(v)) {
       return v
         .map(function (x) {
@@ -167,8 +167,8 @@ export function shortlistRowDiffers(row, topEntries) {
     if (typeof v === "boolean") return v ? "y" : "n";
     return String(v || "").toLowerCase();
   });
-  var first = sigs[0];
-  for (var i = 1; i < sigs.length; i++) {
+  const first = sigs[0];
+  for (let i = 1; i < sigs.length; i++) {
     if (sigs[i] !== first) return true;
   }
   return false;

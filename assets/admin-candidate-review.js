@@ -258,7 +258,7 @@ export function bindCandidateDecisionButtons(root, handlers) {
           status.style.cssText =
             "margin-top:0.6rem;padding:0.5rem 0.75rem;border-radius:10px;" +
             "background:#d4f2e4;color:#14502f;font-weight:700;font-size:0.85rem;";
-          var successMessages = {
+          const successMessages = {
             publish: "Published successfully.",
             needs_review: "Sent to review.",
             needs_confirmation: "Sent to confirmation.",

@@ -77,7 +77,7 @@ if (dsn) {
   // never competes with first render. Error monitoring is best-effort; the
   // brief uninstrumented window at startup is an acceptable trade for not
   // blocking LCP with a third-party chunk on the critical path.
-  var initSentry = function () {
+  const initSentry = function () {
     import("@sentry/browser")
       .then(function (Sentry) {
         Sentry.init({

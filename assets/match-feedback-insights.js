@@ -9,11 +9,11 @@ import {
 } from "./match-ranking.js";
 
 function buildRouteLearningMap(outcomes) {
-  var entries = Array.isArray(outcomes) ? outcomes : [];
-  var learning = {};
+  const entries = Array.isArray(outcomes) ? outcomes : [];
+  const learning = {};
 
   function ensureBucket(segment, routeType) {
-    var key = "route::" + segment;
+    const key = "route::" + segment;
     if (!learning[key]) {
       learning[key] = {};
     }
@@ -31,12 +31,12 @@ function buildRouteLearningMap(outcomes) {
       return;
     }
 
-    var segments = buildLearningSegments(
+    const segments = buildLearningSegments(
       item.context && item.context.profile ? item.context.profile : null,
     );
 
     segments.forEach(function (segment) {
-      var bucket = ensureBucket(segment, item.route_type);
+      const bucket = ensureBucket(segment, item.route_type);
       bucket.attempts += 1;
       if (item.outcome === "booked_consult" || item.outcome === "good_fit_call") {
         bucket.success += 1;
@@ -48,50 +48,50 @@ function buildRouteLearningMap(outcomes) {
 }
 
 export function buildFeedbackInsightsMarkup(feedback, outreachOutcomes, services) {
-  var therapists = (services && services.therapists) || [];
-  var learningSignals = buildLearningSignals(feedback, outreachOutcomes);
+  const therapists = (services && services.therapists) || [];
+  const learningSignals = buildLearningSignals(feedback, outreachOutcomes);
 
   if (!feedback.length && !outreachOutcomes.length) {
     return '<div class="feedback-insights-header"><h3>Your feedback so far</h3><p>A quick summary of what you have flagged on this device.</p></div><div class="insight-empty">No feedback captured yet.</div>';
   }
 
-  var shortlistFeedback = feedback.filter(function (item) {
+  const shortlistFeedback = feedback.filter(function (item) {
     return item.type === "shortlist_feedback";
   });
-  var therapistFeedback = feedback.filter(function (item) {
+  const therapistFeedback = feedback.filter(function (item) {
     return item.type === "therapist_feedback";
   });
-  var shortcutInteractions = feedback.filter(function (item) {
+  const shortcutInteractions = feedback.filter(function (item) {
     return item.type === "shortcut_interaction";
   });
-  var heardBackOutcomes = outreachOutcomes.filter(function (item) {
+  const heardBackOutcomes = outreachOutcomes.filter(function (item) {
     return item.outcome === "heard_back";
   });
-  var bookedConsultOutcomes = outreachOutcomes.filter(function (item) {
+  const bookedConsultOutcomes = outreachOutcomes.filter(function (item) {
     return item.outcome === "booked_consult";
   });
-  var goodFitCallOutcomes = outreachOutcomes.filter(function (item) {
+  const goodFitCallOutcomes = outreachOutcomes.filter(function (item) {
     return item.outcome === "good_fit_call";
   });
-  var insuranceMismatchOutcomes = outreachOutcomes.filter(function (item) {
+  const insuranceMismatchOutcomes = outreachOutcomes.filter(function (item) {
     return item.outcome === "insurance_mismatch";
   });
-  var waitlistOutcomes = outreachOutcomes.filter(function (item) {
+  const waitlistOutcomes = outreachOutcomes.filter(function (item) {
     return item.outcome === "waitlist";
   });
-  var noResponseOutcomes = outreachOutcomes.filter(function (item) {
+  const noResponseOutcomes = outreachOutcomes.filter(function (item) {
     return item.outcome === "no_response";
   });
-  var journeySummary = analyzeOutreachJourneys(outreachOutcomes);
-  var timingSummary = analyzePivotTiming(outreachOutcomes);
-  var negativeReasons = feedback
+  const journeySummary = analyzeOutreachJourneys(outreachOutcomes);
+  const timingSummary = analyzePivotTiming(outreachOutcomes);
+  const negativeReasons = feedback
     .filter(function (item) {
       return item.value === "negative";
     })
     .flatMap(function (item) {
       return Array.isArray(item.reasons) ? item.reasons : [];
     });
-  var reasonCounts = FEEDBACK_REASON_OPTIONS.map(function (reason) {
+  const reasonCounts = FEEDBACK_REASON_OPTIONS.map(function (reason) {
     return {
       reason: reason,
       count: negativeReasons.filter(function (value) {
@@ -102,8 +102,8 @@ export function buildFeedbackInsightsMarkup(feedback, outreachOutcomes, services
     return item.count > 0;
   });
 
-  var therapistSummaryMap = therapistFeedback.reduce(function (accumulator, item) {
-    var key = item.therapist_slug;
+  const therapistSummaryMap = therapistFeedback.reduce(function (accumulator, item) {
+    const key = item.therapist_slug;
     if (!accumulator[key]) {
       accumulator[key] = {
         slug: key,
@@ -120,9 +120,9 @@ export function buildFeedbackInsightsMarkup(feedback, outreachOutcomes, services
     return accumulator;
   }, {});
 
-  var therapistSummaries = Object.values(therapistSummaryMap)
+  const therapistSummaries = Object.values(therapistSummaryMap)
     .map(function (item) {
-      var therapist = therapists.find(function (entry) {
+      const therapist = therapists.find(function (entry) {
         return entry.slug === item.slug;
       });
       return {
@@ -136,15 +136,15 @@ export function buildFeedbackInsightsMarkup(feedback, outreachOutcomes, services
       return b.net - a.net || b.positive - a.positive || a.name.localeCompare(b.name);
     });
 
-  var helpfulShortlists = shortlistFeedback.filter(function (item) {
+  const helpfulShortlists = shortlistFeedback.filter(function (item) {
     return item.value === "positive";
   }).length;
-  var helpfulRate = shortlistFeedback.length
+  const helpfulRate = shortlistFeedback.length
     ? Math.round((helpfulShortlists / shortlistFeedback.length) * 100)
     : 0;
-  var shortcutSummaries = Object.values(
+  const shortcutSummaries = Object.values(
     shortcutInteractions.reduce(function (accumulator, item) {
-      var key = String(item.shortcut_type || "unknown");
+      const key = String(item.shortcut_type || "unknown");
       if (!accumulator[key]) {
         accumulator[key] = {
           type: key,
@@ -163,10 +163,10 @@ export function buildFeedbackInsightsMarkup(feedback, outreachOutcomes, services
   ).sort(function (a, b) {
     return b.draft + b.compare - (a.draft + a.compare) || a.type.localeCompare(b.type);
   });
-  var shortcutLearningMap = buildShortcutLearningMap(feedback, outreachOutcomes);
-  var shortcutOutcomeSummaries = Object.values(
+  const shortcutLearningMap = buildShortcutLearningMap(feedback, outreachOutcomes);
+  const shortcutOutcomeSummaries = Object.values(
     outreachOutcomes.reduce(function (accumulator, item) {
-      var key = String(item && item.shortcut_type ? item.shortcut_type : "");
+      const key = String(item && item.shortcut_type ? item.shortcut_type : "");
       if (!key) {
         return accumulator;
       }
@@ -192,16 +192,16 @@ export function buildFeedbackInsightsMarkup(feedback, outreachOutcomes, services
   ).sort(function (a, b) {
     return b.strong - a.strong || a.weak - b.weak || a.type.localeCompare(b.type);
   });
-  var segmentShortcutSummaries = Object.keys(shortcutLearningMap)
+  const segmentShortcutSummaries = Object.keys(shortcutLearningMap)
     .filter(function (key) {
       return key !== "shortcut::all";
     })
     .map(function (key) {
-      var segment = key.replace("shortcut::", "");
-      var bestShortcut = Object.entries(shortcutLearningMap[key]).sort(function (a, b) {
-        var scoreA =
+      const segment = key.replace("shortcut::", "");
+      const bestShortcut = Object.entries(shortcutLearningMap[key]).sort(function (a, b) {
+        const scoreA =
           a[1].draft * 3 + a[1].compare * 2 + (a[1].strong || 0) * 8 - (a[1].weak || 0) * 5;
-        var scoreB =
+        const scoreB =
           b[1].draft * 3 + b[1].compare * 2 + (b[1].strong || 0) * 8 - (b[1].weak || 0) * 5;
         return scoreB - scoreA || a[0].localeCompare(b[0]);
       })[0];
@@ -225,12 +225,12 @@ export function buildFeedbackInsightsMarkup(feedback, outreachOutcomes, services
         a.segment.localeCompare(b.segment)
       );
     });
-  var segmentSummaries = Object.keys(learningSignals.segments || {})
+  const segmentSummaries = Object.keys(learningSignals.segments || {})
     .filter(function (segment) {
       return segment !== "all";
     })
     .map(function (segment) {
-      var segmentData = learningSignals.segments[segment] || {};
+      const segmentData = learningSignals.segments[segment] || {};
       return {
         label: segment.split(":")[1].replace(/-/g, " "),
         strength:
@@ -245,16 +245,16 @@ export function buildFeedbackInsightsMarkup(feedback, outreachOutcomes, services
     .sort(function (a, b) {
       return b.strength - a.strength || a.label.localeCompare(b.label);
     });
-  var outreachSegmentSummaries = Object.keys(learningSignals.segments || {})
+  const outreachSegmentSummaries = Object.keys(learningSignals.segments || {})
     .filter(function (segment) {
       if (segment === "all") {
         return false;
       }
-      var segmentData = learningSignals.segments[segment] || {};
+      const segmentData = learningSignals.segments[segment] || {};
       return Object.keys(segmentData.outreach_adjustments || {}).length > 0;
     })
     .map(function (segment) {
-      var segmentData = learningSignals.segments[segment] || {};
+      const segmentData = learningSignals.segments[segment] || {};
       return {
         label: segment.split(":")[1].replace(/-/g, " "),
         count: Object.keys(segmentData.outreach_adjustments || {}).length,
@@ -263,12 +263,12 @@ export function buildFeedbackInsightsMarkup(feedback, outreachOutcomes, services
     .sort(function (a, b) {
       return b.count - a.count || a.label.localeCompare(b.label);
     });
-  var routeLearningMap = buildRouteLearningMap(outreachOutcomes);
-  var routeSummaries = Object.keys(routeLearningMap)
+  const routeLearningMap = buildRouteLearningMap(outreachOutcomes);
+  const routeSummaries = Object.keys(routeLearningMap)
     .slice(0, 4)
     .map(function (key) {
-      var segment = key.replace("route::", "");
-      var bestRoute = Object.entries(routeLearningMap[key]).sort(function (a, b) {
+      const segment = key.replace("route::", "");
+      const bestRoute = Object.entries(routeLearningMap[key]).sort(function (a, b) {
         return (
           b[1].success - a[1].success || b[1].attempts - a[1].attempts || a[0].localeCompare(b[0])
         );
@@ -422,7 +422,7 @@ export function buildFeedbackInsightsMarkup(feedback, outreachOutcomes, services
           })
           .slice(0, 4)
           .map(function (item) {
-            var therapist = therapists.find(function (entry) {
+            const therapist = therapists.find(function (entry) {
               return entry.slug === item[0];
             });
             return (

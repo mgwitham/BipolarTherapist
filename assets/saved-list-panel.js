@@ -20,7 +20,7 @@ import { mountTurnstile } from "./turnstile-widget.js";
 // Turnstile handle for the "email my list" form. Null until the form is
 // opened; reset to null whenever the panel re-renders (which rebuilds the
 // form DOM). No-op when Turnstile isn't configured.
-var turnstileHandle = null;
+let turnstileHandle = null;
 
 function readBuildEnvValue(getValue) {
   try {
@@ -35,7 +35,7 @@ const reviewApiUrl = readBuildEnvValue(() => import.meta.env.VITE_REVIEW_API_URL
 function getReviewApiBase() {
   if (reviewApiUrl) return reviewApiUrl;
   if (typeof window !== "undefined") {
-    var host = window.location.hostname;
+    const host = window.location.hostname;
     if (host === "localhost" || host === "127.0.0.1") return "http://localhost:8787";
   }
   return "/api/review";
@@ -46,9 +46,9 @@ const EMAIL_THROTTLE_MS = 5 * 60 * 1000;
 
 function isLocallyThrottled() {
   try {
-    var raw = window.localStorage.getItem(EMAIL_THROTTLE_KEY);
+    const raw = window.localStorage.getItem(EMAIL_THROTTLE_KEY);
     if (!raw) return false;
-    var last = Number(raw);
+    const last = Number(raw);
     if (!isFinite(last)) return false;
     return Date.now() - last < EMAIL_THROTTLE_MS;
   } catch (_error) {
@@ -64,7 +64,7 @@ function recordLocalSend() {
   }
 }
 
-var PANEL_STYLES = [
+const PANEL_STYLES = [
   ".saved-list-panel-locked { overflow: hidden; }",
   ".saved-list-panel-root { position: fixed; inset: 0; z-index: 1100; pointer-events: none; }",
   ".saved-list-panel-backdrop { position: absolute; inset: 0; background: rgba(15, 42, 49, 0.45); opacity: 0; transition: opacity 0.2s ease; pointer-events: auto; }",
@@ -129,19 +129,19 @@ var PANEL_STYLES = [
 function injectStylesOnce() {
   if (typeof document === "undefined") return;
   if (document.getElementById("saved-list-panel-styles")) return;
-  var style = document.createElement("style");
+  const style = document.createElement("style");
   style.id = "saved-list-panel-styles";
   style.textContent = PANEL_STYLES;
   document.head.appendChild(style);
 }
 
-var panelRoot = null;
-var panelBody = null;
-var panelStatus = null;
-var lastFocusedElement = null;
-var therapistCache = null;
-var therapistCachePromise = null;
-var hasOpenedOnce = false;
+let panelRoot = null;
+let panelBody = null;
+let panelStatus = null;
+let lastFocusedElement = null;
+let therapistCache = null;
+let therapistCachePromise = null;
+let hasOpenedOnce = false;
 
 function getTherapistProfileHref(slug) {
   if (!slug) return "/directory";
@@ -149,7 +149,7 @@ function getTherapistProfileHref(slug) {
 }
 
 function getInitials(name) {
-  var parts = String(name || "")
+  const parts = String(name || "")
     .trim()
     .split(/\s+/)
     .slice(0, 2);
@@ -217,14 +217,14 @@ function ensureMounted() {
 
 function isOpen() {
   if (!panelRoot) return false;
-  var aside = panelRoot.querySelector(".saved-list-panel");
+  const aside = panelRoot.querySelector(".saved-list-panel");
   return aside && !aside.hasAttribute("hidden");
 }
 
 function openPanel(triggerSource) {
   ensureMounted();
-  var backdrop = panelRoot.querySelector(".saved-list-panel-backdrop");
-  var aside = panelRoot.querySelector(".saved-list-panel");
+  const backdrop = panelRoot.querySelector(".saved-list-panel-backdrop");
+  const aside = panelRoot.querySelector(".saved-list-panel");
   if (!backdrop || !aside) return;
   lastFocusedElement = document.activeElement;
   backdrop.removeAttribute("hidden");
@@ -254,8 +254,8 @@ function openPanel(triggerSource) {
 
 function closePanel(reason) {
   if (!panelRoot) return;
-  var backdrop = panelRoot.querySelector(".saved-list-panel-backdrop");
-  var aside = panelRoot.querySelector(".saved-list-panel");
+  const backdrop = panelRoot.querySelector(".saved-list-panel-backdrop");
+  const aside = panelRoot.querySelector(".saved-list-panel");
   if (!backdrop || !aside) return;
   panelRoot.classList.remove("is-open");
   // Wait for the CSS transition before hiding so the slide-out is visible.
@@ -278,23 +278,23 @@ function handleKeydown(event) {
 }
 
 function handlePanelClick(event) {
-  var closeTarget = event.target.closest("[data-saved-list-close]");
+  const closeTarget = event.target.closest("[data-saved-list-close]");
   if (closeTarget) {
     event.preventDefault();
     closePanel(closeTarget.getAttribute("data-saved-list-close") || "");
     return;
   }
 
-  var removeBtn = event.target.closest("[data-saved-list-remove]");
+  const removeBtn = event.target.closest("[data-saved-list-remove]");
   if (removeBtn) {
     event.preventDefault();
-    var removeSlug = removeBtn.getAttribute("data-saved-list-remove");
+    const removeSlug = removeBtn.getAttribute("data-saved-list-remove");
     removeFromList(removeSlug, { surface: "saved_list_panel" });
     flashStatus("Removed from your list.");
     return;
   }
 
-  var profileLink = event.target.closest("[data-saved-list-profile]");
+  const profileLink = event.target.closest("[data-saved-list-profile]");
   if (profileLink) {
     trackFunnelEvent("saved_list_profile_opened", {
       therapist_slug: profileLink.getAttribute("data-saved-list-profile") || "",
@@ -302,7 +302,7 @@ function handlePanelClick(event) {
     return;
   }
 
-  var compareLink = event.target.closest("[data-saved-list-compare]");
+  const compareLink = event.target.closest("[data-saved-list-compare]");
   if (compareLink) {
     trackFunnelEvent("saved_list_compare_clicked", {
       list_size: readList().length,
@@ -310,7 +310,7 @@ function handlePanelClick(event) {
     return;
   }
 
-  var browseLink = event.target.closest("[data-saved-list-browse]");
+  const browseLink = event.target.closest("[data-saved-list-browse]");
   if (browseLink) {
     trackFunnelEvent("saved_list_browse_clicked", {
       list_size: readList().length,
@@ -318,19 +318,19 @@ function handlePanelClick(event) {
     return;
   }
 
-  var emailToggle = event.target.closest("[data-saved-list-email-toggle]");
+  const emailToggle = event.target.closest("[data-saved-list-email-toggle]");
   if (emailToggle) {
     event.preventDefault();
-    var fields = panelRoot.querySelector("[data-saved-list-email-fields]");
+    const fields = panelRoot.querySelector("[data-saved-list-email-fields]");
     if (fields) {
-      var willOpen = fields.hasAttribute("hidden");
+      const willOpen = fields.hasAttribute("hidden");
       if (willOpen) {
         fields.removeAttribute("hidden");
-        var input = fields.querySelector("[data-saved-list-email-input]");
+        const input = fields.querySelector("[data-saved-list-email-input]");
         if (input) input.focus();
         // Mount the Turnstile widget the first time the form is revealed.
         // No-op when unconfigured. The handle is nulled on panel re-render.
-        var tsContainer = fields.querySelector("[data-saved-list-turnstile]");
+        const tsContainer = fields.querySelector("[data-saved-list-turnstile]");
         if (tsContainer && !turnstileHandle) {
           mountTurnstile(tsContainer).then(function (handle) {
             turnstileHandle = handle;
@@ -346,7 +346,7 @@ function handlePanelClick(event) {
     return;
   }
 
-  var sendBtn = event.target.closest("[data-saved-list-email-send]");
+  const sendBtn = event.target.closest("[data-saved-list-email-send]");
   if (sendBtn) {
     event.preventDefault();
     submitEmailRequest();
@@ -355,7 +355,7 @@ function handlePanelClick(event) {
 }
 
 function setEmailStatus(message, tone) {
-  var statusNode = panelRoot && panelRoot.querySelector("[data-saved-list-email-status]");
+  const statusNode = panelRoot && panelRoot.querySelector("[data-saved-list-email-status]");
   if (!statusNode) return;
   statusNode.textContent = message || "";
   statusNode.className =
@@ -363,10 +363,10 @@ function setEmailStatus(message, tone) {
 }
 
 async function submitEmailRequest() {
-  var input = panelRoot.querySelector("[data-saved-list-email-input]");
-  var sendBtn = panelRoot.querySelector("[data-saved-list-email-send]");
+  const input = panelRoot.querySelector("[data-saved-list-email-input]");
+  const sendBtn = panelRoot.querySelector("[data-saved-list-email-send]");
   if (!input || !sendBtn) return;
-  var email = String(input.value || "").trim();
+  const email = String(input.value || "").trim();
   if (!email) {
     setEmailStatus("Enter an email address.", "error");
     input.focus();
@@ -376,7 +376,7 @@ async function submitEmailRequest() {
     setEmailStatus("Just sent. Try again in a few minutes.", "error");
     return;
   }
-  var list = readList();
+  const list = readList();
   if (!list.length) {
     setEmailStatus("Your list is empty.", "error");
     return;
@@ -385,11 +385,11 @@ async function submitEmailRequest() {
   setEmailStatus("Sending.", "pending");
   trackFunnelEvent("saved_list_email_requested", { list_size: list.length });
   try {
-    var turnstileToken =
+    const turnstileToken =
       turnstileHandle && typeof turnstileHandle.getToken === "function"
         ? turnstileHandle.getToken()
         : null;
-    var requestBody = {
+    const requestBody = {
       email: email,
       items: list.map(function (entry) {
         return { slug: entry.slug, note: entry.note };
@@ -398,12 +398,12 @@ async function submitEmailRequest() {
     if (turnstileToken) {
       requestBody.turnstile_token = turnstileToken;
     }
-    var response = await window.fetch(getReviewApiBase() + "/saved-list/email", {
+    const response = await window.fetch(getReviewApiBase() + "/saved-list/email", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(requestBody),
     });
-    var payload = await response.json().catch(function () {
+    const payload = await response.json().catch(function () {
       return {};
     });
     if (!response.ok) {
@@ -431,11 +431,11 @@ async function submitEmailRequest() {
   }
 }
 
-var noteSaveTimers = Object.create(null);
+const noteSaveTimers = Object.create(null);
 function handlePanelInput(event) {
-  var noteInput = event.target.closest("[data-saved-list-note]");
+  const noteInput = event.target.closest("[data-saved-list-note]");
   if (!noteInput) return;
-  var slug = noteInput.getAttribute("data-saved-list-note");
+  const slug = noteInput.getAttribute("data-saved-list-note");
   if (!slug) return;
   // Debounce so we don't write on every keystroke.
   window.clearTimeout(noteSaveTimers[slug]);
@@ -445,7 +445,7 @@ function handlePanelInput(event) {
   }, 400);
 }
 
-var statusTimer = 0;
+let statusTimer = 0;
 function flashStatus(message) {
   if (!panelStatus) return;
   panelStatus.textContent = message;
@@ -475,14 +475,14 @@ function renderLoading() {
 }
 
 function renderCard(entry, therapist) {
-  var name = (therapist && therapist.name) || "Saved therapist";
-  var credentials = (therapist && (therapist.title || therapist.credentials)) || "";
-  var location = therapist ? [therapist.city, therapist.state].filter(Boolean).join(", ") : "";
-  var meta = [credentials, location].filter(Boolean).join(" · ");
-  var photo = therapist && therapist.photo_url;
-  var slug = entry.slug;
-  var noteValue = entry.note || "";
-  var avatar = photo
+  const name = (therapist && therapist.name) || "Saved therapist";
+  const credentials = (therapist && (therapist.title || therapist.credentials)) || "";
+  const location = therapist ? [therapist.city, therapist.state].filter(Boolean).join(", ") : "";
+  const meta = [credentials, location].filter(Boolean).join(" · ");
+  const photo = therapist && therapist.photo_url;
+  const slug = entry.slug;
+  const noteValue = entry.note || "";
+  const avatar = photo
     ? '<img src="' +
       escapeHtml(sanityImageUrl(photo, { width: 112, height: 112 })) +
       '" alt="" width="56" height="56" loading="lazy" decoding="async" />'
@@ -558,9 +558,9 @@ function renderEmailForm() {
 
 function renderFooter(list) {
   if (!list.length) return "";
-  var emailFormHtml = renderEmailForm();
+  const emailFormHtml = renderEmailForm();
   if (list.length >= 2) {
-    var slugs = list
+    const slugs = list
       .map(function (item) {
         return item.slug;
       })
@@ -588,8 +588,8 @@ function renderPanel() {
   // The panel rebuilds its inner HTML below, which destroys any mounted
   // Turnstile widget; drop the stale handle so it re-mounts on next open.
   turnstileHandle = null;
-  var list = readList();
-  var sub = panelRoot.querySelector("[data-saved-list-sub]");
+  const list = readList();
+  const sub = panelRoot.querySelector("[data-saved-list-sub]");
   if (sub) {
     if (!list.length) {
       sub.textContent = "Therapists you save will appear here.";
@@ -610,16 +610,16 @@ function renderPanel() {
   panelBody.innerHTML = renderLoading();
   loadTherapistsByCache().then(function (therapists) {
     if (!isOpen()) return;
-    var bySlug = Object.create(null);
+    const bySlug = Object.create(null);
     (therapists || []).forEach(function (t) {
       if (t && t.slug) bySlug[t.slug] = t;
     });
-    var currentList = readList();
+    const currentList = readList();
     if (!currentList.length) {
       panelBody.innerHTML = renderEmptyState();
       return;
     }
-    var cardsHtml = currentList
+    const cardsHtml = currentList
       .map(function (entry) {
         return renderCard(entry, bySlug[entry.slug] || null);
       })
@@ -631,7 +631,7 @@ function renderPanel() {
 
 function bindShortlistTriggers() {
   document.addEventListener("click", function (event) {
-    var trigger = event.target.closest("[data-shortlist-link]");
+    const trigger = event.target.closest("[data-shortlist-link]");
     if (!trigger) return;
     // Plain Cmd/Ctrl-click should still navigate (open in new tab), only
     // hijack a normal left-click without modifier keys.

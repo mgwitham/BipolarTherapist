@@ -15,7 +15,7 @@ const REVIEW_API = "/api/review";
 const ADMIN_API = "/api/admin";
 const RELOAD_INTERVAL_MS = 60_000;
 
-let _state = { applications: [], candidates: [], portalRequests: [] };
+const _state = { applications: [], candidates: [], portalRequests: [] };
 let _replyRefreshTimer = null;
 
 function fmtCurrencyCents(cents, currency) {

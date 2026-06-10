@@ -1,6 +1,6 @@
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 
-var OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
+const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 
 function canUseStorage() {
   try {
@@ -32,10 +32,10 @@ export function summarizeTherapistContactRouteOutcomes(therapist) {
     };
   }
 
-  var outcomes = readOutreachOutcomes().filter(function (item) {
+  const outcomes = readOutreachOutcomes().filter(function (item) {
     return item && item.therapist_slug === therapist.slug;
   });
-  var buckets = {
+  const buckets = {
     booking: { route: "booking", total: 0, strong: 0, friction: 0 },
     website: { route: "website", total: 0, strong: 0, friction: 0 },
     phone: { route: "phone", total: 0, strong: 0, friction: 0 },
@@ -44,7 +44,7 @@ export function summarizeTherapistContactRouteOutcomes(therapist) {
   };
 
   outcomes.forEach(function (item) {
-    var route =
+    const route =
       item.actual_route_type &&
       Object.prototype.hasOwnProperty.call(buckets, item.actual_route_type)
         ? item.actual_route_type
@@ -59,9 +59,9 @@ export function summarizeTherapistContactRouteOutcomes(therapist) {
     }
   });
 
-  var rows = Object.keys(buckets)
+  const rows = Object.keys(buckets)
     .map(function (key) {
-      var bucket = buckets[key];
+      const bucket = buckets[key];
       bucket.net = bucket.strong - bucket.friction;
       bucket.strong_rate = bucket.total ? bucket.strong / bucket.total : 0;
       return bucket;
@@ -78,8 +78,8 @@ export function summarizeTherapistContactRouteOutcomes(therapist) {
       );
     });
 
-  var topRoute = rows[0] || null;
-  var confidence =
+  const topRoute = rows[0] || null;
+  const confidence =
     topRoute && topRoute.total >= 3 && topRoute.strong >= Math.max(1, topRoute.friction + 1)
       ? "strong"
       : topRoute && topRoute.total >= 2 && topRoute.net >= 0
@@ -87,7 +87,7 @@ export function summarizeTherapistContactRouteOutcomes(therapist) {
         : topRoute
           ? "light"
           : "none";
-  var note = !topRoute
+  const note = !topRoute
     ? ""
     : confidence === "strong"
       ? "Past outreach outcomes most strongly favor this route for getting to a useful response."
@@ -108,16 +108,16 @@ export function getPublicResponsivenessSignal(therapist) {
     return null;
   }
 
-  var outcomes = therapist.slug
+  const outcomes = therapist.slug
     ? readOutreachOutcomes().filter(function (item) {
         return item && item.therapist_slug === therapist.slug;
       })
     : [];
 
-  var heardBack = outcomes.filter(function (item) {
+  const heardBack = outcomes.filter(function (item) {
     return item.outcome === "heard_back";
   }).length;
-  var noResponse = outcomes.filter(function (item) {
+  const noResponse = outcomes.filter(function (item) {
     return item.outcome === "no_response";
   }).length;
 
@@ -137,9 +137,9 @@ export function getPublicResponsivenessSignal(therapist) {
     };
   }
 
-  var hasHealthyBooking = Boolean(therapist.booking_url && isBookingRouteHealthy(therapist));
-  var hasHealthyWebsite = Boolean(therapist.website && isWebsiteRouteHealthy(therapist));
-  var preferredContactMethod = String(therapist.preferred_contact_method || "")
+  const hasHealthyBooking = Boolean(therapist.booking_url && isBookingRouteHealthy(therapist));
+  const hasHealthyWebsite = Boolean(therapist.website && isWebsiteRouteHealthy(therapist));
+  const preferredContactMethod = String(therapist.preferred_contact_method || "")
     .trim()
     .toLowerCase();
 

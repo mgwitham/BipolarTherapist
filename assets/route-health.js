@@ -13,9 +13,9 @@ export function isRouteHealthMatch(record, routeUrl) {
   if (!record || !routeUrl) {
     return false;
   }
-  var routeHost = getHostname(routeUrl);
-  var sourceHost = getHostname(record.source_url || record.sourceUrl || "");
-  var finalHost = getHostname(record.source_health_final_url || "");
+  const routeHost = getHostname(routeUrl);
+  const sourceHost = getHostname(record.source_url || record.sourceUrl || "");
+  const finalHost = getHostname(record.source_health_final_url || "");
   if (!routeHost) {
     return false;
   }
@@ -26,7 +26,7 @@ export function isWebsiteRouteHealthy(record) {
   if (!record || !record.website) {
     return false;
   }
-  var sourceHealthStatus = String(record.source_health_status || "")
+  const sourceHealthStatus = String(record.source_health_status || "")
     .trim()
     .toLowerCase();
   if (!sourceHealthStatus || ["healthy", "redirected"].includes(sourceHealthStatus)) {
@@ -39,7 +39,7 @@ export function isBookingRouteHealthy(record) {
   if (!record || !record.booking_url) {
     return false;
   }
-  var sourceHealthStatus = String(record.source_health_status || "")
+  const sourceHealthStatus = String(record.source_health_status || "")
     .trim()
     .toLowerCase();
   if (!sourceHealthStatus || ["healthy", "redirected"].includes(sourceHealthStatus)) {
@@ -49,7 +49,7 @@ export function isBookingRouteHealthy(record) {
 }
 
 export function getRouteHealthWarnings(record) {
-  var warnings = [];
+  const warnings = [];
   if (record && record.website && !isWebsiteRouteHealthy(record)) {
     warnings.push("Website unavailable");
   }
