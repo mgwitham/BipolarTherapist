@@ -12,6 +12,7 @@
 
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
+import { escapeHtml } from "../shared/escape-html.mjs";
 
 import { EMAIL_TEMPLATES, renderTemplate } from "../server/dev/email-preview-registry.mjs";
 
@@ -25,15 +26,6 @@ const SNAPSHOT_CONFIG = {
   resendApiKey: "re_SNAPSHOT_KEY_NOT_USED",
   portalBaseUrl: "https://www.bipolartherapyhub.com",
 };
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 function buildSnapshotPage(rendered) {
   const payload = rendered.payload || {};

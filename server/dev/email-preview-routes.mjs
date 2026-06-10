@@ -18,6 +18,7 @@
 
 import { sendEmail } from "../review-email.mjs";
 import { listTemplates, renderTemplate } from "./email-preview-registry.mjs";
+import { escapeHtml } from "../../shared/escape-html.mjs";
 
 function isProduction() {
   return process.env.NODE_ENV === "production";
@@ -44,15 +45,6 @@ function sendJsonLocal(response, status, body) {
   response.setHeader("Cache-Control", "no-store");
   response.end(JSON.stringify(body));
   return true;
-}
-
-function escapeHtml(value) {
-  return String(value || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
 }
 
 // ---------------------------------------------------------------------------

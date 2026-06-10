@@ -9,20 +9,12 @@
 // should normalize at the boundary.
 
 import { phoneHref, emailHref, publicHttpUrl as normalizeUrlHref } from "./contact-href.mjs";
+import { escapeHtml } from "./escape-html.mjs";
 
 const HONORIFIC_PATTERN = /^(dr|mr|mrs|ms|mx|prof|professor)\.?$/i;
 const CREDENTIAL_PATTERN = /^(phd|psyd|md|lcsw|lmft|mft|lpcc|mscp|msw|ma|ms)\.?$/i;
 
 const CONTACT_METHODS = ["booking", "website", "phone", "email"];
-
-function escapeHtml(value) {
-  return String(value == null ? "" : value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 export function extractFirstName(name) {
   const raw = String(name || "").trim();
