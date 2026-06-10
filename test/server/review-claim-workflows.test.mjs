@@ -54,7 +54,13 @@ function captureResendEmails() {
   const originalFetch = globalThis.fetch;
   const calls = [];
   globalThis.fetch = async (url, init) => {
-    if (String(url).includes("api.resend.com")) {
+    let host = "";
+    try {
+      host = new URL(String(url)).host;
+    } catch (_error) {
+      /* relative/non-absolute URL — not the Resend endpoint */
+    }
+    if (host === "api.resend.com") {
       let body = {};
       try {
         body = JSON.parse(String((init && init.body) || "{}"));
