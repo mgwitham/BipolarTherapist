@@ -3,7 +3,11 @@ import process from "node:process";
 import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "@sanity/client";
-import { verifyLicense, resolveLicenseTypeCode } from "../server/dca-license-client.mjs";
+import {
+  verifyLicense,
+  resolveLicenseTypeCode,
+  cleanLicenseNumber,
+} from "../server/dca-license-client.mjs";
 
 const ROOT = process.cwd();
 const OUTPUT = path.join(ROOT, "data", "import", "generated-dca-verification-report.md");
@@ -34,16 +38,6 @@ function credentialToLicenseTypeLabel(creds, title) {
   if (c.includes("MD") || c.includes("DO") || t.includes("psychiatrist"))
     return "Psychiatrist (MD)";
   return null;
-}
-
-// Mirrors server/dca-freshness-check.mjs cleanLicenseNumber. Imported
-// here would be cleaner but the script is intended to be runnable
-// without server-side imports.
-function cleanLicenseNumber(raw) {
-  let s = String(raw || "").trim();
-  s = s.replace(/^(LMFT|MFC|LCSW|LPCC|LEP|PSYD|PHD|MD|DO|PMHNP|NP|APRN|LP|RN)\s+/i, "");
-  s = s.replace(/^[^A-Za-z0-9]+/, "").replace(/^[A-Za-z]+/, "");
-  return s.replace(/^0+/, "");
 }
 
 async function main() {
