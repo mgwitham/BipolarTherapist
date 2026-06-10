@@ -1,5 +1,6 @@
 import { log } from "./logger.mjs";
 import { normalizeLicenseForMatch } from "../shared/therapist-domain.mjs";
+import { readLicenseStateParam } from "./license-states.mjs";
 import {
   THERAPIST_SESSION_COOKIE,
   getClientAddress,
@@ -531,6 +532,7 @@ async function claimPostPortalQuickClaim(context) {
   const fullName = normalizeNameForMatch(rawFullName);
   const requesterEmail = rawEmail.toLowerCase();
   const licenseNumber = normalizeLicenseForMatch(rawLicense);
+  const licenseState = readLicenseStateParam(body.license_state);
 
   if (!fullName || !requesterEmail || !licenseNumber) {
     sendJson(
@@ -543,11 +545,15 @@ async function claimPostPortalQuickClaim(context) {
     return true;
   }
 
+  // Scoped to one state's license namespace: two states can issue the same
+  // number, so an unscoped match would resolve the wrong profile once a
+  // second state launches. The !defined() escape keeps legacy docs that
+  // predate the licenseState field claimable; drop it after a backfill.
   const therapist = await client.fetch(
-    `*[_type == "therapist" && licenseNumber match $license][0]{
+    `*[_type == "therapist" && (licenseState == $licenseState || !defined(licenseState)) && licenseNumber match $license][0]{
         _id, name, email, website, claimStatus, "slug": slug
       }`,
-    { license: `*${licenseNumber}*` },
+    { license: `*${licenseNumber}*`, licenseState },
   );
 
   if (!therapist || !therapist.slug || !therapist.slug.current) {

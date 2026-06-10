@@ -18,6 +18,19 @@ export const SUPPORTED_LICENSE_STATES = new Set(["CA"]);
 // from the submitted form body once multi-state signup launches.
 export const DEFAULT_LICENSE_STATE = "CA";
 
+// Normalizes an optional license_state form/body value, defaulting to
+// DEFAULT_LICENSE_STATE while the CA-only forms omit the field. Used by the
+// claim / recovery / listing-removal flows so a license number is always
+// resolved within ONE state's namespace — two states can issue the same
+// number, and an unscoped lookup would resolve the wrong profile once a
+// second state launches.
+export function readLicenseStateParam(value) {
+  const state = String(value || "")
+    .trim()
+    .toUpperCase();
+  return state || DEFAULT_LICENSE_STATE;
+}
+
 // ─── State board info ─────────────────────────────────────────────────────────
 
 const LICENSE_STATE_BOARD_INFO = {

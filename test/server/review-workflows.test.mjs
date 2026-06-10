@@ -1267,3 +1267,36 @@ test("PATCH /therapists/:id: routine field edit does not flip listingActive", as
   assert.equal(t.listingActive, true, "no lifecycle change should not touch listingActive");
   assert.equal(t.status, "active");
 });
+
+test("intake: rejects an unsupported license_state with 422 instead of silently forcing CA", async function () {
+  // Multi-state Phase 0: the client sends license_state from a (hidden,
+  // CA-valued) form field. A tampered or premature non-CA value must get a
+  // clean rejection — not be verified against CA's board and mislabeled.
+  const { client, state } = createMemoryClient();
+  const handler = createReviewApiHandler(
+    { ...createTestApiConfig(), dcaAppId: "app", dcaAppKey: "key" },
+    client,
+  );
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      name: "Dr. Austin Tex",
+      email: "austin@example.com",
+      license_number: "54321",
+      license_state: "TX",
+      city: "Austin",
+      treats_bipolar: true,
+    },
+    headers: { host: "localhost:8787", "x-forwarded-for": "10.20.0.77" },
+    method: "POST",
+    url: "/applications/intake",
+  });
+
+  assert.equal(response.statusCode, 422);
+  assert.equal(response.payload.reason, "license_state_not_supported");
+  // Nothing was created: no application, no therapist.
+  const created = Array.from(state.documents.values()).filter(
+    (doc) => doc._type === "therapist" || doc._type === "therapistApplication",
+  );
+  assert.equal(created.length, 0, "an unsupported-state intake must not create documents");
+});

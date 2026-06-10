@@ -333,6 +333,10 @@ async function submitIntake(form, status) {
   const licenseNumber = form.elements.license_number.value.trim();
   const zipRaw = form.elements.zip.value.trim();
   const zip = parseZip(zipRaw);
+  // Hidden input today (CA-only); becomes a visible select at multi-state
+  // launch. Falls back to CA if the field is ever missing from the markup.
+  const licenseState =
+    (form.elements.license_state && form.elements.license_state.value.trim().toUpperCase()) || "CA";
 
   trackFunnelEvent("signup_new_listing_submit_attempted", {
     has_all_fields: Boolean(fullName && email && licenseNumber && zip),
@@ -383,8 +387,8 @@ async function submitIntake(form, status) {
     name: fullName,
     email,
     license_number: licenseNumber,
-    license_state: "CA",
-    state: "CA",
+    license_state: licenseState,
+    state: licenseState,
     city,
     zip,
     treats_bipolar: true,

@@ -205,14 +205,27 @@ export function createMemoryClient(initialDocuments) {
 
         if (
           (query.includes(`*[_type == "therapist" && licenseNumber == $license][0]`) ||
-            query.includes(`*[_type == "therapist" && licenseNumber match $license][0]`)) &&
+            query.includes(`*[_type == "therapist" && licenseNumber match $license][0]`) ||
+            query.includes(
+              `*[_type == "therapist" && (licenseState == $licenseState || !defined(licenseState)) && licenseNumber match $license][0]`,
+            )) &&
           params &&
           typeof params.license === "string"
         ) {
           const rawLicense = params.license.replace(/^\*|\*$/g, "");
+          // Mirrors the production predicate: when the query carries a
+          // licenseState param, only docs in that state's namespace (or
+          // legacy docs with no licenseState at all) can match.
+          const stateScoped = query.includes("licenseState == $licenseState");
           const match = Array.from(state.documents.values()).find(function (document) {
             if (document._type !== "therapist") {
               return false;
+            }
+            if (stateScoped && typeof params.licenseState === "string") {
+              const docState = document.licenseState;
+              if (docState !== undefined && docState !== params.licenseState) {
+                return false;
+              }
             }
             const stored = String(document.licenseNumber || "");
             return stored === params.license || stored.includes(rawLicense);

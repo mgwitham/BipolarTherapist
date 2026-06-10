@@ -1,5 +1,6 @@
 import crypto from "node:crypto";
 import { normalizeLicenseForMatch } from "../shared/therapist-domain.mjs";
+import { readLicenseStateParam } from "./license-states.mjs";
 import { log } from "./logger.mjs";
 import { sendPortalContactEmail } from "./review-email.mjs";
 import { getClientAddress } from "./review-http-auth.mjs";
@@ -196,11 +197,15 @@ export async function handleRecoveryRoutes(context) {
     // Look up the matching therapist for context (slug, profile name,
     // masked email). Not required — if no profile matches we still
     // accept the request so the admin can check a misremembered license.
+    // Scoped to one state's license namespace (two states can issue the
+    // same number); the !defined() escape keeps legacy docs visible until
+    // a licenseState backfill.
+    const recoveryLicenseState = readLicenseStateParam(body.license_state);
     const therapist = await client.fetch(
-      `*[_type == "therapist" && licenseNumber match $license][0]{
+      `*[_type == "therapist" && (licenseState == $licenseState || !defined(licenseState)) && licenseNumber match $license][0]{
         _id, name, email, claimedByEmail, "slug": slug.current
       }`,
-      { license: `*${normalizedLicense}*` },
+      { license: `*${normalizedLicense}*`, licenseState: recoveryLicenseState },
     );
 
     const nowIso = new Date().toISOString();

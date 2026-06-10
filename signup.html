@@ -1301,6 +1301,12 @@
                 If your license verifies, your free listing goes live immediately.
               </p>
               <form id="newListingForm" class="new-listing-form" novalidate>
+                <!-- License state. Hidden while the directory is CA-only; the
+                     submit handler reads this field (not a hardcoded constant),
+                     so multi-state signup only needs to swap this for a
+                     visible select. Keep in sync with
+                     server/license-states.mjs SUPPORTED_LICENSE_STATES. -->
+                <input type="hidden" name="license_state" value="CA" />
                 <label>
                   <span>Full name</span>
                   <input
