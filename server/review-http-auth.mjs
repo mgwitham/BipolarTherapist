@@ -114,6 +114,13 @@ export function sendJson(response, statusCode, payload, origin, config) {
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
     "Cache-Control": "no-store",
+    // Defense-in-depth for API responses: never sniff away from JSON,
+    // never render inside a frame, and treat any markup an attacker
+    // manages to reflect through a JSON body as inert if a browser is
+    // ever coaxed into rendering the response directly.
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
+    "Content-Security-Policy": "default-src 'none'; frame-ancestors 'none'",
     Vary: "Origin",
   };
   const allowedOrigin = getAllowedOrigin(origin, config);

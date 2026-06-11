@@ -5,6 +5,11 @@
 // On success, hits /applications/free-path-selected then redirects to the portal.
 
 import "./sentry-init.js";
+// GA on the signup page: therapist acquisition is the page's whole job,
+// and without it GA can't attribute which channels send therapists who
+// actually sign up. The internal funnel counts completions but carries
+// no referrer/source context.
+import "./site-analytics.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { mountTurnstile } from "./turnstile-widget.js";
 

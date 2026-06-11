@@ -606,8 +606,31 @@ function renderDashboard(container, logData) {
 
   const totalAppended = Number(logData.totalAppended || 0);
   const updatedAt = logData.updatedAt || "never";
+  const maxEvents = Number(logData.maxEvents || 0) || 3000;
+
+  // The store is a fixed-size ring buffer. When it's full AND the oldest
+  // retained event is younger than the 7-day reporting window, every
+  // "last 7 days" table on this dashboard is silently undercounting —
+  // older events were evicted, not absent. Surface that instead of
+  // letting the percentages quietly lie. Events arrive newest-first, so
+  // the oldest retained event is the last array entry.
+  let coverageWarning = "";
+  if (events.length >= maxEvents) {
+    const oldest = events[events.length - 1];
+    const oldestAt = oldest ? new Date(oldest.occurredAt || oldest.created_at || "") : null;
+    const oldestAgeMs =
+      oldestAt && !Number.isNaN(oldestAt.getTime()) ? Date.now() - oldestAt.getTime() : NaN;
+    if (Number.isFinite(oldestAgeMs) && oldestAgeMs < lastSevenDays.ms) {
+      const spanDays = Math.max(oldestAgeMs / (24 * 60 * 60 * 1000), 0).toFixed(1);
+      coverageWarning =
+        '<p class="admin-funnel-warning" role="alert">⚠️ The event buffer is full and only spans the last ' +
+        escapeHtml(spanDays) +
+        " days. Every “last 7 days” figure below is undercounted — older events have been evicted.</p>";
+    }
+  }
 
   container.innerHTML =
+    coverageWarning +
     '<section class="admin-funnel-section"><h3>At a glance</h3>' +
     renderHeadlineCounts(events) +
     "</section>" +
@@ -638,7 +661,9 @@ function renderDashboard(container, logData) {
     '<section class="admin-funnel-section"><h3>Out-of-state waitlist interest</h3>' +
     renderWaitlistByState(events) +
     "</section>" +
-    '<p class="admin-funnel-meta">Buffer holds last 500 events · ' +
+    '<p class="admin-funnel-meta">Buffer holds last ' +
+    maxEvents +
+    " events · " +
     totalAppended +
     " total appended · updated " +
     escapeHtml(updatedAt) +

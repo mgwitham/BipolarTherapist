@@ -138,6 +138,11 @@ const ALLOWED_PHOTO_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp
 // in-process Map otherwise), so counts survive cold starts and are
 // shared across concurrent serverless instances. See rate-limit-store.mjs.
 const PUBLIC_WRITE_RATE_LIMITS = {
+  // Open funnel-event ingestion. The store is a fixed-size ring buffer,
+  // so unthrottled junk posts don't just cost compute — they evict real
+  // funnel history. 300/15min matches the engagement endpoints and is
+  // ~10x what the batching client (one POST per 2s at most) can emit.
+  "POST /analytics/events": { limit: 300, windowMs: 15 * 60 * 1000 },
   "POST /applications": { limit: 30, windowMs: 60 * 60 * 1000 },
   "POST /applications/free-path-selected": { limit: 60, windowMs: 60 * 60 * 1000 },
   "POST /applications/intake": { limit: 30, windowMs: 60 * 60 * 1000 },

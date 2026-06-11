@@ -8,7 +8,14 @@ import {
   sanitizeEvent,
   sanitizePayload,
 } from "../../server/review-analytics-routes.mjs";
-import { createMemoryClient, createTestApiConfig, deepClone } from "./test-helpers.mjs";
+import { createReviewApiHandler } from "../../server/review-handler.mjs";
+import { resetRateLimitStateForTests } from "../../server/rate-limit-store.mjs";
+import {
+  createMemoryClient,
+  createTestApiConfig,
+  deepClone,
+  runHandlerRequest,
+} from "./test-helpers.mjs";
 
 function buildContext(options) {
   const bodyPayload = options.body || {};
@@ -237,6 +244,33 @@ test("GET /analytics/events: returns stored log for admin", async () => {
   assert.equal(response.payload.events.length, 1);
   assert.equal(response.payload.events[0].type, "signup_page_viewed");
   assert.equal(response.payload.totalAppended, 1);
+  // The dashboard uses maxEvents to label buffer depth and detect when a
+  // full buffer no longer spans the 7-day reporting window.
+  assert.equal(response.payload.maxEvents, MAX_EVENTS);
+});
+
+test("POST /analytics/events: rate limited per IP at the gateway", async () => {
+  resetRateLimitStateForTests();
+  try {
+    const { client } = createMemoryClient();
+    const handler = createReviewApiHandler(createTestApiConfig(), client);
+    const requestOptions = {
+      method: "POST",
+      url: "/analytics/events",
+      headers: { host: "localhost:8787" },
+      body: { events: [{ type: "signup_page_viewed" }] },
+    };
+    for (let i = 0; i < 300; i += 1) {
+      const response = await runHandlerRequest(handler, requestOptions);
+      assert.equal(response.statusCode, 200, `request ${i + 1} should pass the limiter`);
+    }
+    const blocked = await runHandlerRequest(handler, requestOptions);
+    assert.equal(blocked.statusCode, 429);
+    assert.equal(blocked.payload.reason, "rate_limited");
+    assert.ok(Number(blocked.headers["Retry-After"]) >= 1);
+  } finally {
+    resetRateLimitStateForTests();
+  }
 });
 
 test("POST /analytics/events: filters impression noise out of ring buffer but counts them in totalAppended", async () => {

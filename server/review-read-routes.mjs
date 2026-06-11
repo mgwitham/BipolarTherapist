@@ -42,6 +42,8 @@ function buildTextResponseHeaders(origin, config, contentType) {
     "Content-Type": contentType,
     "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Methods": "GET,POST,PATCH,OPTIONS",
+    "X-Content-Type-Options": "nosniff",
+    "X-Frame-Options": "DENY",
     Vary: "Origin",
   };
   if (origin && Array.isArray(config.allowedOrigins) && config.allowedOrigins.includes(origin)) {
@@ -601,11 +603,18 @@ export async function handleReadRoutes(context) {
       return true;
     }
 
-    const [siteSettings, applications, candidates, events] = await Promise.all([
+    // Only docs that actually carry a follow-up assignment can contribute a
+    // reviewer name, and the publish-event log only contributes distinct
+    // actor names — filter and dedupe inside Sanity so the payload stays
+    // bounded as these collections grow instead of materializing every
+    // application, candidate, and event just to read one field off each.
+    const [siteSettings, applications, candidates, eventActorNames] = await Promise.all([
       client.getDocument("siteSettings"),
-      client.fetch(`*[_type == "therapistApplication"]{reviewFollowUp}`),
-      client.fetch(`*[_type == "therapistCandidate"]{reviewFollowUp}`),
-      client.fetch(`*[_type == "therapistPublishEvent"]{actorName}`),
+      client.fetch(`*[_type == "therapistApplication" && defined(reviewFollowUp)]{reviewFollowUp}`),
+      client.fetch(`*[_type == "therapistCandidate" && defined(reviewFollowUp)]{reviewFollowUp}`),
+      client.fetch(
+        `array::unique(*[_type == "therapistPublishEvent" && defined(actorName)].actorName)`,
+      ),
     ]);
 
     const configuredReviewers = normalizeReviewerDirectoryEntries(
@@ -647,8 +656,8 @@ export async function handleReadRoutes(context) {
         }),
       )
       .concat(
-        (Array.isArray(events) ? events : []).map(function (doc) {
-          const name = doc ? String(doc.actorName || "").trim() : "";
+        (Array.isArray(eventActorNames) ? eventActorNames : []).map(function (actorName) {
+          const name = String(actorName || "").trim();
           return {
             id: slugifyReviewerId(name),
             name,

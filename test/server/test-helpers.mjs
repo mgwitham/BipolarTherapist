@@ -304,6 +304,19 @@ export function createMemoryClient(initialDocuments) {
           });
         }
 
+        // Mirrors the /reviewers aggregation:
+        // array::unique(*[_type == "therapistPublishEvent" && defined(actorName)].actorName)
+        if (query.includes("array::unique") && query.includes(`_type == "therapistPublishEvent"`)) {
+          const names = Array.from(state.documents.values())
+            .filter(function (document) {
+              return document._type === "therapistPublishEvent" && document.actorName;
+            })
+            .map(function (document) {
+              return document.actorName;
+            });
+          return Array.from(new Set(names));
+        }
+
         if (query.includes(`_type == "therapistPublishEvent"`)) {
           // Mirrors the GROQ shape in server/review-read-routes.mjs:
           // optionally filter by `before` cursor, order desc by
