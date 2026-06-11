@@ -98,6 +98,7 @@
     "cms:import:therapists": "node scripts/import-therapists.mjs",
     "test": "node --test \"test/**/*.test.mjs\"",
     "test:coverage": "node --test --experimental-test-coverage \"test/**/*.test.mjs\"",
+    "test:e2e": "playwright test",
     "lint": "eslint . --max-warnings=0",
     "typecheck": "tsc -p jsconfig.json",
     "smoke:top-flows": "npm run build && node scripts/smoke-top-flows.mjs",
@@ -120,6 +121,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@playwright/test": "^1.60.0",
     "@sanity/client": "^7.22.1",
     "@types/node": "^25.9.2",
     "eslint": "^10.4.1",
