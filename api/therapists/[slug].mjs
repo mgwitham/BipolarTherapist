@@ -27,7 +27,6 @@ const PROJECT_ID = process.env.SANITY_PROJECT_ID || process.env.VITE_SANITY_PROJ
 const DATASET = process.env.SANITY_DATASET || process.env.VITE_SANITY_DATASET || "production";
 const API_VERSION =
   process.env.SANITY_API_VERSION || process.env.VITE_SANITY_API_VERSION || "2026-04-02";
-const SANITY_API_TOKEN = process.env.SANITY_API_TOKEN || "";
 const ORIGIN = "https://www.bipolartherapyhub.com";
 
 const THERAPIST_GROQ = `*[_type == "therapist" && slug.current == $slug && listingActive == true && status == "active" && visibilityIntent == "listed"][0]{
@@ -52,12 +51,14 @@ function getSanityClient() {
   }
 
   if (!sanityClient) {
+    // Published public reads from a publicly-readable dataset: route through
+    // Sanity's edge CDN (no token) so SSR profile pages skip the slower
+    // authenticated live-API round trip.
     sanityClient = createClient({
       projectId: PROJECT_ID,
       dataset: DATASET,
       apiVersion: API_VERSION,
-      token: SANITY_API_TOKEN,
-      useCdn: false,
+      useCdn: true,
       perspective: "published",
     });
   }
