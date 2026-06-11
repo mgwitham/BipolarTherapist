@@ -14,7 +14,7 @@
 // shapes are handled because admin code uses the snake_case version and
 // the server / migration scripts use the camelCase version.
 //
-// TODO(matching-model): The matching model in assets/matching-model.js
+// TODO(matching-model): The matching model in shared/matching-model.mjs
 // hard-filters therapists where accepting_new_patients === false. That
 // is treated as a separate concern from Live status. A Live profile
 // can still be invisible in match results because of the hard filter,
