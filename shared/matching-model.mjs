@@ -171,6 +171,9 @@ function normalizeList(value) {
     .filter(Boolean);
 }
 
+/**
+ * @returns {Record<string, string>} field-key → review-state map (snake_case keys)
+ */
 function getFieldReviewStates(therapist) {
   return normalizeFieldReviewStates(therapist && therapist.field_review_states, {
     keyStyle: "snake_case",
