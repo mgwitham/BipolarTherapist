@@ -5,7 +5,7 @@ import {
   getRecentConfirmationSummary,
   getTherapistMatchReadiness,
   getTherapistMerchandisingQuality,
-} from "./matching-model.js";
+} from "../shared/matching-model.mjs";
 import { getPublicResponsivenessSignal } from "./responsiveness-signal.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
 import { getInPersonProximityBonus, getZipDistanceMiles } from "./zip-lookup.js";

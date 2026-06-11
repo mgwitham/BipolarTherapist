@@ -2,7 +2,7 @@ import "./sentry-init.js";
 import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
 import { sanityImageUrl } from "./sanity-image.js";
-import { getDataFreshnessSummary, getTherapistMatchReadiness } from "./matching-model.js";
+import { getDataFreshnessSummary, getTherapistMatchReadiness } from "../shared/matching-model.mjs";
 import {
   getPublicResponsivenessSignal,
   summarizeTherapistContactRouteOutcomes,

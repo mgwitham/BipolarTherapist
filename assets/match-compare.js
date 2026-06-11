@@ -3,7 +3,7 @@ import {
   getDataFreshnessSummary,
   getRecentAppliedSummary,
   getRecentConfirmationSummary,
-} from "./matching-model.js";
+} from "../shared/matching-model.mjs";
 
 export function renderCompareValue(value, kind) {
   if (kind === "order") {

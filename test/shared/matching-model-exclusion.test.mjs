@@ -5,7 +5,7 @@ import {
   evaluateTherapistAgainstProfile,
   rankTherapistsForUser,
   getMatchTier,
-} from "../../assets/matching-model.js";
+} from "../../shared/matching-model.mjs";
 
 // Coverage for the matching engine's EXCLUSION logic — the dealbreakers that
 // rule a therapist out entirely (hard_failures → hard_constraint_failed →

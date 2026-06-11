@@ -1,5 +1,5 @@
-import { normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
-import { resolveInsuranceName, insuranceMatches } from "../shared/therapist-picker-options.mjs";
+import { normalizeFieldReviewStates } from "./therapist-domain.mjs";
+import { resolveInsuranceName, insuranceMatches } from "./therapist-picker-options.mjs";
 
 export const MATCH_INTAKE_QUESTIONS = [
   {
@@ -171,6 +171,9 @@ function normalizeList(value) {
     .filter(Boolean);
 }
 
+/**
+ * @returns {Record<string, string>} field-key → review-state map (snake_case keys)
+ */
 function getFieldReviewStates(therapist) {
   return normalizeFieldReviewStates(therapist && therapist.field_review_states, {
     keyStyle: "snake_case",
