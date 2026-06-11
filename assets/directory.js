@@ -1065,11 +1065,29 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     return filteredResultsCache;
   }
 
+  // Reuse the same snapshot object while the underlying filter state is
+  // unchanged. getMatchScore() in directory-logic.js invalidates its
+  // per-therapist score cache whenever the filterState IDENTITY changes;
+  // handing it a fresh object on every render (pagination, count updates)
+  // was wiping that cache and re-scoring every therapist for no reason.
+  let filtersSnapshot = null;
+  let filtersSnapshotKey = "";
   function getFilters() {
-    return Object.assign({}, filters, {
+    const next = Object.assign({}, filters, {
       stableOrderMap: stableOrderMap,
       sortZip: sortZip,
     });
+    const key = buildFilterCacheKey(next);
+    if (
+      filtersSnapshot &&
+      key === filtersSnapshotKey &&
+      filtersSnapshot.stableOrderMap === stableOrderMap
+    ) {
+      return filtersSnapshot;
+    }
+    filtersSnapshot = next;
+    filtersSnapshotKey = key;
+    return next;
   }
 
   function getFiltered() {
@@ -1426,11 +1444,19 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
       "</nav>";
   }
 
+  // getFiltered() returns a cached array with stable identity while filters
+  // are unchanged, so a reference check is enough to skip re-serializing
+  // 20 therapists into JSON-LD on renders where the result set is the same.
+  let lastJsonLdResults = null;
   function updateJsonLd(results) {
+    if (results === lastJsonLdResults) {
+      return;
+    }
     const el = getElement("dirJsonLd");
     if (!el) {
       return;
     }
+    lastJsonLdResults = results;
     const items = results.slice(0, 20).map(function (t, i) {
       return {
         "@type": "ListItem",
@@ -1450,7 +1476,12 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
   }
 
+  let lastMetaCount = null;
   function updateMeta(resultCount) {
+    if (resultCount === lastMetaCount) {
+      return;
+    }
+    lastMetaCount = resultCount;
     const titleEl = getElement("dirPageTitle");
     const descEl = getElement("dirPageDescription");
     const label = resultCount + " Bipolar Therapists in California";
