@@ -50,7 +50,7 @@ const PUBLIC_THERAPISTS_CACHE_KEY = "bth_public_therapists_cache_v1";
 // saves multiple round trips per session. Cache is keyed in
 // sessionStorage so it dies when the tab closes; that's the freshness
 // floor for users who leave a tab open all day.
-const PUBLIC_THERAPISTS_CACHE_TTL_MS = 30 * 60 * 1000;
+const PUBLIC_THERAPISTS_CACHE_TTL_MS = 60 * 60 * 1000;
 let publicTherapistsMemoryCache = null;
 let publicTherapistsPromise = null;
 
@@ -145,7 +145,7 @@ function clearPublicTherapistsCache() {
 // string and TTL are mirrored by the inline early-fetch script in
 // directory.html — keep them in sync.
 const DIRECTORY_CONTENT_CACHE_KEY = "bth_directory_content_cache_v1";
-const DIRECTORY_CONTENT_CACHE_TTL_MS = 30 * 60 * 1000;
+const DIRECTORY_CONTENT_CACHE_TTL_MS = 60 * 60 * 1000;
 let directoryContentMemoryCache = null;
 
 function readDirectoryContentCache() {

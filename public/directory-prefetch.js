@@ -16,7 +16,7 @@
 (function () {
   try {
     const KEY = "bth_directory_content_cache_v1";
-    const TTL = 30 * 60 * 1000;
+    const TTL = 60 * 60 * 1000;
     try {
       const raw = window.sessionStorage.getItem(KEY);
       if (raw) {

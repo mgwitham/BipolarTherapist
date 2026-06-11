@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { createClient } from "@sanity/client";
 import { log } from "./logger.mjs";
 import { normalizeDisplayRole, normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
@@ -5,7 +6,10 @@ import { hasActiveFeatured } from "../shared/therapist-subscription-domain.mjs";
 import { getReviewApiConfig } from "./review-config.mjs";
 
 const FOUNDING_SLOT_CAP = 50;
-const PUBLIC_CACHE_CONTROL = "public, max-age=0, s-maxage=60, stale-while-revalidate=300";
+// Edge cache window: directory data changes a few times a day at most, so a
+// 5-minute fresh window plus a 1-hour stale-while-revalidate keeps almost all
+// traffic on Vercel's edge while bounding staleness to minutes.
+const PUBLIC_CACHE_CONTROL = "public, max-age=0, s-maxage=300, stale-while-revalidate=3600";
 
 const PUBLIC_THERAPIST_LIST_PROJECTION = `{
   _id,
@@ -130,6 +134,7 @@ function getAllowedOrigin(origin, config) {
 }
 
 function sendJson(response, statusCode, payload, origin, config) {
+  const body = JSON.stringify(payload);
   const headers = {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Headers": "Content-Type",
@@ -137,12 +142,17 @@ function sendJson(response, statusCode, payload, origin, config) {
     "Cache-Control": statusCode >= 400 ? "no-store" : PUBLIC_CACHE_CONTROL,
     Vary: "Origin",
   };
+  if (statusCode < 400) {
+    // Weak ETag lets the CDN answer revalidations with a 304 instead of
+    // re-sending the full (~80KB) directory payload on every navigation.
+    headers.ETag = 'W/"' + createHash("sha256").update(body).digest("hex").slice(0, 16) + '"';
+  }
   const allowedOrigin = getAllowedOrigin(origin, config);
   if (allowedOrigin) {
     headers["Access-Control-Allow-Origin"] = allowedOrigin;
   }
   response.writeHead(statusCode, headers);
-  response.end(JSON.stringify(payload));
+  response.end(body);
 }
 
 function getSlug(doc) {
@@ -489,12 +499,16 @@ function normalizeRoutePath(pathname) {
 }
 
 function createSanityClient(config) {
+  // Every query in this handler reads published, public documents from a
+  // publicly-readable dataset, so it goes through Sanity's edge CDN
+  // (apicdn.sanity.io) without a token. The CDN serves from cache in
+  // tens of ms; the live API plus auth round-trip it replaces was the
+  // largest fixed cost on /api/public/* cold hits.
   return createClient({
     projectId: config.projectId,
     dataset: config.dataset,
     apiVersion: config.apiVersion,
-    token: config.token,
-    useCdn: false,
+    useCdn: true,
     perspective: "published",
   });
 }
