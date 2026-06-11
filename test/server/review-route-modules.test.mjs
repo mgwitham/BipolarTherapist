@@ -586,9 +586,12 @@ test("candidate routes publish a matched candidate into therapist documents", as
   assert.equal(response.statusCode, 200);
   assert.equal(response.payload.ok, true);
   assert.ok(Array.isArray(state.lastTransaction));
+  // An unmatched candidate (no matchedTherapistId) must publish via
+  // create(), not createOrReplace(), so a concurrent publish to the same
+  // derived id fails the transaction instead of overwriting the occupant.
   assert.equal(
     state.lastTransaction.some(function (entry) {
-      return entry.type === "createOrReplace" && entry.document._type === "therapist";
+      return entry.type === "create" && entry.document._type === "therapist";
     }),
     true,
   );
@@ -598,6 +601,119 @@ test("candidate routes publish a matched candidate into therapist documents", as
     }),
     true,
   );
+});
+
+test("candidate publish returns 409 when the create-guarded commit hits an occupant", async function () {
+  const response = createResponseCapture();
+  const candidate = {
+    _id: "candidate-1",
+    _type: "therapistCandidate",
+    matchedTherapistId: "",
+    licenseState: "CA",
+    licenseNumber: "LMFT12345",
+    licensureVerification: { status: "verified" },
+    reviewStatus: "queued",
+    publishRecommendation: "",
+    dedupeStatus: "unreviewed",
+  };
+
+  const client = {
+    async getDocument(id) {
+      // The pre-check fetch sees no occupant; the collision happens at
+      // commit time (simulating a concurrent publish winning the race).
+      if (id === "candidate-1") {
+        return candidate;
+      }
+      return null;
+    },
+    transaction() {
+      const api = {
+        create() {
+          return api;
+        },
+        createOrReplace() {
+          return api;
+        },
+        delete() {
+          return api;
+        },
+        patch() {
+          return api;
+        },
+        async commit() {
+          const error = new Error("Document by ID already exists");
+          error.statusCode = 409;
+          throw error;
+        },
+      };
+      return api;
+    },
+  };
+
+  const handled = await handleCandidateRoutes({
+    client,
+    config: {},
+    deps: {
+      addDays(value) {
+        return value;
+      },
+      buildCandidateReviewEvent(_candidate, details) {
+        return { _type: "candidateReviewEvent", ...details };
+      },
+      buildFieldTrustMeta() {
+        return {};
+      },
+      buildTherapistDocumentFromCandidate(_candidate, therapistId) {
+        return { _id: therapistId || "therapist-candidate-1", _type: "therapist" };
+      },
+      buildTherapistObservationDocuments() {
+        return [];
+      },
+      computeCandidateReviewMeta() {
+        return { reviewLane: "ready_to_publish", reviewPriority: 10, nextReviewDueAt: "" };
+      },
+      computeTherapistVerificationMeta() {
+        return {
+          verificationPriority: 20,
+          verificationLane: "healthy",
+          nextReviewDueAt: "",
+          lastOperationalReviewAt: "",
+          dataCompletenessScore: 90,
+        };
+      },
+      getAuthorizedActor() {
+        return "architect";
+      },
+      isAuthorized() {
+        return true;
+      },
+      mergeLicensureVerification(primary) {
+        return primary;
+      },
+      normalizeLicensureVerification(value) {
+        return value;
+      },
+      normalizePortableCandidate(value) {
+        return value;
+      },
+      async parseBody() {
+        return { decision: "publish", notes: "Looks good" };
+      },
+      publishingHelpers: {},
+      sendJson: createSendJson(response),
+    },
+    origin: "",
+    request: {
+      method: "POST",
+      headers: {},
+    },
+    response,
+    routePath: "/candidates/candidate-1/decision",
+  });
+
+  assert.equal(handled, true);
+  assert.equal(response.statusCode, 409);
+  assert.match(response.payload.error, /already exists/);
 });
 
 test("match routes persist public match requests without admin auth", async function () {

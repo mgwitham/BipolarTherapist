@@ -325,6 +325,39 @@ export async function handleCandidateIngestRoutes(context) {
   const actor = getAuthorizedActor(request, config) || "ingest";
   const now = new Date().toISOString();
 
+  // Candidate ids derive purely from each record's identity fields, so they
+  // can all be computed up front and the existing docs resolved with ONE
+  // query — instead of one sequential getDocument round-trip per record,
+  // which made a full 50-record batch pay 50 serial Sanity fetches.
+  const incomingCandidateIds = rawCandidates
+    .map(function (raw) {
+      const normalized = normalizeIngestRecord(raw || {});
+      if (!normalized.name) return "";
+      return buildCandidateDocumentId(
+        buildProviderId({
+          name: normalized.name,
+          city: normalized.city,
+          state: normalized.state,
+          licenseState: normalized.licenseState,
+          licenseNumber: normalized.licenseNumber,
+        }),
+      );
+    })
+    .filter(Boolean);
+  const existingCandidateDocs = incomingCandidateIds.length
+    ? await client.fetch(
+        `*[_type == "therapistCandidate" && _id in $ids]{
+          _id, _type, reviewStatus, publishRecommendation, notes, supportingSourceUrls
+        }`,
+        { ids: incomingCandidateIds },
+      )
+    : [];
+  const existingCandidateById = new Map(
+    (Array.isArray(existingCandidateDocs) ? existingCandidateDocs : []).map(function (doc) {
+      return [doc._id, doc];
+    }),
+  );
+
   const created = [];
   const updated = [];
   const skippedDuplicate = [];
@@ -381,7 +414,7 @@ export async function handleCandidateIngestRoutes(context) {
         continue;
       }
 
-      const existing = await client.getDocument(candidateId);
+      const existing = existingCandidateById.get(candidateId) || null;
       const isUpdate = existing && existing._type === "therapistCandidate" ? true : false;
 
       let verification = { attempted: false };

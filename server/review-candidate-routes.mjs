@@ -503,7 +503,17 @@ export async function handleCandidateRoutes(context) {
       therapistId,
       publishingHelpers,
     );
-    transaction.createOrReplace(therapistDocument);
+    // When the candidate was deliberately matched to an existing therapist,
+    // replacing that doc is the point. Otherwise use create() so the
+    // collision pre-check above is enforced atomically at commit time: a
+    // concurrent publish that claims the same derived id between the
+    // pre-check fetch and this commit fails the transaction instead of
+    // silently overwriting the other profile.
+    if (String(candidate.matchedTherapistId || "").trim()) {
+      transaction.createOrReplace(therapistDocument);
+    } else {
+      transaction.create(therapistDocument);
+    }
     buildTherapistObservationDocuments(therapistDocument).forEach(function (observation) {
       transaction.createOrReplace(observation);
     });
@@ -693,7 +703,28 @@ export async function handleCandidateRoutes(context) {
     }),
   );
 
-  await transaction.commit({ visibility: "sync" });
+  try {
+    await transaction.commit({ visibility: "sync" });
+  } catch (error) {
+    const message = (error && error.message) || "";
+    const documentAlreadyExists =
+      (error && error.statusCode === 409) || /already exist/i.test(message);
+    if (decision === "publish" && documentAlreadyExists) {
+      sendJson(
+        response,
+        409,
+        {
+          error:
+            "A live therapist profile already exists with this derived id (same name, city, and state). Publishing would overwrite it. Use the dedupe flow to merge, or adjust the candidate's identity fields first.",
+          therapistId,
+        },
+        origin,
+        config,
+      );
+      return true;
+    }
+    throw error;
+  }
   const updatedCandidate = await client.getDocument(candidateId);
   sendJson(
     response,
