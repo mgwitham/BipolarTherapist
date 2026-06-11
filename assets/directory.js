@@ -3,6 +3,7 @@ import "./site-analytics.js";
 import { fetchDirectoryPageContent } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
 import { rememberTherapistContactRoute, trackFunnelEvent } from "./funnel-analytics.js";
+import { submitTherapistCtaClick, submitTherapistProfileView } from "./review-api.js";
 import {
   FILTER_BOOLEAN_KEYS,
   FILTER_VALUE_KEYS,
@@ -1302,6 +1303,64 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
   }
 
+  // Engagement pings mirror therapist-page.js: best-effort POSTs feeding
+  // the per-therapist weekly view/click counters shown in the portal and
+  // weekly digests. Without these, a therapist viewed only through the
+  // directory's inline details panel — never via their own page — showed
+  // zero views, and contact CTAs clicked from directory cards never
+  // counted as clicks. Views dedupe per page load (one view per therapist
+  // per visit, matching the one-per-page-load semantics on profile pages).
+  const recordedPanelViewSlugs = new Set();
+
+  function recordPanelProfileView(slug) {
+    const cleanSlug = String(slug || "").trim();
+    if (!cleanSlug || recordedPanelViewSlugs.has(cleanSlug)) {
+      return;
+    }
+    recordedPanelViewSlugs.add(cleanSlug);
+    try {
+      const promise = submitTherapistProfileView({
+        therapist_slug: cleanSlug,
+        source: "directory",
+      });
+      if (promise && typeof promise.catch === "function") {
+        promise.catch(function () {});
+      }
+    } catch (_error) {
+      // Engagement pings are best-effort, never block the UI.
+    }
+  }
+
+  // Map a card CTA href to an engagement route. Internal links (profile
+  // navigation) return "" — those arrivals are counted as views by the
+  // therapist page itself, and they aren't contact actions.
+  function resolveContactRouteFromHref(href) {
+    const value = String(href || "");
+    if (value.indexOf("tel:") === 0) return "phone";
+    if (value.indexOf("mailto:") === 0) return "email";
+    if (!/^https?:\/\//i.test(value)) return "";
+    return /book|calendly|acuity|schedule/i.test(value) ? "booking" : "website";
+  }
+
+  function recordContactCtaClick(slug, href) {
+    const cleanSlug = String(slug || "").trim();
+    const route = resolveContactRouteFromHref(href);
+    if (!cleanSlug || !route) {
+      return;
+    }
+    try {
+      const promise = submitTherapistCtaClick({
+        therapist_slug: cleanSlug,
+        route: route,
+      });
+      if (promise && typeof promise.catch === "function") {
+        promise.catch(function () {});
+      }
+    } catch (_error) {
+      // Engagement pings are best-effort.
+    }
+  }
+
   function openDetailsModal(slug, trigger) {
     const dialog = getElement("directoryDetailsModal");
     const scrim = getElement("directoryDetailsScrim");
@@ -1328,6 +1387,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     });
 
     document.body.style.overflow = "hidden";
+    recordPanelProfileView(slug);
     trackFunnelEvent("directory_view_details_clicked", {
       therapist_slug: slug,
       sort_by: filters.sortBy,
@@ -1901,6 +1961,7 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
           "directory_" + ctaTier,
         );
       }
+      recordContactCtaClick(primarySlug, primaryLink.getAttribute("href"));
       trackFunnelEvent("directory_card_contact_action", {
         therapist_slug: primarySlug,
         sort_by: filters.sortBy,

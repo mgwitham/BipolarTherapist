@@ -23,7 +23,10 @@ import {
 const MAX_EVENTS = FUNNEL_LOG_MAX_EVENTS;
 const MAX_PAYLOAD_BYTES = 1024;
 const MAX_EVENT_TYPE_LEN = 80;
-const MAX_BATCH_SIZE = 50;
+// Matches the client's SERVER_BATCH_MAX (assets/funnel-analytics.js): the
+// real client never sends more than 30 events per POST, so accepting more
+// only widens the ring-buffer eviction throughput available to abusers.
+const MAX_BATCH_SIZE = 30;
 
 // High-volume auto-fired events that drown out conversion signals.
 // Each card render fires one of these, so a single browse session can
@@ -179,7 +182,7 @@ export async function handleAnalyticsRoutes(context) {
       sendJson(
         response,
         200,
-        { ok: true, events: [], updatedAt: null, totalAppended: 0 },
+        { ok: true, events: [], updatedAt: null, totalAppended: 0, maxEvents: MAX_EVENTS },
         origin,
         config,
       );
@@ -193,6 +196,10 @@ export async function handleAnalyticsRoutes(context) {
         events: Array.isArray(logDoc.events) ? logDoc.events : [],
         updatedAt: logDoc.updatedAt || null,
         totalAppended: Number(logDoc.totalAppended || 0),
+        // Ring-buffer cap, so the dashboard can say how much history this
+        // really is and warn when the buffer no longer spans its 7-day
+        // reporting window.
+        maxEvents: MAX_EVENTS,
       },
       origin,
       config,

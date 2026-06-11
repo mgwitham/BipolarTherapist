@@ -58,7 +58,9 @@ function detectProfileViewSource() {
     if (referrer.indexOf("/directory") !== -1) {
       return "directory";
     }
-    if (referrer.indexOf("/match") !== -1) {
+    // /results is the match flow's destination page, so arrivals from it
+    // are match traffic — without this branch they were counted "direct".
+    if (referrer.indexOf("/match") !== -1 || referrer.indexOf("/results") !== -1) {
       return "match";
     }
     return "direct";
@@ -1726,9 +1728,10 @@ function bindReportIssueDialog(therapist) {
     const reason = reasonEl.value;
     const commentRaw = commentInput ? String(commentInput.value || "").trim() : "";
     const comment = commentRaw.length > 400 ? commentRaw.slice(0, 400) : commentRaw;
+    // Identify the listing by slug only — the name is a person's name and
+    // this payload is forwarded to third-party analytics (Vercel).
     trackFunnelEvent("listing_issue_reported", {
       slug: (therapist && therapist.slug) || "",
-      therapist_name: (therapist && therapist.name) || "",
       reason: reason,
       comment: comment,
       has_comment: Boolean(comment),
