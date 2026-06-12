@@ -81,13 +81,38 @@ test("pricing script: uses therapist session and subscription APIs for authentic
   );
 });
 
-test("pricing script: tracks pricing analytics for views, CTAs, branch resolution, and preview interaction", () => {
+test("pricing script: tracks pricing analytics for views, CTAs, and branch resolution", () => {
   assert.match(pricingJs, /pricing_page_viewed/);
   assert.match(pricingJs, /pricing_branch_resolved/);
   assert.match(pricingJs, /pricing_free_cta_clicked/);
   assert.match(pricingJs, /pricing_paid_cta_clicked/);
   assert.match(pricingJs, /pricing_checkout_clicked/);
-  assert.match(pricingJs, /pricing_paid_preview_interacted/);
+});
+
+// Regression guard for the 2026-06 incident where a pricing.html
+// redesign dropped the element ids pricing.js binds to, silently
+// killing the signed-in states and the Stripe checkout/billing CTAs.
+// Every id and data-attribute the script queries must exist in the
+// page markup, whatever they're renamed to in the future.
+test("pricing page: markup carries every hook pricing.js queries", () => {
+  const idHooks = [...pricingJs.matchAll(/getElementById\("([^"]+)"\)/g)].map((m) => m[1]);
+  assert.ok(idHooks.length >= 8, "expected pricing.js to query several element ids");
+  for (const id of idHooks) {
+    assert.match(pricingHtml, new RegExp(`id="${id}"`), `pricing.html is missing id="${id}"`);
+  }
+  const selectorHooks = [...pricingJs.matchAll(/querySelector\((?:"([^"]+)"|'([^']+)')\)/g)].map(
+    (m) => m[1] || m[2],
+  );
+  assert.ok(selectorHooks.length >= 2, "expected pricing.js to query the plan-card markers");
+  for (const selector of selectorHooks) {
+    const attrMatch = selector.match(/^\[([a-z-]+)="([^"]+)"\]$/);
+    assert.ok(attrMatch, `unrecognized querySelector shape in pricing.js: ${selector}`);
+    assert.match(
+      pricingHtml,
+      new RegExp(`${attrMatch[1]}="${attrMatch[2]}"`),
+      `pricing.html is missing ${selector}`,
+    );
+  }
 });
 
 test("pricing page: keeps accessible live feedback regions near plan CTAs", () => {

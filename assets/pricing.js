@@ -27,12 +27,12 @@ const freeBadge = document.getElementById("pricingFreePlanBadge");
 const paidBadge = document.getElementById("pricingPaidPlanBadge");
 const freeState = document.getElementById("pricingFreeState");
 const paidState = document.getElementById("pricingPaidState");
-const paidHelper = document.getElementById("pricingPaidHelper");
-const trialClarity = document.getElementById("pricingTrialClarity");
+// The static trial copy under the paid price ("Start with 14 days
+// free…") is accurate for everyone who hasn't started a trial yet, so
+// it is only overridden once a trial/subscription is actually active.
+const trialClarity = document.getElementById("price-note");
 const freeFeedback = document.getElementById("pricingFreeFeedback");
 const paidFeedback = document.getElementById("pricingPaidFeedback");
-const previewCard = document.getElementById("pricingPreviewCard");
-const freeFeatureClaim = document.getElementById("pricingFreeFeatureClaim");
 
 const pricingState = {
   branch: therapistSessionToken ? "signed_in_loading" : "logged_out",
@@ -66,6 +66,17 @@ function setCardCurrent(card, isCurrent) {
   card.classList.toggle("is-current", Boolean(isCurrent));
 }
 
+// Badge chips and per-card status lines only exist for signed-in
+// therapists; empty text hides the element so logged-out visitors see
+// the static card design untouched.
+function setPlanText(node, text) {
+  if (!node) {
+    return;
+  }
+  node.textContent = text || "";
+  node.hidden = !text;
+}
+
 function buildHref(path, params) {
   const query = new URLSearchParams();
   Object.keys(params || {}).forEach(function (key) {
@@ -78,21 +89,22 @@ function buildHref(path, params) {
 }
 
 function buildClaimHref() {
-  return buildHref("claim.html", {
+  return buildHref("/claim", {
     slug: slugParam || "",
     email: emailParam || "",
   });
 }
 
-function buildSignupHref() {
-  return buildHref("signup.html", {
+function buildSignupHref(plan) {
+  return buildHref("/signup", {
     slug: slugParam || "",
     email: emailParam || "",
+    plan: plan || "",
   });
 }
 
 function buildPortalHref(slug) {
-  return buildHref("portal.html", {
+  return buildHref("/portal", {
     slug: slug || slugParam || "",
   });
 }
@@ -122,35 +134,22 @@ function applyLoggedOutState() {
   pricingState.paidMode = slugParam ? "claim" : "signup";
 
   updateCtaLink(freeCta, "Claim free listing", buildClaimHref());
-  updateCtaLink(paidCta, "Start free trial", slugParam ? buildClaimHref() : buildSignupHref());
+  updateCtaLink(
+    paidCta,
+    "Start free trial",
+    slugParam ? buildClaimHref() : buildSignupHref("paid"),
+  );
 
-  if (freeBadge) {
-    freeBadge.textContent = "Always available";
-  }
-  if (paidBadge) {
-    paidBadge.textContent = "14-day free trial";
-  }
-  if (freeState) {
-    freeState.textContent = "Best if you want to be listed and keep your profile current.";
-  }
-  if (paidState) {
-    paidState.textContent =
-      "Useful if you want better visibility into how patients find and contact you.";
-  }
-  if (paidHelper) {
-    paidHelper.textContent = slugParam
-      ? "We found a listing context for you, so we'll take you into the claim flow first."
-      : "New to the directory? We verify your California license before you go live.";
-  }
-  if (trialClarity) {
-    trialClarity.textContent =
-      "Card required to start. No charge until day 15. Cancel anytime from your dashboard before billing begins.";
-  }
-
-  if (freeFeatureClaim) {
-    freeFeatureClaim.innerHTML =
-      "<strong>Claim and manage your listing</strong> from the dashboard";
-  }
+  // Logged-out visitors see the static card design as authored; the
+  // badges and status lines stay hidden and the static trial copy under
+  // the paid price already says everything about card/no-charge timing.
+  setPlanText(freeBadge, "");
+  setPlanText(paidBadge, "");
+  setPlanText(freeState, "");
+  setPlanText(
+    paidState,
+    slugParam ? "We found your listing, so we'll take you through the claim flow first." : "",
+  );
   setCardCurrent(freeCard, false);
   setCardCurrent(paidCard, false);
   setFeedback(freeFeedback, "", "");
@@ -169,33 +168,10 @@ function applySignedInFreeState(me, subscription) {
   updateCtaLink(freeCta, "Open dashboard", buildPortalHref(therapistSlug));
   updateCtaLink(paidCta, "Start free trial", buildPortalHref(therapistSlug));
 
-  if (freeBadge) {
-    freeBadge.textContent = "Your current plan";
-  }
-  if (paidBadge) {
-    paidBadge.textContent = "14-day free trial";
-  }
-  if (freeState) {
-    freeState.textContent =
-      "You already have free listing controls. Stay here if listing and profile management are enough.";
-  }
-  if (paidState) {
-    paidState.textContent =
-      "Upgrade only if you want ongoing visibility into sources, contact methods, and weekly change.";
-  }
-  if (paidHelper) {
-    paidHelper.textContent =
-      "Already listed? Checkout opens directly without repeating onboarding.";
-  }
-  if (trialClarity) {
-    trialClarity.textContent =
-      "Card required to start. No charge until day 15. Cancel anytime from your dashboard before billing begins.";
-  }
-
-  if (freeFeatureClaim) {
-    freeFeatureClaim.innerHTML =
-      "<strong>Edit your profile details</strong> directly from your dashboard";
-  }
+  setPlanText(freeBadge, "Your current plan");
+  setPlanText(paidBadge, "");
+  setPlanText(freeState, "");
+  setPlanText(paidState, "You're already listed, so checkout opens directly. No new onboarding.");
   setCardCurrent(freeCard, true);
   setCardCurrent(paidCard, false);
   setFeedback(freeFeedback, "", "");
@@ -220,34 +196,19 @@ function applySignedInPaidState(me, subscription) {
     buildPortalHref(therapistSlug),
   );
 
-  if (freeBadge) {
-    freeBadge.textContent = "Included now";
-  }
-  if (paidBadge) {
-    paidBadge.textContent = isTrial ? "Trial active" : "Insights active";
-  }
-  if (freeState) {
-    freeState.textContent = "Your listing still keeps its free controls and fit-based ranking.";
-  }
-  if (paidState) {
-    paidState.textContent = isTrial
+  setPlanText(freeBadge, "Included in your plan");
+  setPlanText(paidBadge, isTrial ? "Trial active" : "Your current plan");
+  setPlanText(freeState, "");
+  setPlanText(
+    paidState,
+    isTrial
       ? "Your Insights trial is active. Keep it, or cancel before billing begins."
-      : "Your Insights plan is active. Open billing to update payment details or cancel.";
-  }
-  if (paidHelper) {
-    paidHelper.textContent = isTrial
-      ? "Your dashboard keeps the cancel path visible so you can end the trial before billing starts."
-      : "Open billing to update payment details or manage cancellation.";
-  }
+      : "Your Insights plan is active. Open billing to update payment details or cancel.",
+  );
   if (trialClarity) {
     trialClarity.textContent = isTrial
       ? "Trial active now. No charge until day 15. Cancellation stays available from your dashboard."
       : "Billing is active. You can manage or cancel the subscription from your dashboard.";
-  }
-
-  if (freeFeatureClaim) {
-    freeFeatureClaim.innerHTML =
-      "<strong>Edit your profile details</strong> directly from your dashboard";
   }
   setCardCurrent(freeCard, false);
   setCardCurrent(paidCard, true);
@@ -297,7 +258,7 @@ async function handleDirectCheckout(event) {
   const me = pricingState.therapist;
   const therapist = me && me.therapist;
   if (!therapist || !therapist.slug) {
-    window.location.href = buildSignupHref();
+    window.location.href = buildSignupHref("paid");
     return;
   }
 
@@ -438,15 +399,6 @@ if (freeCta) {
 
 if (paidCta) {
   paidCta.addEventListener("click", handlePaidCtaClick);
-}
-
-if (previewCard) {
-  previewCard.addEventListener("click", function () {
-    trackFunnelEvent("pricing_paid_preview_interacted", {
-      branch: pricingState.branch,
-      source: "pricing_page",
-    });
-  });
 }
 
 applyLoggedOutState();
