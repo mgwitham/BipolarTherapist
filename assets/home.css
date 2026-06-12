@@ -398,7 +398,6 @@ h2 {
 }
 .step-card:hover {
   box-shadow: 0 6px 20px rgba(26, 122, 143, 0.12);
-  transform: translateY(-2px);
 }
 .step-icon {
   width: 50px;
@@ -455,7 +454,6 @@ h2 {
 }
 .t-card:hover {
   box-shadow: 0 6px 20px rgba(26, 122, 143, 0.12);
-  transform: translateY(-2px);
   border-color: var(--teal-light);
 }
 .t-avatar {
@@ -575,7 +573,6 @@ h2 {
 }
 .btn-p:hover {
   background: var(--teal);
-  transform: translateY(-1px);
 }
 .btn-s {
   background: rgba(255, 255, 255, 0.12);
@@ -690,7 +687,6 @@ h2 {
 }
 .step-card:hover {
   box-shadow: 0 8px 32px rgba(52, 127, 150, 0.1);
-  transform: translateY(-2px);
 }
 .step-num {
   font-family: var(--serif);
@@ -992,7 +988,6 @@ h2 {
 }
 .btn-cta-white:hover {
   background: var(--teal-50);
-  transform: translateY(-2px);
 }
 .cta-secondary {
   display: block;

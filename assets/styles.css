@@ -123,7 +123,6 @@ h3 {
 .btn-primary:hover,
 .btn-primary:focus-visible {
   background: var(--coral-dark);
-  transform: translateY(-1px);
 }
 .btn-primary--block {
   display: block;
@@ -624,7 +623,6 @@ nav {
 .filter-preset-btn:hover {
   background: rgba(255, 255, 255, 0.14);
   border-color: rgba(255, 255, 255, 0.26);
-  transform: translateY(-1px);
 }
 
 .filter-chip {
@@ -771,7 +769,6 @@ nav {
 
 .results-focus-banner-chips .filter-chip-removable:hover,
 .results-focus-banner-chips .filter-chip-removable:focus-visible {
-  transform: translateY(-1px);
   border-color: rgba(26, 122, 143, 0.24);
   background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(232, 245, 247, 0.98));
   box-shadow:
@@ -873,7 +870,6 @@ nav {
 .btn-filter:hover,
 .btn-primary:hover {
   background: var(--coral-dark);
-  transform: translateY(-1px);
 }
 
 .btn-secondary {
@@ -901,7 +897,6 @@ nav {
   border-color: var(--slate);
   color: var(--slate);
   background: rgba(255, 255, 255, 0.95);
-  transform: translateY(-1px);
 }
 
 .results-match-link {
@@ -1400,8 +1395,9 @@ nav {
 }
 
 .t-card:hover {
+  /* Shadow-only lift: hover transforms flicker the cursor at card edges
+     (see .match-card:hover in match-page.css). */
   box-shadow: 0 22px 42px rgba(26, 122, 143, 0.13);
-  transform: translateY(-3px);
   border-color: rgba(26, 122, 143, 0.24);
 }
 
@@ -2986,7 +2982,6 @@ body.dir-vb .dir-vb-filters-btn {
 }
 
 body.dir-vb .dir-vb-filters-btn:hover {
-  transform: translateY(-1px);
   border-color: rgba(14, 77, 95, 0.45);
   box-shadow: 0 10px 22px rgba(14, 77, 95, 0.1);
 }
@@ -3059,7 +3054,6 @@ body.dir-vb .dir-vb-chip > * {
 }
 
 body.dir-vb .dir-vb-chip:hover {
-  transform: translateY(-1px);
   border-color: rgba(26, 122, 143, 0.38);
   box-shadow: 0 6px 14px rgba(14, 77, 95, 0.08);
 }
@@ -4051,7 +4045,6 @@ body.dir-vb .dir-vb-modal-apply:hover {
 }
 
 .dir-sparse-nudge:hover {
-  transform: translateY(-2px);
   border-color: rgba(26, 122, 143, 0.32);
   box-shadow: 0 14px 26px rgba(14, 77, 95, 0.09);
 }
@@ -4412,7 +4405,6 @@ body.dir-vb .dir-vb-modal-apply:hover {
     0 8px 24px rgba(14, 77, 95, 0.1),
     0 2px 6px rgba(14, 77, 95, 0.06);
   border-color: rgba(26, 122, 143, 0.22);
-  transform: translateY(-2px);
 }
 
 /* Save icon — top-right corner */
