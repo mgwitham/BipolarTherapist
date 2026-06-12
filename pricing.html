@@ -392,6 +392,49 @@
         color: var(--slate-500);
         margin: 0 0 0.35rem;
       }
+      /* Signed-in plan state, populated by pricing.js: a "Your current
+         plan" style chip, a one-line status under the CTA, and a visible
+         outline on the card matching the active plan. All hidden/inert
+         for logged-out visitors. */
+      .p-plan-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.2rem 0.65rem;
+        margin: 0 0 0.5rem;
+        border-radius: 999px;
+        font-size: 12px;
+        font-weight: 600;
+        background: var(--teal-50);
+        color: var(--teal-700);
+        border: 1px solid var(--teal-200);
+      }
+      .p-card-status {
+        margin: 0 0 0.5rem;
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--slate-500);
+      }
+      .p-card.is-current {
+        border-color: var(--teal-600);
+        box-shadow: 0 0 0 1px var(--teal-600);
+      }
+      .p-card-feedback {
+        font-size: 13px;
+        line-height: 1.5;
+        color: var(--slate-500);
+      }
+      .p-card-feedback:empty {
+        display: none;
+      }
+      .p-card-feedback[data-tone="error"] {
+        color: #b42318;
+        font-weight: 600;
+      }
+      .p-btn[aria-disabled="true"] {
+        opacity: 0.7;
+        pointer-events: none;
+      }
       .p-card--paid .p-card-kicker {
         color: var(--teal-600);
       }
@@ -1137,9 +1180,10 @@
         <!-- Cards -->
         <div class="pricing-cards-grid pricing-grid" aria-label="Pricing plans">
           <!-- FREE CARD -->
-          <article class="p-card p-card--free" aria-label="Free plan">
+          <article class="p-card p-card--free" data-plan-card="free" aria-label="Free plan">
             <div class="p-card-head">
               <p class="p-card-kicker">Directory presence</p>
+              <p class="p-plan-badge" id="pricingFreePlanBadge" hidden></p>
               <p class="p-card-name">Free</p>
               <div class="p-card-price-row">
                 <span class="p-card-price-n">$0</span>
@@ -1198,17 +1242,21 @@
               </ul>
             </div>
             <div class="p-card-footer">
-              <a href="/signup" class="p-btn p-btn--ghost">Claim free listing</a>
+              <a href="/signup" class="p-btn p-btn--ghost" id="pricingFreeCta"
+                >Claim free listing</a
+              >
+              <p class="p-card-status" id="pricingFreeState" hidden></p>
               <p class="p-card-footnote">Your free listing stays live if you ever downgrade.</p>
-              <div id="pricingFreeFeedback" aria-live="polite" class="sr-only"></div>
+              <div id="pricingFreeFeedback" aria-live="polite" class="p-card-feedback"></div>
             </div>
           </article>
 
           <!-- PAID CARD -->
-          <article class="p-card p-card--paid" aria-label="Insights plan">
+          <article class="p-card p-card--paid" data-plan-card="paid" aria-label="Insights plan">
             <div class="popular-ribbon" aria-label="Most popular plan">Most popular</div>
             <div class="p-card-head">
               <p class="p-card-kicker">Visibility analytics</p>
+              <p class="p-plan-badge" id="pricingPaidPlanBadge" hidden></p>
               <p class="p-card-name">Insights</p>
               <p class="trial-lead">Free for 14 days, then</p>
               <div class="p-card-price-row">
@@ -1315,11 +1363,14 @@
               </ul>
             </div>
             <div class="p-card-footer">
-              <a href="/signup?plan=paid" class="p-btn p-btn--solid">Start free trial</a>
+              <a href="/signup?plan=paid" class="p-btn p-btn--solid" id="pricingPaidCta"
+                >Start free trial</a
+              >
+              <p class="p-card-status" id="pricingPaidState" hidden></p>
               <p class="p-card-footnote">
                 Secure checkout via Stripe · No patient identities in data
               </p>
-              <div id="pricingPaidFeedback" aria-live="polite" class="sr-only"></div>
+              <div id="pricingPaidFeedback" aria-live="polite" class="p-card-feedback"></div>
             </div>
           </article>
         </div>
