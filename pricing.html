@@ -396,6 +396,10 @@
          plan" style chip, a one-line status under the CTA, and a visible
          outline on the card matching the active plan. All hidden/inert
          for logged-out visitors. */
+      .p-plan-badge[hidden] {
+        /* display below would otherwise defeat the hidden attribute */
+        display: none;
+      }
       .p-plan-badge {
         display: inline-flex;
         align-items: center;
