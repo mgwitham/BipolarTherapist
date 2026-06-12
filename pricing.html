@@ -180,14 +180,49 @@
       .pricing-hero {
         background: var(--teal-50);
         border-bottom: 1px solid var(--teal-100);
-        padding: 72px 2rem 64px;
-        text-align: center;
+        padding: 64px 2rem 56px;
       }
       .pricing-hero-inner {
-        max-width: 620px;
+        max-width: 1060px;
         margin: 0 auto;
         display: grid;
-        gap: 1.5rem;
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+        gap: 3rem;
+        align-items: center;
+      }
+      .pricing-hero-copy {
+        display: grid;
+        gap: 1.25rem;
+        justify-items: start;
+      }
+      .pricing-hero-ctas {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+      }
+      .pricing-hero-ctas .p-btn {
+        display: inline-block;
+        width: auto;
+        padding: 0.8rem 1.7rem;
+        margin-bottom: 0;
+      }
+      .pricing-hero-visual {
+        max-width: 440px;
+        width: 100%;
+        justify-self: end;
+      }
+      .dash-mockup--hero .dash-body {
+        gap: 14px;
+        padding: 16px 18px 18px;
+      }
+      @media (max-width: 860px) {
+        .pricing-hero-inner {
+          grid-template-columns: 1fr;
+          gap: 2rem;
+        }
+        .pricing-hero-visual {
+          justify-self: center;
+        }
       }
       .hero-eyebrow {
         display: inline-block;
@@ -216,14 +251,13 @@
         font-size: 17px;
         color: var(--slate-500);
         line-height: 1.6;
-        margin: 0 auto;
+        margin: 0;
         max-width: 500px;
       }
       .pricing-hero-pills {
         display: flex;
         flex-wrap: wrap;
         gap: 0.6rem;
-        justify-content: center;
         list-style: none;
         padding: 0;
         margin: 0;
@@ -479,6 +513,15 @@
         margin: 0.5rem 0 0;
         line-height: 1.5;
       }
+      .p-card-trial-note {
+        font-size: 12.5px;
+        color: var(--teal-700);
+        background: var(--teal-50);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 0.75rem;
+        margin: 0.6rem 0 0;
+        line-height: 1.5;
+      }
       .p-card-note strong {
         color: var(--teal-600);
       }
@@ -502,6 +545,7 @@
         display: grid;
         gap: 0.6rem;
         flex: 1;
+        align-content: start;
       }
       .p-card-features li {
         display: flex;
@@ -530,11 +574,11 @@
         margin-bottom: 0.5rem;
       }
       .p-btn--solid {
-        background: var(--teal-600);
+        background: var(--teal-700);
         color: #fff;
       }
       .p-btn--solid:hover {
-        background: var(--teal-700);
+        background: var(--teal-600);
       }
       .p-btn--ghost {
         background: transparent;
@@ -834,6 +878,13 @@
       .compare-table td.val.no {
         color: var(--slate-300);
       }
+      .compare-table th:last-child,
+      .compare-table td:last-child {
+        background: var(--teal-50);
+      }
+      .compare-table tr.group-row td {
+        background: transparent;
+      }
 
       /* =====================
          6. FAQ
@@ -862,13 +913,85 @@
         font-size: 15px;
         font-weight: 500;
         color: var(--slate-900);
-        margin: 0 0 0.6rem;
+        margin: 0;
+        cursor: pointer;
+        list-style: none;
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+      }
+      .faq-q::-webkit-details-marker {
+        display: none;
+      }
+      .faq-q::after {
+        content: "+";
+        font-size: 18px;
+        color: var(--teal-600);
+        flex-shrink: 0;
+        transition: transform 0.15s ease;
+      }
+      .faq-item[open] .faq-q::after {
+        transform: rotate(45deg);
       }
       .faq-a {
         font-size: 14px;
         color: var(--slate-500);
         line-height: 1.65;
-        margin: 0;
+        margin: 0.6rem 0 0;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .faq-q::after {
+          transition: none;
+        }
+      }
+
+      .pricing-sticky-cta {
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: #fff;
+        border-top: 1px solid var(--slate-200);
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+        padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+        z-index: 120;
+        transition: transform 0.2s ease;
+      }
+      .pricing-sticky-cta[aria-hidden="true"] {
+        transform: translateY(110%);
+        visibility: hidden;
+      }
+      .pricing-sticky-inner {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        max-width: 560px;
+        margin: 0 auto;
+      }
+      .pricing-sticky-label {
+        flex: 1;
+        font-size: 13px;
+        line-height: 1.3;
+        color: var(--slate-700);
+      }
+      .pricing-sticky-cta .p-btn {
+        display: inline-block;
+        width: auto;
+        margin-bottom: 0;
+        padding: 0.65rem 1.2rem;
+        flex-shrink: 0;
+      }
+      @media (min-width: 768px) {
+        .pricing-sticky-cta {
+          display: none;
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .pricing-sticky-cta,
+        .faq-q::after {
+          transition: none;
+        }
       }
 
       /* =====================
@@ -968,6 +1091,17 @@
       }
 
       /* ---- DECISION SUPPORT ---- */
+      .pricing-anchor-note {
+        max-width: 560px;
+        margin: 1.75rem auto 0;
+        text-align: center;
+        font-size: 15px;
+        line-height: 1.6;
+        color: var(--slate-500);
+      }
+      .pricing-anchor-note strong {
+        color: var(--slate-900);
+      }
       .pricing-support-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -1138,19 +1272,69 @@
       <!-- 1. HERO -->
       <section class="pricing-hero" aria-labelledby="heroHeading">
         <div class="pricing-hero-inner">
-          <div>
-            <span class="hero-eyebrow">For California clinicians</span>
+          <div class="pricing-hero-copy">
+            <div>
+              <span class="hero-eyebrow">For California clinicians</span>
+            </div>
+            <h1 id="heroHeading">Know where your <em>next patient</em> came from.</h1>
+            <p class="pricing-hero-sub">
+              Get listed for free. Upgrade when you want clearer insight into how patients find and
+              contact you.
+            </p>
+            <div class="pricing-hero-ctas">
+              <a href="/signup?plan=paid" class="p-btn p-btn--solid" data-pricing-cta="paid"
+                >Start free trial</a
+              >
+              <a href="/signup" class="p-btn p-btn--ghost" data-pricing-cta="free"
+                >Claim free listing</a
+              >
+            </div>
+            <ul class="pricing-hero-pills" aria-label="Pricing highlights">
+              <li>License-verified instantly</li>
+              <li>Ranked by fit, not payment</li>
+              <li>14-day free trial · cancel anytime</li>
+            </ul>
           </div>
-          <h1 id="heroHeading">Know where your <em>next patient</em> came from.</h1>
-          <p class="pricing-hero-sub">
-            Get listed for free. Upgrade when you want clearer insight into how patients find and
-            contact you.
-          </p>
-          <ul class="pricing-hero-pills" aria-label="Pricing highlights">
-            <li>License-verified instantly</li>
-            <li>Ranked by fit, not payment</li>
-            <li>14-day free trial · cancel anytime</li>
-          </ul>
+          <div class="pricing-hero-visual" aria-hidden="true">
+            <div class="dash-mockup dash-mockup--hero">
+              <div class="dash-topbar">
+                <div class="dash-dots">
+                  <span></span>
+                  <span></span>
+                </div>
+                <span class="dash-topbar-title">Your visibility dashboard</span>
+              </div>
+              <div class="dash-body">
+                <div class="dash-stats">
+                  <div class="dash-stat">
+                    <span class="dash-stat-n">47</span>
+                    <span class="dash-stat-label">Profile views</span>
+                  </div>
+                  <div class="dash-stat">
+                    <span class="dash-stat-n">12</span>
+                    <span class="dash-stat-label">Contact clicks</span>
+                  </div>
+                  <div class="dash-stat">
+                    <span class="dash-stat-n is-up">↑8%</span>
+                    <span class="dash-stat-label">vs last week</span>
+                  </div>
+                </div>
+                <div>
+                  <div class="dash-chart-label">Views, last 8 weeks</div>
+                  <div class="dash-bars">
+                    <div class="dash-bar" style="height: 34%"></div>
+                    <div class="dash-bar" style="height: 42%"></div>
+                    <div class="dash-bar" style="height: 38%"></div>
+                    <div class="dash-bar" style="height: 56%"></div>
+                    <div class="dash-bar" style="height: 48%"></div>
+                    <div class="dash-bar" style="height: 63%"></div>
+                    <div class="dash-bar" style="height: 71%"></div>
+                    <div class="dash-bar last" style="height: 86%"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -1243,10 +1427,38 @@
                   </span>
                   Claim &amp; manage your listing from the dashboard
                 </li>
+                <li>
+                  <span class="check-icon check-icon--free" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#2492a8"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Edit your bio, photo &amp; specialties anytime
+                </li>
+                <li>
+                  <span class="check-icon check-icon--free" aria-hidden="true">
+                    <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                      <path
+                        d="M1 4l2.5 2.5L9 1"
+                        stroke="#2492a8"
+                        stroke-width="1.5"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      />
+                    </svg>
+                  </span>
+                  Choose how patients reach you: phone, email or booking link
+                </li>
               </ul>
             </div>
             <div class="p-card-footer">
-              <a href="/signup" class="p-btn p-btn--ghost" id="pricingFreeCta"
+              <a href="/signup" class="p-btn p-btn--ghost" data-pricing-cta="free"
                 >Claim free listing</a
               >
               <p class="p-card-status" id="pricingFreeState" hidden></p>
@@ -1270,9 +1482,9 @@
               <p class="p-card-roi">
                 Less than <strong>$0.65/day</strong>. One new client pays for the year.
               </p>
-              <!-- prettier-ignore -->
-              <p class="p-card-note" id="price-note">Start with 14 days free. Card required to start. No charge until day 15. We email you 3 days before your first charge. Cancel anytime from your dashboard
-              before billing begins.</p>
+              <p class="p-card-trial-note" id="price-note">
+                14 days free · card required · no charge until day 15 · cancel from your dashboard
+              </p>
             </div>
             <div class="p-card-body">
               <p class="p-card-desc">
@@ -1367,7 +1579,7 @@
               </ul>
             </div>
             <div class="p-card-footer">
-              <a href="/signup?plan=paid" class="p-btn p-btn--solid" id="pricingPaidCta"
+              <a href="/signup?plan=paid" class="p-btn p-btn--solid" data-pricing-cta="paid"
                 >Start free trial</a
               >
               <p class="p-card-status" id="pricingPaidState" hidden></p>
@@ -1378,6 +1590,11 @@
             </div>
           </article>
         </div>
+
+        <p class="pricing-anchor-note">
+          Most therapy directories charge $30 or more a month just to list you. Here the listing is
+          free. $19 only adds the analytics.
+        </p>
 
         <!-- Decision support -->
         <div class="pricing-support-grid" aria-label="Help choosing a plan">
@@ -1548,32 +1765,32 @@
               </tr>
               <tr>
                 <td>Weekly profile views &amp; contact clicks</td>
-                <td class="val no">–</td>
+                <td class="val no">✗</td>
                 <td class="val yes">✓</td>
               </tr>
               <tr>
                 <td>Patient source breakdown</td>
-                <td class="val no">–</td>
+                <td class="val no">✗</td>
                 <td class="val yes">✓</td>
               </tr>
               <tr>
                 <td>Contact path tracking (phone / email / booking)</td>
-                <td class="val no">–</td>
+                <td class="val no">✗</td>
                 <td class="val yes">✓</td>
               </tr>
               <tr>
                 <td>12-week trend charts</td>
-                <td class="val no">–</td>
+                <td class="val no">✗</td>
                 <td class="val yes">✓</td>
               </tr>
               <tr>
                 <td>Weekly Monday digest email</td>
-                <td class="val no">–</td>
+                <td class="val no">✗</td>
                 <td class="val yes">✓</td>
               </tr>
               <tr>
                 <td>30-day history after downgrade</td>
-                <td class="val no">–</td>
+                <td class="val no">✗</td>
                 <td class="val yes">✓</td>
               </tr>
               <tr class="group-row">
@@ -1625,60 +1842,62 @@
           <h2 class="section-title" id="faqHeading">FAQ</h2>
         </div>
         <div class="faq-list">
-          <div class="faq-item">
-            <p class="faq-q">Can I upgrade or downgrade later?</p>
+          <details class="faq-item">
+            <summary class="faq-q">Can I upgrade or downgrade later?</summary>
             <p class="faq-a">
               Yes. Upgrade in one click from your dashboard whenever you want. Your free listing
               stays exactly as it is. Downgrade anytime and your listing keeps running, no
               interruption.
             </p>
-          </div>
-          <div class="faq-item">
-            <p class="faq-q">What if I'm just starting out and don't have many inquiries yet?</p>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-q">
+              What if I'm just starting out and don't have many inquiries yet?
+            </summary>
             <p class="faq-a">
               Start free. Once patients begin finding you, the dashboard tells you which channels
               are working so you can lean into them. Most clinicians upgrade after their first few
               inquiries, when there's something real to learn from.
             </p>
-          </div>
-          <div class="faq-item">
-            <p class="faq-q">Does paying improve my ranking?</p>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-q">Does paying improve my ranking?</summary>
             <p class="faq-a">
               No. Match results are ranked by fit: bipolar experience, insurance, availability, and
               location. Free and Insights subscribers are evaluated by the same rules. Insights adds
               visibility, not placement advantage.
             </p>
-          </div>
-          <div class="faq-item">
-            <p class="faq-q">How does the 14-day free trial work?</p>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-q">How does the 14-day free trial work?</summary>
             <p class="faq-a">
               A card is required to start, but nothing is charged until day 15. We'll email you 3
               days before your first charge so it never sneaks up on you. Cancel any time before
               from your dashboard, no email needed, and you'll never be billed.
             </p>
-          </div>
-          <div class="faq-item">
-            <p class="faq-q">What happens when I cancel?</p>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-q">What happens when I cancel?</summary>
             <p class="faq-a">
               Your free listing stays live immediately. You keep access to your analytics history
               for 30 days after downgrading. Nothing about your public profile changes.
             </p>
-          </div>
-          <div class="faq-item">
-            <p class="faq-q">Is patient data included in the analytics?</p>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-q">Is patient data included in the analytics?</summary>
             <p class="faq-a">
               No. All data is aggregated. Just activity counts and source breakdowns. No patient
               names, contact details, or identities are ever included.
             </p>
-          </div>
-          <div class="faq-item">
-            <p class="faq-q">What do I need to get listed?</p>
+          </details>
+          <details class="faq-item">
+            <summary class="faq-q">What do I need to get listed?</summary>
             <p class="faq-a">
               A valid California therapy license. We verify it instantly against the CA Board of
               Behavioral Sciences, Board of Psychology, and Medical Board of California. Most
               clinicians finish in under two minutes. No card needed for the free tier.
             </p>
-          </div>
+          </details>
         </div>
       </section>
 
@@ -1715,6 +1934,15 @@
           </div>
         </div>
       </section>
+
+      <div class="pricing-sticky-cta" data-pricing-sticky aria-hidden="true">
+        <div class="pricing-sticky-inner">
+          <span class="pricing-sticky-label">Insights · 14 days free, then $19/mo</span>
+          <a href="/signup?plan=paid" class="p-btn p-btn--solid" data-pricing-cta="paid"
+            >Start free trial</a
+          >
+        </div>
+      </div>
     </main>
 
     <script type="module" src="assets/nav.js"></script>
