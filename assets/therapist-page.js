@@ -557,7 +557,7 @@ function applyTherapistSeo(t) {
   upsertLinkRel("canonical", canonicalUrl);
 
   // Open Graph + Twitter
-  upsertMeta("property", "og:type", "profile");
+  upsertMeta("property", "og:type", "website");
   upsertMeta("property", "og:site_name", "BipolarTherapyHub");
   upsertMeta("property", "og:url", canonicalUrl);
   upsertMeta("property", "og:title", seoTitle);

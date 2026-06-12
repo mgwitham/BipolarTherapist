@@ -588,7 +588,7 @@ export function buildHeadTags(therapist) {
     `<title>${escapeHtml(title)}</title>`,
     `<meta name="description" content="${escapeAttribute(description)}" />`,
     `<link rel="canonical" href="${escapeAttribute(canonicalUrl)}" />`,
-    `<meta property="og:type" content="profile" />`,
+    `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="BipolarTherapyHub" />`,
     `<meta property="og:url" content="${escapeAttribute(canonicalUrl)}" />`,
     `<meta property="og:title" content="${escapeAttribute(buildTitle(therapist))}" />`,
