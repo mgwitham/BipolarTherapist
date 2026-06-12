@@ -442,7 +442,7 @@ export function openCandidateEditDrawer(candidate, onSaved) {
   // Availability
   setVal("editAcceptsTelehealth", candidate.accepts_telehealth !== false);
   setVal("editAcceptsInPerson", candidate.accepts_in_person !== false);
-  setVal("editAcceptingNewPatients", candidate.accepting_new_patients);
+  setVal("editAcceptingNewPatients", candidate.accepting_new_patients !== false);
   setVal("editSlidingScale", candidate.sliding_scale);
   setVal("editSessionFeeMin", candidate.session_fee_min);
   setVal("editSessionFeeMax", candidate.session_fee_max);
@@ -544,7 +544,10 @@ export function openTherapistEditDrawer(therapist, onSaved, options) {
   // Availability
   setVal("editAcceptsTelehealth", read("accepts_telehealth", "acceptsTelehealth") !== false);
   setVal("editAcceptsInPerson", read("accepts_in_person", "acceptsInPerson") !== false);
-  setVal("editAcceptingNewPatients", read("accepting_new_patients", "acceptingNewPatients"));
+  setVal(
+    "editAcceptingNewPatients",
+    read("accepting_new_patients", "acceptingNewPatients") !== false,
+  );
   setVal("editSlidingScale", read("sliding_scale", "slidingScale"));
   setVal("editSessionFeeMin", read("session_fee_min", "sessionFeeMin"));
   setVal("editSessionFeeMax", read("session_fee_max", "sessionFeeMax"));
