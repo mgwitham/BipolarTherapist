@@ -42,6 +42,12 @@ export const PROFILE_GAP_SUBJECT = "BipolarTherapyHub | Complete Your Profile";
 // catch" that stalls a claim after three touches.
 export const REASSURANCE_SUBJECT = "BipolarTherapyHub | No catch, two minutes";
 
+// Economic-argument angle. Standalone subject (not threaded). The pitch
+// is pure ROI: other directories charge monthly for placement, this one
+// sends the same patient demand for free, so claiming is the cheapest
+// client acquisition a therapist can do this week.
+export const FREE_LEADS_SUBJECT = "BipolarTherapyHub | Free client referrals";
+
 // Single-ask "add your photo" reach-out. Standalone subject (not
 // threaded) — it's a focused, one-thing email, so it earns its own inbox
 // entry. Sharper than profile_gap, which bundles photo + experience; this
@@ -154,6 +160,32 @@ export function buildAddPhotoBody({ name, profileUrl }) {
   ].join("\n");
 }
 
+// Economic-argument angle: frames the listing as free lead generation.
+// Names the cost of the alternatives (paid directories, ad spend), then
+// makes the math concrete in one beat: one new client pays for years of
+// what other channels charge, and this channel charges nothing. Keeps
+// the standard opt-out close so the ask never reads as a trap.
+export function buildFreeLeadsBody({ name, profileUrl }) {
+  const first = firstName(name);
+  const url = profileUrl || "";
+  return [
+    `Hi ${first},`,
+    "",
+    "Quick one, and it's about money.",
+    "",
+    "Most directories charge $30 or more a month to put you in front of new clients. BipolarTherapyHub does the same job for free. Patients searching for a bipolar specialist in California find your listing and reach out to you directly. No fee, no commission, no charge per referral.",
+    "",
+    "One new client covers what other directories bill in a year. Here the math is simpler: claiming your profile costs nothing and takes two minutes.",
+    "",
+    url,
+    "",
+    "You write every word, and one reply unlists you any time.",
+    "",
+    "Michael Witham",
+    "bipolartherapyhub.com",
+  ].join("\n");
+}
+
 // Convenience for the client composer: returns the { subject, body }
 // pair for a given template. Server consumers use INITIAL_SUBJECT and
 // buildOutreachBody directly because they wrap them in their own
@@ -176,6 +208,12 @@ export function getOutreachTemplate(template, { name, profileUrl }) {
     return {
       subject: REASSURANCE_SUBJECT,
       body: buildReassuranceBody({ name, profileUrl: refUrl }),
+    };
+  }
+  if (template === "free_leads") {
+    return {
+      subject: FREE_LEADS_SUBJECT,
+      body: buildFreeLeadsBody({ name, profileUrl: refUrl }),
     };
   }
   const body = buildOutreachBody({ name, profileUrl: refUrl });

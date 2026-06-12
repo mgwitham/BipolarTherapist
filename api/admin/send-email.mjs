@@ -3,10 +3,12 @@ import { verifyAdminSession } from "../_adminAuth.mjs";
 import { getRateLimiter } from "../../server/rate-limit-store.mjs";
 import {
   ADD_PHOTO_SUBJECT,
+  FREE_LEADS_SUBJECT,
   INITIAL_SUBJECT,
   PROFILE_GAP_SUBJECT,
   REASSURANCE_SUBJECT,
   buildAddPhotoBody,
+  buildFreeLeadsBody,
   buildOutreachBody,
   buildProfileGapBody,
   buildReassuranceBody,
@@ -76,6 +78,7 @@ const VALID_TEMPLATES = new Set([
   "profile_gap",
   "add_photo",
   "reassurance",
+  "free_leads",
 ]);
 
 // Fallback copy used when the composer ships a blank subject/body
@@ -102,6 +105,12 @@ function buildSharedAddPhotoBody(t) {
 }
 function buildSharedReassuranceBody(t) {
   return buildReassuranceBody({
+    name: t.name,
+    profileUrl: withOutreachRef(t.profileUrl || ""),
+  });
+}
+function buildSharedFreeLeadsBody(t) {
+  return buildFreeLeadsBody({
     name: t.name,
     profileUrl: withOutreachRef(t.profileUrl || ""),
   });
@@ -147,6 +156,15 @@ const TEMPLATES = {
     text: (t) => buildSharedReassuranceBody(t),
     html: (t) => plainTextToHtml(buildSharedReassuranceBody(t)),
     nextStatus: "reassurance_sent",
+  },
+  free_leads: {
+    // Economic-argument angle: positions the listing as free lead
+    // generation versus the monthly fees of paid directories. Fresh,
+    // non-threaded subject so it earns its own inbox entry.
+    subject: () => FREE_LEADS_SUBJECT,
+    text: (t) => buildSharedFreeLeadsBody(t),
+    html: (t) => plainTextToHtml(buildSharedFreeLeadsBody(t)),
+    nextStatus: "free_leads_sent",
   },
 };
 
