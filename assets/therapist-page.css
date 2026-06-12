@@ -2549,3 +2549,44 @@ img.bth-avatar {
     transform: none;
   }
 }
+
+/* No-handler contact fallback toast. Shown when a mailto:/tel: click
+   went nowhere (no email or call app on the device); sits above the
+   mobile sticky CTA bar (z-index 50) and the pill popovers (1000). */
+.profile-cta-toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%) translateY(8px);
+  max-width: min(480px, calc(100vw - 32px));
+  padding: 0.8rem 1.1rem;
+  background: #1f2937;
+  color: #ffffff;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+  z-index: 1100;
+  overflow-wrap: anywhere;
+}
+.profile-cta-toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  .profile-cta-toast {
+    transition: none;
+  }
+}
+@media (max-width: 767px) {
+  /* Clear the mobile sticky CTA bar (hidden from 768px up) so the
+     toast never covers the buttons the user is about to retry. */
+  .profile-cta-toast {
+    bottom: calc(92px + env(safe-area-inset-bottom, 0px));
+  }
+}

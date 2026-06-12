@@ -196,6 +196,46 @@ function normalizeTelUri(phone) {
   return String(phone || "").replace(/[^0-9+]/g, "");
 }
 
+// Pull the human-usable address/number back out of a mailto: or tel:
+// href so the no-handler fallback can copy it to the clipboard. Strips
+// any ?subject= query on mailto and returns "" for other schemes.
+function contactValueFromHref(href) {
+  const raw = String(href || "");
+  if (/^mailto:/i.test(raw)) {
+    const address = raw.replace(/^mailto:/i, "").split("?")[0];
+    try {
+      return decodeURIComponent(address);
+    } catch (_error) {
+      return address;
+    }
+  }
+  if (/^tel:/i.test(raw)) {
+    return raw.replace(/^tel:/i, "");
+  }
+  return "";
+}
+
+// Bottom-center status toast for the contact-CTA fallback. One shared
+// element, re-used across clicks; role="status" so screen readers
+// announce it without stealing focus. Auto-hides after a beat long
+// enough to read an email address.
+function showContactFallbackToast(message) {
+  let toast = document.querySelector("[data-contact-fallback-toast]");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.className = "profile-cta-toast";
+    toast.setAttribute("data-contact-fallback-toast", "");
+    toast.setAttribute("role", "status");
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  toast.classList.add("is-visible");
+  window.clearTimeout(showContactFallbackToast.hideTimer);
+  showContactFallbackToast.hideTimer = window.setTimeout(function () {
+    toast.classList.remove("is-visible");
+  }, 8000);
+}
+
 function safeExternalUrl(value) {
   const raw = String(value || "").trim();
   if (!raw) {
@@ -3059,6 +3099,53 @@ function renderProfile(t, therapistDirectory) {
           priority: link.getAttribute("data-profile-contact-priority") || "unknown",
           ...getContactAnalyticsMeta(t, route),
         });
+        // mailto: and tel: only navigate when the device has a handler
+        // app configured. A desktop with email living in a Gmail browser
+        // tab has none, so the click silently does nothing (reported
+        // 2026-06-11 as "the primary CTA is dead"). Copy the address up
+        // front, and if the page never lost focus shortly after the
+        // click (nothing opened), tell the user it is on the clipboard.
+        if (route === "email" || route === "phone") {
+          const contactValue = contactValueFromHref(link.getAttribute("href") || "");
+          if (!contactValue) return;
+          let copied = false;
+          if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(contactValue).then(
+              function () {
+                copied = true;
+              },
+              function () {},
+            );
+          }
+          let handlerOpened = false;
+          function markHandled() {
+            handlerOpened = true;
+          }
+          window.addEventListener("blur", markHandled);
+          document.addEventListener("visibilitychange", markHandled);
+          window.setTimeout(function () {
+            window.removeEventListener("blur", markHandled);
+            document.removeEventListener("visibilitychange", markHandled);
+            if (handlerOpened || document.visibilityState === "hidden") return;
+            showContactFallbackToast(
+              route === "email"
+                ? copied
+                  ? "No email app opened, so we copied " +
+                    contactValue +
+                    " for you. Paste it into any email."
+                  : "No email app opened. You can write to " + contactValue + "."
+                : copied
+                  ? "No call app opened, so we copied " +
+                    contactValue +
+                    " for you. Dial it from your phone."
+                  : "No call app opened. You can dial " + contactValue + ".",
+            );
+            trackFunnelEvent("profile_contact_fallback_shown", {
+              copied: copied,
+              ...getContactAnalyticsMeta(t, route),
+            });
+          }, 1400);
+        }
       });
     });
   document.querySelectorAll("[data-copy-email]").forEach(function (link) {
