@@ -150,7 +150,7 @@ function applyLoggedOutState() {
   updateCtaLinks(
     freeCtas,
     slugParam ? "Claim free listing" : "List your practice",
-    buildClaimHref(),
+    slugParam ? buildClaimHref() : buildSignupHref(),
   );
   updateCtaLinks(
     paidCtas,
