@@ -1,6 +1,7 @@
 import { createClient } from "@sanity/client";
 import { verifyAdminSession } from "../_adminAuth.mjs";
 import { getRateLimiter } from "../../server/rate-limit-store.mjs";
+import { getSuppressionEntry } from "../../server/outreach-suppression.mjs";
 import {
   ADD_PHOTO_SUBJECT,
   FREE_LEADS_SUBJECT,
@@ -363,6 +364,35 @@ export default async function handler(req, res) {
   if (!sendToSelf && !therapist.email) {
     res.status(400).json({ error: "Therapist has no email address on file" });
     return;
+  }
+
+  // Permanent opt-out guard. data/suppression.json records addresses that
+  // asked us to stop (e.g. replied STOP); a match hard-blocks the send and
+  // `force` does NOT override it — only removing the entry from the list
+  // can. Matching is on the lowercased, trimmed address so casing or
+  // whitespace drift can't slip a suppressed contact back in. Also honors
+  // outreach.status === "opted_out" (set by the Resend complaint webhook
+  // or manually after a STOP reply). Fails closed: if the list can't be
+  // read, no outreach goes out. Test sends (sendToSelf) skip the guard —
+  // they only ever hit the founder's own inbox, never the therapist.
+  if (!sendToSelf) {
+    let suppressionEntry;
+    try {
+      suppressionEntry = getSuppressionEntry(therapist.email);
+    } catch (err) {
+      console.error("suppression list error:", err?.message || String(err));
+      res.status(500).json({ error: "Suppression list could not be read; send blocked." });
+      return;
+    }
+    if (suppressionEntry || therapist.outreach?.status === "opted_out") {
+      res.status(403).json({
+        error: "suppressed",
+        message: suppressionEntry
+          ? `This address is permanently suppressed (${suppressionEntry.reason || "opted out"}${suppressionEntry.date ? `, ${suppressionEntry.date}` : ""}). Send blocked.`
+          : "This therapist's outreach status is opted_out. Send blocked.",
+      });
+      return;
+    }
   }
 
   // Duplicate-send guard. On 2026-05-15 two batch waves overlapped and
