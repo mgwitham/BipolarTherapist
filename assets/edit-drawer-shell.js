@@ -268,6 +268,16 @@ const EDIT_DRAWER_HTML = `
               Set to Hidden to take a profile down without changing its lifecycle stage.
             </div>
           </div>
+          <div class="edit-field">
+            <label for="editVerificationStatus">Verification</label>
+            <select id="editVerificationStatus">
+              <option value="under_review">Under review</option>
+              <option value="editorially_verified">Editorially verified</option>
+            </select>
+            <div class="edit-hint">
+              Editorially verified earns the directory ranking boost. Grant it after a human has checked the profile against its source.
+            </div>
+          </div>
         </div>
 
         <div class="edit-section-title">Internal notes</div>

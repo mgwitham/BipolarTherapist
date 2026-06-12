@@ -20,6 +20,7 @@ const AUDIT_TRACKED_FIELDS = [
   "email",
   "phone",
   "licenseNumber",
+  "verificationStatus",
 ];
 
 function shouldBeListingActive(lifecycle, visibilityIntent) {
@@ -149,6 +150,16 @@ export async function handleOpsRoutes(context) {
     }
     if (typeof body.visibilityIntent === "string" && allowedVisibility.has(body.visibilityIntent)) {
       patchFields.visibilityIntent = body.visibilityIntent;
+    }
+
+    // Overall trust badge. Mirrors the closed enum in the Studio schema;
+    // ranking (directory) and the public "verified" treatment read this.
+    const allowedVerification = new Set(["under_review", "editorially_verified"]);
+    if (
+      typeof body.verificationStatus === "string" &&
+      allowedVerification.has(body.verificationStatus)
+    ) {
+      patchFields.verificationStatus = body.verificationStatus;
     }
 
     if (Object.keys(patchFields).length === 0) {

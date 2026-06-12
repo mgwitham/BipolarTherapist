@@ -568,9 +568,13 @@ export function openTherapistEditDrawer(therapist, onSaved, options) {
   // Headshot status (read-only)
   setHeadshotStatus(therapist);
 
-  // Lifecycle / visibility
+  // Lifecycle / visibility / verification
   setVal("editLifecycle", read("lifecycle", "lifecycle") || "draft");
   setVal("editVisibilityIntent", read("visibility_intent", "visibilityIntent") || "listed");
+  setVal(
+    "editVerificationStatus",
+    read("verification_status", "verificationStatus") || "under_review",
+  );
 
   // Profile
   setRadio("editGender", read("gender", "gender") || "");
@@ -759,6 +763,7 @@ export function bindCandidateEditDrawer() {
           notes: getVal("editNotes"),
           lifecycle,
           visibilityIntent,
+          verificationStatus: getVal("editVerificationStatus") || undefined,
         };
         if (reason) updates.reason = reason;
         Object.keys(updates).forEach(function (k) {
