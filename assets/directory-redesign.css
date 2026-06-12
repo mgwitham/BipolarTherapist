@@ -109,9 +109,10 @@ body.dir-vb {
     transform 0.15s ease;
 }
 .dir-card:hover {
+  /* Shadow-only lift: hover transforms flicker the cursor at card edges
+     (see .match-card:hover in match-page.css). */
   border-color: #b8dde8;
   box-shadow: 0 2px 14px rgba(28, 77, 92, 0.08);
-  transform: translateY(-1px);
 }
 
 /* Save (bookmark) button — top right */
@@ -275,7 +276,6 @@ body.dir-vb {
 }
 .dir-card-cta:hover {
   background: #1c4d5c;
-  transform: translateY(-1px);
 }
 .dir-card-cta:focus-visible {
   outline: 2px solid #6dbdd4;

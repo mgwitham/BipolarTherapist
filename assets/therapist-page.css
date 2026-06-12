@@ -638,7 +638,6 @@ body {
 }
 .btn-contact:hover {
   background: var(--teal-dark);
-  transform: translateY(-1px);
 }
 /* Brief post-tap state on any contact CTA: dims the control and blocks a
    second tap while the first click's navigation kicks in, so slow-network
@@ -1632,7 +1631,6 @@ img.bth-avatar {
 .report-issue-btn-primary:focus-visible {
   background: var(--teal-dark);
   border-color: var(--teal-dark);
-  transform: translateY(-1px);
   outline: none;
 }
 
@@ -2407,7 +2405,6 @@ img.bth-avatar {
 }
 .profile-side-primary:hover {
   background: #c44e2c;
-  transform: translateY(-1px);
 }
 .profile-side-primary i {
   font-size: 17px;

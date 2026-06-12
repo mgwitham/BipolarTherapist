@@ -191,7 +191,9 @@ a {
 }
 
 .featured-card:hover {
-  transform: translateY(-2px);
+  /* Lift via shadow only — translating the card moved its edges out from
+     under the cursor, re-triggering hover in a loop and flickering the
+     cursor. Same fix as .match-card:hover in match-page.css. */
   border-color: var(--teal-500);
   box-shadow: 0 8px 24px -12px rgba(28, 77, 92, 0.25);
 }
@@ -457,7 +459,6 @@ a {
 
 .card-cta-primary:hover {
   background: var(--teal-900);
-  transform: translateY(-1px);
 }
 
 .card-cta-primary .ti {
@@ -546,7 +547,6 @@ a {
 }
 
 .grid-card:hover {
-  transform: translateY(-2px);
   border-color: var(--teal-300);
   box-shadow: 0 6px 18px -10px rgba(28, 77, 92, 0.2);
 }
@@ -595,7 +595,6 @@ a {
 
 .card-cta-grid:hover {
   background: var(--teal-700);
-  transform: translateY(-1px);
 }
 
 .card-cta-grid .ti {
