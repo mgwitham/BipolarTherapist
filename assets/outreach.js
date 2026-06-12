@@ -136,6 +136,8 @@ const STATUS_LABELS = {
   followed_up: "Followed up",
   profile_gap_sent: "Profile gap sent",
   add_photo_sent: "Photo request sent",
+  reassurance_sent: "Reassurance sent",
+  free_leads_sent: "Free leads sent",
   replied: "Replied",
   bounced: "Bounced",
   claimed: "Claimed",
@@ -149,6 +151,8 @@ const STATUS_STYLES = {
   followed_up: "background:#fffbeb;color:#b45309;border:1px solid #fcd34d;",
   profile_gap_sent: "background:#fdf4ff;color:#86198f;border:1px solid #f0abfc;",
   add_photo_sent: "background:#f0f9ff;color:#0369a1;border:1px solid #bae6fd;",
+  reassurance_sent: "background:#fff7ed;color:#9a3412;border:1px solid #fed7aa;",
+  free_leads_sent: "background:#f7fee7;color:#3f6212;border:1px solid #d9f99d;",
   replied: "background:#f5f3ff;color:#5b21b6;border:1px solid #c4b5fd;",
   bounced:
     "background:#f3f4f6;color:#374151;border:1px solid #9ca3af;text-decoration:line-through;",
@@ -364,6 +368,8 @@ const STATUS_ORDER = [
   "followed_up",
   "profile_gap_sent",
   "add_photo_sent",
+  "reassurance_sent",
+  "free_leads_sent",
   "replied",
   "claimed",
   "paid",
@@ -406,6 +412,8 @@ function computeStats(list) {
       "followed_up",
       "profile_gap_sent",
       "add_photo_sent",
+      "reassurance_sent",
+      "free_leads_sent",
       "replied",
       "claimed",
       "paid",
@@ -1130,6 +1138,7 @@ function nextStatusForTemplate(template) {
   if (template === "profile_gap") return "profile_gap_sent";
   if (template === "add_photo") return "add_photo_sent";
   if (template === "reassurance") return "reassurance_sent";
+  if (template === "free_leads") return "free_leads_sent";
   return "followed_up";
 }
 
@@ -1194,6 +1203,7 @@ function openBatchComposer() {
           <option value="profile_gap">Profile gap (photo + experience)</option>
           <option value="add_photo">Add a photo</option>
           <option value="reassurance">Reassurance (no catch)</option>
+          <option value="free_leads">Free leads (economic case)</option>
         </select>
 
         <div id="batch-dupe-warning" style="display:none;margin-bottom:12px;"></div>
@@ -1573,7 +1583,9 @@ function refreshTable() {
           : s === "email_1_sent" ||
               s === "followed_up" ||
               s === "profile_gap_sent" ||
-              s === "add_photo_sent"
+              s === "add_photo_sent" ||
+              s === "reassurance_sent" ||
+              s === "free_leads_sent"
             ? channel === "email"
               ? "Send follow-up"
               : "Open form follow-up"
@@ -1841,6 +1853,8 @@ function renderPanelContent(t) {
     "followed_up",
     "profile_gap_sent",
     "add_photo_sent",
+    "reassurance_sent",
+    "free_leads_sent",
   ].includes(status);
 
   return `
@@ -1933,7 +1947,11 @@ function renderPanelContent(t) {
                       ? "Profile gap"
                       : e.template === "add_photo"
                         ? "Add a photo"
-                        : "Follow-up"
+                        : e.template === "reassurance"
+                          ? "Reassurance"
+                          : e.template === "free_leads"
+                            ? "Free leads"
+                            : "Follow-up"
                 }${isFormSend ? " (contact form)" : ""}</div>
                 <div style="color:#6b7280;font-size:12px;margin-top:2px;">${esc(e.subject)}</div>
                 <div style="color:#9ca3af;font-size:12px;margin-top:2px;">${e.sentAt ? new Date(e.sentAt).toLocaleString() : "-"}${e.campaign ? ` · campaign: ${esc(e.campaign)}` : ""}</div>
@@ -2012,6 +2030,7 @@ function gmailComposerHtml(t, defaultTemplate, mode) {
       <option value="profile_gap" ${defaultTemplate === "profile_gap" ? "selected" : ""}>Profile gap (photo + experience)</option>
       <option value="add_photo" ${defaultTemplate === "add_photo" ? "selected" : ""}>Add a photo</option>
       <option value="reassurance" ${defaultTemplate === "reassurance" ? "selected" : ""}>Reassurance (no catch)</option>
+      <option value="free_leads" ${defaultTemplate === "free_leads" ? "selected" : ""}>Free leads (economic case)</option>
     </select>
   `;
 
