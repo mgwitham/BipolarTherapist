@@ -30,11 +30,19 @@ test("pricing page: free and paid CTA labels are parallel and easy to compare", 
   assert.doesNotMatch(pricingHtml, />\s*Claim your profile\s*</);
 });
 
-test("pricing page: paid card keeps trial and billing clarity next to the CTA", () => {
-  assert.match(pricingHtml, /Start with 14 days free\./);
-  assert.match(pricingHtml, /Card required to start\./);
-  assert.match(pricingHtml, /No charge until day 15\./);
-  assert.match(pricingHtml, /Cancel anytime from your dashboard\s+before billing begins\./);
+test("pricing page: paid card keeps trial and billing clarity next to the price", () => {
+  assert.match(
+    pricingHtml,
+    /14 days free · card required · no charge until day 15 · cancel from your dashboard/,
+  );
+});
+
+test("pricing page: hero sells and shows — CTAs, product preview, sticky bar, anchor line", () => {
+  assert.match(pricingHtml, /pricing-hero-ctas/);
+  assert.match(pricingHtml, /dash-mockup--hero/);
+  assert.match(pricingHtml, /pricing-sticky-cta/);
+  assert.match(pricingHtml, /pricing-anchor-note/);
+  assert.match(pricingHtml, /<details class="faq-item">/);
 });
 
 test("pricing page: fairness and fit-based ranking remain explicit", () => {
@@ -100,18 +108,31 @@ test("pricing page: markup carries every hook pricing.js queries", () => {
   for (const id of idHooks) {
     assert.match(pricingHtml, new RegExp(`id="${id}"`), `pricing.html is missing id="${id}"`);
   }
-  const selectorHooks = [...pricingJs.matchAll(/querySelector\((?:"([^"]+)"|'([^']+)')\)/g)].map(
-    (m) => m[1] || m[2],
-  );
-  assert.ok(selectorHooks.length >= 2, "expected pricing.js to query the plan-card markers");
+  const selectorHooks = [
+    ...pricingJs.matchAll(/querySelector(?:All)?\((?:"([^"]+)"|'([^']+)')\)/g),
+  ].map((m) => m[1] || m[2]);
+  assert.ok(selectorHooks.length >= 4, "expected pricing.js to query several selector hooks");
   for (const selector of selectorHooks) {
-    const attrMatch = selector.match(/^\[([a-z-]+)="([^"]+)"\]$/);
-    assert.ok(attrMatch, `unrecognized querySelector shape in pricing.js: ${selector}`);
-    assert.match(
-      pricingHtml,
-      new RegExp(`${attrMatch[1]}="${attrMatch[2]}"`),
-      `pricing.html is missing ${selector}`,
-    );
+    const attrValueMatch = selector.match(/^\[([a-z-]+)="([^"]+)"\]$/);
+    const attrMatch = selector.match(/^\[([a-z-]+)\]$/);
+    const classMatch = selector.match(/^\.([a-z-]+)$/);
+    if (attrValueMatch) {
+      assert.match(
+        pricingHtml,
+        new RegExp(`${attrValueMatch[1]}="${attrValueMatch[2]}"`),
+        `pricing.html is missing ${selector}`,
+      );
+    } else if (attrMatch) {
+      assert.match(pricingHtml, new RegExp(attrMatch[1]), `pricing.html is missing ${selector}`);
+    } else if (classMatch) {
+      assert.match(
+        pricingHtml,
+        new RegExp(`class="[^"]*\\b${classMatch[1]}\\b`),
+        `pricing.html is missing ${selector}`,
+      );
+    } else {
+      assert.fail(`unrecognized querySelector shape in pricing.js: ${selector}`);
+    }
   }
 });
 

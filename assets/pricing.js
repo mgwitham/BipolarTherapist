@@ -21,8 +21,10 @@ const therapistCountEl = document.getElementById("pricingTherapistCount");
 
 const freeCard = document.querySelector('[data-plan-card="free"]');
 const paidCard = document.querySelector('[data-plan-card="paid"]');
-const freeCta = document.getElementById("pricingFreeCta");
-const paidCta = document.getElementById("pricingPaidCta");
+// Hero, plan-card, and mobile-sticky CTAs all carry data-pricing-cta,
+// so one state pass keeps every instance in sync.
+const freeCtas = Array.prototype.slice.call(document.querySelectorAll('[data-pricing-cta="free"]'));
+const paidCtas = Array.prototype.slice.call(document.querySelectorAll('[data-pricing-cta="paid"]'));
 const freeBadge = document.getElementById("pricingFreePlanBadge");
 const paidBadge = document.getElementById("pricingPaidPlanBadge");
 const freeState = document.getElementById("pricingFreeState");
@@ -119,6 +121,18 @@ function updateCtaLink(node, label, href) {
   node.dataset.busy = "false";
 }
 
+function updateCtaLinks(nodes, label, href) {
+  nodes.forEach(function (node) {
+    updateCtaLink(node, label, href);
+  });
+}
+
+function setCtasBusy(nodes, message) {
+  nodes.forEach(function (node) {
+    setCtaBusy(node, message);
+  });
+}
+
 function setCtaBusy(node, message) {
   if (!node) {
     return;
@@ -133,9 +147,9 @@ function applyLoggedOutState() {
   pricingState.freeMode = "claim";
   pricingState.paidMode = slugParam ? "claim" : "signup";
 
-  updateCtaLink(freeCta, "Claim free listing", buildClaimHref());
-  updateCtaLink(
-    paidCta,
+  updateCtaLinks(freeCtas, "Claim free listing", buildClaimHref());
+  updateCtaLinks(
+    paidCtas,
     "Start free trial",
     slugParam ? buildClaimHref() : buildSignupHref("paid"),
   );
@@ -165,8 +179,8 @@ function applySignedInFreeState(me, subscription) {
   pricingState.freeMode = "dashboard";
   pricingState.paidMode = "direct_checkout";
 
-  updateCtaLink(freeCta, "Open dashboard", buildPortalHref(therapistSlug));
-  updateCtaLink(paidCta, "Start free trial", buildPortalHref(therapistSlug));
+  updateCtaLinks(freeCtas, "Open dashboard", buildPortalHref(therapistSlug));
+  updateCtaLinks(paidCtas, "Start free trial", buildPortalHref(therapistSlug));
 
   setPlanText(freeBadge, "Your current plan");
   setPlanText(paidBadge, "");
@@ -189,9 +203,9 @@ function applySignedInPaidState(me, subscription) {
   pricingState.freeMode = "dashboard";
   pricingState.paidMode = "manage_subscription";
 
-  updateCtaLink(freeCta, "Open dashboard", buildPortalHref(therapistSlug));
-  updateCtaLink(
-    paidCta,
+  updateCtaLinks(freeCtas, "Open dashboard", buildPortalHref(therapistSlug));
+  updateCtaLinks(
+    paidCtas,
     isTrial ? "Manage trial" : "Manage subscription",
     buildPortalHref(therapistSlug),
   );
@@ -263,7 +277,7 @@ async function handleDirectCheckout(event) {
   }
 
   const originalLabel = "Start free trial";
-  setCtaBusy(paidCta, "Opening secure checkout...");
+  setCtasBusy(paidCtas, "Opening secure checkout...");
   setFeedback(
     paidFeedback,
     "Starting your 14-day free trial. You'll review billing in secure checkout.",
@@ -294,7 +308,7 @@ async function handleDirectCheckout(event) {
     }
     throw new Error("No checkout URL returned.");
   } catch (error) {
-    updateCtaLink(paidCta, originalLabel, buildPortalHref(therapist.slug));
+    updateCtaLinks(paidCtas, originalLabel, buildPortalHref(therapist.slug));
     setFeedback(
       paidFeedback,
       (error && error.message) ||
@@ -316,7 +330,7 @@ async function handleManageSubscription(event) {
 
   const originalLabel =
     pricingState.branch === "signed_in_trial" ? "Manage trial" : "Manage subscription";
-  setCtaBusy(paidCta, "Opening billing...");
+  setCtasBusy(paidCtas, "Opening billing...");
   setFeedback(paidFeedback, "Opening billing and cancellation controls...", "success");
 
   trackFunnelEvent("pricing_paid_cta_clicked", {
@@ -335,7 +349,7 @@ async function handleManageSubscription(event) {
     }
     throw new Error("No billing portal URL returned.");
   } catch (error) {
-    updateCtaLink(paidCta, originalLabel, buildPortalHref(therapist.slug));
+    updateCtaLinks(paidCtas, originalLabel, buildPortalHref(therapist.slug));
     setFeedback(
       paidFeedback,
       (error && error.message) ||
@@ -393,12 +407,38 @@ async function resolveSignedInState() {
   }
 }
 
-if (freeCta) {
-  freeCta.addEventListener("click", handleFreeCtaClick);
-}
+freeCtas.forEach(function (node) {
+  node.addEventListener("click", handleFreeCtaClick);
+});
 
-if (paidCta) {
-  paidCta.addEventListener("click", handlePaidCtaClick);
+paidCtas.forEach(function (node) {
+  node.addEventListener("click", handlePaidCtaClick);
+});
+
+// Mobile sticky CTA: appears once the hero (which has its own CTAs)
+// scrolls away, and hides again while the bottom CTA banner is in view
+// so the two never stack. Desktop never shows it (display:none in CSS).
+const stickyBar = document.querySelector("[data-pricing-sticky]");
+const heroSection = document.querySelector(".pricing-hero");
+const bannerSection = document.querySelector(".cta-banner");
+if (stickyBar && heroSection && typeof window.IntersectionObserver === "function") {
+  let heroVisible = true;
+  let bannerVisible = false;
+  const stickyObserver = new window.IntersectionObserver(function (entries) {
+    entries.forEach(function (entry) {
+      if (entry.target === heroSection) {
+        heroVisible = entry.isIntersecting;
+      }
+      if (entry.target === bannerSection) {
+        bannerVisible = entry.isIntersecting;
+      }
+    });
+    stickyBar.setAttribute("aria-hidden", heroVisible || bannerVisible ? "true" : "false");
+  });
+  stickyObserver.observe(heroSection);
+  if (bannerSection) {
+    stickyObserver.observe(bannerSection);
+  }
 }
 
 applyLoggedOutState();
