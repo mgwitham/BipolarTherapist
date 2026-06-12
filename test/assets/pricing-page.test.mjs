@@ -24,7 +24,7 @@ test("pricing page: headline and supporting copy explain free vs paid concretely
 });
 
 test("pricing page: free and paid CTA labels are parallel and easy to compare", () => {
-  assert.match(pricingHtml, />\s*Claim free listing\s*</);
+  assert.match(pricingHtml, />\s*List your practice\s*</);
   assert.match(pricingHtml, />\s*Start free trial\s*</);
   assert.doesNotMatch(pricingHtml, />\s*Get started\s*</);
   assert.doesNotMatch(pricingHtml, />\s*Claim your profile\s*</);

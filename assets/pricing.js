@@ -147,7 +147,11 @@ function applyLoggedOutState() {
   pricingState.freeMode = "claim";
   pricingState.paidMode = slugParam ? "claim" : "signup";
 
-  updateCtaLinks(freeCtas, "Claim free listing", buildClaimHref());
+  updateCtaLinks(
+    freeCtas,
+    slugParam ? "Claim free listing" : "List your practice",
+    buildClaimHref(),
+  );
   updateCtaLinks(
     paidCtas,
     "Start free trial",
