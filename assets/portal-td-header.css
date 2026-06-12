@@ -144,24 +144,26 @@
   background: #8a9aa1;
 }
 
-/* ─── Sign out (small, muted) ─────────────────────────────────────── */
+/* ─── Sign out (small, muted pill) ───────────────────────────────── */
 .td-header-signout {
   appearance: none;
   background: transparent;
-  border: 0;
+  border: 1px solid #d6e2e6;
+  border-radius: 999px;
   color: #6b8189;
+  font-family: inherit;
   font-size: 0.8rem;
   font-weight: 500;
-  padding: 0.3rem 0.4rem;
+  padding: 0.38rem 0.85rem;
   cursor: pointer;
-  text-decoration: underline;
-  text-decoration-color: transparent;
-  text-underline-offset: 3px;
   white-space: nowrap;
-  transition: text-decoration-color 0.15s ease;
+  margin-left: auto;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease;
 }
 .td-header-signout:hover {
-  text-decoration-color: #6b8189;
+  border-color: #6b8189;
   color: #4d6671;
 }
 

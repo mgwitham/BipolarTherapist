@@ -147,7 +147,11 @@ function applyLoggedOutState() {
   pricingState.freeMode = "claim";
   pricingState.paidMode = slugParam ? "claim" : "signup";
 
-  updateCtaLinks(freeCtas, "Claim free listing", buildClaimHref());
+  updateCtaLinks(
+    freeCtas,
+    slugParam ? "Claim free listing" : "List your practice",
+    buildClaimHref(),
+  );
   updateCtaLinks(
     paidCtas,
     "Start free trial",
@@ -179,7 +183,7 @@ function applySignedInFreeState(me, subscription) {
   pricingState.freeMode = "dashboard";
   pricingState.paidMode = "direct_checkout";
 
-  updateCtaLinks(freeCtas, "Open dashboard", buildPortalHref(therapistSlug));
+  updateCtaLinks(freeCtas, "Manage your listing", buildPortalHref(therapistSlug));
   updateCtaLinks(paidCtas, "Start free trial", buildPortalHref(therapistSlug));
 
   setPlanText(freeBadge, "Your current plan");
