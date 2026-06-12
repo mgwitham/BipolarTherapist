@@ -17,6 +17,9 @@ let turnstileHandle = null;
 
 const INTAKE_ENDPOINT = "/api/review/applications/intake";
 const FREE_PATH_ENDPOINT = "/api/review/applications/free-path-selected";
+
+const _searchParams = new URLSearchParams(window.location.search);
+const PLAN_PARAM = String(_searchParams.get("plan") || "").trim();
 const LICENSE_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/search";
 const EMAIL_LOOKUP_ENDPOINT = "/api/review/portal/quick-claim/lookup-by-email";
 
@@ -569,7 +572,11 @@ async function submitIntake(form, status) {
         window.setTimeout(r, Math.max(350, 1200 - elapsed));
       });
       hideProgress(progress);
-      await proceedFree(form, status, data, email);
+      if (PLAN_PARAM === "paid" && data.stripe_url) {
+        await proceedTrial(form, status, data);
+      } else {
+        await proceedFree(form, status, data, email);
+      }
       return;
     }
     // Fallback: server didn't return enough to route the therapist
@@ -649,6 +656,20 @@ async function proceedFree(form, formStatus, intakeData, email) {
       "free",
     );
   }, 250);
+}
+
+async function proceedTrial(form, formStatus, intakeData) {
+  form.hidden = true;
+  setStatus(formStatus, "", null);
+  hideDupNudge();
+  trackFunnelEvent("signup_plan_trial_chosen", {
+    therapist_slug: intakeData.therapist_slug || null,
+  });
+  setStatus(formStatus, "Opening secure checkout for your free trial...", "success");
+  await new Promise(function (r) {
+    window.setTimeout(r, 250);
+  });
+  window.location.href = intakeData.stripe_url;
 }
 
 function bindIntakeForm() {
