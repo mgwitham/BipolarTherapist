@@ -694,7 +694,7 @@ function buildPage(t) {
     <title>${esc(seoTitle)}</title>
     <meta name="description" content="${esc(seoDescription)}" />
     <link rel="canonical" href="${esc(canonicalUrl)}" />
-    <meta property="og:type" content="profile" />
+    <meta property="og:type" content="website" />
     <meta property="og:site_name" content="BipolarTherapyHub" />
     <meta property="og:url" content="${esc(canonicalUrl)}" />
     <meta property="og:title" content="${esc(shareTitle)}" />
