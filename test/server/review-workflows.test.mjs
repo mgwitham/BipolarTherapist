@@ -1203,6 +1203,52 @@ test("PATCH /therapists/:id: approving a draft profile turns listingActive on an
   assert.equal(t.status, "active");
 });
 
+test("PATCH /therapists/:id: verificationStatus updates with enum validation and audit entry", async function () {
+  const { client, state } = createMemoryClient({
+    "therapist-verify-1": {
+      _id: "therapist-verify-1",
+      _type: "therapist",
+      name: "Dr. Verify",
+      lifecycle: "approved",
+      visibilityIntent: "listed",
+      listingActive: true,
+      status: "active",
+      licenseNumber: "X3",
+      verificationStatus: "under_review",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: { verificationStatus: "editorially_verified" },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
+    method: "PATCH",
+    url: "/therapists/therapist-verify-1",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const t = state.documents.get("therapist-verify-1");
+  assert.equal(t.verificationStatus, "editorially_verified");
+  assert.equal(Array.isArray(t.auditLog), true, "verification changes must be audited");
+  assert.match(t.auditLog[0].before, /"verificationStatus":"under_review"/);
+  assert.match(t.auditLog[0].after, /"verificationStatus":"editorially_verified"/);
+
+  // Unknown values are dropped, and a body with nothing else valid is a 400.
+  const rejected = await runHandlerRequest(handler, {
+    body: { verificationStatus: "totally_made_up" },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
+    method: "PATCH",
+    url: "/therapists/therapist-verify-1",
+  });
+  assert.equal(rejected.statusCode, 400);
+  assert.equal(
+    state.documents.get("therapist-verify-1").verificationStatus,
+    "editorially_verified",
+    "invalid enum value must not change the document",
+  );
+});
+
 test("PATCH /candidates/:id: accepts dedupe_status with enum validation (Resolve Duplicate path)", async function () {
   const { client, state } = createMemoryClient({
     "candidate-dup-1": {
