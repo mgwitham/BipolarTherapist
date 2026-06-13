@@ -56,6 +56,7 @@ export default defineConfig({
         terms: resolve(rootDir, "terms.html"),
         about: resolve(rootDir, "about.html"),
         outreach: resolve(rootDir, "outreach.html"),
+        referralOutreach: resolve(rootDir, "referral-outreach.html"),
         404: resolve(rootDir, "404.html"),
       },
     },
