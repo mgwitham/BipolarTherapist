@@ -4,17 +4,22 @@
 // copy of this). New send paths import this module.
 
 /**
- * @param {{ apiKey: string, from: string, to: string, subject: string, html: string, text: string }} params
+ * @param {{ apiKey: string, from: string, to: string, subject: string, html: string, text: string, replyTo?: string }} params
  * @returns {Promise<{ id?: string }>}
  */
-export async function resendSend({ apiKey, from, to, subject, html, text }) {
+export async function resendSend({ apiKey, from, to, subject, html, text, replyTo }) {
+  const payload = { from, to, subject, html, text };
+  // reply_to lets cold outreach send FROM an isolated subdomain (for sending
+  // reputation) while routing replies to a monitored inbox — essential so STOP
+  // replies reach a human and feed the suppression list.
+  if (replyTo) payload.reply_to = replyTo;
   const response = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${apiKey}`,
     },
-    body: JSON.stringify({ from, to, subject, html, text }),
+    body: JSON.stringify(payload),
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {

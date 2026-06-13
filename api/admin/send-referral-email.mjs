@@ -237,6 +237,16 @@ export default async function handler(req, res) {
     return;
   }
 
+  // Route replies to a monitored inbox. The From: is the isolated subdomain
+  // (for sending reputation), but a recipient's reply — including STOP — must
+  // reach a human who can act on it (and add the address to the suppression
+  // list). Falls back to the product From: address so replies are never
+  // silently lost; set OUTREACH_REPLY_TO to your real monitored inbox.
+  const replyTo =
+    (process.env.OUTREACH_REPLY_TO || "").trim() ||
+    (process.env.OUTREACH_EMAIL_FROM || process.env.REVIEW_EMAIL_FROM || "").trim() ||
+    undefined;
+
   const { subject, text, html } = buildReferralEmailContent(contact, { template, footer });
 
   // Test send → founder inbox only. No Sanity write, no status change.
@@ -254,6 +264,7 @@ export default async function handler(req, res) {
         subject: `[TEST] ${subject}`,
         html,
         text,
+        replyTo,
       });
     } catch (err) {
       console.error("resend test error:", err?.message || String(err));
@@ -273,6 +284,7 @@ export default async function handler(req, res) {
       subject,
       html,
       text,
+      replyTo,
     });
   } catch (err) {
     console.error("resend error:", err?.message || String(err));
