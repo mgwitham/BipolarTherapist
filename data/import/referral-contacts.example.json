@@ -1,0 +1,21 @@
+{
+  "_comment": "Template for scripts/ingest-referral-contacts.mjs. Real batches are gitignored (data/import/referral-contacts-*.json) because they contain contact PII; this placeholder example is the documented format. Required per row: orgName, segment, sourceUrl. Optional: contactName, role, email, phone, website, city, state, confidence, verificationMethod, tags, notes. segment must be one of: community_peer, school_counseling, primary_care, hospital_case_mgmt.",
+  "contacts": [
+    {
+      "orgName": "Example Peer Support Org",
+      "contactName": "Jane Example",
+      "role": "Programs Coordinator",
+      "email": "programs@example.org",
+      "phone": "555-555-0100",
+      "website": "https://www.example.org",
+      "segment": "community_peer",
+      "city": "Sample City",
+      "state": "CA",
+      "sourceUrl": "https://www.example.org/contact",
+      "verificationMethod": "published_page",
+      "confidence": "high",
+      "tags": ["peer-support"],
+      "notes": "Replace this row with real, source-verified contacts."
+    }
+  ]
+}

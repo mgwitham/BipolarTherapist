@@ -20,6 +20,10 @@ data/import/generated-*.json
 data/import/CALIFORNIA_PRIORITY_CONFIRMATION_DRAFTS.md
 data/import/email-discovery-response.json
 data/import/email-discovery-batch-*.json
+# Demand-side referral contact batches — contact PII, not durable records.
+# (The committed referral-contacts.example.json template has a dot, not a dash,
+# so it is intentionally NOT matched by this pattern.)
+data/import/referral-contacts-*.json
 !data/import/therapists-template.csv
 !data/import/therapist-candidates-template.csv
 !data/import/therapist-source-seeds-template.csv
