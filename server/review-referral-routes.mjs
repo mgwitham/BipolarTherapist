@@ -2,13 +2,9 @@ import { log } from "./logger.mjs";
 import { getRateLimiter } from "./rate-limit-store.mjs";
 import { getSuppressionEntry } from "./outreach-suppression.mjs";
 import { resendSend } from "./outreach-resend.mjs";
-import { escapeHtml } from "../shared/escape-html.mjs";
+import { deliverReferralTouch, getReferralSendConfig } from "./referral-send-core.mjs";
 import { CONTACT_STATUS_VALUES, SEGMENT_VALUES } from "../shared/referral-contact-domain.mjs";
-import {
-  buildReferralEmailContent,
-  buildReferralSendPatch,
-  resolveReferralSend,
-} from "../shared/referral-send-domain.mjs";
+import { buildReferralEmailContent, resolveReferralSend } from "../shared/referral-send-domain.mjs";
 
 // Referral outreach admin endpoints, served inside the review dispatcher (one
 // Vercel function, many paths) to stay under the Hobby plan's 12-function cap —
@@ -42,26 +38,6 @@ function getClientIpAddress(request) {
     .trim();
   if (forwarded) return forwarded;
   return (request && request.socket && request.socket.remoteAddress) || "unknown";
-}
-
-// CAN-SPAM footer — physical postal address required; null blocks the send.
-function buildFooter() {
-  const address = (process.env.OUTREACH_FOOTER_ADDRESS || "").trim();
-  if (!address) return null;
-  const orgName = process.env.OUTREACH_FOOTER_ORG_NAME || "BipolarTherapyHub";
-  const text = [
-    "",
-    "---",
-    `${orgName} · ${address}`,
-    "Reply STOP and I'll stop emailing you.",
-  ].join("\n");
-  const html =
-    '<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 12px;">' +
-    `<p style="color:#6b7280;font-size:12px;margin:0;">` +
-    `${escapeHtml(orgName)} · ${escapeHtml(address)}<br>` +
-    `Reply <strong>STOP</strong> and I'll stop emailing you.` +
-    `</p>`;
-  return { text, html };
 }
 
 function resolveTestRecipient(fromAddress) {
@@ -255,99 +231,56 @@ async function handleSend(context) {
     }
   }
 
-  const resendKey = process.env.RESEND_API_KEY;
-  if (!resendKey) return json(response, 500, { error: "RESEND_API_KEY not configured" });
-
-  // Prefer an isolated subdomain identity; fall back to the shared outreach
-  // From: address so the engine is usable without a separate sending domain.
-  const fromAddress =
-    process.env.OUTREACH_REFERRAL_EMAIL_FROM ||
-    process.env.OUTREACH_EMAIL_FROM ||
-    process.env.REVIEW_EMAIL_FROM;
-  if (!fromAddress) {
-    return json(response, 500, {
-      error:
-        "No outreach From: address is configured. Set OUTREACH_REFERRAL_EMAIL_FROM (recommended — an isolated subdomain) or OUTREACH_EMAIL_FROM before sending.",
-    });
-  }
-  const isolated = Boolean(process.env.OUTREACH_REFERRAL_EMAIL_FROM);
-
-  const footer = buildFooter();
-  if (!footer) {
-    return json(response, 500, {
-      error:
-        "OUTREACH_FOOTER_ADDRESS is not configured. CAN-SPAM requires a physical postal address on commercial email.",
-    });
-  }
-
-  // Route replies (including STOP) to a monitored inbox.
-  const replyTo =
-    (process.env.OUTREACH_REPLY_TO || "").trim() ||
-    (process.env.OUTREACH_EMAIL_FROM || process.env.REVIEW_EMAIL_FROM || "").trim() ||
-    undefined;
-
-  const { subject, text, html } = buildReferralEmailContent(contact, { template, footer });
+  const config = getReferralSendConfig();
+  if (!config.ok) return json(response, 500, { error: config.error });
 
   if (sendToSelf) {
-    const testTo = resolveTestRecipient(fromAddress);
+    const testTo = resolveTestRecipient(config.fromAddress);
     if (!testTo)
       return json(response, 500, {
         error: "Could not resolve a test recipient. Set OUTREACH_TEST_TO.",
       });
+    const { subject, text, html } = buildReferralEmailContent(contact, {
+      template,
+      footer: config.footer,
+    });
     try {
       await resendSend({
-        apiKey: resendKey,
-        from: fromAddress,
+        apiKey: config.resendKey,
+        from: config.fromAddress,
         to: testTo,
         subject: `[TEST] ${subject}`,
         html,
         text,
-        replyTo,
+        replyTo: config.replyTo,
       });
     } catch (err) {
       log.error("resend test error", { err: err?.message || String(err) });
       return json(response, 500, { error: "Failed to send test email." });
     }
-    return json(response, 200, { ok: true, testTo, template, isolated });
+    return json(response, 200, { ok: true, testTo, template, isolated: config.isolated });
   }
 
-  let resendResult;
+  let result;
   try {
-    resendResult = await resendSend({
-      apiKey: resendKey,
-      from: fromAddress,
-      to: contact.email,
-      subject,
-      html,
-      text,
-      replyTo,
+    result = await deliverReferralTouch(client, contact, {
+      template,
+      config,
+      campaign,
+      nowIso: new Date().toISOString(),
     });
   } catch (err) {
     log.error("resend error", { err: err?.message || String(err) });
     return json(response, 500, { error: "Failed to send email." });
   }
-
-  try {
-    const current = await client.getDocument(contactId);
-    const set = buildReferralSendPatch(current || contact, {
-      template,
-      subject,
-      textBody: text,
-      resendId: resendResult?.id || "",
-      nowIso: new Date().toISOString(),
-      campaign,
-    });
-    await client.patch(contactId).set(set).commit();
-  } catch (err) {
-    log.error("referral send patch error", { err: err?.message || String(err) });
+  if (!result.recorded) {
     return json(response, 200, {
       ok: true,
       warning: "Email sent but the contact record could not be updated",
-      isolated,
+      isolated: config.isolated,
     });
   }
-
-  return json(response, 200, { ok: true, template, isolated });
+  return json(response, 200, { ok: true, template, isolated: config.isolated });
 }
 
 export async function handleReferralRoutes(context) {

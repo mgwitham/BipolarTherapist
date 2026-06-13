@@ -10,6 +10,7 @@
 import { runAbandonedClaimAlerts } from "./abandoned-claim-alerts.mjs";
 import { isAuthorizedCronRequest } from "./cron-auth.mjs";
 import { runOutreachClickDigest } from "./outreach-click-digest.mjs";
+import { runReferralCadence } from "./referral-cadence-runner.mjs";
 
 function checkCronAuth(request, config) {
   return isAuthorizedCronRequest(request, config);
@@ -54,6 +55,20 @@ export async function handleCronRoutes(context) {
         config,
         nowIso: new Date().toISOString(),
       });
+      writeJson(response, 200, summary);
+    } catch (err) {
+      writeJson(response, 500, { error: err?.message || String(err) });
+    }
+    return true;
+  }
+
+  if (routePath === "/cron/referral-cadence") {
+    if (!checkCronAuth(request, config)) {
+      writeJson(response, 401, { error: "unauthorized" });
+      return true;
+    }
+    try {
+      const summary = await runReferralCadence({ client, nowIso: new Date().toISOString() });
       writeJson(response, 200, summary);
     } catch (err) {
       writeJson(response, 500, { error: err?.message || String(err) });
