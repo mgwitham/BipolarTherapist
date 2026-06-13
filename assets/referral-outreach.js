@@ -1,15 +1,16 @@
 // Referral outreach pipeline UI (referral-outreach.html). The demand-side
 // mirror of the therapist Outreach CRM (outreach.html): list referral contacts,
 // see status / fit / last-contacted / opens, send through the app (never Gmail),
-// and manage the pipeline. Vanilla JS rendering into #app, same admin-session
-// auth and /api/admin conventions as the therapist page.
+// and manage the pipeline. Vanilla JS rendering into #app, gated on the same
+// bt_admin_session cookie. Endpoints live in the review dispatcher (under
+// /api/review/admin/*) so they don't add Vercel serverless functions.
 
 import { escapeHtml } from "../shared/escape-html.mjs";
 import { SEGMENTS, CONTACT_STATUSES } from "../shared/referral-contact-domain.mjs";
 import { REFERRAL_TEMPLATES } from "../shared/referral-outreach-templates.mjs";
 import { nextReferralTouch } from "../shared/referral-sequence-domain.mjs";
 
-const API = "/api/admin";
+const API = "/api/review/admin";
 
 const SEGMENT_LABEL = new Map(SEGMENTS.map((s) => [s.value, s.label]));
 const STATUS_LABEL = new Map(CONTACT_STATUSES.map((s) => [s.value, s.label]));
