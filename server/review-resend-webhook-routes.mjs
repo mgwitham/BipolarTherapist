@@ -1,4 +1,5 @@
 import { log } from "./logger.mjs";
+import { applyReferralDeliveryEvent, stampReferralOpen } from "./referral-outreach-webhook.mjs";
 
 // Resend webhook receiver. Verifies the Svix signature, then patches
 // any therapist whose email matches a bounce or complaint so the CRM
@@ -150,8 +151,18 @@ export async function handleResendWebhookRoutes(context) {
       return true;
     }
     if (!match) {
+      // No therapist owns this send — try the referral side.
+      let referralResult;
+      try {
+        referralResult = await stampReferralOpen(client, resendId);
+      } catch (err) {
+        log.error("resend referral opened error", { err: err?.message || String(err) });
+        response.writeHead(500, { "Content-Type": "application/json" });
+        response.end(JSON.stringify({ error: "Sanity patch failed" }));
+        return true;
+      }
       response.writeHead(200, { "Content-Type": "application/json" });
-      response.end(JSON.stringify({ ok: true, matched: 0 }));
+      response.end(JSON.stringify({ ok: true, ...referralResult }));
       return true;
     }
     const existingLog = match?.outreach?.emailLog || [];
@@ -234,12 +245,6 @@ export async function handleResendWebhookRoutes(context) {
     return true;
   }
 
-  if (therapists.length === 0) {
-    response.writeHead(200, { "Content-Type": "application/json" });
-    response.end(JSON.stringify({ ok: true, matched: 0 }));
-    return true;
-  }
-
   const now = new Date().toISOString();
   const noteSuffix =
     type === "email.bounced"
@@ -247,6 +252,29 @@ export async function handleResendWebhookRoutes(context) {
           event?.data?.bounce?.message || ""
         }`.trim()
       : `[${now.slice(0, 10)}] Resend complaint (recipient marked as spam).`;
+
+  if (therapists.length === 0) {
+    // No therapist matched — apply the bounce/complaint to referral contact(s).
+    let referralResult;
+    try {
+      referralResult = await applyReferralDeliveryEvent(client, {
+        type,
+        resendId,
+        recipients,
+        newStatus,
+        noteSuffix,
+        now,
+      });
+    } catch (err) {
+      log.error("resend referral webhook error", { err: err?.message || String(err) });
+      response.writeHead(500, { "Content-Type": "application/json" });
+      response.end(JSON.stringify({ error: "Sanity fetch failed" }));
+      return true;
+    }
+    response.writeHead(200, { "Content-Type": "application/json" });
+    response.end(JSON.stringify({ ok: true, ...referralResult }));
+    return true;
+  }
 
   // Don't let a late-arriving bounce overwrite a richer terminal
   // status. If we already heard back from this therapist (replied,
