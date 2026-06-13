@@ -215,18 +215,25 @@ export default async function handler(req, res) {
     return;
   }
 
-  // ISOLATED sending identity. Cold referral outreach must NOT share the
-  // product/transactional sending domain — a spam complaint here can't be
-  // allowed to poison therapist/transactional deliverability. No fallback to
-  // OUTREACH_EMAIL_FROM: if the isolated identity isn't configured, block.
-  const fromAddress = process.env.OUTREACH_REFERRAL_EMAIL_FROM;
+  // Sending identity. PREFER an isolated subdomain identity
+  // (OUTREACH_REFERRAL_EMAIL_FROM) so cold-outreach spam complaints can't
+  // degrade product/transactional deliverability. If it isn't set, fall back to
+  // the shared outreach From: address so the engine is usable without standing
+  // up a separate sending domain — cold sends then share your product domain's
+  // reputation, so keep volume low and lead with high-fit recipients. Setting
+  // OUTREACH_REFERRAL_EMAIL_FROM later re-isolates with no other change.
+  const fromAddress =
+    process.env.OUTREACH_REFERRAL_EMAIL_FROM ||
+    process.env.OUTREACH_EMAIL_FROM ||
+    process.env.REVIEW_EMAIL_FROM;
   if (!fromAddress) {
     res.status(500).json({
       error:
-        "OUTREACH_REFERRAL_EMAIL_FROM is not configured. Cold referral outreach must send from an isolated subdomain (e.g. outreach.bipolartherapyhub.com) so it can't affect product email deliverability. Set it in Vercel env before sending.",
+        "No outreach From: address is configured. Set OUTREACH_REFERRAL_EMAIL_FROM (recommended — an isolated subdomain) or OUTREACH_EMAIL_FROM before sending.",
     });
     return;
   }
+  const isolated = Boolean(process.env.OUTREACH_REFERRAL_EMAIL_FROM);
 
   const footer = buildFooter();
   if (!footer) {
@@ -271,7 +278,7 @@ export default async function handler(req, res) {
       res.status(500).json({ error: "Failed to send test email." });
       return;
     }
-    res.status(200).json({ ok: true, testTo, template });
+    res.status(200).json({ ok: true, testTo, template, isolated });
     return;
   }
 
@@ -312,5 +319,5 @@ export default async function handler(req, res) {
     return;
   }
 
-  res.status(200).json({ ok: true, template });
+  res.status(200).json({ ok: true, template, isolated });
 }

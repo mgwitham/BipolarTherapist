@@ -23,7 +23,9 @@ const state = {
   contacts: [],
   filters: { status: "", segment: "", search: "" },
   selectedId: null,
-  configWarning: false,
+  // Set after a send that went out on the shared product domain (no isolated
+  // OUTREACH_REFERRAL_EMAIL_FROM configured) — a deliverability heads-up.
+  sharedDomainNotice: false,
 };
 
 // ---- API ----
@@ -145,8 +147,8 @@ function render() {
       </div>
     </header>
     ${
-      state.configWarning
-        ? `<div class="config-warn">⚠️ Sending isn't configured yet: set <code>OUTREACH_REFERRAL_EMAIL_FROM</code> (and verify the outreach subdomain in Resend) before live sends will work.</div>`
+      state.sharedDomainNotice
+        ? `<div class="config-warn">⚠️ Sends are going out from your <strong>product domain</strong> (no isolated <code>OUTREACH_REFERRAL_EMAIL_FROM</code> set). Fine at low volume to high-fit contacts — but spam complaints here can affect your transactional email deliverability. Keep volume low, or set an isolated subdomain later to re-isolate.</div>`
         : ""
     }
     <div class="stats">
@@ -277,15 +279,14 @@ async function doSend(kind, id) {
   const { ok, status, data } = await apiPost("/send-referral-email", body);
   if (ok) {
     toast(kind === "test" ? "Test sent to you." : `Sent (${data.template || "ok"}).`);
+    // Surface the shared-domain deliverability heads-up once a send confirms it
+    // went out without an isolated identity.
+    if (data && data.isolated === false) state.sharedDomainNotice = true;
     if (kind !== "test") await reload();
+    else render();
     return;
   }
-  const msg = describeError(status, data);
-  if (typeof msg === "string" && msg.includes("OUTREACH_REFERRAL_EMAIL_FROM")) {
-    state.configWarning = true;
-    render();
-  }
-  toast(msg, "error");
+  toast(describeError(status, data), "error");
 }
 
 async function updateStatus(id, value) {
