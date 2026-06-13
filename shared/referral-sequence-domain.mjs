@@ -74,7 +74,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
  *
  * @param {{ status?: unknown, optedOut?: unknown, sequence?: { id?: unknown, step?: unknown }, lastContactedAt?: unknown }} contact
  * @param {{ nowIso?: string }} [options]
- * @returns {{ template: string, step: number, dueAt: string, isDue: boolean, reason?: string } | { template: null, reason: string }}
+ * @returns {{ template: string | null, step?: number, dueAt?: string, isDue?: boolean, reason?: string }}
  */
 export function nextReferralTouch(contact, options = {}) {
   const record = contact && typeof contact === "object" ? contact : {};
