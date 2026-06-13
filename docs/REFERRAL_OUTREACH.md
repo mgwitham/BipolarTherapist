@@ -19,10 +19,14 @@ one sending path, one suppression list, one Resend webhook, one rate limiter.
    `sourceUrl`. Ingestion rejects rows without one — nothing fabricated or
    guessed can enter the system. Role-based published professional contacts
    only; no scraped personal data.
-3. **Isolate sending reputation.** Cold demand-side outreach must send from an
-   isolated subdomain/identity (e.g. `outreach.bipolartherapyhub.com`) so spam
-   complaints can't degrade deliverability of product + transactional email.
-   The suppression list stays global.
+3. **Isolate sending reputation (recommended).** Cold demand-side outreach is
+   best sent from an isolated subdomain/identity (`OUTREACH_REFERRAL_EMAIL_FROM`,
+   e.g. `outreach.bipolartherapyhub.com`) so spam complaints can't degrade
+   deliverability of product + transactional email. If that env var is unset,
+   sends fall back to the shared product From: address (`OUTREACH_EMAIL_FROM`) —
+   usable at low volume to high-fit recipients, with the same suppression / rate
+   cap / footer protections; the UI shows a heads-up after such a send. The
+   suppression list is always global.
 4. **Pure logic in `shared/`, tested.** `shared/referral-contact-domain.mjs`
    owns identity/dedup, validation, and fit-scoring with no I/O.
 
