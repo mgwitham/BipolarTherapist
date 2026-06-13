@@ -5,6 +5,7 @@ import { licensureRecordType } from "./licensureRecord";
 import { matchOutcomeType } from "./matchOutcome";
 import { matchRequestType } from "./matchRequest";
 import { providerFieldObservationType } from "./providerFieldObservation";
+import { referralContactType } from "./referralContact";
 import { siteSettingsType } from "./siteSettings";
 import { therapistApplicationType } from "./therapistApplication";
 import { therapistCandidateType } from "./therapistCandidate";
@@ -34,4 +35,5 @@ export const schemaTypes = [
   therapistSubscriptionType,
   zipOutreachTaskType,
   funnelEventLogType,
+  referralContactType,
 ];

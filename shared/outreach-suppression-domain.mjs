@@ -4,18 +4,20 @@
 // (e.g. a therapist replied STOP), so matches must hard-block sends and
 // nothing (including force re-sends) may override them.
 
+import { normalizeEmail } from "./normalize-email.mjs";
+
 /**
  * Canonical form for suppression matching: lowercased and trimmed, so
  * casing or stray whitespace in either the list or the therapist record
- * can't let a suppressed address slip back into outreach.
+ * can't let a suppressed address slip back into outreach. Thin alias of the
+ * shared {@link normalizeEmail} so suppression and the rest of the outreach
+ * stack can never disagree on what "the same address" means.
  *
  * @param {unknown} email
  * @returns {string}
  */
 export function normalizeSuppressionEmail(email) {
-  return String(email == null ? "" : email)
-    .trim()
-    .toLowerCase();
+  return normalizeEmail(email);
 }
 
 /**
