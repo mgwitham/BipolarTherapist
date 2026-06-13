@@ -25,6 +25,7 @@ import { handleEngagementRoutes } from "./review-engagement-routes.mjs";
 import { handleCronRoutes } from "./review-cron-routes.mjs";
 import { handleResendWebhookRoutes } from "./review-resend-webhook-routes.mjs";
 import { handlePatientSignalRoutes } from "./review-patient-signal-routes.mjs";
+import { handleReferralRoutes } from "./review-referral-routes.mjs";
 import { handleMatchRoutes } from "./review-match-routes.mjs";
 import { handleSavedListRoutes } from "./review-saved-list-routes.mjs";
 import { handleStripeRoutes } from "./review-stripe-routes.mjs";
@@ -853,6 +854,13 @@ function createReviewRouteModules() {
       handler: handlePatientSignalRoutes,
       deps: {
         readAdminSessionFromRequest,
+      },
+    },
+    {
+      handler: handleReferralRoutes,
+      deps: {
+        readAdminSessionFromRequest,
+        parseBody,
       },
     },
     {
