@@ -272,3 +272,53 @@ export function dedupeByIdentity(records) {
   }
   return { unique, duplicates };
 }
+
+/**
+ * Deterministic Sanity document _id for a contact, derived from its identity
+ * key so re-ingesting the same contact is idempotent (createIfNotExists on the
+ * same _id is a no-op). Returns "" when the contact has nothing to key on.
+ *
+ * @param {{ email?: unknown, orgName?: unknown, contactName?: unknown, role?: unknown }} contact
+ * @returns {string}
+ */
+export function referralContactDocId(contact) {
+  const key = contactIdentityKey(contact);
+  if (!key) return "";
+  const safe = key.replace(/[^a-zA-Z0-9_.-]+/g, "-").replace(/^-+|-+$/g, "");
+  return `referralContact.${safe}`;
+}
+
+/**
+ * Plan an import/ingest batch from raw rows: validate each (provenance
+ * required), shape the valid ones, de-duplicate within the batch, and attach
+ * deterministic _ids. Pure — the caller (CLI or import endpoint) does the
+ * actual writes. Returns what to create, what was rejected (with reasons), and
+ * the in-batch duplicate count.
+ *
+ * @param {unknown[]} rawContacts
+ * @param {{ nowIso?: string }} [options]
+ * @returns {{ toCreate: Array<{ _id: string, doc: object }>, rejected: Array<{ index: number, errors: string[] }>, duplicates: number, total: number }}
+ */
+export function planReferralImport(rawContacts, options = {}) {
+  const nowIso = options.nowIso || new Date().toISOString();
+  const list = Array.isArray(rawContacts) ? rawContacts : [];
+  /** @type {Array<{ index: number, errors: string[] }>} */
+  const rejected = [];
+  const shaped = [];
+  list.forEach((raw, index) => {
+    const record = /** @type {Record<string, unknown>} */ (
+      raw && typeof raw === "object" ? raw : {}
+    );
+    const errors = validateIngestRecord(record);
+    if (errors.length) {
+      rejected.push({ index, errors });
+      return;
+    }
+    shaped.push(shapeReferralContact(record, { nowIso }));
+  });
+  const { unique, duplicates } = dedupeByIdentity(shaped);
+  const toCreate = unique
+    .map((doc) => ({ _id: referralContactDocId(doc), doc }))
+    .filter((entry) => entry._id);
+  return { toCreate, rejected, duplicates: duplicates.length, total: list.length };
+}

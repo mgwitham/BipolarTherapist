@@ -27,6 +27,8 @@ const state = {
   // Set after a send that went out on the shared product domain (no isolated
   // OUTREACH_REFERRAL_EMAIL_FROM configured) — a deliverability heads-up.
   sharedDomainNotice: false,
+  // Summary line shown after a contact-import (created/existing/rejected).
+  importResult: null,
 };
 
 // ---- API ----
@@ -146,7 +148,16 @@ function render() {
         <h1>Referral Outreach</h1>
         <div class="sub">Demand-side pipeline · <a href="/outreach.html">therapist outreach →</a></div>
       </div>
+      <div>
+        <button class="btn-primary" data-import>⬆ Import contacts</button>
+        <input type="file" accept="application/json,.json" multiple data-import-input style="display:none" />
+      </div>
     </header>
+    ${
+      state.importResult
+        ? `<div class="config-warn" style="background:#ecfdf5;border-color:#a7f3d0;color:#065f46;">${escapeHtml(state.importResult)}</div>`
+        : ""
+    }
     ${
       state.sharedDomainNotice
         ? `<div class="config-warn">⚠️ Sends are going out from your <strong>product domain</strong> (no isolated <code>OUTREACH_REFERRAL_EMAIL_FROM</code> set). Fine at low volume to high-fit contacts — but spam complaints here can affect your transactional email deliverability. Keep volume low, or set an isolated subdomain later to re-isolate.</div>`
@@ -167,7 +178,7 @@ function render() {
       <div>
         ${
           rows.length === 0
-            ? `<div class="empty">No referral contacts match. Ingest some with <code>scripts/ingest-referral-contacts.mjs</code>.</div>`
+            ? `<div class="empty">No referral contacts match. Click <strong>⬆ Import contacts</strong> to load a batch file.</div>`
             : `<table>
           <thead><tr>
             <th>Org / Contact</th><th>Segment</th><th>Status</th><th>Fit</th>
@@ -327,10 +338,55 @@ async function reload() {
   render();
 }
 
+// Read one or more batch JSON files, merge their contacts, and POST to the
+// import endpoint (which validates + writes server-side). Same JSON shape the
+// ingestion script reads: a top-level array or { "contacts": [...] }.
+async function importFiles(fileList) {
+  const files = Array.from(fileList || []);
+  if (!files.length) return;
+  let contacts = [];
+  try {
+    for (const file of files) {
+      const parsed = JSON.parse(await file.text());
+      const arr = Array.isArray(parsed) ? parsed : parsed && parsed.contacts;
+      if (Array.isArray(arr)) contacts = contacts.concat(arr);
+    }
+  } catch {
+    toast("Couldn't read that file — is it valid JSON?", "error");
+    return;
+  }
+  if (!contacts.length) {
+    toast('No contacts found. Expected a JSON array or { "contacts": [...] }.', "error");
+    return;
+  }
+  toast(`Importing ${contacts.length} contact(s)…`);
+  const { ok, status, data } = await apiPost("/referral-contacts/import", { contacts });
+  if (!ok) {
+    toast(describeError(status, data), "error");
+    return;
+  }
+  const rejected = Array.isArray(data.rejected) ? data.rejected.length : 0;
+  const parts = [
+    `Imported ${data.imported}`,
+    data.alreadyExisted ? `${data.alreadyExisted} already in system` : null,
+    data.inBatchDuplicates ? `${data.inBatchDuplicates} in-file duplicates` : null,
+    rejected ? `${rejected} rejected (need a valid source URL + segment)` : null,
+  ].filter(Boolean);
+  state.importResult = `✓ ${parts.join(" · ")}.`;
+  toast(`Imported ${data.imported} contact(s).`);
+  await reload();
+}
+
 // ---- events (delegated, bound once) ----
 function bindEvents() {
   const app = document.getElementById("app");
   app.addEventListener("click", (event) => {
+    const importBtn = event.target.closest("[data-import]");
+    if (importBtn) {
+      const input = document.querySelector("[data-import-input]");
+      if (input) input.click();
+      return;
+    }
     const sendBtn = event.target.closest("[data-send]");
     if (sendBtn) {
       doSend(sendBtn.getAttribute("data-send"), sendBtn.getAttribute("data-id"));
@@ -349,6 +405,12 @@ function bindEvents() {
     }
   });
   app.addEventListener("change", (event) => {
+    const importInput = event.target.closest("[data-import-input]");
+    if (importInput) {
+      importFiles(importInput.files);
+      importInput.value = ""; // reset so re-selecting the same file fires change
+      return;
+    }
     const filterEl = event.target.closest("[data-filter]");
     if (filterEl) {
       state.filters[filterEl.getAttribute("data-filter")] = filterEl.value;

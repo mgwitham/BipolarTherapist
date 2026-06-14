@@ -7,6 +7,8 @@ import {
   contactIdentityKey,
   dedupeByIdentity,
   normalizeContactEmail,
+  planReferralImport,
+  referralContactDocId,
   scoreContactFit,
   shapeReferralContact,
   validateIngestRecord,
@@ -167,4 +169,39 @@ test("a bipolar-specialist psychiatrist scores high", () => {
     role: "Psychiatrist",
   });
   assert.ok(fit.score >= 90, `expected high fit, got ${fit.score}`);
+});
+
+test("referralContactDocId is deterministic and case-insensitive on email", () => {
+  const a = referralContactDocId({ email: "Info@DBSASanDiego.org" });
+  const b = referralContactDocId({ email: " info@dbsasandiego.org " });
+  assert.equal(a, b);
+  assert.match(a, /^referralContact\./);
+  assert.equal(referralContactDocId({}), "");
+});
+
+test("planReferralImport validates, shapes, dedupes, and assigns ids", () => {
+  const plan = planReferralImport(
+    [
+      {
+        orgName: "DBSA SD",
+        segment: "community_peer",
+        sourceUrl: "https://x.org",
+        email: "info@dbsasandiego.org",
+      },
+      {
+        orgName: "DBSA San Diego",
+        segment: "community_peer",
+        sourceUrl: "https://x.org",
+        email: "INFO@dbsasandiego.org",
+      },
+      { orgName: "Bad", segment: "lawyers", sourceUrl: "https://x.org" },
+      { orgName: "NoSource", segment: "prescriber" },
+    ],
+    { nowIso: NOW },
+  );
+  assert.equal(plan.total, 4);
+  assert.equal(plan.toCreate.length, 1); // the two DBSA rows dedupe to one
+  assert.equal(plan.duplicates, 1);
+  assert.equal(plan.rejected.length, 2); // bad segment + missing sourceUrl
+  assert.ok(plan.toCreate[0]._id.startsWith("referralContact."));
 });
