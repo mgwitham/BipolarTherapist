@@ -8,8 +8,8 @@ import { REFERRAL_TEMPLATES, getReferralTemplate } from "./referral-outreach-tem
 import { nextReferralTouch } from "./referral-sequence-domain.mjs";
 import { plainTextToHtml } from "./plain-text-to-html.mjs";
 
-// The public directory is the call-to-action for every referral email.
-export const DEFAULT_DIRECTORY_URL = "https://www.bipolartherapyhub.com/directory";
+// The public homepage is the call-to-action for every referral email.
+export const DEFAULT_DIRECTORY_URL = "https://www.bipolartherapyhub.com";
 
 /**
  * Decide which template to send for a contact. An explicit `templateOverride`

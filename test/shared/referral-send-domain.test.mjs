@@ -31,7 +31,7 @@ test("resolveReferralSend returns an error when the contact is halted", () => {
   assert.equal(resolved.reason, "halted:replied");
 });
 
-test("buildReferralEmailContent assembles subject/text/html with footer + directory link", () => {
+test("buildReferralEmailContent assembles subject/text/html with footer + website link", () => {
   const content = buildReferralEmailContent(
     { contactName: "Dr. Jane Smith", orgName: "DBSA San Diego", segment: "community_peer" },
     { template: "referral_intro", footer: { text: "\n--\nFooter", html: "<hr>" } },
@@ -39,17 +39,18 @@ test("buildReferralEmailContent assembles subject/text/html with footer + direct
   assert.equal(content.subject, REFERRAL_INTRO_SUBJECT);
   assert.match(content.text, /Hi Jane,/);
   assert.match(content.text, /Footer$/);
-  assert.match(content.html, /<a href=/); // directory link rendered
+  assert.match(content.html, /<a href=/); // website link rendered
   assert.match(content.html, /<hr>$/); // footer html appended
 });
 
-test("buildReferralEmailContent defaults to the public directory URL", () => {
+test("buildReferralEmailContent defaults to the public homepage URL", () => {
   const content = buildReferralEmailContent(
     { segment: "school_counseling" },
     { template: "referral_intro" },
   );
   assert.ok(DEFAULT_DIRECTORY_URL.length > 0);
-  assert.match(content.text, /\/directory\?ref=referral/);
+  assert.notEqual(content.text.split("\n").indexOf("https://www.bipolartherapyhub.com"), -1);
+  assert.doesNotMatch(content.text, /\/directory|ref=referral/);
 });
 
 test("buildReferralSendPatch advances status, count, log, and sequence step", () => {

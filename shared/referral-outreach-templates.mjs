@@ -5,8 +5,8 @@
 // shared/outreach-templates.mjs). The audience here is professionals who
 // encounter people who may need a bipolar therapist — counselors, case
 // managers, NAMI/DBSA staff — and the pitch is the opposite direction: "here
-// is a free, no-strings directory you can point the people you serve to." The
-// CTA is sharing the directory link, never signing up.
+// is a free, no-strings resource you can point the people you serve to." The
+// CTA is sharing the website, never signing up.
 
 import { firstName } from "./outreach-templates.mjs";
 
@@ -35,32 +35,26 @@ export function audienceNoun(segment) {
 }
 
 /**
- * Tag a directory link so a click from referral outreach can be attributed in
- * the funnel (mirrors withOutreachRef's ?ref=outreach on the supply side).
- * No-op on empty/placeholder strings.
+ * Preserve the referral URL hook point without adding tracking params to the
+ * visible link. No-op on empty/placeholder strings.
  *
  * @param {string} url
  * @returns {string}
  */
 export function withReferralRef(url) {
-  if (!url || url.startsWith("[")) return url;
-  return url.includes("?") ? `${url}&ref=referral` : `${url}?ref=referral`;
+  return url || "";
 }
 
-export const REFERRAL_INTRO_SUBJECT = "A vetted bipolar-therapist directory you can hand out";
-export const REFERRAL_RESOURCE_SUBJECT = "Free to share: California bipolar therapy directory";
+export const REFERRAL_INTRO_SUBJECT = "A free bipolar therapy search tool for California";
+export const REFERRAL_RESOURCE_SUBJECT = "A resource for finding bipolar therapy in California";
 
 /**
  * @typedef {{ contactName?: unknown, orgName?: unknown, segment?: unknown, directoryUrl?: unknown }} ReferralVars
  */
 
 /**
- * Touch 1 — introduce the directory as a free referral resource. Leads with
- * the recipient's recurring problem (someone needs a bipolar therapist and the
- * usual directories don't help them filter for real competence), uses the
- * founder story as proof the list is genuinely curated, then makes the ask
- * effortless: bookmark one link. Closes with the same one-reply opt-out the
- * supply-side copy uses.
+ * Touch 1 — introduce the website as a practical tool the recipient can use
+ * when someone needs bipolar-specialist therapy.
  *
  * @param {ReferralVars} vars
  * @returns {string}
@@ -73,20 +67,20 @@ export function buildReferralIntroBody({ contactName, orgName, segment, director
   return [
     `Hi ${first},`,
     "",
-    `When someone in front of you needs a therapist who truly understands bipolar disorder, where do you send them? Most of us reach for a general directory and hope for the best — but "accepts bipolar clients" and "actually gets bipolar" are not the same thing, and the people who need that difference feel it fastest.`,
+    "I wanted to share a free tool you can use when someone needs a therapist who understands bipolar disorder.",
     "",
-    `I'm writing to ${org || "your team"} because you're often the first person ${who} turn to when they're trying to find real help.`,
-    "",
-    "I built BipolarTherapyHub to be a better answer. I spent twenty years as the bipolar patient who couldn't find a therapist who understood the cycling, the mixed states, the medication piece — so I made a directory of California therapists who specialize in exactly that. Every listing is licensed and vetted, searchable by location and insurance, free to everyone, with nothing to sign up for:",
+    `BipolarTherapyHub helps ${who} in California look for bipolar-specialist therapists. They can search by location, insurance, and therapy needs. There is no account to create and no cost to use it:`,
     "",
     url,
     "",
-    `If it's useful, keep the link handy for ${who} who need it — that's the whole ask. Happy to send anything else that would help.`,
+    `I'm sending this to ${org || "your team"} because you may meet people who need a more focused place to start.`,
     "",
-    "If this isn't relevant to your work, just reply and I won't write again.",
+    "Feel free to keep the site handy or pass it along when it would help.",
+    "",
+    "If this is not useful for your work, just reply and I will not follow up.",
     "",
     "Michael Witham",
-    "Founder, bipolartherapyhub.com",
+    "BipolarTherapyHub",
   ].join("\n");
 }
 
@@ -104,11 +98,13 @@ export function buildReferralFollowUpBody({ contactName, segment, directoryUrl }
   return [
     `Hi ${first},`,
     "",
-    `Circling back in case my note slipped by. The short version: there's now a free, vetted directory of California therapists who specialize in bipolar disorder, and you're welcome to share it with ${who} whenever it's useful:`,
+    `Circling back in case this is useful. BipolarTherapyHub is a free site for ${who} in California who need a therapist familiar with bipolar disorder:`,
     "",
     url,
     "",
-    "No cost, no sign-up, nothing in it for me beyond getting people to care that actually fits. If it's not right for your work, one line back and I'll leave it there.",
+    "They can use it on their own whenever they need it. No sign-up, no cost.",
+    "",
+    "If it is not relevant to your work, just reply and I will leave it there.",
     "",
     "Michael",
     "bipolartherapyhub.com",
@@ -116,9 +112,7 @@ export function buildReferralFollowUpBody({ contactName, segment, directoryUrl }
 }
 
 /**
- * Touch 3 — a different angle after two touches: emphasize the concrete value
- * (free, CA-specific, specialist-vetted) and invite a quick reply rather than
- * assuming a share. Standalone subject, not threaded.
+ * Touch 3 — a final short resource note, standalone subject, not threaded.
  *
  * @param {ReferralVars} vars
  * @returns {string}
@@ -130,13 +124,15 @@ export function buildReferralResourceBody({ contactName, segment, directoryUrl }
   return [
     `Hi ${first},`,
     "",
-    `Last note from me — I know the inbox is full.`,
+    "Last note from me.",
     "",
-    `Here's why I think it's worth a bookmark: when ${who} need a therapist who genuinely understands bipolar disorder, the usual directories let them filter for "depression" or "anxiety" but not for who can actually hold the cycling, the mixed states, and the medication piece. BipolarTherapyHub is built for that one thing. It's California-specific, every listing is a licensed specialist, and it's free to use and free to share:`,
+    `If ${who} ever ask where to look for bipolar-specialist therapy in California, BipolarTherapyHub may be a useful place to send them:`,
     "",
     url,
     "",
-    "If a printable one-pager for your office or waiting room would help, just reply and I'll send one over.",
+    "It is free, public, and built so people can explore it themselves.",
+    "",
+    "If a printable one-page version would be helpful, reply and I can send one.",
     "",
     "Michael Witham",
     "bipolartherapyhub.com",
@@ -145,7 +141,8 @@ export function buildReferralResourceBody({ contactName, segment, directoryUrl }
 
 /**
  * Resolve a referral template id to its { subject, body }. Unknown ids fall
- * back to the intro. The directory URL is ref-tagged for attribution.
+ * back to the intro. The website URL is passed through without visible
+ * tracking params.
  *
  * @param {string} template
  * @param {ReferralVars} vars
