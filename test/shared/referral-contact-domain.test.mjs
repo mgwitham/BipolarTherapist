@@ -153,3 +153,18 @@ test("dedupeByIdentity collapses same email and reports duplicates", () => {
   assert.equal(duplicates.length, 1);
   assert.equal(duplicates[0].key, "email:info@dbsasandiego.org");
 });
+
+test("prescriber and treatment_program are valid segments", () => {
+  assert.ok(SEGMENT_VALUES.has("prescriber"));
+  assert.ok(SEGMENT_VALUES.has("treatment_program"));
+});
+
+test("a bipolar-specialist psychiatrist scores high", () => {
+  const fit = scoreContactFit({
+    segment: "prescriber",
+    orgName: "Bay Area Bipolar Psychiatry",
+    contactName: "Dr. Jane Doe",
+    role: "Psychiatrist",
+  });
+  assert.ok(fit.score >= 90, `expected high fit, got ${fit.score}`);
+});

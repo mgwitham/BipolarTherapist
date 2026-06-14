@@ -25,7 +25,9 @@ import { normalizeEmail } from "./normalize-email.mjs";
  * @type {ReadonlyArray<Segment>}
  */
 export const SEGMENTS = [
+  { value: "prescriber", label: "Psychiatrist / prescriber", baseFit: 72 },
   { value: "community_peer", label: "Community / peer org", baseFit: 70 },
+  { value: "treatment_program", label: "Treatment program (PHP/IOP/SUD)", baseFit: 68 },
   { value: "school_counseling", label: "School & college counseling", baseFit: 65 },
   { value: "primary_care", label: "Primary care / psychiatry", baseFit: 55 },
   { value: "hospital_case_mgmt", label: "Hospital case mgmt / discharge", baseFit: 50 },
