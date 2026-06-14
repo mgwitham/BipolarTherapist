@@ -24,6 +24,8 @@ const state = {
   contacts: [],
   filters: { status: "", segment: "", search: "" },
   selectedId: null,
+  // Multi-select for bulk send (set of contact _ids with a checked box).
+  checked: new Set(),
   // Set after a send that went out on the shared product domain (no isolated
   // OUTREACH_REFERRAL_EMAIL_FROM configured) — a deliverability heads-up.
   sharedDomainNotice: false,
@@ -132,6 +134,7 @@ function render() {
     ["replied", "engaged", "partner"].includes(c.status),
   ).length;
   const opens = state.contacts.reduce((n, c) => n + openCount(c.emailLog), 0);
+  const allVisibleChecked = rows.length > 0 && rows.every((c) => state.checked.has(c._id));
 
   const segmentOptions = ['<option value="">All segments</option>']
     .concat(SEGMENTS.map((s) => `<option value="${s.value}">${escapeHtml(s.label)}</option>`))
@@ -179,8 +182,19 @@ function render() {
         ${
           rows.length === 0
             ? `<div class="empty">No referral contacts match. Click <strong>⬆ Import contacts</strong> to load a batch file.</div>`
-            : `<table>
+            : `${
+                state.checked.size > 0
+                  ? `<div class="bulkbar" style="display:flex;align-items:center;gap:10px;background:var(--teal-faint);border:1px solid var(--gray-200);border-radius:8px;padding:8px 12px;margin-bottom:10px;flex-wrap:wrap;">
+              <strong>${state.checked.size} selected</strong>
+              <button class="btn-primary" data-bulk-send>Send next touch to ${state.checked.size}</button>
+              <button class="btn-secondary" data-bulk-clear>Clear</button>
+              <span class="muted" style="margin-left:auto">Sends go out now · per-contact suppression + hourly cap apply</span>
+            </div>`
+                  : ""
+              }
+        <table>
           <thead><tr>
+            <th style="width:28px"><input type="checkbox" data-check-all ${allVisibleChecked ? "checked" : ""} /></th>
             <th>Org / Contact</th><th>Segment</th><th>Status</th><th>Fit</th>
             <th>Last contacted</th><th>Opens</th><th>Next touch</th>
           </tr></thead>
@@ -201,6 +215,7 @@ function renderRow(c) {
   const sent = Number(c.emailsSent) || 0;
   return `
     <tr class="${sel}" data-select="${escapeHtml(c._id)}">
+      <td><input type="checkbox" data-row-check value="${escapeHtml(c._id)}" ${state.checked.has(c._id) ? "checked" : ""} /></td>
       <td>
         <div><strong>${escapeHtml(c.orgName || "—")}</strong></div>
         <div class="muted">${escapeHtml(c.contactName || c.email || "")}${c.role ? " · " + escapeHtml(c.role) : ""}</div>
@@ -338,6 +353,58 @@ async function reload() {
   render();
 }
 
+// Bulk send: sequentially send the next cadence touch to every checked
+// contact, reusing the single-send endpoint (so suppression, dedup, footer, and
+// the hourly cap all apply per contact). Contacts with nothing due (409) or
+// suppressed/opted-out (403) are skipped, not errored. Stops cleanly if the
+// hourly cap (429) is hit.
+async function bulkSend() {
+  const ids = [...state.checked];
+  if (!ids.length) return;
+  const warn =
+    ids.length > 25 ? "\n\nThat's a lot for a warming domain — smaller batches are safer." : "";
+  if (
+    !window.confirm(`Send the next touch to ${ids.length} contact(s)? Emails go out now.${warn}`)
+  ) {
+    return;
+  }
+  toast(`Sending to ${ids.length} contact(s)…`);
+  let sent = 0;
+  let skipped = 0;
+  let failed = 0;
+  let capped = false;
+  for (const id of ids) {
+    let res;
+    try {
+      res = await apiPost("/send-referral-email", { contactId: id });
+    } catch {
+      failed += 1;
+      continue;
+    }
+    if (res.ok) {
+      sent += 1;
+      if (res.data && res.data.isolated === false) state.sharedDomainNotice = true;
+    } else if (res.status === 429) {
+      capped = true;
+      break;
+    } else if (res.status === 409 || res.status === 403) {
+      skipped += 1; // nothing due, already sent, or suppressed/opted out
+    } else {
+      failed += 1;
+    }
+  }
+  const parts = [
+    `Sent ${sent}`,
+    skipped ? `${skipped} skipped (nothing due / suppressed)` : null,
+    failed ? `${failed} failed` : null,
+    capped ? "stopped at the hourly cap — resume later" : null,
+  ].filter(Boolean);
+  state.importResult = `Bulk send: ${parts.join(" · ")}.`;
+  toast(`Bulk send: ${sent} sent.`, failed || capped ? "error" : "success");
+  state.checked.clear();
+  await reload();
+}
+
 // Read one or more batch JSON files, merge their contacts, and POST to the
 // import endpoint (which validates + writes server-side). Same JSON shape the
 // ingestion script reads: a top-level array or { "contacts": [...] }.
@@ -387,6 +454,15 @@ function bindEvents() {
       if (input) input.click();
       return;
     }
+    if (event.target.closest("[data-bulk-send]")) {
+      bulkSend();
+      return;
+    }
+    if (event.target.closest("[data-bulk-clear]")) {
+      state.checked.clear();
+      render();
+      return;
+    }
     const sendBtn = event.target.closest("[data-send]");
     if (sendBtn) {
       doSend(sendBtn.getAttribute("data-send"), sendBtn.getAttribute("data-id"));
@@ -398,7 +474,7 @@ function bindEvents() {
       return;
     }
     const row = event.target.closest("[data-select]");
-    if (row) {
+    if (row && !event.target.closest("input")) {
       const id = row.getAttribute("data-select");
       state.selectedId = state.selectedId === id ? null : id;
       render();
@@ -409,6 +485,21 @@ function bindEvents() {
     if (importInput) {
       importFiles(importInput.files);
       importInput.value = ""; // reset so re-selecting the same file fires change
+      return;
+    }
+    const rowCheck = event.target.closest("[data-row-check]");
+    if (rowCheck) {
+      if (rowCheck.checked) state.checked.add(rowCheck.value);
+      else state.checked.delete(rowCheck.value);
+      render();
+      return;
+    }
+    const checkAll = event.target.closest("[data-check-all]");
+    if (checkAll) {
+      const visible = filtered();
+      if (checkAll.checked) visible.forEach((c) => state.checked.add(c._id));
+      else visible.forEach((c) => state.checked.delete(c._id));
+      render();
       return;
     }
     const filterEl = event.target.closest("[data-filter]");
