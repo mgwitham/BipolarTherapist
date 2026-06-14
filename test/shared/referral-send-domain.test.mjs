@@ -7,6 +7,7 @@ import {
   buildReferralSendPatch,
   resolveReferralSend,
 } from "../../shared/referral-send-domain.mjs";
+import { REFERRAL_INTRO_SUBJECT } from "../../shared/referral-outreach-templates.mjs";
 
 const NOW = "2026-06-13T12:00:00.000Z";
 
@@ -35,7 +36,7 @@ test("buildReferralEmailContent assembles subject/text/html with footer + direct
     { contactName: "Dr. Jane Smith", orgName: "DBSA San Diego", segment: "community_peer" },
     { template: "referral_intro", footer: { text: "\n--\nFooter", html: "<hr>" } },
   );
-  assert.match(content.subject, /free bipolar-therapist directory/i);
+  assert.equal(content.subject, REFERRAL_INTRO_SUBJECT);
   assert.match(content.text, /Hi Jane,/);
   assert.match(content.text, /Footer$/);
   assert.match(content.html, /<a href=/); // directory link rendered
