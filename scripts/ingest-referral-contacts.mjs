@@ -22,8 +22,8 @@ import path from "node:path";
 import process from "node:process";
 
 import {
-  contactIdentityKey,
   dedupeByIdentity,
+  referralContactDocId,
   shapeReferralContact,
   validateIngestRecord,
 } from "../shared/referral-contact-domain.mjs";
@@ -72,14 +72,6 @@ Options:
 Env (only needed with --write):
   SANITY_API_TOKEN, VITE_SANITY_PROJECT_ID, VITE_SANITY_DATASET
 `);
-}
-
-// Turn an identity key (e.g. "email:info@dbsasandiego.org") into a Sanity _id
-// that only contains allowed characters, so the same contact always maps to
-// the same document and re-ingesting is idempotent.
-function identityToDocId(key) {
-  const safe = key.replace(/[^a-zA-Z0-9_.-]+/g, "-").replace(/^-+|-+$/g, "");
-  return `referralContact.${safe}`;
 }
 
 function readContacts(file) {
@@ -168,7 +160,7 @@ async function main() {
 
   let created = 0;
   for (const doc of unique) {
-    const _id = identityToDocId(contactIdentityKey(doc));
+    const _id = referralContactDocId(doc);
     // createIfNotExists keeps re-runs idempotent and never clobbers pipeline
     // state (status/emailLog) that later phases write onto an existing contact.
     await client.createIfNotExists({ _id, ...doc });

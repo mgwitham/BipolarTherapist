@@ -3,7 +3,11 @@ import { getRateLimiter } from "./rate-limit-store.mjs";
 import { getSuppressionEntry } from "./outreach-suppression.mjs";
 import { resendSend } from "./outreach-resend.mjs";
 import { deliverReferralTouch, getReferralSendConfig } from "./referral-send-core.mjs";
-import { CONTACT_STATUS_VALUES, SEGMENT_VALUES } from "../shared/referral-contact-domain.mjs";
+import {
+  CONTACT_STATUS_VALUES,
+  SEGMENT_VALUES,
+  planReferralImport,
+} from "../shared/referral-contact-domain.mjs";
 import { buildReferralEmailContent, resolveReferralSend } from "../shared/referral-send-domain.mjs";
 
 // Referral outreach admin endpoints, served inside the review dispatcher (one
@@ -283,12 +287,79 @@ async function handleSend(context) {
   return json(response, 200, { ok: true, template, isolated: config.isolated });
 }
 
+// Bulk import: accept a batch of raw contacts (the same JSON shape the
+// ingestion script reads), validate + dedupe + write via the shared planner,
+// and report a summary. Lets the admin "Import" button load a batch from the
+// browser using the server's Sanity credentials — no CLI, no local token.
+// createIfNotExists keeps it idempotent; existing contacts are counted, not
+// re-created.
+async function handleImport(context) {
+  const { client, request, response, deps } = context;
+  if (request.method !== "POST") return json(response, 405, { error: "Method not allowed" });
+
+  let body;
+  try {
+    body = await deps.parseBody(request);
+  } catch {
+    return json(response, 400, { error: "Invalid JSON" });
+  }
+  const contacts = Array.isArray(body) ? body : body && body.contacts;
+  if (!Array.isArray(contacts)) {
+    return json(response, 400, {
+      error: 'Expected a JSON array or an object with a "contacts" array',
+    });
+  }
+  if (contacts.length > 2000) {
+    return json(response, 400, { error: "Too many contacts in one import (max 2000)" });
+  }
+
+  const plan = planReferralImport(contacts, { nowIso: new Date().toISOString() });
+
+  // Which target ids already exist, so we can report created vs already-present.
+  let existing = [];
+  try {
+    const ids = plan.toCreate.map((entry) => entry._id);
+    existing = ids.length
+      ? await client.fetch(`*[_type == "referralContact" && _id in $ids]._id`, { ids })
+      : [];
+  } catch (err) {
+    log.error("referral import existing-check error", { err: err?.message || String(err) });
+  }
+  const existingSet = new Set(Array.isArray(existing) ? existing : []);
+
+  let imported = 0;
+  let alreadyExisted = 0;
+  let failed = 0;
+  for (const { _id, doc } of plan.toCreate) {
+    const already = existingSet.has(_id);
+    try {
+      await client.createIfNotExists({ _id, ...doc });
+      if (already) alreadyExisted += 1;
+      else imported += 1;
+    } catch (err) {
+      log.error("referral import create error", { id: _id, err: err?.message || String(err) });
+      failed += 1;
+    }
+  }
+
+  return json(response, 200, {
+    ok: true,
+    received: plan.total,
+    imported,
+    alreadyExisted,
+    failed,
+    inBatchDuplicates: plan.duplicates,
+    rejected: plan.rejected,
+  });
+}
+
 export async function handleReferralRoutes(context) {
   const { config, request, response, routePath, deps } = context;
   const isList = routePath === "/admin/referral-contacts";
+  const isImport = routePath === "/admin/referral-contacts/import";
   const isSend = routePath === "/admin/send-referral-email";
   const isContact = routePath.startsWith(CONTACT_PREFIX);
-  if (!isList && !isSend && !isContact) return false;
+  if (!isList && !isImport && !isSend && !isContact) return false;
 
   const session = deps.readAdminSessionFromRequest(request, config);
   if (!session) {
@@ -296,6 +367,10 @@ export async function handleReferralRoutes(context) {
     return true;
   }
 
+  if (isImport) {
+    await handleImport(context);
+    return true;
+  }
   if (isList) {
     await handleList(context);
     return true;
