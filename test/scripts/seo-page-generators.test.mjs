@@ -53,7 +53,9 @@ const PROFILE_TEMPLATE = `<!doctype html>
 <html lang="en">
   <head><title>Therapist Profile · BipolarTherapyHub</title></head>
   <body>
-    <div class="profile-wrap" id="profileWrap"><p>Loading...</p></div>
+    <main id="main-content">
+      <div class="profile-wrap" id="profileWrap"><p>Loading...</p></div>
+    </main>
     <footer></footer>
   </body>
 </html>`;
@@ -219,6 +221,10 @@ test("profile SEO generator injects visible FAQ content into generated profile p
   assert.match(html, /seo-profile-faq/);
   assert.match(pageText, /Frequently asked questions/);
   assert.match(pageText, new RegExp(faqJsonLd.mainEntity[0].name));
+
+  // The fallback content must land inside the <main> landmark, not replace it.
+  assert.match(html, /<main id="main-content">/);
+  assert.match(html, /<main id="main-content">[\s\S]*seo-profile-fallback[\s\S]*<\/main>/);
 });
 
 test("sitemap static routes exclude noindex match flow and include E-E-A-T about page", () => {
