@@ -642,9 +642,12 @@ export function injectSeo(template, therapist, similar, options) {
     withHead = withHead.replace(/<\/head>/, `  ${tag}\n  </head>`);
   }
 
+  // Match the (empty) profileWrap div directly rather than anchoring on a
+  // following <footer>: the template now wraps profileWrap in a <main>
+  // landmark, so </div> is no longer immediately followed by <footer>.
   return withHead.replace(
-    /<div class="profile-wrap" id="profileWrap">[\s\S]*?<\/div>\s*(?=<footer>)/,
-    `<div class="profile-wrap" id="profileWrap">\n      ${buildFallbackProfileHtml(therapist, similar, options)}\n    </div>\n\n    `,
+    /<div class="profile-wrap" id="profileWrap">[\s\S]*?<\/div>/,
+    `<div class="profile-wrap" id="profileWrap">\n      ${buildFallbackProfileHtml(therapist, similar, options)}\n    </div>`,
   );
 }
 
