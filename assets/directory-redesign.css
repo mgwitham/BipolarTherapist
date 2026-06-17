@@ -467,18 +467,26 @@ body.dir-vb {
   max-height: 240px;
   overflow-y: auto;
 }
-/* On narrow mobile (chip row wraps), align right edge to the
-   right side of the viewport for chips that sit at the row's right
-   edge — prevents popover overflow. The :nth-last-of-type heuristic
-   targets the last few wraps; for our current layout (Insurance is
-   second-to-last among chip-dropdowns, Gender is last) this keeps
-   them on-screen on smaller widths. */
+/* On narrow mobile the chip row wraps across several lines, so the
+   chip that owns a popover can sit anywhere horizontally. Anchoring
+   the panel to the chip then pushes it off-screen (left or right).
+   Instead, anchor the panel to the chip row itself and stretch it
+   full-width — it always lands on-screen, taps cleanly, and sits in
+   the same place no matter which chip opened it. */
 @media (max-width: 640px) {
+  .dir-filter-chip-row {
+    position: relative;
+  }
+  .dir-filter-dropdown-wrap {
+    position: static;
+  }
   .dir-filter-dropdown-panel {
-    left: auto;
+    left: 0;
     right: 0;
-    min-width: 240px;
-    max-width: 90vw;
+    top: calc(100% + 8px);
+    min-width: 0;
+    max-width: none;
+    width: auto;
   }
 }
 
