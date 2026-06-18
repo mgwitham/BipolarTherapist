@@ -15,7 +15,7 @@ import {
 // manage the new owner's subscription.
 async function sessionIsStaleForListingSlug(client, session) {
   const owner = await client.fetch(
-    `*[_type == "therapist" && slug.current == $slug][0]{ claimedByEmail }`,
+    `*[_type == "therapist" && slug.current == $slug][0]{ claimedByEmail, ownershipChangedAt }`,
     { slug: session.slug },
   );
   return sessionIsStaleForListing(session, owner);

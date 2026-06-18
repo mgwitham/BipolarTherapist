@@ -852,6 +852,59 @@ test("sessionIsStaleForListing: false on missing data so legacy claimed docs are
   assert.equal(sessionIsStaleForListing({ email: "x@y.com" }, null), false);
 });
 
+test("sessionIsStaleForListing: true when the session predates an ownership transfer", () => {
+  const issuedAt = Date.parse("2026-01-01T00:00:00.000Z");
+  // Email gate would not fire here (same email), but the timestamp gate must:
+  // the listing was transferred after this session was minted.
+  assert.equal(
+    sessionIsStaleForListing(
+      { email: "jamie@example.com", issuedAt },
+      {
+        claimedByEmail: "jamie@example.com",
+        ownershipChangedAt: "2026-02-01T00:00:00.000Z",
+      },
+    ),
+    true,
+  );
+});
+
+test("sessionIsStaleForListing: true on a legacy doc with no claimedByEmail once ownership changes", () => {
+  // The email gate can't fire without claimedByEmail; the timestamp gate still does.
+  assert.equal(
+    sessionIsStaleForListing(
+      { email: "anyone@example.com", issuedAt: Date.parse("2026-01-01T00:00:00.000Z") },
+      { ownershipChangedAt: "2026-02-01T00:00:00.000Z" },
+    ),
+    true,
+  );
+});
+
+test("sessionIsStaleForListing: false when the session was minted after the transfer", () => {
+  assert.equal(
+    sessionIsStaleForListing(
+      { email: "jamie@example.com", issuedAt: Date.parse("2026-03-01T00:00:00.000Z") },
+      {
+        claimedByEmail: "jamie@example.com",
+        ownershipChangedAt: "2026-02-01T00:00:00.000Z",
+      },
+    ),
+    false,
+  );
+});
+
+test("sessionIsStaleForListing: reads iat as a fallback when issuedAt is absent", () => {
+  assert.equal(
+    sessionIsStaleForListing(
+      { email: "jamie@example.com", iat: Date.parse("2026-01-01T00:00:00.000Z") },
+      {
+        claimedByEmail: "jamie@example.com",
+        ownershipChangedAt: "2026-02-01T00:00:00.000Z",
+      },
+    ),
+    true,
+  );
+});
+
 test("GET /portal/me rejects a session after the listing is recovered to a different email", async () => {
   const { client, state } = createMemoryClient({
     "therapist-jamie": buildClaimedTherapistFixture(),
