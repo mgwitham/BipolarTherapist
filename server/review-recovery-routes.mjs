@@ -564,6 +564,10 @@ async function recoveryPostRecoveryRequestsIdApprove(context, match) {
       claimStatus: "claimed",
       claimedByEmail: recovery.requestedEmail,
       claimedAt: therapist.claimStatus === "claimed" ? undefined : nowIso,
+      // Invalidate any session minted before this transfer. Without this, the
+      // previous owner's still-signature-valid token keeps edit/billing access
+      // to a listing they no longer own. See sessionIsStaleForListing.
+      ownershipChangedAt: nowIso,
     })
     .commit({ visibility: "sync" });
 
@@ -1168,6 +1172,10 @@ async function recoveryPostRecoveryConfirm(context) {
       claimStatus: "claimed",
       claimedByEmail: recovery.requestedEmail,
       claimedAt: therapist.claimStatus === "claimed" ? undefined : nowIso,
+      // Invalidate any session minted before this transfer. Without this, the
+      // previous owner's still-signature-valid token keeps edit/billing access
+      // to a listing they no longer own. See sessionIsStaleForListing.
+      ownershipChangedAt: nowIso,
     })
     .commit({ visibility: "sync" });
 

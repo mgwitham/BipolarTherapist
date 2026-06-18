@@ -465,6 +465,10 @@ test("POST /recovery-confirm with 'yes' auto-approves and invalidates token", as
   const therapist = state.documents.get("therapist-jamie");
   assert.equal(therapist.claimStatus, "claimed");
   assert.equal(therapist.claimedByEmail, "jamie@newpractice.com");
+  assert.ok(
+    therapist.ownershipChangedAt,
+    "transfer stamps ownershipChangedAt so the previous owner's session is invalidated",
+  );
 });
 
 test("POST /recovery-confirm with 'no' auto-rejects and alerts admin", async () => {

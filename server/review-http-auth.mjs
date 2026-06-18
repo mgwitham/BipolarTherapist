@@ -342,14 +342,35 @@ export function getAuthorizedTherapist(request, config) {
 // without this check a previous owner (or a phished old session) keeps full
 // edit/billing access to a listing they no longer own.
 //
-// Returns true only when we can POSITIVELY prove the current owner differs
-// from the session's email. Missing data (no claimedByEmail on a legacy doc,
-// no email on the session) is treated as "not proven stale" so we fall back
-// to the other gates (claimStatus etc.) rather than locking out legitimate
-// owners of older records.
+// Returns true when we can prove the session no longer owns the listing, via
+// either of two gates:
+//
+//   1. Timestamp gate: the listing carries `ownershipChangedAt`, stamped every
+//      time account recovery transfers it, and the session was issued before
+//      that transfer. This is authoritative — it catches the case the email
+//      gate below misses (a legacy doc with no claimedByEmail, or a transfer
+//      that happens to land back on the same email) and does not depend on the
+//      session carrying an email claim.
+//   2. Email gate: the current owner email (`claimedByEmail`) differs from the
+//      email the session was bound to at mint time.
+//
+// Missing data (no ownershipChangedAt and no claimedByEmail, or no email on the
+// session) is treated as "not proven stale" so we fall back to the other gates
+// (claimStatus etc.) rather than locking out legitimate owners of older records.
 export function sessionIsStaleForListing(session, therapistDoc) {
   if (!session || !therapistDoc) {
     return false;
+  }
+  // Sessions minted by getAuthorizedTherapist expose `issuedAt`; raw JWT
+  // payloads expose `iat`. Both are epoch milliseconds.
+  const issuedAtMs = Number(session.issuedAt || session.iat || 0);
+  const ownershipChangedAtMs = Date.parse(therapistDoc.ownershipChangedAt || "");
+  if (
+    issuedAtMs > 0 &&
+    Number.isFinite(ownershipChangedAtMs) &&
+    ownershipChangedAtMs > issuedAtMs
+  ) {
+    return true;
   }
   const sessionEmail = String(session.email || "")
     .trim()

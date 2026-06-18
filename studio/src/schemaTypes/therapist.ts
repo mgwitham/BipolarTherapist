@@ -224,6 +224,15 @@ export const therapistType = defineType({
       group: "practice",
     }),
     defineField({
+      name: "ownershipChangedAt",
+      title: "Ownership changed at",
+      type: "datetime",
+      group: "practice",
+      description:
+        "Set whenever account recovery transfers this listing to a new email. Therapist sessions minted before this timestamp are rejected, so a previous owner's still-valid token can't keep editing or managing billing after a transfer.",
+      readOnly: true,
+    }),
+    defineField({
       name: "portalLastSeenAt",
       title: "Portal last seen at",
       type: "datetime",

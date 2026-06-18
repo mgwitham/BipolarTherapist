@@ -331,7 +331,7 @@ async function portalGetMe(context) {
   const therapist = await client.fetch(
     `*[_type == "therapist" && slug.current == $slug][0]{
         _id, name, email, city, state, zip, practiceName, status, listingActive,
-        claimStatus, claimedByEmail, claimedAt,
+        claimStatus, claimedByEmail, claimedAt, ownershipChangedAt,
         portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
         "slug": slug.current,
         bio, credentials, title, phone, website, bookingUrl, gender,
@@ -458,7 +458,7 @@ async function portalPostPhoto(context) {
 
   const therapist = await client.fetch(
     `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, claimStatus, claimedByEmail, name, email, city, state,
+        _id, claimStatus, claimedByEmail, ownershipChangedAt, name, email, city, state,
         "existingPhotoAssetRef": photo.asset._ref,
         preferredContactMethod, phone, bookingUrl,
         careApproach, bio, practiceName, website, languages,
@@ -587,7 +587,7 @@ async function portalUpdateTherapist(context) {
 
   const existing = await client.fetch(
     `*[_type == "therapist" && slug.current == $slug][0]{
-        _id, claimStatus, claimedByEmail, therapistReportedFields,
+        _id, claimStatus, claimedByEmail, ownershipChangedAt, therapistReportedFields,
         portalFirstSaveAt, portalSaveCount,
         listingActive, status, bio,
         email, phone, website, bookingUrl
@@ -698,7 +698,7 @@ async function portalUpdateTherapist(context) {
   const updated = await client.fetch(
     `*[_type == "therapist" && slug.current == $slug][0]{
         _id, name, email, city, state, zip, practiceName, status, listingActive,
-        claimStatus, claimedByEmail, claimedAt,
+        claimStatus, claimedByEmail, claimedAt, ownershipChangedAt,
         portalLastSeenAt, listingPauseRequestedAt, listingRemovalRequestedAt,
         "slug": slug.current,
         bio, credentials, title, phone, website, bookingUrl, gender,
@@ -747,7 +747,7 @@ async function portalGetAnalytics(context) {
   }
 
   const owner = await client.fetch(
-    `*[_type == "therapist" && slug.current == $slug][0]{ claimedByEmail }`,
+    `*[_type == "therapist" && slug.current == $slug][0]{ claimedByEmail, ownershipChangedAt }`,
     { slug: session.slug },
   );
   if (sessionIsStaleForListing(session, owner)) {
