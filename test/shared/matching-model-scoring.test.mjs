@@ -174,3 +174,36 @@ test("getMatchTier: a bare number assumes confidence 70 (so never 'Strong')", ()
   assert.equal(getMatchTier(200).tone, "medium"); // 200>=105 but assumed confidence 70 < 78
   assert.equal(getMatchTier(50).tone, "light");
 });
+
+// ── Regressions ────────────────────────────────────────────────────────
+
+test("telehealth reason references the requested state, not a hardcoded California", () => {
+  // care_state drives the match; the reason text must not name a specific
+  // state, or it reads wrong for every non-CA market the engine supports.
+  const ev = evalFor(
+    { state: "TX", telehealth_states: ["TX"] },
+    { care_state: "TX", care_format: "Telehealth" },
+  );
+  assert.ok(hasReason(ev, /^Available by telehealth in the requested state\.$/));
+  assert.ok(
+    !hasReason(ev, /California/),
+    "telehealth reason must not hardcode California for a TX request",
+  );
+});
+
+test("rankTherapistsForUser does not throw when tied therapists are missing a name", () => {
+  // Two identical-scoring therapists with no name used to crash the sort
+  // comparator on name.localeCompare(undefined). It must fall through to the
+  // slug tiebreaker instead.
+  const profile = baseProfile({ care_format: "Telehealth" });
+  const a = compatibleTherapist({ slug: "zzz", name: undefined });
+  const b = compatibleTherapist({ slug: "aaa", name: undefined });
+  let ranked;
+  assert.doesNotThrow(() => {
+    ranked = rankTherapistsForUser([a, b], profile);
+  });
+  assert.equal(ranked.length, 2);
+  // Tie falls through to the slug comparator: "aaa" sorts before "zzz".
+  assert.equal(ranked[0].therapist.slug, "aaa");
+  assert.equal(ranked[1].therapist.slug, "zzz");
+});

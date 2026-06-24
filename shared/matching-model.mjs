@@ -1021,7 +1021,7 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
         text:
           telehealthSupport === "unknown"
             ? "Offers telehealth, though state coverage should be confirmed."
-            : "Available by telehealth in California.",
+            : "Available by telehealth in the requested state.",
         weight: 30,
       });
       if (telehealthSupport === "unknown") {
@@ -1470,7 +1470,7 @@ export function rankTherapistsForUser(therapists, userProfile, learningSignals) 
         Number(b.therapist.bipolar_years_experience || 0) -
           Number(a.therapist.bipolar_years_experience || 0) ||
         b.evaluation.completeness_score - a.evaluation.completeness_score ||
-        a.therapist.name.localeCompare(b.therapist.name) ||
+        String(a.therapist.name || "").localeCompare(String(b.therapist.name || "")) ||
         String(a.therapist.slug || "").localeCompare(String(b.therapist.slug || ""))
       );
     });
