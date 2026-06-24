@@ -38,6 +38,7 @@ import {
   verifyAndParseWebhook,
 } from "./stripe-client.mjs";
 import {
+  hasEmailConfig,
   sendEmail as sendRawEmail,
   notifyAdminOfRecoveryRequest,
   notifyAdminOfSubmission,
@@ -1100,6 +1101,20 @@ export function createReviewApiHandler(configOverride, clientOverride) {
         log.error("[health] Sanity probe failed", { requestId, err: err?.message || String(err) });
         sendJson(response, 503, { ok: false, error: "Sanity unreachable" }, origin, config);
       }
+      log.info("[http] response", {
+        requestId,
+        status: capturedStatus,
+        durationMs: Date.now() - requestStart,
+      });
+      return;
+    }
+
+    // Email config probe: confirms the Resend env vars (API key, from,
+    // notification-to) are present without exposing any of their values.
+    // Used to verify email delivery is wired in a given deploy. Returns
+    // only the boolean — never the secrets themselves.
+    if (routePath === "/email-health" && (request.method === "GET" || request.method === "HEAD")) {
+      sendJson(response, 200, { emailConfigured: hasEmailConfig(config) }, origin, config);
       log.info("[http] response", {
         requestId,
         status: capturedStatus,

@@ -1,5 +1,29 @@
 # TODO: Email wiring verification + gaps
 
+## Status (updated)
+
+- **Step 1 — email-health endpoint: DONE.** `GET /api/review/email-health`
+  returns `{ emailConfigured: hasEmailConfig(config) }` (no secrets). Lives in
+  `server/review-handler.mjs` beside `/health`; covered by tests in
+  `test/server/review-route-modules.test.mjs`. The live prod walk-through
+  (one real signup / resend / approve checked against Resend → Logs) still
+  needs a human with prod access — the endpoint just confirms the env vars load.
+- **Step 2 — portal-request admin notify: NEEDS A PRODUCT DECISION (not done).**
+  The portal routes were refactored since this doc was written (the line-132
+  reference is stale; claim handling now lives in `server/review-claim-routes.mjs`).
+  A mismatched-email quick-claim now returns 403 and directs the requester to a
+  manual request form, which already emails support via `sendPortalContactEmail`.
+  Emailing the admin on _every_ 403 mismatch would also fire on simple typos, so
+  whether to add a heads-up there (and at what threshold) is a judgment call —
+  left for a human to decide rather than guessed at.
+- **Step 3 — match intake confirmation: NOT NEEDED.** The match flow's only
+  email capture is the "email yourself this shortlist" nudge in `assets/match.js`,
+  which already POSTs to `/api/review/saved-list/email` and sends a patient-facing
+  email. The match request itself (`/match/requests`) collects no email, so there
+  is nothing to wire.
+
+---
+
 Paste the prompt below into a fresh Claude Code session when ready.
 
 ---
