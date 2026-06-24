@@ -1707,3 +1707,37 @@ test("health check: returns 503 when Sanity fetch throws", async function () {
   assert.equal(response.statusCode, 503);
   assert.equal(response.payload.ok, false);
 });
+
+test("email-health: reports emailConfigured=false when Resend env is absent", async function () {
+  const { client } = createMemoryClient({});
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const response = await runHandlerRequest(handler, {
+    headers: { host: "localhost:8787" },
+    method: "GET",
+    url: "/email-health",
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.emailConfigured, false);
+});
+
+test("email-health: reports emailConfigured=true when Resend env is present, without leaking secrets", async function () {
+  const { client } = createMemoryClient({});
+  const config = {
+    ...createTestApiConfig(),
+    resendApiKey: "re_test_key",
+    emailFrom: "noreply@bipolartherapyhub.com",
+    notificationTo: "founder@bipolartherapyhub.com",
+  };
+  const handler = createReviewApiHandler(config, client);
+  const response = await runHandlerRequest(handler, {
+    headers: { host: "localhost:8787" },
+    method: "GET",
+    url: "/email-health",
+  });
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.emailConfigured, true);
+  // The probe must expose only the boolean — never the underlying secrets.
+  const serialized = JSON.stringify(response.payload);
+  assert.ok(!serialized.includes("re_test_key"), "must not leak the Resend API key");
+  assert.ok(!serialized.includes("founder@bipolartherapyhub.com"), "must not leak the notify-to");
+});
