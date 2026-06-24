@@ -7,6 +7,17 @@ import {
   buildDirectoryRecommendationModel,
 } from "../../assets/directory-view-model.js";
 import { getPreferredContactRoute } from "../../assets/directory-logic.js";
+import { preloadZipcodes } from "../../assets/zip-lookup.js";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+
+// Seed the CA zipcodes dataset so the distance pill can resolve real ZIPs.
+// assets/zip-lookup.js fetches this at runtime; in node we read the JSON and
+// monkey-patch fetch, mirroring the other asset tests.
+const zipUrl = new URL("../../assets/ca-zipcodes.json", import.meta.url);
+const zipData = JSON.parse(readFileSync(fileURLToPath(zipUrl), "utf8"));
+globalThis.fetch = async () => ({ ok: true, json: async () => zipData });
+await preloadZipcodes();
 
 test("buildCardViewModel prepares a renderer-friendly card model", function () {
   const therapist = {
@@ -201,4 +212,30 @@ test("buildCardViewModel tolerates empty-state fallback calls without shortlist 
   assert.equal(model.shortlisted, false);
   assert.equal(model.shortlistEntry, undefined);
   assert.equal(model.contactRoute.href, "mailto:fallback@example.com");
+});
+
+test("buildDirectoryDetailsViewModel: distance pill is empty for a ZIP outside the dataset (no '~Infinity mi')", function () {
+  // getZipDistanceMiles returns Infinity (not null) when a ZIP isn't in the CA
+  // dataset. The guard must drop the pill in that case rather than render
+  // "~Infinity mi from ...".
+  const outOfDataset = buildDirectoryDetailsViewModel({
+    therapist: { slug: "t", name: "T", zip: "10001" }, // valid 5-digit, not in CA dataset
+    filters: { sortZip: "94901" },
+    shortlist: [],
+    isShortlisted: function () {
+      return false;
+    },
+  });
+  assert.equal(outOfDataset.distancePill, "");
+
+  // Control: two in-dataset ZIPs still produce a finite pill.
+  const inDataset = buildDirectoryDetailsViewModel({
+    therapist: { slug: "t", name: "T", zip: "94941" },
+    filters: { sortZip: "94901" },
+    shortlist: [],
+    isShortlisted: function () {
+      return false;
+    },
+  });
+  assert.match(inDataset.distancePill, /^~\d+ mi from 94901$/);
 });
