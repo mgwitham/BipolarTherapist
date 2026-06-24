@@ -21,6 +21,12 @@
       "js-yaml": "3.14.2"
     },
     "dompurify": "^3.4.2",
-    "uuid": "^14.0.0"
+    "uuid": "^14.0.0",
+    "@actions/github": {
+      "undici": "^6.27.0"
+    },
+    "@actions/http-client": {
+      "undici": "^6.27.0"
+    }
   }
 }
