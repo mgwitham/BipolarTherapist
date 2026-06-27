@@ -16,9 +16,12 @@
 //   await limiter.record(key);
 //   await limiter.clear(key);  // intake/portal don't use clear; admin login does
 //
-// Fixed-window counter: a window starts when the first attempt arrives,
-// and the counter increments until the window expires. This is the same
-// algorithm the in-memory implementation used; just persisted.
+// Fixed-window counter: windows are aligned to floor(now/windowMs)*windowMs
+// boundaries (both the Redis and in-memory backends), and the counter
+// increments until the window expires at the next boundary. Aligning the
+// in-memory window to the same boundary the Redis bucket uses keeps the
+// handler's Retry-After math (time to next boundary) accurate on either
+// backend.
 
 import { Redis } from "@upstash/redis";
 import { log } from "./logger.mjs";
@@ -93,7 +96,12 @@ function makeInMemoryLimiter(name, windowMs, maxAttempts) {
       purgeExpired(store, windowMs);
       const existing = store.get(key);
       if (!existing) {
-        store.set(key, { count: 1, windowStartedAt: Date.now() });
+        // Anchor the window to the aligned boundary (floor(now/windowMs)*windowMs),
+        // matching makeRedisLimiter's bucketKey. The handler computes Retry-After
+        // as the time to the next aligned boundary, so both backends must use
+        // aligned windows for that header to be accurate.
+        const windowStartedAt = Math.floor(Date.now() / windowMs) * windowMs;
+        store.set(key, { count: 1, windowStartedAt });
       } else {
         store.set(key, {
           count: existing.count + 1,

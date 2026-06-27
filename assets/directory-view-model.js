@@ -481,7 +481,9 @@ export function buildDirectoryDetailsViewModel(options) {
   const providerZip = String(therapist.zip || "").trim();
   if (/^\d{5}$/.test(sortZip) && /^\d{5}$/.test(providerZip)) {
     const miles = getZipDistanceMiles(sortZip, providerZip);
-    if (miles !== null && miles >= 0) {
+    // getZipDistanceMiles returns Infinity (not null) when a ZIP isn't in the
+    // CA dataset, so guard with isFinite or the pill renders "~Infinity mi".
+    if (Number.isFinite(miles) && miles >= 0) {
       distancePill = "~" + Math.round(miles) + " mi from " + sortZip;
     }
   }

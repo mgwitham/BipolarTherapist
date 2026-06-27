@@ -29,7 +29,13 @@ export async function handleMatchRoutes(context) {
     return false;
   }
 
-  const body = await parseBody(request);
+  let body;
+  try {
+    body = await parseBody(request);
+  } catch (_error) {
+    sendJson(response, 400, { error: "Invalid JSON body." }, origin, config);
+    return true;
+  }
   const schema = routePath === "/match/requests" ? MATCH_REQUEST_SCHEMA : MATCH_OUTCOME_SCHEMA;
   const validation = validateBody(schema, body);
   if (!validation.ok) {

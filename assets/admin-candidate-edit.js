@@ -703,12 +703,14 @@ export function bindCandidateEditDrawer() {
         // Reason prompt for high-impact transitions. Cancel aborts save.
         let reason = "";
         if (needsReasonForSave(_initialTherapist, lifecycle, visibilityIntent)) {
-          reason =
-            window.prompt(
-              "This change will hide or pause the profile. Briefly note why (one line, stored in the audit log):",
-              "",
-            ) || "";
-          if (reason === null) {
+          // Check for cancellation BEFORE coalescing — window.prompt returns
+          // null on Cancel, and `null || ""` is "", which would silently defeat
+          // the abort and save with an empty audit reason.
+          const promptResult = window.prompt(
+            "This change will hide or pause the profile. Briefly note why (one line, stored in the audit log):",
+            "",
+          );
+          if (promptResult === null) {
             // User cancelled.
             if (saveBtn) {
               saveBtn.disabled = false;
@@ -716,6 +718,7 @@ export function bindCandidateEditDrawer() {
             }
             return;
           }
+          reason = promptResult;
         }
 
         const updates = {

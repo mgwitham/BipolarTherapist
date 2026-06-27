@@ -1741,3 +1741,28 @@ test("email-health: reports emailConfigured=true when Resend env is present, wit
   assert.ok(!serialized.includes("re_test_key"), "must not leak the Resend API key");
   assert.ok(!serialized.includes("founder@bipolartherapyhub.com"), "must not leak the notify-to");
 });
+
+test("match routes: malformed JSON body yields 400, not 500", async function () {
+  // parseBody rejects on invalid JSON; the route must translate that into a
+  // 400 like its sibling public-write routes, not let it bubble to a 500.
+  const response = createResponseCapture();
+  const handled = await handleMatchRoutes({
+    client: {},
+    config: {},
+    origin: "",
+    request: { method: "POST" },
+    response,
+    routePath: "/match/requests",
+    deps: {
+      buildMatchOutcomeDocument() {},
+      buildMatchRequestDocument() {},
+      async parseBody() {
+        throw new Error("Unexpected token in JSON");
+      },
+      sendJson: createSendJson(response),
+    },
+  });
+  assert.equal(handled, true);
+  assert.equal(response.statusCode, 400);
+  assert.match(String(response.payload.error), /JSON/i);
+});
