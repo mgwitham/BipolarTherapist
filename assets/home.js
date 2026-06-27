@@ -1051,6 +1051,17 @@ function initHomeSearchForm() {
   document.querySelectorAll('a[href="#startMatch"]').forEach(function (link) {
     link.addEventListener("click", function (event) {
       event.preventDefault();
+      // Demand-side top-of-funnel signal: a visitor clicked a "Find care"
+      // CTA. Surfaced in the admin funnel dashboard's "At a glance" counts
+      // (see HEADLINE_KEY_EVENTS in assets/admin-funnel.js).
+      trackFunnelEvent("home_find_care_clicked", {
+        surface: "homepage",
+        cta_location: link.classList.contains("mobile-sticky-cta")
+          ? "mobile_sticky"
+          : link.classList.contains("btn-cta-white")
+            ? "footer"
+            : "inline",
+      });
       window.scrollTo({ top: 0, behavior: "smooth" });
       const first = document.getElementById("homepage_interest");
       if (first) {
