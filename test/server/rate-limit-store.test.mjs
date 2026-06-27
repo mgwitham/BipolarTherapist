@@ -60,6 +60,27 @@ describe("getRateLimiter (in-memory fallback)", function () {
     });
     assert.equal(limiter.backend, "memory");
   });
+
+  it("aligns the window to fixed boundaries so it resets at the next boundary, not first-attempt + windowMs", function (t) {
+    t.mock.timers.enable({ apis: ["Date"] });
+    // First attempt lands 7s into a 10s-aligned window [0, 10000).
+    t.mock.timers.setTime(7_000);
+    const limiter = getRateLimiter("align", 10_000, 2, {});
+    return (async function () {
+      await limiter.record("ip");
+      await limiter.record("ip");
+      assert.equal(await limiter.canAttempt("ip"), false, "at cap within the window");
+
+      // Just before the aligned boundary at 10000 — still blocked.
+      t.mock.timers.setTime(9_999);
+      assert.equal(await limiter.canAttempt("ip"), false, "still within the aligned window");
+
+      // Past the aligned boundary — window resets. With a first-attempt-anchored
+      // window this would not reset until 17000, so this distinguishes the two.
+      t.mock.timers.setTime(10_001);
+      assert.equal(await limiter.canAttempt("ip"), true, "resets at the aligned boundary");
+    })();
+  });
 });
 
 describe("getRateLimiter (Redis backend)", function () {
