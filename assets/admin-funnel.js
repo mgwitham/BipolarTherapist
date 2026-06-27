@@ -285,24 +285,29 @@ function renderFunnelTable(title, rows) {
   );
 }
 
+// Headline events that anchor each side of the funnel, shown in the
+// "At a glance" section across the 24h / 7d / 30d windows:
+//   - home_find_care_clicked:       demand top of funnel (patient clicked a
+//                                   homepage "Find care" CTA)
+//   - signup_page_viewed:           supply top of funnel
+//   - signup_new_listing_submitted: supply conversion
+//   - claim_page_viewed:            existing-listing claim top of funnel
+//   - claim_accepted:               claim conversion (terminal step of the
+//     email-magic-link flow; replaces the never-fired
+//     `claim_trial_checkout_opened` which was a dead reference)
+const HEADLINE_KEY_EVENTS = [
+  "home_find_care_clicked",
+  "signup_page_viewed",
+  "signup_new_listing_submitted",
+  "claim_page_viewed",
+  "claim_accepted",
+];
+
 function renderHeadlineCounts(events) {
   const windows = [
     { label: "24 hours", ms: 24 * 60 * 60 * 1000 },
     { label: "7 days", ms: 7 * 24 * 60 * 60 * 1000 },
     { label: "30 days", ms: 30 * 24 * 60 * 60 * 1000 },
-  ];
-  // Four headline events that anchor each side of the funnel:
-  //   - signup_page_viewed:           supply top of funnel
-  //   - signup_new_listing_submitted: supply conversion
-  //   - claim_page_viewed:            existing-listing claim top of funnel
-  //   - claim_accepted:               claim conversion (terminal step
-  //     of the email-magic-link flow; replaces the never-fired
-  //     `claim_trial_checkout_opened` which was a dead reference)
-  const keyEvents = [
-    "signup_page_viewed",
-    "signup_new_listing_submitted",
-    "claim_page_viewed",
-    "claim_accepted",
   ];
   return (
     '<div class="admin-funnel-headline-grid">' +
@@ -314,21 +319,19 @@ function renderHeadlineCounts(events) {
           escapeHtml(window.label) +
           "</h4>" +
           '<dl class="admin-funnel-headline-stats">' +
-          keyEvents
-            .map(function (key) {
-              const count = countEventsWithin(events, window.ms, key);
-              const delta = renderHeadlineDelta(events, window.ms, key);
-              return (
-                "<dt>" +
-                escapeHtml(key.replace(/_/g, " ")) +
-                "</dt>" +
-                "<dd>" +
-                count +
-                delta +
-                "</dd>"
-              );
-            })
-            .join("") +
+          HEADLINE_KEY_EVENTS.map(function (key) {
+            const count = countEventsWithin(events, window.ms, key);
+            const delta = renderHeadlineDelta(events, window.ms, key);
+            return (
+              "<dt>" +
+              escapeHtml(key.replace(/_/g, " ")) +
+              "</dt>" +
+              "<dd>" +
+              count +
+              delta +
+              "</dd>"
+            );
+          }).join("") +
           "</dl>" +
           "</div>"
         );
@@ -720,11 +723,15 @@ function bindFunnelDashboard() {
   }
 }
 
-if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", bindFunnelDashboard);
-} else {
-  bindFunnelDashboard();
+// Guard the DOM bootstrap so the module stays import-safe in node (tests
+// import the pure aggregation helpers + HEADLINE_KEY_EVENTS).
+if (typeof document !== "undefined") {
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", bindFunnelDashboard);
+  } else {
+    bindFunnelDashboard();
+  }
 }
 
 // Exported for tests.
-export { buildFunnelRow, countEventsWithin, SIGNUP_STEPS, CLAIM_STEPS };
+export { buildFunnelRow, countEventsWithin, HEADLINE_KEY_EVENTS, SIGNUP_STEPS, CLAIM_STEPS };
