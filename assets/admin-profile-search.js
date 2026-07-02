@@ -155,12 +155,13 @@ export function initAdminProfileSearch({
 
       // Build the unconverted-candidate set once so isProfileLive can
       // include duplicate-against-candidate blockers when relevant. Mirrors
-      // the filter in admin-needs-attention.js, candidates marked as
-      // rejected_duplicate by the Resolve Duplicate workflow no longer
-      // trigger the detector.
+      // the filter in admin-needs-attention.js: candidates whose dedupe
+      // question an admin already resolved — "unique" (verified not a
+      // duplicate) or "rejected_duplicate" (confirmed duplicate) — no
+      // longer trigger the detector.
       const unconvertedCandidates = (getCandidates() || []).filter(function (c) {
         if (c.published_therapist_id) return false;
-        if (c.dedupe_status === "rejected_duplicate") return false;
+        if (c.dedupe_status === "rejected_duplicate" || c.dedupe_status === "unique") return false;
         return true;
       });
 

@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 import {
   compareTherapistsWithFilters,
   getMatchScore,
+  getWaitPriority,
   matchesDirectoryFilters,
 } from "../../assets/directory-logic.js";
 import { insuranceMatches, resolveInsuranceName } from "../../shared/therapist-picker-options.mjs";
@@ -437,4 +438,23 @@ test("matchesDirectoryFilters tolerates a null specialties field without throwin
   assert.equal(matchesDirectoryFilters({ specialty: "Bipolar II" }, provider), false);
   // No meaningful filter => included.
   assert.equal(matchesDirectoryFilters({}, provider), true);
+});
+
+test("getWaitPriority knows every canonical wait-time label (none fall to the 99 bucket)", function () {
+  const canonical = [
+    "Immediate availability",
+    "Within 1 week",
+    "Within 2 weeks",
+    "2-4 weeks",
+    "Within a month",
+    "1-2 months",
+    "Waitlist only",
+  ];
+  for (const label of canonical) {
+    assert.ok(
+      getWaitPriority(label) < 99,
+      `"${label}" should map to a real priority, not the unknown bucket`,
+    );
+  }
+  assert.equal(getWaitPriority("Same week"), 99, "unknown labels fall to the 99 bucket");
 });

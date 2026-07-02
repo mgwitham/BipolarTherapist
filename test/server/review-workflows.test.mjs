@@ -1346,3 +1346,57 @@ test("intake: rejects an unsupported license_state with 422 instead of silently 
   );
   assert.equal(created.length, 0, "an unsupported-state intake must not create documents");
 });
+
+test("workflow: a bare candidate decision preserves existing candidate notes", async function () {
+  const { client, state } = createMemoryClient({
+    "candidate-notes-keep": {
+      _id: "candidate-notes-keep",
+      _type: "therapistCandidate",
+      name: "Dr. Note Holder",
+      credentials: "LCSW",
+      city: "Seattle",
+      state: "WA",
+      licenseState: "WA",
+      licenseNumber: "LCSW11223",
+      sourceUrl: "https://example.com/note-holder",
+      careApproach: "Structured and skills-based bipolar care.",
+      specialties: ["Bipolar disorder"],
+      reviewStatus: "queued",
+      publishRecommendation: "",
+      dedupeStatus: "unreviewed",
+      notes: "DCA name mismatch: license is registered to a different name.",
+      licensureVerification: {
+        verifiedAt: "2026-04-08T00:00:00.000Z",
+        statusStanding: "clear",
+      },
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  // No notes in the body — the ingest-written warning must survive.
+  const response = await runHandlerRequest(handler, {
+    body: { decision: "needs_review" },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
+    method: "POST",
+    url: "/candidates/candidate-notes-keep/decision",
+  });
+  assert.equal(response.statusCode, 200);
+
+  const candidate = state.documents.get("candidate-notes-keep");
+  assert.equal(
+    candidate.notes,
+    "DCA name mismatch: license is registered to a different name.",
+    "a decision without notes must not erase existing candidate notes",
+  );
+
+  // A decision that does carry a note still writes it.
+  const withNote = await runHandlerRequest(handler, {
+    body: { decision: "mark_ready", notes: "Verified name with the board." },
+    headers: { cookie: sessionToken, host: "localhost:8787" },
+    method: "POST",
+    url: "/candidates/candidate-notes-keep/decision",
+  });
+  assert.equal(withNote.statusCode, 200);
+  assert.equal(state.documents.get("candidate-notes-keep").notes, "Verified name with the board.");
+});

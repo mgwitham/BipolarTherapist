@@ -166,6 +166,38 @@ test("psychiatry requested and the provider is a psychiatrist → eligible", () 
   assert.ok(!ev.hard_failures.some((f) => /provider type/i.test(f)));
 });
 
+test("dotted M.D. / D.O. credentials still classify as Psychiatry", () => {
+  for (const credentials of ["M.D.", "D.O."]) {
+    const ev = evaluateTherapistAgainstProfile(
+      therapist({ credentials, medication_management: true }),
+      profile({ care_intent: "Psychiatry" }),
+      null,
+    );
+    assert.equal(ev.hard_constraint_failed, false, credentials + " should be Psychiatry");
+    assert.ok(!ev.hard_failures.some((f) => /provider type/i.test(f)));
+  }
+});
+
+test("the English word 'do' in a title does not misclassify a therapist as Psychiatry", () => {
+  const ev = evaluateTherapistAgainstProfile(
+    therapist({ title: "Helping you do the things that matter" }),
+    profile({ care_intent: "Therapy" }),
+    null,
+  );
+  assert.equal(ev.hard_constraint_failed, false);
+  assert.ok(!ev.hard_failures.some((f) => /provider type/i.test(f)));
+});
+
+test("a therapist listing Medication Management as a modality stays classified as Therapy", () => {
+  const ev = evaluateTherapistAgainstProfile(
+    therapist({ treatment_modalities: ["CBT", "Medication Management"] }),
+    profile({ care_intent: "Therapy" }),
+    null,
+  );
+  assert.equal(ev.hard_constraint_failed, false);
+  assert.ok(!ev.hard_failures.some((f) => /provider type/i.test(f)));
+});
+
 // --- Medication-management dealbreaker ---
 
 test("medication management required but not provided → excluded", () => {

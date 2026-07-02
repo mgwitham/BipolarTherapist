@@ -589,7 +589,7 @@ async function portalUpdateTherapist(context) {
     `*[_type == "therapist" && slug.current == $slug][0]{
         _id, claimStatus, claimedByEmail, ownershipChangedAt, therapistReportedFields,
         portalFirstSaveAt, portalSaveCount,
-        listingActive, status, bio,
+        listingActive, status, bio, listingRemovalRequestedAt,
         email, phone, website, bookingUrl
       }`,
     { slug: session.slug },
@@ -669,9 +669,15 @@ async function portalUpdateTherapist(context) {
   // it in. The first portal save that results in a bio of 50+ chars
   // (matches the Sanity schema's min validation) flips them live
   // automatically. No admin gate, no extra click.
+  //
+  // Gate strictly on the pending_profile signup stub: listingActive can
+  // be false for other reasons (confirmed listing removal, admin
+  // pause/archive, DCA freshness inactivation), and a portal save must
+  // never resurrect those listings.
   const setFields = { ...validation.setFields };
   const shouldAutoPublish =
-    (existing.listingActive === false || existing.status === "pending_profile") &&
+    existing.status === "pending_profile" &&
+    !existing.listingRemovalRequestedAt &&
     ((typeof setFields.bio === "string" && setFields.bio.trim().length >= 50) ||
       (setFields.bio === undefined &&
         typeof existing.bio === "string" &&

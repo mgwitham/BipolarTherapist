@@ -954,3 +954,73 @@ test("PATCH /portal/therapist rejects a stale session from a previous owner", as
     "stale session must not edit the listing",
   );
 });
+
+test("PATCH /portal/therapist does not resurrect a listing removed via listing-removal", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture({
+      listingActive: false,
+      status: "active",
+      listingRemovalRequestedAt: "2026-06-01T00:00:00.000Z",
+    }),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { accepting_new_patients: false },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const raw = await client.getDocument("therapist-jamie");
+  assert.equal(raw.listingActive, false, "a portal save must not undo a confirmed removal");
+  assert.equal(raw.status, "active");
+});
+
+test("PATCH /portal/therapist does not resurrect an admin-deactivated listing", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture({
+      listingActive: false,
+      status: "inactive",
+    }),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: { accepting_new_patients: false },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const raw = await client.getDocument("therapist-jamie");
+  assert.equal(raw.listingActive, false, "a portal save must not undo an admin deactivation");
+  assert.equal(raw.status, "inactive");
+});
+
+test("PATCH /portal/therapist still auto-publishes the pending_profile signup stub", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": buildClaimedTherapistFixture({
+      listingActive: false,
+      status: "pending_profile",
+      bio: "Pending profile",
+    }),
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const response = await runHandlerRequest(handler, {
+    body: {
+      bio: "A finished bio with enough characters to clear the fifty character minimum easily.",
+    },
+    headers: standardHeaders(authHeader("jamie-rivera", "jamie@example.com")),
+    method: "PATCH",
+    url: "/portal/therapist",
+  });
+
+  assert.equal(response.statusCode, 200);
+  const raw = await client.getDocument("therapist-jamie");
+  assert.equal(raw.listingActive, true, "first complete portal save flips the stub live");
+  assert.equal(raw.status, "active");
+});

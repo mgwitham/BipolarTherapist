@@ -947,12 +947,20 @@ function getProviderKind(therapist) {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+  // "MD"/"DO" only carry meaning as credential tokens. Match them against the
+  // credentials field alone (with punctuation stripped so "M.D."/"D.O."
+  // register) — otherwise the English word "do" in a title or modality, or a
+  // prescribing service listed by a non-prescriber therapist, would
+  // misclassify the provider and hard-exclude them from the wrong care-type
+  // search.
+  const credentials = String(therapist.credentials || "")
+    .toLowerCase()
+    .replace(/\./g, "");
 
   if (
     haystack.includes("psychiatrist") ||
-    haystack.includes("medication management") ||
-    /\bmd\b/.test(haystack) ||
-    /\bdo\b/.test(haystack)
+    /\bmd\b/.test(credentials) ||
+    /\bdo\b/.test(credentials)
   ) {
     return "Psychiatry";
   }

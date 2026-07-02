@@ -76,3 +76,31 @@ test("details render smoke keeps contact therapist visible", function () {
   assert.match(html, /View full profile/);
   assert.match(html, /dir-panel-pills|dir-panel-identity/);
 });
+
+test("expertise band does not claim Bipolar II for a Bipolar I specialist", function () {
+  const html = renderDirectoryTestCard({
+    therapist: buildDirectoryTestTherapist({
+      specialties: ["Bipolar I"],
+      bipolar_years_experience: 0,
+      treatment_modalities: [],
+    }),
+    filters: buildDirectoryTestFilters({ specialty: "" }),
+  });
+
+  assert.match(html, /Bipolar I\b/);
+  assert.doesNotMatch(html, /Bipolar II/);
+});
+
+test("expertise band recognizes Bipolar II and numeric subtype spellings", function () {
+  const html = renderDirectoryTestCard({
+    therapist: buildDirectoryTestTherapist({
+      specialties: ["Bipolar 2", "Bipolar 1"],
+      bipolar_years_experience: 0,
+      treatment_modalities: [],
+    }),
+    filters: buildDirectoryTestFilters({ specialty: "" }),
+  });
+
+  assert.match(html, /Bipolar II/);
+  assert.match(html, /Bipolar I\b/);
+});

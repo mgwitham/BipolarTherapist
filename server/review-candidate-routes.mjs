@@ -336,13 +336,15 @@ export async function handleCandidateRoutes(context) {
   const changedFields = [
     "reviewStatus",
     "publishRecommendation",
-    "notes",
     "reviewHistory",
     "reviewLane",
     "reviewPriority",
     "nextReviewDueAt",
     "lastReviewedAt",
   ];
+  if (notes) {
+    changedFields.push("notes");
+  }
 
   if (decision === "mark_ready") {
     reviewStatus = "ready_to_publish";
@@ -653,7 +655,11 @@ export async function handleCandidateRoutes(context) {
         reviewPriority: reviewMeta.reviewPriority,
         nextReviewDueAt: reviewMeta.nextReviewDueAt,
         lastReviewedAt: now,
-        notes,
+        // Only overwrite notes when the decision supplied one — a bare
+        // decision (e.g. the inspector's one-click publish) must not erase
+        // ingest-written warnings like DCA name mismatches. The per-decision
+        // note is always captured in reviewHistory below either way.
+        ...(notes ? { notes } : {}),
         sourceReviewedAt: candidate.sourceReviewedAt || now,
         ...(decisionCapturesRejection && appliedRejectionReason
           ? {

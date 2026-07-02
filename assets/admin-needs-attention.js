@@ -21,12 +21,13 @@ function isAdminIntentLive(t) {
 export function buildNeedsAttentionEntries(therapists, candidates) {
   const safeTherapists = Array.isArray(therapists) ? therapists : [];
   // A candidate counts as "unconverted" (and so capable of triggering the
-  // duplicate detector) only when it has no publishedTherapistId AND it
-  // hasn't been explicitly marked as rejected_duplicate by the admin
-  // Resolve Duplicate workflow.
+  // duplicate detector) only when it has no publishedTherapistId AND its
+  // dedupe question hasn't already been resolved by an admin — either
+  // verified NOT a duplicate ("unique", via mark_unique / the Resolve
+  // Duplicate workflow) or confirmed as one ("rejected_duplicate").
   const unconvertedCandidates = (Array.isArray(candidates) ? candidates : []).filter(function (c) {
     if (c.published_therapist_id) return false;
-    if (c.dedupe_status === "rejected_duplicate") return false;
+    if (c.dedupe_status === "rejected_duplicate" || c.dedupe_status === "unique") return false;
     return true;
   });
   const entries = [];
