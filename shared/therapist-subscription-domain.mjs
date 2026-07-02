@@ -1,6 +1,11 @@
 const ACTIVE_STATUSES = new Set(["trialing", "active"]);
 const LAPSED_STATUSES = new Set(["canceled", "incomplete_expired", "unpaid"]);
 
+// Tier labels the subscription doc recognizes. "paid" is the tier for the
+// current single-tier pricing (paid_monthly); "founding"/"regular" are the
+// legacy tiers. Anything unrecognized stores an empty tier.
+const KNOWN_TIERS = new Set(["paid", "founding", "regular"]);
+
 // Plan codes the system recognizes.
 //
 // - "paid_monthly" is the CANONICAL plan for the current single-tier
@@ -116,7 +121,13 @@ export function deriveSubscriptionDocumentFromStripe(options) {
   const status = String(stripeSubscription.status || "").toLowerCase();
   const firstItem =
     stripeSubscription.items && stripeSubscription.items.data && stripeSubscription.items.data[0];
-  const priceId = (firstItem && firstItem.price && firstItem.price.id) || "";
+  const price = firstItem && firstItem.price;
+  const priceId = (price && price.id) || "";
+  const unitAmount =
+    price && Number.isFinite(Number(price.unit_amount)) ? Number(price.unit_amount) : 0;
+  const currency = String((price && price.currency) || stripeSubscription.currency || "")
+    .trim()
+    .toLowerCase();
   const recurringInterval =
     (firstItem &&
       firstItem.price &&
@@ -133,13 +144,17 @@ export function deriveSubscriptionDocumentFromStripe(options) {
   )
     .trim()
     .toLowerCase();
-  const tier = metadataTier === "founding" || metadataTier === "regular" ? metadataTier : "";
+  const tier = KNOWN_TIERS.has(metadataTier) ? metadataTier : "";
   const interval =
     metadataInterval === "year" || metadataInterval === "month"
       ? metadataInterval
       : recurringInterval === "year" || recurringInterval === "month"
         ? recurringInterval
         : "";
+
+  const isLapsed = Boolean(status) && LAPSED_STATUSES.has(status);
+  const updatedAt = eventCreatedAt || new Date().toISOString();
+  const canceledAtIso = toIsoFromSeconds(stripeSubscription.canceled_at);
 
   return {
     _id: buildSubscriptionId(slug),
@@ -148,15 +163,25 @@ export function deriveSubscriptionDocumentFromStripe(options) {
     stripeCustomerId: String(stripeCustomerId || stripeSubscription.customer || ""),
     stripeSubscriptionId: String(stripeSubscription.id || ""),
     stripePriceId: priceId,
-    plan: status && !LAPSED_STATUSES.has(status) ? "featured" : "none",
+    priceCents: unitAmount,
+    currency,
+    plan: status && !isLapsed ? "featured" : "none",
     tier,
     interval,
     status,
     trialEndsAt: toIsoFromSeconds(stripeSubscription.trial_end),
     currentPeriodEndsAt: toIsoFromSeconds(stripeSubscription.current_period_end),
     cancelAtPeriodEnd: Boolean(stripeSubscription.cancel_at_period_end),
+    // Metric timestamps consumed by the admin revenue dashboard. Stripe's
+    // `created` is stable across every event for a subscription, so writing it
+    // on each webhook is idempotent. `cancelledAt`/`lapsedAt` populate only
+    // once the subscription actually ends.
+    createdAt: toIsoFromSeconds(stripeSubscription.created),
+    updatedAt,
+    cancelledAt: canceledAtIso,
+    lapsedAt: isLapsed ? canceledAtIso || updatedAt : "",
     lastEventId: eventId ? String(eventId) : "",
-    lastEventAt: eventCreatedAt || new Date().toISOString(),
+    lastEventAt: updatedAt,
   };
 }
 
