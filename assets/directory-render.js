@@ -244,7 +244,7 @@ export function renderBackupCardMarkup(options) {
 // Bipolar subtype keywords used to derive the expertise-band line. Matches
 // the new design's "Bipolar I, Bipolar II, Cyclothymia" surface.
 const BIPOLAR_SUBTYPE_PATTERNS = [
-  { match: /bipolar\s*i+\b|bipolar\s*2/i, label: "Bipolar II" },
+  { match: /bipolar\s*ii\b|bipolar\s*2\b/i, label: "Bipolar II" },
   { match: /bipolar\s*i\b|bipolar\s*1\b/i, label: "Bipolar I" },
   { match: /cyclothym/i, label: "Cyclothymia" },
 ];

@@ -746,3 +746,16 @@ test("webhook: trial_will_end with unclaimed therapist cancels and notifies", as
   assert.equal(canceledNoticeSent.therapist.email, "jamie@example.com");
   assert.equal(reminderCalled, false, "reminder should NOT fire for unclaimed therapist");
 });
+
+test("hasStripeConfig accepts the canonical paid-monthly-only configuration", async () => {
+  const { hasStripeConfig } = await import("../../server/stripe-client.mjs");
+  // The documented deploy shape: secret key + STRIPE_PAID_MONTHLY_PRICE_ID,
+  // no legacy featured/founding/regular price ids. Checkout must not report
+  // "Stripe is not configured" for it.
+  assert.equal(
+    hasStripeConfig({ stripeSecretKey: "sk_test_x", stripePaidMonthlyPriceId: "price_paid" }),
+    true,
+  );
+  assert.equal(hasStripeConfig({ stripeSecretKey: "sk_test_x" }), false);
+  assert.equal(hasStripeConfig({ stripePaidMonthlyPriceId: "price_paid" }), false);
+});

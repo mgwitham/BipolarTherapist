@@ -17,6 +17,7 @@ export function hasStripeConfig(config) {
   }
   return Boolean(
     config.stripeFeaturedPriceId ||
+    config.stripePaidMonthlyPriceId ||
     config.stripeFeaturedFoundingMonthlyPriceId ||
     config.stripeFeaturedFoundingAnnualPriceId ||
     config.stripeFeaturedRegularMonthlyPriceId ||

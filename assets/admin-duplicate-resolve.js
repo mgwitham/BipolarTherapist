@@ -221,15 +221,18 @@ async function handleMarkNotDuplicate() {
   }
   // Confirm, this is irreversible from the UI today.
   const confirmed = window.confirm(
-    "Mark this candidate as NOT a duplicate? It will stop triggering the duplicate detector and stay archived. Use only if you've verified these are different people.",
+    "Mark this candidate as NOT a duplicate? It will stop triggering the duplicate detector. Use only if you've verified these are different people.",
   );
   if (!confirmed) return;
 
   setButtonsDisabled(true);
   setStatus("Saving…");
   try {
+    // "unique" is the system-wide status for a verified not-a-duplicate
+    // (what the mark_unique decision writes); rejected_duplicate means the
+    // opposite — an admin confirmed the candidate IS a duplicate.
     await updateTherapistCandidate(candidateId, {
-      dedupe_status: "rejected_duplicate",
+      dedupe_status: "unique",
       notes:
         (read(_counterpart, "notes", "notes") || "") +
         (read(_counterpart, "notes", "notes") ? "\n" : "") +
@@ -238,7 +241,7 @@ async function handleMarkNotDuplicate() {
         "] Marked as not-a-duplicate via Resolve Duplicate workflow.",
     });
     trackFunnelEvent("admin_duplicate_resolved", {
-      action: "rejected_duplicate",
+      action: "mark_unique",
       candidate_id: candidateId,
     });
     setStatus("Marked. Reloading…");

@@ -275,6 +275,7 @@ export function getWaitPriority(value) {
     "Within 1 week": 1,
     "Within 2 weeks": 2,
     "2-4 weeks": 3,
+    "Within a month": 3,
     "1-2 months": 4,
     "Waitlist only": 5,
   };

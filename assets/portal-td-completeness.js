@@ -1203,7 +1203,19 @@ const LANGUAGE_OPTIONS = [
   "Korean",
   "Portuguese",
 ];
-const WAIT_TIME_OPTIONS = ["Same week", "1–2 weeks", "2–4 weeks", "1–2 months", "Waitlist"];
+// These labels must match the canonical vocabulary the scoring/sort maps key
+// on (shared/matching-model.mjs WAIT_TIME_PRIORITY and
+// assets/directory-logic.js getWaitPriority). Any drift here makes every
+// portal-entered wait time score as the worst-possible availability.
+const WAIT_TIME_OPTIONS = [
+  "Immediate availability",
+  "Within 1 week",
+  "Within 2 weeks",
+  "2-4 weeks",
+  "Within a month",
+  "1-2 months",
+  "Waitlist only",
+];
 const SPECIALTY_OPTIONS = [
   "Bipolar I",
   "Bipolar II",
