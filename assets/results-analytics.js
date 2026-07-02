@@ -79,6 +79,15 @@ document.addEventListener("click", (event) => {
     return;
   }
 
+  // Start a new search on the homepage (filter panel foot or empty state).
+  const startOver = event.target.closest("[data-results-start-over]");
+  if (startOver) {
+    trackFunnelEvent("match_results_start_over_clicked", {
+      source: startOver.closest("[data-results-filter-panel]") ? "filter_panel" : "empty_state",
+    });
+    return;
+  }
+
   // Header: Edit button (toggles the inline filter panel).
   if (event.target.closest("[data-results-edit]")) {
     trackFunnelEvent("match_results_edit_search_clicked", { source: "header_filters" });
