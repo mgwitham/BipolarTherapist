@@ -195,47 +195,67 @@ export function buildRequestSummary(profile, hasMeaningfulRefinements) {
   return summary.length ? summary.join(" • ") : "List based on your current answers.";
 }
 
-export function buildAppliedAnswerPills(profile) {
+// Keyed pill items so surfaces can offer per-pill removal. `key` names the
+// intake field behind the pill; `removable: false` marks constraints the
+// user cannot drop (the CA-statewide floor of the MVP directory).
+export function buildAppliedAnswerPillItems(profile) {
   if (!profile) {
     return [];
   }
 
   const pills = [];
 
-  if (profile.care_intent) {
-    pills.push(profile.care_intent);
+  if (profile.care_intent && profile.care_intent !== "Either") {
+    pills.push({
+      key: "care_intent",
+      label: profile.care_intent === "Psychiatry" ? "Medication support" : "Talk therapy",
+      removable: true,
+    });
   }
 
   if (profile.location_query) {
-    pills.push("ZIP " + profile.location_query);
+    pills.push({ key: "location_query", label: "ZIP " + profile.location_query, removable: true });
   } else if (profile.care_state) {
-    pills.push(profile.care_state + " statewide");
+    pills.push({
+      key: "care_state",
+      label: profile.care_state + " statewide",
+      removable: false,
+    });
   }
 
   if (profile.care_format && profile.care_format !== "Either") {
-    pills.push(profile.care_format);
+    pills.push({ key: "care_format", label: profile.care_format, removable: true });
   }
 
   if (
     profile.needs_medication_management &&
     profile.needs_medication_management !== "Open to either"
   ) {
-    pills.push(
-      profile.needs_medication_management === "Yes"
-        ? "Medication management needed"
-        : "No medication management",
-    );
+    pills.push({
+      key: "needs_medication_management",
+      label:
+        profile.needs_medication_management === "Yes"
+          ? "Medication management needed"
+          : "No medication management",
+      removable: true,
+    });
   }
 
   if (profile.insurance) {
-    pills.push("Insurance: " + profile.insurance);
+    pills.push({ key: "insurance", label: "Insurance: " + profile.insurance, removable: true });
   }
 
   if (profile.priority_mode && profile.priority_mode !== "Best overall fit") {
-    pills.push(profile.priority_mode);
+    pills.push({ key: "priority_mode", label: profile.priority_mode, removable: true });
   }
 
   return pills.slice(0, 6);
+}
+
+export function buildAppliedAnswerPills(profile) {
+  return buildAppliedAnswerPillItems(profile).map(function (pill) {
+    return pill.label;
+  });
 }
 
 export function hasMeaningfulRefinements(profile) {

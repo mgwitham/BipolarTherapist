@@ -13,10 +13,20 @@ function cardPayload(card) {
 }
 
 document.addEventListener("results:rendered", (event) => {
+  const detail = event.detail || {};
+  // Live filter edits (pill removal / panel change) re-render in place;
+  // track those as filter changes, not fresh page views.
+  if (detail.rerender) {
+    trackFunnelEvent("match_results_filters_changed", {
+      card_count: Number(detail.count) || 0,
+      trigger: String(detail.trigger || ""),
+    });
+    return;
+  }
   trackFunnelEvent("match_results_page_viewed", {
-    card_count: Number(event.detail && event.detail.count) || 0,
+    card_count: Number(detail.count) || 0,
     has_top_match: Boolean(document.querySelector(".featured-card")),
-    render_error: Boolean(event.detail && event.detail.error),
+    render_error: Boolean(detail.error),
   });
 });
 
@@ -60,7 +70,16 @@ document.addEventListener("click", (event) => {
     return;
   }
 
-  // Header: Edit filter pill.
+  // Header: removable filter pill (×).
+  const pillRemove = event.target.closest("[data-pill-remove]");
+  if (pillRemove) {
+    trackFunnelEvent("match_results_filter_pill_removed", {
+      filter_key: pillRemove.getAttribute("data-pill-remove") || "",
+    });
+    return;
+  }
+
+  // Header: Edit button (toggles the inline filter panel).
   if (event.target.closest("[data-results-edit]")) {
     trackFunnelEvent("match_results_edit_search_clicked", { source: "header_filters" });
     return;

@@ -11,7 +11,7 @@ import {
   restoreProfileFromUrl,
   splitCommaSeparated,
   deriveStateFromLocation,
-  buildAppliedAnswerPills,
+  buildAppliedAnswerPillItems,
 } from "./match-intake.js";
 import { getCardLocationLabel, getFeeLabel, getInsuranceLabel } from "./card-content.js";
 import { escapeHtml } from "./escape-html.js";
@@ -207,19 +207,33 @@ function renderGridCard(entry, rank, profile) {
 function renderHeader(profile, count) {
   const countEl = document.querySelector("[data-results-count]");
   if (countEl) countEl.textContent = String(count);
+  const nounEl = document.querySelector("[data-results-match-noun]");
+  if (nounEl) nounEl.textContent = count === 1 ? "match" : "matches";
 
   const filtersEl = document.querySelector("[data-results-filters]");
   if (!filtersEl) return;
   // Build the same applied-answer pills /match uses, then re-style them with
-  // our .filter-pill class. The Edit link stays at the end.
+  // our .filter-pill class. Removable pills render as buttons with an ×
+  // that drops the filter and re-ranks in place. The Edit button stays at
+  // the end and toggles the inline filter panel.
   const editLink = filtersEl.querySelector(".filter-edit-btn");
   filtersEl.innerHTML = "";
-  const pills = profile ? buildAppliedAnswerPills(profile) : [];
+  const pills = profile ? buildAppliedAnswerPillItems(profile) : [];
   pills.forEach((p) => {
-    const span = document.createElement("span");
-    span.className = "filter-pill";
-    span.textContent = p.label || p.value || p;
-    filtersEl.appendChild(span);
+    if (p.removable) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "filter-pill filter-pill-removable";
+      btn.setAttribute("data-pill-remove", p.key);
+      btn.setAttribute("aria-label", `Remove filter: ${p.label}`);
+      btn.innerHTML = `<span>${escapeHtml(p.label)}</span><i class="ti ti-x filter-pill-x" aria-hidden="true"></i>`;
+      filtersEl.appendChild(btn);
+    } else {
+      const span = document.createElement("span");
+      span.className = "filter-pill";
+      span.textContent = p.label;
+      filtersEl.appendChild(span);
+    }
   });
   if (editLink) filtersEl.appendChild(editLink);
 }
@@ -242,51 +256,184 @@ function showState(state) {
   }
 }
 
-/* ── orchestrator ─────────────────────────────────────────── */
+/* ── live filtering ───────────────────────────────────────── */
 
-async function bootstrap() {
+// Fetched once at bootstrap; filter edits re-rank this list in memory so
+// pill removal and panel changes update the page without a reload.
+const state = { therapists: null, profile: null };
+
+function readProfileFromLocation() {
   const profile = restoreProfileFromUrl({
     buildUserMatchProfile,
     deriveStateFromLocation,
     splitCommaSeparated,
   });
-
-  // No params at all → user landed on /results raw. Send them to intake.
-  if (!profile) {
-    window.location.replace("/match");
-    return;
-  }
-
   // CA-only directory (MVP). When no care_state is in the URL,
   // deriveStateFromLocation returns "" because the async zipcodes data
   // isn't loaded here, and the matching engine's hard-constraint filter
   // drops every therapist. Default to CA so scoring runs.
-  if (!profile.care_state) profile.care_state = "CA";
+  if (profile && !profile.care_state) profile.care_state = "CA";
+  return profile;
+}
 
-  showState("loading");
+// Panel radio values use "" for the neutral option; these normalized
+// profile defaults mean the same thing when they arrive via URL params.
+const NEUTRAL_PARAM_VALUES = new Set(["Either", "Open to either", "Best overall fit"]);
 
-  let therapists;
-  try {
-    therapists = await fetchPublicTherapists({ strict: false });
-  } catch (err) {
-    console.error("results: therapist fetch failed", err);
-    renderHeader(profile, 0);
-    try {
-      window.sessionStorage.removeItem("matchResultsUrl");
-    } catch (_e) {
-      /* ignore */
-    }
-    showState("error");
-    document.dispatchEvent(
-      new CustomEvent("results:rendered", { detail: { count: 0, error: true } }),
-    );
+function mutateUrlParams(mutator) {
+  const params = new URLSearchParams(window.location.search);
+  mutator(params);
+  // Keep the URL restorable: care_state anchors the profile when every
+  // other intake param has been removed.
+  if (!params.get("care_state")) {
+    params.set("care_state", (state.profile && state.profile.care_state) || "CA");
+  }
+  window.history.replaceState({}, "", `${window.location.pathname}?${params.toString()}`);
+}
+
+function applyFilterChange(mutator, trigger) {
+  mutateUrlParams(mutator);
+  state.profile = readProfileFromLocation();
+  syncPanelFields();
+  if (!state.therapists) {
+    // Fetch failed earlier; keep the header honest but stay on the
+    // error state — there is nothing to re-rank.
+    renderHeader(state.profile, 0);
     return;
   }
+  renderResults({ rerender: true, trigger });
+}
 
-  const entries = rankTherapistsForUser(therapists, profile, null)
+function removeFilterPill(key) {
+  applyFilterChange((params) => {
+    params.delete(key);
+  }, "pill_remove");
+}
+
+function getPanel() {
+  return document.querySelector("[data-results-filter-panel]");
+}
+
+function syncPanelFields() {
+  const panel = getPanel();
+  if (!panel) return;
+  const params = new URLSearchParams(window.location.search);
+  panel.querySelectorAll("[data-rf-field]").forEach((input) => {
+    const key = input.getAttribute("data-rf-field");
+    const raw = params.get(key) || "";
+    const value = NEUTRAL_PARAM_VALUES.has(raw) ? "" : raw;
+    if (input.type === "radio") {
+      input.checked = input.value === value;
+    } else {
+      // Don't yank the caret while the user is typing in this field.
+      if (document.activeElement !== input) input.value = value;
+    }
+  });
+}
+
+function setPanelOpen(open) {
+  const panel = getPanel();
+  const editBtn = document.querySelector("[data-results-edit]");
+  if (!panel) return;
+  panel.hidden = !open;
+  if (editBtn) editBtn.setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) syncPanelFields();
+}
+
+function isZipApplyable(value) {
+  return value === "" || /^\d{5}$/.test(value);
+}
+
+function initFilterControls() {
+  const panel = getPanel();
+  const editBtn = document.querySelector("[data-results-edit]");
+
+  if (editBtn) {
+    editBtn.addEventListener("click", () => {
+      setPanelOpen(panel ? panel.hidden : false);
+    });
+  }
+
+  document.addEventListener("click", (event) => {
+    const pill = event.target.closest("[data-pill-remove]");
+    if (pill) {
+      removeFilterPill(pill.getAttribute("data-pill-remove"));
+      // The pill list is rebuilt, so park focus on the Edit button to
+      // keep keyboard users in the filter row.
+      if (editBtn) editBtn.focus();
+      return;
+    }
+    const opener = event.target.closest("[data-results-edit-open]");
+    if (opener) {
+      setPanelOpen(true);
+      const header = document.querySelector(".results-header");
+      if (header && typeof header.scrollIntoView === "function") {
+        header.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
+      const firstField = panel && panel.querySelector("[data-rf-field]");
+      if (firstField) firstField.focus({ preventScroll: true });
+    }
+  });
+
+  if (!panel) return;
+
+  const closeBtn = panel.querySelector("[data-rf-close]");
+  if (closeBtn) closeBtn.addEventListener("click", () => setPanelOpen(false));
+  panel.addEventListener("submit", (event) => event.preventDefault());
+
+  function applyField(key, rawValue) {
+    const value = String(rawValue || "").trim();
+    applyFilterChange((params) => {
+      if (value) {
+        params.set(key, value);
+      } else {
+        params.delete(key);
+      }
+    }, "filter_panel");
+  }
+
+  panel.addEventListener("change", (event) => {
+    const input = event.target.closest("[data-rf-field]");
+    if (!input) return;
+    const key = input.getAttribute("data-rf-field");
+    if (input.type === "radio") {
+      if (!input.checked) return;
+      applyField(key, input.value);
+      return;
+    }
+    const value = String(input.value || "").trim();
+    if (key === "location_query" && !isZipApplyable(value)) return;
+    applyField(key, value);
+  });
+
+  // Text fields also apply live while typing (debounced), so the results
+  // move as soon as a ZIP is complete or an insurance name takes shape.
+  let debounceTimer = null;
+  panel.addEventListener("input", (event) => {
+    const input = event.target.closest("[data-rf-field]");
+    if (!input || input.type === "radio") return;
+    const key = input.getAttribute("data-rf-field");
+    const value = String(input.value || "").trim();
+    if (key === "location_query" && !isZipApplyable(value)) return;
+    if (debounceTimer) window.clearTimeout(debounceTimer);
+    debounceTimer = window.setTimeout(() => {
+      const params = new URLSearchParams(window.location.search);
+      if ((params.get(key) || "") === value) return;
+      applyField(key, value);
+    }, 350);
+  });
+}
+
+/* ── orchestrator ─────────────────────────────────────────── */
+
+function renderResults(meta) {
+  const profile = state.profile;
+  const entries = rankTherapistsForUser(state.therapists, profile, null)
     .filter(hasRenderableTherapist)
     .slice(0, PRIMARY_LIMIT);
   renderHeader(profile, entries.length);
+
+  const detail = Object.assign({ count: entries.length }, meta || {});
 
   if (!entries.length) {
     try {
@@ -295,7 +442,7 @@ async function bootstrap() {
       /* ignore */
     }
     showState("empty");
-    document.dispatchEvent(new CustomEvent("results:rendered", { detail: { count: 0 } }));
+    document.dispatchEvent(new CustomEvent("results:rendered", { detail }));
     return;
   }
 
@@ -323,9 +470,42 @@ async function bootstrap() {
   cards.innerHTML = featured + gridLabel + grid;
 
   showState("loaded");
-  document.dispatchEvent(
-    new CustomEvent("results:rendered", { detail: { count: entries.length } }),
-  );
+  document.dispatchEvent(new CustomEvent("results:rendered", { detail }));
+}
+
+async function bootstrap() {
+  state.profile = readProfileFromLocation();
+
+  // No params at all → user landed on /results raw. Send them to intake.
+  if (!state.profile) {
+    window.location.replace("/match");
+    return;
+  }
+
+  initFilterControls();
+  syncPanelFields();
+  showState("loading");
+
+  let therapists;
+  try {
+    therapists = await fetchPublicTherapists({ strict: false });
+  } catch (err) {
+    console.error("results: therapist fetch failed", err);
+    renderHeader(state.profile, 0);
+    try {
+      window.sessionStorage.removeItem("matchResultsUrl");
+    } catch (_e) {
+      /* ignore */
+    }
+    showState("error");
+    document.dispatchEvent(
+      new CustomEvent("results:rendered", { detail: { count: 0, error: true } }),
+    );
+    return;
+  }
+
+  state.therapists = therapists;
+  renderResults();
 }
 
 bootstrap();

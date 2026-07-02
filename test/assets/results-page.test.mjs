@@ -36,7 +36,19 @@ test("results page: skips malformed therapist entries before card rendering", ()
 test("results page: analytics waits for async render count", () => {
   assert.doesNotMatch(resultsAnalyticsJs, /^trackFunnelEvent\("match_results_page_viewed"/m);
   assert.match(resultsAnalyticsJs, /document\.addEventListener\("results:rendered"/);
-  assert.match(resultsAnalyticsJs, /card_count:\s*Number\(event\.detail && event\.detail\.count\)/);
+  assert.match(resultsAnalyticsJs, /card_count:\s*Number\(detail\.count\)/);
+});
+
+test("results page: live filter edits re-rank without a reload", () => {
+  // Edit toggles the inline panel instead of navigating away.
+  assert.match(resultsHtml, /data-results-filter-panel/);
+  assert.doesNotMatch(resultsHtml, /href="\/#startMatch"\s+class="filter-edit-btn"/);
+  // Pills are removable and re-render results in place.
+  assert.match(resultsJs, /data-pill-remove/);
+  assert.match(resultsJs, /history\.replaceState/);
+  // Re-renders report as filter changes, not fresh page views.
+  assert.match(resultsAnalyticsJs, /match_results_filters_changed/);
+  assert.match(resultsAnalyticsJs, /match_results_filter_pill_removed/);
 });
 
 test("results save: updates current card label and tolerates missing CSS.escape", () => {

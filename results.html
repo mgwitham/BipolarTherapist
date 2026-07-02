@@ -86,16 +86,192 @@
     <main id="resultsMain">
       <div class="results-header">
         <h1 class="results-h1">
-          <span data-results-count>0</span> bipolar informed matches for you
+          <span data-results-count>0</span> bipolar informed
+          <span data-results-match-noun>matches</span> for you
         </h1>
         <div class="results-filters" data-results-filters>
-          <!-- Filter pills are populated by JS in a later step.
-               Static example pill below shows the styling target. -->
-          <a href="/#startMatch" class="filter-edit-btn" data-results-edit>
+          <!-- Filter pills are populated by assets/results.js. Each removable
+               pill renders as a button with an × that drops that filter and
+               re-ranks in place. -->
+          <button
+            type="button"
+            class="filter-edit-btn"
+            data-results-edit
+            aria-expanded="false"
+            aria-controls="resultsFilterPanel"
+          >
             <i class="ti ti-adjustments-horizontal" aria-hidden="true"></i>
             Edit
-          </a>
+          </button>
         </div>
+
+        <!-- Inline filter editor. Toggled by the Edit button; every change
+             re-ranks the already-fetched matches without a page load. -->
+        <form class="results-filter-panel" id="resultsFilterPanel" data-results-filter-panel hidden>
+          <div class="rf-inputs-row">
+            <div class="rf-field">
+              <label class="rf-label" for="rfZip">ZIP code</label>
+              <input
+                id="rfZip"
+                name="rf_location_query"
+                data-rf-field="location_query"
+                type="text"
+                class="rf-input"
+                placeholder="e.g. 90028"
+                inputmode="numeric"
+                maxlength="5"
+                autocomplete="postal-code"
+              />
+            </div>
+            <div class="rf-field">
+              <label class="rf-label" for="rfInsurance">Insurance</label>
+              <input
+                id="rfInsurance"
+                name="rf_insurance"
+                data-rf-field="insurance"
+                type="text"
+                class="rf-input"
+                placeholder="e.g. Aetna, Medi-Cal, self-pay"
+                autocomplete="off"
+              />
+            </div>
+          </div>
+
+          <div class="rf-row">
+            <span class="rf-label" id="rfCareTypeLabel">Care type</span>
+            <div class="rf-seg" role="radiogroup" aria-labelledby="rfCareTypeLabel">
+              <label class="rf-seg-opt">
+                <input type="radio" name="rf_care_intent" data-rf-field="care_intent" value="" />
+                <span>Either</span>
+              </label>
+              <label class="rf-seg-opt">
+                <input
+                  type="radio"
+                  name="rf_care_intent"
+                  data-rf-field="care_intent"
+                  value="Therapy"
+                />
+                <span>Talk therapy</span>
+              </label>
+              <label class="rf-seg-opt">
+                <input
+                  type="radio"
+                  name="rf_care_intent"
+                  data-rf-field="care_intent"
+                  value="Psychiatry"
+                />
+                <span>Medication support</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="rf-row">
+            <span class="rf-label" id="rfFormatLabel">Format</span>
+            <div class="rf-seg" role="radiogroup" aria-labelledby="rfFormatLabel">
+              <label class="rf-seg-opt">
+                <input type="radio" name="rf_care_format" data-rf-field="care_format" value="" />
+                <span>Any</span>
+              </label>
+              <label class="rf-seg-opt">
+                <input
+                  type="radio"
+                  name="rf_care_format"
+                  data-rf-field="care_format"
+                  value="Telehealth"
+                />
+                <span>Telehealth</span>
+              </label>
+              <label class="rf-seg-opt">
+                <input
+                  type="radio"
+                  name="rf_care_format"
+                  data-rf-field="care_format"
+                  value="In-Person"
+                />
+                <span>In-person</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="rf-row">
+            <span class="rf-label" id="rfMedsLabel">Medication management</span>
+            <div class="rf-seg" role="radiogroup" aria-labelledby="rfMedsLabel">
+              <label class="rf-seg-opt">
+                <input
+                  type="radio"
+                  name="rf_needs_medication_management"
+                  data-rf-field="needs_medication_management"
+                  value=""
+                />
+                <span>No preference</span>
+              </label>
+              <label class="rf-seg-opt">
+                <input
+                  type="radio"
+                  name="rf_needs_medication_management"
+                  data-rf-field="needs_medication_management"
+                  value="Yes"
+                />
+                <span>Needed</span>
+              </label>
+              <label class="rf-seg-opt">
+                <input
+                  type="radio"
+                  name="rf_needs_medication_management"
+                  data-rf-field="needs_medication_management"
+                  value="No"
+                />
+                <span>Not needed</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="rf-row">
+            <span class="rf-label" id="rfSortLabel">Sort by</span>
+            <div class="rf-seg" role="radiogroup" aria-labelledby="rfSortLabel">
+              <label class="rf-seg-opt">
+                <input
+                  type="radio"
+                  name="rf_priority_mode"
+                  data-rf-field="priority_mode"
+                  value=""
+                />
+                <span>Best fit</span>
+              </label>
+              <label class="rf-seg-opt">
+                <input
+                  type="radio"
+                  name="rf_priority_mode"
+                  data-rf-field="priority_mode"
+                  value="Soonest availability"
+                />
+                <span>Soonest</span>
+              </label>
+              <label class="rf-seg-opt">
+                <input
+                  type="radio"
+                  name="rf_priority_mode"
+                  data-rf-field="priority_mode"
+                  value="Lowest cost"
+                />
+                <span>Affordable</span>
+              </label>
+              <label class="rf-seg-opt">
+                <input
+                  type="radio"
+                  name="rf_priority_mode"
+                  data-rf-field="priority_mode"
+                  value="Highest specialization"
+                />
+                <span>Experienced</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="rf-foot">
+            <button type="button" class="rf-done-btn" data-rf-close>Done</button>
+          </div>
+        </form>
       </div>
 
       <!-- Cards container, populated by assets/results.js after fetch. -->
@@ -315,10 +491,10 @@
           <p class="results-empty-body">
             Try widening your search. Remove the availability filter or expand your ZIP radius.
           </p>
-          <a href="/#startMatch" class="results-empty-link">
+          <button type="button" class="results-empty-link" data-results-edit-open>
             Edit search
             <i class="ti ti-arrow-right" aria-hidden="true"></i>
-          </a>
+          </button>
         </div>
 
         <div class="results-empty results-error" data-results-error hidden>
