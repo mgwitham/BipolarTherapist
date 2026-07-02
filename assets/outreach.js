@@ -1152,6 +1152,20 @@ function therapistAlreadySent(t, template) {
   return log.some((e) => e && e.template === template);
 }
 
+// Where outreach.status lands when an opt-out is undone. Derived from
+// the last real send in the emailLog (webhook entries like
+// "email.bounced" don't count) so the therapist rejoins the queue at
+// the stage they'd actually reached; never contacted → not_contacted.
+function statusAfterOptOutUndo(t) {
+  const log = Array.isArray(t?.outreach?.emailLog) ? t.outreach.emailLog : [];
+  for (let i = log.length - 1; i >= 0; i--) {
+    const tmpl = String(log[i]?.template || "");
+    if (!tmpl || tmpl.startsWith("email.")) continue;
+    return nextStatusForTemplate(tmpl.replace(/_via_form$/, ""));
+  }
+  return "not_contacted";
+}
+
 // Find the most recent sentAt for a given template, used to label the
 // "already received" warning row.
 function lastSentAtForTemplate(t, template) {
@@ -1178,7 +1192,9 @@ function openBatchComposer() {
   const ids = Array.from(state.selected);
   const recipients = ids
     .map((id) => state.therapists.find((t) => t._id === id))
-    .filter((t) => t && (t.email || "").trim());
+    // Opted-out therapists never belong in a batch — the server would
+    // hard-reject them (403) anyway, so drop them before composing.
+    .filter((t) => t && (t.email || "").trim() && t.outreach?.status !== "opted_out");
   if (recipients.length === 0) return;
 
   const defaultTemplate = "email_1";
@@ -1885,10 +1901,27 @@ function renderPanelContent(t) {
           ? `
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
           <button class="quick-status-btn btn-secondary" data-status="replied" style="border-color:#7c3aed;color:#5b21b6;">Mark replied</button>
-          <button class="quick-status-btn btn-secondary" data-status="opted_out" style="border-color:#fca5a5;color:#991b1b;">Mark opted out</button>
         </div>
       `
           : ""
+      }
+    </div>
+
+    <div class="panel-section">
+      <div class="section-label">Future Emails</div>
+      ${
+        status === "opted_out"
+          ? `
+        <div style="background:#fef2f2;border:1px solid #fca5a5;border-radius:6px;padding:12px;font-size:13px;color:#991b1b;">
+          Opted out — the send endpoint refuses every email to this therapist, single and batch alike.
+        </div>
+        <button id="panel-optin-btn" class="btn-secondary" style="margin-top:8px;">Re-enable emails (undo opt-out)</button>
+        <div style="font-size:12px;color:#6b7280;margin-top:6px;">Only undo a misclick. If they actually asked to stop (e.g. replied STOP), leave this alone and add their address to data/suppression.json as well.</div>
+      `
+          : `
+        <button id="panel-optout-btn" class="btn-secondary" style="border-color:#fca5a5;color:#991b1b;">Remove from future emails</button>
+        <div style="font-size:12px;color:#6b7280;margin-top:6px;">Marks them opted out. Both single and batch sends are blocked server-side until re-enabled.</div>
+      `
       }
     </div>
 
@@ -2195,6 +2228,38 @@ function setupPanelListeners(t) {
       btn.disabled = false;
       btn.textContent = orig;
     });
+  });
+
+  // Opt-out / opt-in controls in the Future Emails section. On success
+  // applyStatus rerenders the whole panel, so the button-state resets
+  // below only matter on the failure path.
+  document.getElementById("panel-optout-btn")?.addEventListener("click", async () => {
+    const who = t.name || t.email || "this therapist";
+    const proceed = window.confirm(
+      `Stop all future emails to ${who}?\n\nThis marks them opted out; the send endpoint blocks every email to that status.`,
+    );
+    if (!proceed) return;
+    const btn = document.getElementById("panel-optout-btn");
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    await applyStatus("opted_out");
+    btn.disabled = false;
+    btn.textContent = "Remove from future emails";
+  });
+
+  document.getElementById("panel-optin-btn")?.addEventListener("click", async () => {
+    const who = t.name || t.email || "this therapist";
+    const restored = statusAfterOptOutUndo(t);
+    const proceed = window.confirm(
+      `Re-enable emails to ${who}?\n\nStatus will be restored to "${STATUS_LABELS[restored] || restored}". Don't undo a real STOP request.`,
+    );
+    if (!proceed) return;
+    const btn = document.getElementById("panel-optin-btn");
+    btn.disabled = true;
+    btn.textContent = "Saving…";
+    await applyStatus(restored);
+    btn.disabled = false;
+    btn.textContent = "Re-enable emails (undo opt-out)";
   });
 
   // Read the current composer state (template + edited subject/body).
