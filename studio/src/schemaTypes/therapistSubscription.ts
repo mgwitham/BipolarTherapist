@@ -39,6 +39,7 @@ export const therapistSubscriptionType = defineType({
         "Rate this subscriber signed up at. Founding members keep their rate for 24 months.",
       options: {
         list: [
+          { title: "Paid", value: "paid" },
           { title: "Founding", value: "founding" },
           { title: "Regular", value: "regular" },
         ],

@@ -268,6 +268,19 @@ test("deriveSubscriptionDocumentFromStripe extracts tier and interval from subsc
   assert.equal(document.stripePriceId, "price_fm");
 });
 
+test("deriveSubscriptionDocumentFromStripe captures the paid tier for the current pricing", () => {
+  const document = deriveSubscriptionDocumentFromStripe({
+    therapistSlug: "jamie-rivera",
+    stripeSubscription: buildStripeSubscription({
+      status: "active",
+      metadata: { therapist_slug: "jamie-rivera", tier: "paid", interval: "month" },
+    }),
+    eventId: "evt_paid",
+    eventCreatedAt: "2026-04-18T00:00:00.000Z",
+  });
+  assert.equal(document.tier, "paid");
+});
+
 test("deriveSubscriptionDocumentFromStripe infers interval from recurring.interval when metadata is absent", () => {
   const document = deriveSubscriptionDocumentFromStripe({
     therapistSlug: "jamie-rivera",

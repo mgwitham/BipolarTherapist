@@ -1,6 +1,11 @@
 const ACTIVE_STATUSES = new Set(["trialing", "active"]);
 const LAPSED_STATUSES = new Set(["canceled", "incomplete_expired", "unpaid"]);
 
+// Tier labels the subscription doc recognizes. "paid" is the tier for the
+// current single-tier pricing (paid_monthly); "founding"/"regular" are the
+// legacy tiers. Anything unrecognized stores an empty tier.
+const KNOWN_TIERS = new Set(["paid", "founding", "regular"]);
+
 // Plan codes the system recognizes.
 //
 // - "paid_monthly" is the CANONICAL plan for the current single-tier
@@ -139,7 +144,7 @@ export function deriveSubscriptionDocumentFromStripe(options) {
   )
     .trim()
     .toLowerCase();
-  const tier = metadataTier === "founding" || metadataTier === "regular" ? metadataTier : "";
+  const tier = KNOWN_TIERS.has(metadataTier) ? metadataTier : "";
   const interval =
     metadataInterval === "year" || metadataInterval === "month"
       ? metadataInterval
