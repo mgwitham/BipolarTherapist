@@ -1001,6 +1001,15 @@ async function claimPostPortalClaimAccept(context) {
     return true;
   }
 
+  const tokenEmail = String(payload.email || "")
+    .trim()
+    .toLowerCase();
+  const currentOwnerEmail = String(therapist.claimedByEmail || "")
+    .trim()
+    .toLowerCase();
+  const alreadyClaimed = therapist.claimStatus === "claimed";
+  const alreadyClaimedBySameEmail = alreadyClaimed && currentOwnerEmail === tokenEmail;
+
   // One-time-use: if this token's nonce has already been consumed,
   // reject — EXCEPT when the doc is already claimed by the same email
   // this token represents. That case is a legitimate re-entry (user
@@ -1014,14 +1023,6 @@ async function claimPostPortalClaimAccept(context) {
     ? therapist.usedClaimTokenNonces
     : [];
   const nonceAlreadyUsed = Boolean(payload.nonce && usedNonces.indexOf(payload.nonce) !== -1);
-  const alreadyClaimedBySameEmail =
-    therapist.claimStatus === "claimed" &&
-    String(therapist.claimedByEmail || "")
-      .trim()
-      .toLowerCase() ===
-      String(payload.email || "")
-        .trim()
-        .toLowerCase();
   if (nonceAlreadyUsed && !alreadyClaimedBySameEmail) {
     sendJson(
       response,
@@ -1029,6 +1030,33 @@ async function claimPostPortalClaimAccept(context) {
       {
         error: "This claim link has already been used. Request a fresh one from the claim page.",
         reason: "token_already_used",
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  // Ownership gate: a claim token binds only to slug + email, not to who
+  // currently owns the listing. Once a listing is claimed, the ONLY path
+  // that may move ownership to a different email is account recovery, which
+  // is admin-reviewed and stamps ownershipChangedAt (see review-recovery-
+  // routes.mjs). Accepting a fresh token whose email differs from the current
+  // owner would silently overwrite claimedByEmail with no audit stamp and no
+  // notice to the displaced owner — reachable via /portal/quick-claim by
+  // anyone controlling an email that matches the listing's public email or
+  // practice domain. Reject and route them to recovery instead. Same-email
+  // re-entry and the recovery magic link both pass: recovery approval flips
+  // claimedByEmail to the new address BEFORE issuing its link, so by click
+  // time the token email already equals the owner.
+  if (alreadyClaimed && currentOwnerEmail && currentOwnerEmail !== tokenEmail) {
+    sendJson(
+      response,
+      409,
+      {
+        error:
+          "This listing is already claimed by a different account. Use account recovery to transfer ownership.",
+        reason: "ownership_conflict",
       },
       origin,
       config,

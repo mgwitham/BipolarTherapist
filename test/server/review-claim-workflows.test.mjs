@@ -248,6 +248,69 @@ test("claim-accept: a consumed token is rejected once the profile belongs to a d
   }
 });
 
+test("claim-accept: a fresh token for a DIFFERENT email cannot take over an already-claimed listing", async function () {
+  const emails = captureResendEmails();
+  try {
+    // Listing already owned by owner@example.com, but its public `email`
+    // field is an address the attacker controls (stale/scraped/shared inbox).
+    // quick-claim verifies against the PUBLIC email, so it will happily send
+    // the attacker a magic link — the accept step is the last line of defense.
+    const { client, state } = createMemoryClient({
+      "therapist-claim-target": unclaimedTherapist({
+        email: "attacker@example.com",
+        claimStatus: "claimed",
+        claimedByEmail: "owner@example.com",
+      }),
+    });
+    const handler = createReviewApiHandler(claimTestConfig(), client);
+
+    const quickClaim = await runHandlerRequest(handler, {
+      body: {
+        full_name: "Dr. Morgan Lake",
+        email: "attacker@example.com",
+        license_number: "LMFT77777",
+        license_state: "CA",
+      },
+      headers: HOST_HEADERS,
+      method: "POST",
+      url: "/portal/quick-claim",
+    });
+    assert.equal(
+      quickClaim.statusCode,
+      200,
+      "quick-claim matches the public email and sends a link",
+    );
+
+    const attackerEmail = emails.calls.find(
+      (call) => Array.isArray(call.to) && call.to.includes("attacker@example.com"),
+    );
+    assert.ok(attackerEmail, "magic link is delivered to the attacker-controlled public email");
+    const token = extractClaimToken(attackerEmail.html);
+    assert.ok(token, "attacker holds a cryptographically valid, unused claim token");
+
+    // The accept step must refuse: ownership can only move via account recovery.
+    const accept = await runHandlerRequest(handler, {
+      body: { token },
+      headers: HOST_HEADERS,
+      method: "POST",
+      url: "/portal/claim-accept",
+    });
+    assert.equal(accept.statusCode, 409);
+    assert.equal(accept.payload.reason, "ownership_conflict");
+    assert.ok(
+      !readSetCookieHeader(accept, THERAPIST_SESSION_COOKIE),
+      "no therapist session is minted for the attacker",
+    );
+    assert.equal(
+      state.documents.get("therapist-claim-target").claimedByEmail,
+      "owner@example.com",
+      "ownership must not change",
+    );
+  } finally {
+    emails.restore();
+  }
+});
+
 test("claim-session and claim-accept reject garbage and unsigned tokens", async function () {
   const { client } = createMemoryClient({
     "therapist-claim-target": unclaimedTherapist(),
