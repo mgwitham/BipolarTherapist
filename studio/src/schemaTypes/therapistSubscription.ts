@@ -75,6 +75,20 @@ export const therapistSubscriptionType = defineType({
       type: "string",
       group: "stripe",
     }),
+    defineField({
+      name: "priceCents",
+      title: "Price (cents)",
+      type: "number",
+      group: "stripe",
+      description:
+        "Unit amount of the subscription's price, in the smallest currency unit. Feeds admin MRR.",
+    }),
+    defineField({
+      name: "currency",
+      title: "Currency",
+      type: "string",
+      group: "stripe",
+    }),
 
     defineField({
       name: "status",
@@ -124,6 +138,33 @@ export const therapistSubscriptionType = defineType({
       title: "Last event at",
       type: "datetime",
       group: "meta",
+    }),
+    defineField({
+      name: "createdAt",
+      title: "Created at",
+      type: "datetime",
+      group: "meta",
+      description: "Subscription creation time (from Stripe). Feeds admin new-this-month.",
+    }),
+    defineField({
+      name: "updatedAt",
+      title: "Updated at",
+      type: "datetime",
+      group: "meta",
+    }),
+    defineField({
+      name: "cancelledAt",
+      title: "Cancelled at",
+      type: "datetime",
+      group: "meta",
+    }),
+    defineField({
+      name: "lapsedAt",
+      title: "Lapsed at",
+      type: "datetime",
+      group: "meta",
+      description:
+        "Set when the subscription reaches a lapsed status. Feeds admin lost-this-month.",
     }),
   ],
   preview: {

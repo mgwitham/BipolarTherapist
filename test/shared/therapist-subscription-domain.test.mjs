@@ -57,6 +57,45 @@ test("deriveSubscriptionDocumentFromStripe produces a canonical doc", () => {
   assert.equal(doc.lastEventId, "evt_1");
 });
 
+test("deriveSubscriptionDocumentFromStripe captures amount/currency/timestamps for admin metrics", () => {
+  const doc = deriveSubscriptionDocumentFromStripe({
+    therapistSlug: "jamie-rivera",
+    stripeSubscription: buildStripeSubscription({
+      created: 1_650_000_000,
+      currency: "usd",
+      items: {
+        data: [{ price: { id: "price_featured_monthly", unit_amount: 1900, currency: "usd" } }],
+      },
+    }),
+    eventId: "evt_1",
+    eventCreatedAt: "2026-04-17T00:00:00.000Z",
+  });
+
+  assert.equal(doc.priceCents, 1900);
+  assert.equal(doc.currency, "usd");
+  assert.equal(doc.createdAt, new Date(1_650_000_000_000).toISOString());
+  assert.equal(doc.updatedAt, "2026-04-17T00:00:00.000Z");
+  // Active/trialing subscription is not lapsed and has no cancellation stamp.
+  assert.equal(doc.cancelledAt, "");
+  assert.equal(doc.lapsedAt, "");
+});
+
+test("deriveSubscriptionDocumentFromStripe stamps lapsedAt when the subscription ends", () => {
+  const doc = deriveSubscriptionDocumentFromStripe({
+    therapistSlug: "jamie-rivera",
+    stripeSubscription: buildStripeSubscription({
+      status: "canceled",
+      canceled_at: 1_710_000_000,
+    }),
+    eventId: "evt_2",
+    eventCreatedAt: "2026-04-18T00:00:00.000Z",
+  });
+
+  assert.equal(doc.plan, "none");
+  assert.equal(doc.cancelledAt, new Date(1_710_000_000_000).toISOString());
+  assert.equal(doc.lapsedAt, new Date(1_710_000_000_000).toISOString());
+});
+
 test("deriveSubscriptionDocumentFromStripe downgrades plan to none for lapsed statuses", () => {
   const doc = deriveSubscriptionDocumentFromStripe({
     therapistSlug: "jamie-rivera",
