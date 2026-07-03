@@ -476,9 +476,12 @@ function renderResults(meta) {
 async function bootstrap() {
   state.profile = readProfileFromLocation();
 
-  // No params at all → user landed on /results raw. Send them to intake.
+  // No params at all → user landed on /results raw (stale/shared/edited link).
+  // Send them to the intake form. Must use ?mode=form: the /match entry guard
+  // redirects a param-less /match to the homepage, so a bare "/match" here
+  // silently dead-ended the user on the home page instead of the intake.
   if (!state.profile) {
-    window.location.replace("/match");
+    window.location.replace("/match?mode=form");
     return;
   }
 
