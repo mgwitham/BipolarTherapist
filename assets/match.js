@@ -91,6 +91,7 @@ import {
   renderFallbackRecommendation as renderFallbackRecommendationBase,
 } from "./match-outreach.js";
 import { buildUserMatchProfile, rankTherapistsForUser } from "../shared/matching-model.mjs";
+import { buildTherapistProfilePath } from "../shared/therapist-profile-path.mjs";
 import { submitMatchRequest } from "./review-api.js";
 import {
   getExperimentVariant,
@@ -254,21 +255,11 @@ const US_STATE_MAP = {
   "DISTRICT OF COLUMBIA": "DC",
 };
 
-function slugifyForProfile(text) {
-  return String(text || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-}
-
 function buildTherapistProfileHref(therapist) {
-  const name = String((therapist && therapist.name) || "").trim();
-  const city = String((therapist && therapist.city) || "").trim();
-  const state = String((therapist && therapist.state) || "CA").trim();
-  if (!name) return "/directory";
-  const slug = slugifyForProfile([name, city, state].join(" "));
-  return slug ? "/therapists/" + slug + "/?ref=match" : "/directory";
+  // Use the canonical slug (see shared/therapist-profile-path.mjs). Match cards
+  // previously rebuilt the slug from name+city+state, which 404'd for therapists
+  // whose stored slug differed (hand-edited, disambiguated, or a different city).
+  return buildTherapistProfilePath(therapist, { ref: "match" });
 }
 
 function startZipcodesPreload() {
