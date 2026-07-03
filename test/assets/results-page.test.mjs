@@ -48,6 +48,13 @@ test("results page: filter row has a Start-new-search link that renderHeader pre
   assert.match(resultsJs, /filtersEl\.appendChild\(startNewLink\)/);
 });
 
+test("results page: distance is surfaced only for in-person searches", () => {
+  // Distance is a decision factor only when the user chose in-person; it must
+  // not show for "Either" (telehealth still on the table) or Telehealth.
+  assert.match(resultsJs, /isInPerson\s*=\s*careFormat === "In-Person"/);
+  assert.match(resultsJs, /if \(isInPerson && userZip && therapist\.zip\)/);
+});
+
 test("results page: live filter edits re-rank without a reload", () => {
   // Edit toggles the inline panel instead of navigating away.
   assert.match(resultsHtml, /data-results-filter-panel/);

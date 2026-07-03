@@ -105,10 +105,15 @@ function buildBipolarYearsBadgeHtml(therapist) {
 }
 
 function buildMetaHtml(therapist, profile, opts) {
-  const tele = profile && profile.care_format === "Telehealth";
+  const careFormat = (profile && profile.care_format) || "";
+  const tele = careFormat === "Telehealth";
+  // Distance is only a decision factor for an explicit in-person search, so we
+  // surface it there and nowhere else — not "Either" (telehealth is still on
+  // the table) and not Telehealth (location-independent).
+  const isInPerson = careFormat === "In-Person" || careFormat === "In-person";
   const userZip = profile ? String(profile.location_query || "") : "";
   let distanceMiles = null;
-  if (!tele && userZip && therapist.zip) {
+  if (isInPerson && userZip && therapist.zip) {
     const d = getDistanceMilesFromZipToTherapist(userZip, therapist);
     if (Number.isFinite(d) && d <= 60) distanceMiles = d;
   }
