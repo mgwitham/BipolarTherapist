@@ -1,15 +1,8 @@
 import "./sentry-init.js";
 import { fetchHomePageContent } from "./cms.js";
-import {
-  getExperimentVariant,
-  readFunnelEvents,
-  summarizeAdaptiveSignals,
-  trackExperimentExposure,
-  trackFunnelEvent,
-} from "./funnel-analytics.js";
+import { trackFunnelEvent } from "./funnel-analytics.js";
 import { getZipMarketStatus, preloadZipcodes } from "./zip-lookup.js";
 
-let activeHomeExperimentVariant = "control";
 const HOME_LAST_SEARCH_KEY = "bth_last_search";
 const HOME_SEARCH_SESSION_KEY = "bth_search_session";
 
@@ -362,161 +355,6 @@ function hideHeroValidationPopup() {
 
   popup.classList.remove("is-visible");
   list.replaceChildren();
-}
-
-function applyAdaptiveHomepageMode() {
-  if (activeHomeExperimentVariant !== "adaptive") {
-    return;
-  }
-
-  const adaptiveSignals = summarizeAdaptiveSignals(readFunnelEvents(), []);
-  const mode =
-    adaptiveSignals && adaptiveSignals.preferred_home_mode
-      ? adaptiveSignals.preferred_home_mode
-      : "trust";
-  const eyebrow = document.getElementById("heroEyebrow");
-  const toolTitle = document.getElementById("toolTitle");
-  const proofLabel1 = document.getElementById("heroProofLabel1");
-  const proofValue1 = document.getElementById("heroProofValue1");
-  const proofLabel2 = document.getElementById("heroProofLabel2");
-  const proofValue2 = document.getElementById("heroProofValue2");
-  const proofLabel3 = document.getElementById("heroProofLabel3");
-  const proofValue3 = document.getElementById("heroProofValue3");
-  const trustPill1 = document.getElementById("homeTrustPill1");
-  const trustPill2 = document.getElementById("homeTrustPill2");
-  const handoffTitle1 = document.getElementById("handoffTitle1");
-  const handoffCopy1 = document.getElementById("handoffCopy1");
-  const handoffTitle2 = document.getElementById("handoffTitle2");
-  const handoffCopy2 = document.getElementById("handoffCopy2");
-  const handoffTitle3 = document.getElementById("handoffTitle3");
-  const handoffCopy3 = document.getElementById("handoffCopy3");
-
-  if (mode === "speed") {
-    if (eyebrow) eyebrow.textContent = "Faster start for bipolar informed care";
-    if (toolTitle) toolTitle.textContent = "Start with the fastest path to a strong list";
-    if (proofLabel1) proofLabel1.textContent = "What it optimizes";
-    if (proofValue1)
-      proofValue1.textContent =
-        "A faster path to a list that feels easier to contact without making the search heavier.";
-    if (proofLabel2) proofLabel2.textContent = "What we raise first";
-    if (proofValue2)
-      proofValue2.textContent =
-        "Clearer availability cues, easier contact paths, and lower-friction first moves.";
-    if (proofLabel3) proofLabel3.textContent = "What you still confirm";
-    if (proofValue3)
-      proofValue3.textContent =
-        "Openings, insurance, and whether the therapist feels right once you actually connect.";
-    if (trustPill1) trustPill1.textContent = "Built to reduce time-to-first-contact";
-    if (trustPill2) trustPill2.textContent = "Still honest about what outreach must confirm";
-    if (handoffTitle1) handoffTitle1.textContent = "You get to a contact-ready list faster.";
-    if (handoffCopy1)
-      handoffCopy1.textContent =
-        "The next step is built to shorten the distance between starting and knowing who to contact first, without making the search feel heavier.";
-    if (handoffTitle2) handoffTitle2.textContent = "This path is optimized for momentum.";
-    if (handoffCopy2)
-      handoffCopy2.textContent =
-        "It leans harder on follow-through and lower-friction contact signals so the search keeps moving with less hesitation.";
-    if (handoffTitle3) handoffTitle3.textContent = "You can still slow down if you need to.";
-    if (handoffCopy3)
-      handoffCopy3.textContent =
-        "A faster start does not trap you. You can still browse, compare, or pause before reaching out.";
-    return;
-  }
-
-  if (mode === "specialization") {
-    if (eyebrow) eyebrow.textContent = "Specialty-first bipolar care matching";
-    if (toolTitle) toolTitle.textContent = "Start with the strongest bipolar-specific fit signals";
-    if (proofLabel1) proofLabel1.textContent = "What it optimizes";
-    if (proofValue1)
-      proofValue1.textContent =
-        "Deeper bipolar focus, stronger clinical-fit cues, and more relevant specialty depth.";
-    if (proofLabel2) proofLabel2.textContent = "What we raise first";
-    if (proofValue2)
-      proofValue2.textContent =
-        "Providers whose profiles suggest stronger bipolar-specific alignment before you spend time contacting broadly.";
-    if (proofLabel3) proofLabel3.textContent = "What you still confirm";
-    if (proofValue3)
-      proofValue3.textContent =
-        "Availability, cost path, and whether the actual conversation matches the profile signals.";
-    if (trustPill1) trustPill1.textContent = "Leans harder on bipolar-specific depth";
-    if (trustPill2) trustPill2.textContent = "Still honest about what profiles cannot prove alone";
-    if (handoffTitle1) handoffTitle1.textContent = "You answer a few questions that sharpen fit.";
-    if (handoffCopy1)
-      handoffCopy1.textContent =
-        "The next step helps the list lean harder on specialty relevance instead of broad similarity, so the comparison feels more grounded.";
-    if (handoffTitle2)
-      handoffTitle2.textContent = "This is for quality of fit, not just more results.";
-    if (handoffCopy2)
-      handoffCopy2.textContent =
-        "It is designed for people who want the list to feel more clinically and practically aligned before they spend energy reaching out.";
-    if (handoffTitle3) handoffTitle3.textContent = "You are not locked into one path.";
-    if (handoffCopy3)
-      handoffCopy3.textContent =
-        "You can still step back into browsing if you want to compare more widely before acting.";
-    return;
-  }
-
-  if (mode === "contact") {
-    if (eyebrow) eyebrow.textContent = "Clearer path to first outreach";
-    if (toolTitle) toolTitle.textContent = "Start with the clearest path to first outreach";
-    if (proofLabel1) proofLabel1.textContent = "What it optimizes";
-    if (proofValue1)
-      proofValue1.textContent =
-        "A quicker move from list to first message, with less hesitation about who to contact.";
-    if (proofLabel2) proofLabel2.textContent = "What we raise first";
-    if (proofValue2)
-      proofValue2.textContent =
-        "Providers with better contact clarity, stronger follow-through cues, and more usable next steps.";
-    if (proofLabel3) proofLabel3.textContent = "What you still confirm";
-    if (proofValue3)
-      proofValue3.textContent =
-        "How quickly they reply, whether they fit your coverage, and whether the route still feels right after outreach.";
-    if (trustPill1) trustPill1.textContent = "Built to reduce contact hesitation";
-    if (trustPill2) trustPill2.textContent = "Still grounded in what real outreach must confirm";
-    if (handoffTitle1)
-      handoffTitle1.textContent = "You move quickly into a clearer first outreach plan.";
-    if (handoffCopy1)
-      handoffCopy1.textContent =
-        "The match is tuned to help you feel more certain about who to contact and what to do next, without forcing a rushed decision.";
-    if (handoffTitle2) handoffTitle2.textContent = "This path is built for lower hesitation.";
-    if (handoffCopy2)
-      handoffCopy2.textContent =
-        "It favors providers with clearer route and follow-through signals so the list feels easier to use.";
-    if (handoffTitle3) handoffTitle3.textContent = "You can still pause before outreach.";
-    if (handoffCopy3)
-      handoffCopy3.textContent =
-        "Nothing about starting the match forces immediate contact. It simply gets you to a better first move.";
-    return;
-  }
-
-  if (eyebrow) eyebrow.textContent = "Bipolar-focused therapist matching";
-  if (toolTitle) toolTitle.textContent = "Start with a smaller, more relevant list";
-  if (proofLabel1) proofLabel1.textContent = "First pass";
-  if (proofValue1)
-    proofValue1.textContent =
-      "About 2 minutes to move from broad searching into a smaller, more decision-ready list.";
-  if (proofLabel2) proofLabel2.textContent = "What it checks first";
-  if (proofValue2)
-    proofValue2.textContent =
-      "Bipolar-relevant fit, stronger profile trust signals, and a clearer first-contact path.";
-  if (proofLabel3) proofLabel3.textContent = "What you still confirm";
-  if (proofValue3)
-    proofValue3.textContent =
-      "Openings, insurance, cost path, and whether the therapist feels right in actual conversation.";
-  if (trustPill1) trustPill1.textContent = "Built specifically for bipolar-related care search";
-  if (trustPill2) trustPill2.textContent = "You still confirm openings and fit directly";
-  if (handoffTitle1) handoffTitle1.textContent = "You answer a few focused questions.";
-  if (handoffCopy1)
-    handoffCopy1.textContent =
-      "The match uses only a small amount of information up front so you can get to a useful list quickly.";
-  if (handoffTitle2) handoffTitle2.textContent = "It is designed to reduce second-guessing.";
-  if (handoffCopy2)
-    handoffCopy2.textContent =
-      "The goal is not endless browsing. It is to help you decide where to focus first with more trust, less noise, and less search fatigue.";
-  if (handoffTitle3) handoffTitle3.textContent = "You are not signing up for a heavy process.";
-  if (handoffCopy3)
-    handoffCopy3.textContent =
-      "No account is required to start, and you can still browse on your own at any point if that feels better.";
 }
 
 function initHeroCareDropdown() {
@@ -946,9 +784,6 @@ function handleHomeSearch(event) {
     has_location: Boolean(validation.locationQuery),
     interest_type: validation.interest || "unspecified",
     source: "hero",
-    experiments: {
-      homepage_messaging: activeHomeExperimentVariant,
-    },
   });
   syncHomeSearchHiddenFields(validation.interest, elements);
   try {
@@ -1087,25 +922,9 @@ function initHomeSearchForm() {
 
     applyHomePageCopy(content.homePage);
     applySiteSettings(content.siteSettings);
-    activeHomeExperimentVariant = getExperimentVariant("homepage_messaging", [
-      "control",
-      "adaptive",
-    ]);
-    trackExperimentExposure("homepage_messaging", activeHomeExperimentVariant, {
-      surface: "homepage",
-    });
-    applyAdaptiveHomepageMode();
     renderPageSections(content.homePage);
   } catch (error) {
     console.error("Failed to initialize homepage content.", error);
-    activeHomeExperimentVariant = getExperimentVariant("homepage_messaging", [
-      "control",
-      "adaptive",
-    ]);
-    trackExperimentExposure("homepage_messaging", activeHomeExperimentVariant, {
-      surface: "homepage",
-    });
-    applyAdaptiveHomepageMode();
     renderPageSections(null, []);
   }
 })();
