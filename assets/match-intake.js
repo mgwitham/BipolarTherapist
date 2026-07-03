@@ -402,7 +402,14 @@ export function restoreProfileFromUrl(options) {
     needs_medication_management: params.get("needs_medication_management") || "Open to either",
     insurance: params.get("insurance") || "",
     budget_max: params.get("budget_max") || "",
-    urgency: params.get("urgency") || "ASAP",
+    // Default to "Flexible" (the engine's neutral urgency), NOT "ASAP". The
+    // home search form never sends an urgency param, so defaulting to "ASAP"
+    // silently imposed the most aggressive urgency on every location search —
+    // which rewards the ~2% of therapists with a confirmed fast
+    // estimated_wait_time and buries everyone else (e.g. newly-claimed
+    // profiles with no wait-time data yet). Same neutral-default fix as
+    // care_format above.
+    urgency: params.get("urgency") || "Flexible",
     priority_mode: params.get("priority_mode") || "Best overall fit",
     bipolar_focus: settings.splitCommaSeparated(params.get("bipolar_focus") || ""),
     preferred_modalities: settings.splitCommaSeparated(params.get("preferred_modalities") || ""),
