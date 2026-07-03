@@ -16,6 +16,8 @@ import {
 import { getCardLocationLabel, getFeeLabel, getInsuranceLabel } from "./card-content.js";
 import { escapeHtml } from "./escape-html.js";
 import { sanityImageUrl } from "./sanity-image.js";
+import { orderMatchEntries } from "./match-ordering.js";
+import { preloadZipcodes, getDistanceMilesFromZipToTherapist } from "./zip-lookup.js";
 
 const FEATURED_RANK = 1;
 const PRIMARY_LIMIT = 8;
@@ -105,7 +107,11 @@ function buildBipolarYearsBadgeHtml(therapist) {
 function buildMetaHtml(therapist, profile, opts) {
   const tele = profile && profile.care_format === "Telehealth";
   const userZip = profile ? String(profile.location_query || "") : "";
-  const distanceMiles = !tele && userZip && therapist.zip ? null : null; // TODO: zip distance is computed in match.js via getZipDistance, punt to a follow-up
+  let distanceMiles = null;
+  if (!tele && userZip && therapist.zip) {
+    const d = getDistanceMilesFromZipToTherapist(userZip, therapist);
+    if (Number.isFinite(d) && d <= 60) distanceMiles = d;
+  }
   const items = [];
   const loc = getCardLocationLabel(therapist, { distanceMiles, teleSelected: tele });
   if (loc) items.push({ html: escapeHtml(loc) });
@@ -428,9 +434,17 @@ function initFilterControls() {
 
 function renderResults(meta) {
   const profile = state.profile;
-  const entries = rankTherapistsForUser(state.therapists, profile, null)
-    .filter(hasRenderableTherapist)
-    .slice(0, PRIMARY_LIMIT);
+  // Rank by care fit, then apply the same ZIP-aware proximity ordering /match
+  // uses (assets/match-ordering.js): a strong local boost + 60mi cutoff for
+  // In-Person, a light nudge for "Either", and distance-agnostic for
+  // Telehealth. Depends on the zipcode data preloaded in bootstrap().
+  const ranked = rankTherapistsForUser(state.therapists, profile, null).filter(
+    hasRenderableTherapist,
+  );
+  const entries = orderMatchEntries(ranked, {
+    locationQuery: profile && profile.location_query,
+    careFormat: profile && profile.care_format,
+  }).slice(0, PRIMARY_LIMIT);
   renderHeader(profile, entries.length);
 
   const detail = Object.assign({ count: entries.length }, meta || {});
@@ -489,6 +503,12 @@ async function bootstrap() {
   syncPanelFields();
   showState("loading");
 
+  // Load ZIP → lat/lng data in parallel with the therapist fetch so the first
+  // render can rank by proximity (orderMatchEntries) and show distances. Failure
+  // is non-fatal: without it, distance resolves to Infinity and ordering falls
+  // back to pure care-fit order.
+  const zipcodesReady = preloadZipcodes().catch(function () {});
+
   let therapists;
   try {
     therapists = await fetchPublicTherapists({ strict: false });
@@ -508,6 +528,7 @@ async function bootstrap() {
   }
 
   state.therapists = therapists;
+  await zipcodesReady;
   renderResults();
 }
 
