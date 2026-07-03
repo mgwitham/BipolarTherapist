@@ -29,7 +29,7 @@ test("results page: renders a distinct load-error state", () => {
 
 test("results page: skips malformed therapist entries before card rendering", () => {
   assert.match(resultsJs, /function hasRenderableTherapist/);
-  assert.match(resultsJs, /\.filter\(hasRenderableTherapist\)/);
+  assert.match(resultsJs, /\.filter\(\s*hasRenderableTherapist\s*,?\s*\)/);
   assert.match(resultsJs, /String\(therapist\.slug \|\| ""\)\.trim\(\)/);
 });
 
