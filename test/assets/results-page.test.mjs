@@ -39,6 +39,15 @@ test("results page: analytics waits for async render count", () => {
   assert.match(resultsAnalyticsJs, /card_count:\s*Number\(detail\.count\)/);
 });
 
+test("results page: filter row has a Start-new-search link that renderHeader preserves", () => {
+  // Sits next to Edit in the filter pill row and points at the homepage search.
+  assert.match(resultsHtml, /class="filter-start-new"[^>]*data-results-start-over/);
+  assert.match(resultsHtml, /href="\/#startMatch"[^>]*class="filter-start-new"/);
+  // renderHeader clears the row and rebuilds it, so it must re-append the link.
+  assert.match(resultsJs, /startNewLink\s*=\s*filtersEl\.querySelector\(".filter-start-new"\)/);
+  assert.match(resultsJs, /filtersEl\.appendChild\(startNewLink\)/);
+});
+
 test("results page: live filter edits re-rank without a reload", () => {
   // Edit toggles the inline panel instead of navigating away.
   assert.match(resultsHtml, /data-results-filter-panel/);

@@ -107,7 +107,8 @@ a {
   color: var(--teal-500);
 }
 
-.filter-edit-btn {
+.filter-edit-btn,
+.filter-start-new {
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -120,13 +121,16 @@ a {
   font-weight: 500;
   cursor: pointer;
   transition: color 0.15s ease;
+  text-decoration: none;
 }
 
-.filter-edit-btn:hover {
+.filter-edit-btn:hover,
+.filter-start-new:hover {
   color: var(--teal-700);
 }
 
-.filter-edit-btn .ti {
+.filter-edit-btn .ti,
+.filter-start-new .ti {
   font-size: 12px;
 }
 

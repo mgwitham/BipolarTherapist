@@ -220,9 +220,10 @@ function renderHeader(profile, count) {
   if (!filtersEl) return;
   // Build the same applied-answer pills /match uses, then re-style them with
   // our .filter-pill class. Removable pills render as buttons with an ×
-  // that drops the filter and re-ranks in place. The Edit button stays at
-  // the end and toggles the inline filter panel.
+  // that drops the filter and re-ranks in place. The Edit button (toggles the
+  // inline filter panel) and the Start-new-search link stay at the end.
   const editLink = filtersEl.querySelector(".filter-edit-btn");
+  const startNewLink = filtersEl.querySelector(".filter-start-new");
   filtersEl.innerHTML = "";
   const pills = profile ? buildAppliedAnswerPillItems(profile) : [];
   pills.forEach((p) => {
@@ -242,6 +243,7 @@ function renderHeader(profile, count) {
     }
   });
   if (editLink) filtersEl.appendChild(editLink);
+  if (startNewLink) filtersEl.appendChild(startNewLink);
 }
 
 function showState(state) {
