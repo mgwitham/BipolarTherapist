@@ -20,12 +20,10 @@ export async function handleMatchRoutes(context) {
 
   const { buildMatchOutcomeDocument, buildMatchRequestDocument, parseBody, sendJson } = deps;
 
-  if (
-    !(
-      request.method === "POST" &&
-      (routePath === "/match/requests" || routePath === "/match/outcomes")
-    )
-  ) {
+  if (!(
+    request.method === "POST" &&
+    (routePath === "/match/requests" || routePath === "/match/outcomes")
+  )) {
     return false;
   }
 
