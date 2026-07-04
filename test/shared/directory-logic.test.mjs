@@ -238,6 +238,37 @@ test("compareTherapistsWithFilters uses ranking zip as a soft proximity boost", 
   assert.ok(compareTherapistsWithFilters(filters, nearTherapist, farTherapist) < 0);
 });
 
+test("compareTherapistsWithFilters near_zip sort ranks a placeable far provider above an unresolvable-zip one", function () {
+  // Regression: a ZIP not in the CA dataset resolves to Infinity miles, and
+  // getInPersonProximityBonus(Infinity) is a neutral 0 — which used to sort the
+  // unplaceable provider above a genuinely far (but resolvable) one at -500.
+  const filters = {
+    state: "CA",
+    zip: "",
+    sortBy: "near_zip",
+    sortZip: "92101",
+  };
+
+  const farButPlaceable = {
+    name: "Far Placeable",
+    slug: "far-placeable",
+    zip: "94103", // San Francisco — ~450mi from San Diego, resolvable
+    state: "CA",
+    accepting_new_patients: true,
+  };
+  const unresolvableZip = {
+    name: "Unresolvable Zip",
+    slug: "unresolvable-zip",
+    zip: "99999", // not in the CA dataset → Infinity miles
+    state: "CA",
+    accepting_new_patients: true,
+  };
+
+  // Negative → farButPlaceable sorts first, as it should.
+  assert.ok(compareTherapistsWithFilters(filters, farButPlaceable, unresolvableZip) < 0);
+  assert.ok(compareTherapistsWithFilters(filters, unresolvableZip, farButPlaceable) > 0);
+});
+
 // Insurance normalization — resolveInsuranceName
 
 test("resolveInsuranceName returns canonical name for exact match", function () {
