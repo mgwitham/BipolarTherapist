@@ -270,17 +270,28 @@ export function getPreferredContactRoute(therapist) {
 }
 
 export function getWaitPriority(value) {
+  // Keys are normalized (lowercased, en/em-dashes folded to hyphen) so the
+  // lookup matches the values the CMS actually stores ("Same week", "1–2
+  // weeks", "2–4 weeks", "Waitlist" — note the en-dashes). Mirrors the fix in
+  // shared/matching-model.mjs; before this every real value fell to 99
+  // (slowest), burying fast providers in the soonest-availability sort.
   const map = {
-    "Immediate availability": 0,
-    "Within 1 week": 1,
-    "Within 2 weeks": 2,
+    "immediate availability": 0,
+    "same week": 1,
+    "within 1 week": 1,
+    "within 2 weeks": 2,
+    "1-2 weeks": 2,
+    "within a month": 3,
     "2-4 weeks": 3,
-    "Within a month": 3,
     "1-2 months": 4,
-    "Waitlist only": 5,
+    waitlist: 5,
+    "waitlist only": 5,
   };
-
-  return Object.prototype.hasOwnProperty.call(map, value) ? map[value] : 99;
+  const key = String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[‐-―]/g, "-");
+  return Object.prototype.hasOwnProperty.call(map, key) ? map[key] : 99;
 }
 
 export function getPublicReadinessCopy(therapist) {

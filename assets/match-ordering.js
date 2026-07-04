@@ -30,11 +30,13 @@ function getMatchProximityBonus(miles, isInPerson) {
     if (miles < 30) return -8;
     return -20;
   }
-  // "Any" format, light proximity nudge only
+  // "Any" format: boost close providers, but never penalize distance —
+  // telehealth is still on the table for an "Either" search, so a far provider
+  // shouldn't be pushed down. The previous scale penalized 15–60mi (−4/−10) yet
+  // returned 0 at ≥60mi, so a 200mi provider outranked a 40mi one. Monotonic
+  // now; finer ordering falls to the distance tiebreaker in the comparator.
   if (miles < 5) return 10;
   if (miles < 15) return 5;
-  if (miles < 30) return -4;
-  if (miles < 60) return -10;
   return 0;
 }
 
@@ -131,8 +133,15 @@ function sortByRankScore(entries) {
   return (entries || []).slice().sort(function (a, b) {
     const aScore = getEntryRankScore(a);
     const bScore = getEntryRankScore(b);
+    // On a tie, prefer the physically closer provider (applyZipAwareOrdering
+    // stamps ordering_distance). Without this, equal-scored entries fell back
+    // to alphabetical name order, so distance was ignored whenever the
+    // proximity bonus tied (which it does for every provider beyond ~15mi).
+    const aDist = Number.isFinite(a?.ordering_distance) ? a.ordering_distance : Infinity;
+    const bDist = Number.isFinite(b?.ordering_distance) ? b.ordering_distance : Infinity;
     return (
       bScore - aScore ||
+      aDist - bDist ||
       (Number(b?.evaluation?.confidence_score) || 0) -
         (Number(a?.evaluation?.confidence_score) || 0) ||
       String(a?.therapist?.name || "").localeCompare(String(b?.therapist?.name || "")) ||
