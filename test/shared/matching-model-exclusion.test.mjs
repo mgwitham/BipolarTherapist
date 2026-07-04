@@ -178,6 +178,18 @@ test("dotted M.D. / D.O. credentials still classify as Psychiatry", () => {
   }
 });
 
+test("a PMHNP (nurse-practitioner prescriber) is NOT excluded from a medication/psychiatry search", () => {
+  for (const credentials of ["PMHNP", "MSN, PMHNP", "PMHNP, DNP"]) {
+    const ev = evaluateTherapistAgainstProfile(
+      therapist({ credentials, medication_management: true }),
+      profile({ care_intent: "Psychiatry" }),
+      null,
+    );
+    assert.equal(ev.hard_constraint_failed, false, credentials + " prescribes → Psychiatry");
+    assert.ok(!ev.hard_failures.some((f) => /provider type/i.test(f)));
+  }
+});
+
 test("the English word 'do' in a title does not misclassify a therapist as Psychiatry", () => {
   const ev = evaluateTherapistAgainstProfile(
     therapist({ title: "Helping you do the things that matter" }),
