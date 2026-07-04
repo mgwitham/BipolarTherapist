@@ -805,12 +805,18 @@ export function compareTherapistsWithFilters(filterState, a, b) {
       if (/^\d{5}$/.test(sortZipVal)) {
         const aZip = getTherapistZip(a);
         const bZip = getTherapistZip(b);
-        const aProx = aZip
-          ? getInPersonProximityBonus(getZipDistanceMiles(sortZipVal, aZip))
-          : -9999;
-        const bProx = bZip
-          ? getInPersonProximityBonus(getZipDistanceMiles(sortZipVal, bZip))
-          : -9999;
+        // A ZIP that isn't in the CA dataset resolves to Infinity miles, and
+        // getInPersonProximityBonus(Infinity) returns a neutral 0 — which would
+        // sort an unplaceable provider ABOVE a genuinely far (but resolvable)
+        // one at -500. Treat any non-finite distance as unplaceable (-9999),
+        // the same sentinel used when the ZIP is missing entirely.
+        const proximityFor = (zip) => {
+          if (!zip) return -9999;
+          const miles = getZipDistanceMiles(sortZipVal, zip);
+          return Number.isFinite(miles) ? getInPersonProximityBonus(miles) : -9999;
+        };
+        const aProx = proximityFor(aZip);
+        const bProx = proximityFor(bZip);
         return (
           (b.accepting_new_patients ? 1 : 0) - (a.accepting_new_patients ? 1 : 0) ||
           bProx - aProx ||
