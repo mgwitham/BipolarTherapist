@@ -170,7 +170,13 @@ export function deriveSubscriptionDocumentFromStripe(options) {
     interval,
     status,
     trialEndsAt: toIsoFromSeconds(stripeSubscription.trial_end),
-    currentPeriodEndsAt: toIsoFromSeconds(stripeSubscription.current_period_end),
+    // Stripe's Basil API (2025-03-31.basil, pinned in server/stripe-client.mjs)
+    // moved current_period_end off the top-level Subscription object onto each
+    // subscription item. Read the item first; fall back to the legacy top-level
+    // field for pre-Basil payloads and older test fixtures.
+    currentPeriodEndsAt: toIsoFromSeconds(
+      (firstItem && firstItem.current_period_end) || stripeSubscription.current_period_end,
+    ),
     cancelAtPeriodEnd: Boolean(stripeSubscription.cancel_at_period_end),
     // Metric timestamps consumed by the admin revenue dashboard. Stripe's
     // `created` is stable across every event for a subscription, so writing it

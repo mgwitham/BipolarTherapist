@@ -57,6 +57,30 @@ test("deriveSubscriptionDocumentFromStripe produces a canonical doc", () => {
   assert.equal(doc.lastEventId, "evt_1");
 });
 
+test("deriveSubscriptionDocumentFromStripe reads current_period_end from the item (Basil API shape)", () => {
+  // Stripe's 2025-03-31.basil API (pinned in server/stripe-client.mjs) removed
+  // current_period_end from the top-level Subscription object and moved it onto
+  // each subscription item. Real webhooks therefore have no top-level field.
+  const doc = deriveSubscriptionDocumentFromStripe({
+    therapistSlug: "jamie-rivera",
+    stripeSubscription: buildStripeSubscription({
+      current_period_end: undefined,
+      items: {
+        data: [
+          {
+            current_period_end: 1_800_000_000,
+            price: { id: "price_featured_monthly" },
+          },
+        ],
+      },
+    }),
+    eventId: "evt_1",
+    eventCreatedAt: "2026-04-17T00:00:00.000Z",
+  });
+
+  assert.equal(doc.currentPeriodEndsAt, new Date(1_800_000_000_000).toISOString());
+});
+
 test("deriveSubscriptionDocumentFromStripe captures amount/currency/timestamps for admin metrics", () => {
   const doc = deriveSubscriptionDocumentFromStripe({
     therapistSlug: "jamie-rivera",
