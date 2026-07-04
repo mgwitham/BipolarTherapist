@@ -19,6 +19,38 @@ const zipData = JSON.parse(readFileSync(fileURLToPath(zipUrl), "utf8"));
 globalThis.fetch = async () => ({ ok: true, json: async () => zipData });
 await preloadZipcodes();
 
+test("buildCardViewModel: distance shows only for an in-person-only search", function () {
+  const therapist = {
+    slug: "nearby-inperson",
+    name: "Nearby Therapist",
+    city: "Beverly Hills",
+    state: "CA",
+    zip: "90211",
+    accepts_in_person: true,
+    accepts_telehealth: true,
+    specialties: ["Bipolar I"],
+  };
+  const label = (filters) => buildCardViewModel({ therapist, filters }).distanceLabel;
+
+  // in-person only, ZIP entered -> real distance (90210 -> 90211 is ~2mi)
+  assert.match(label({ in_person: true, telehealth: false, zip: "90210" }), /mi away$/);
+
+  // telehealth on, or "any" (neither), or no ZIP -> hidden
+  assert.equal(label({ in_person: true, telehealth: true, zip: "90210" }), "");
+  assert.equal(label({ in_person: false, telehealth: true, zip: "90210" }), "");
+  assert.equal(label({ in_person: false, telehealth: false, zip: "90210" }), "");
+  assert.equal(label({ in_person: true, telehealth: false }), "");
+
+  // in-person, but the therapist doesn't see patients in person -> hidden
+  assert.equal(
+    buildCardViewModel({
+      therapist: { ...therapist, accepts_in_person: false },
+      filters: { in_person: true, telehealth: false, zip: "90210" },
+    }).distanceLabel,
+    "",
+  );
+});
+
 test("buildCardViewModel prepares a renderer-friendly card model", function () {
   const therapist = {
     slug: "jamie-rivera",

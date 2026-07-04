@@ -239,6 +239,22 @@ body.dir-vb {
   line-height: 1.4;
 }
 
+/* Distance from the searched ZIP — shown on in-person searches only. Slightly
+   emphasized so it reads as a decision variable, not just metadata. */
+.dir-card-distance {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #2f6d7a;
+  line-height: 1.4;
+}
+.dir-card-distance .ti {
+  font-size: 13px;
+  color: #5a8894;
+}
+
 /* Insurance condensed line */
 .dir-card-insurance {
   font-size: 12px;

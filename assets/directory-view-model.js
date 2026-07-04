@@ -8,6 +8,26 @@ import {
 } from "./directory-logic.js";
 import { renderValuePillRow } from "./therapist-pills.js";
 import { getZipDistanceMiles } from "./zip-lookup.js";
+import { formatDistanceMiles } from "./card-content.js";
+
+// Distance from the searched ZIP to the therapist, shown on browse cards ONLY
+// for an in-person-only search (in-person filter on, telehealth off) — the case
+// where distance is a real decision factor. Hidden for telehealth or "any"
+// (mixed) searches, and never uses device location. Capped at 60mi to match the
+// in-person commute range used elsewhere; requires a resolvable CA ZIP on both
+// sides and a provider who sees patients in person.
+function buildInPersonDistanceLabel(therapist, filters) {
+  if (!filters || !filters.in_person || filters.telehealth) return "";
+  if (!therapist || therapist.accepts_in_person === false) return "";
+  const searchZip = String(
+    filters.explicit_zip || filters.ranking_zip || filters.sortZip || filters.zip || "",
+  ).trim();
+  const providerZip = String(therapist.zip || "").trim();
+  if (!/^\d{5}$/.test(searchZip) || !/^\d{5}$/.test(providerZip)) return "";
+  const miles = getZipDistanceMiles(searchZip, providerZip);
+  if (!Number.isFinite(miles) || miles > 60) return "";
+  return formatDistanceMiles(miles) + " away";
+}
 
 // Strip scraped directory metadata: "Name, Credential, City, State, ZIP, (Phone), actual bio"
 const SCRAPED_PREFIX_RE = /^.+?\(\d{3}\)\s*\d{3}[- ]\d{4},?\s*/;
@@ -327,6 +347,7 @@ export function buildCardViewModel(options) {
     therapist: therapist,
     locationSummary: buildLocationSummary(therapist),
     careFormatSummary: buildCareFormatSummary(therapist),
+    distanceLabel: buildInPersonDistanceLabel(therapist, filters),
     metaLine: buildMetaLine(therapist),
     voiceQuote: extractVoiceQuote(therapist),
     shortlistEntry: shortlistEntry,
