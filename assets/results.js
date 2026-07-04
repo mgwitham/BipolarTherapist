@@ -493,11 +493,12 @@ async function bootstrap() {
   state.profile = readProfileFromLocation();
 
   // No params at all → user landed on /results raw (stale/shared/edited link).
-  // Send them to the intake form. Must use ?mode=form: the /match entry guard
-  // redirects a param-less /match to the homepage, so a bare "/match" here
-  // silently dead-ended the user on the home page instead of the intake.
+  // Send them to the intake form, which is the homepage hero. (An earlier
+  // version aimed at /match?mode=form, but vercel.json server-redirects any
+  // /match without a `shortlist` param straight to "/", so that was just an
+  // extra hop to the same place. Go directly to "/".)
   if (!state.profile) {
-    window.location.replace("/match?mode=form");
+    window.location.replace("/");
     return;
   }
 
