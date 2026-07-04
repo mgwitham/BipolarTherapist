@@ -440,21 +440,20 @@ test("matchesDirectoryFilters tolerates a null specialties field without throwin
   assert.equal(matchesDirectoryFilters({}, provider), true);
 });
 
-test("getWaitPriority knows every canonical wait-time label (none fall to the 99 bucket)", function () {
-  const canonical = [
-    "Immediate availability",
-    "Within 1 week",
-    "Within 2 weeks",
-    "2-4 weeks",
-    "Within a month",
-    "1-2 months",
-    "Waitlist only",
-  ];
-  for (const label of canonical) {
-    assert.ok(
-      getWaitPriority(label) < 99,
-      `"${label}" should map to a real priority, not the unknown bucket`,
-    );
+test("getWaitPriority resolves the real CMS wait-time vocabulary (incl. en-dashes)", function () {
+  // The values the CMS actually stores — must all map to a real priority, not
+  // the 99 (slowest) bucket. Note the en-dashes in "1–2 weeks" / "2–4 weeks".
+  const real = ["Same week", "1–2 weeks", "2–4 weeks", "Waitlist"];
+  for (const label of real) {
+    assert.ok(getWaitPriority(label) < 99, `"${label}" must map to a real priority`);
   }
-  assert.equal(getWaitPriority("Same week"), 99, "unknown labels fall to the 99 bucket");
+  // "Same week" is fast, "Waitlist" is slow.
+  assert.ok(
+    getWaitPriority("Same week") < getWaitPriority("Waitlist"),
+    "a same-week provider must outrank a waitlisted one",
+  );
+  // En-dash and hyphen forms resolve identically.
+  assert.equal(getWaitPriority("2–4 weeks"), getWaitPriority("2-4 weeks"));
+  // A genuinely unknown label still falls to the 99 bucket.
+  assert.equal(getWaitPriority("whenever"), 99);
 });

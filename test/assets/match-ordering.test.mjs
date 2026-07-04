@@ -56,6 +56,23 @@ test("orderMatchEntries — in-person 94941 search ranks local therapist above h
   );
 });
 
+test("orderMatchEntries — 'Either' never ranks a far therapist above a nearer one", () => {
+  // Both are beyond the 15mi boost band, so their proximity bonus is equal (0);
+  // the closer one must still win on the distance tiebreaker. Before the fix the
+  // 15–60mi tier got a negative bonus while ≥60mi got 0, so the ~357mi provider
+  // outranked the ~17mi one.
+  const entries = [
+    makeEntry({ slug: "far-pasadena", zip: "91105", score: 100 }), // ~357mi
+    makeEntry({ slug: "mid-oakland", zip: "94612", score: 100 }), // ~17mi
+  ];
+  const ordered = orderMatchEntries(entries, { locationQuery: "94941", careFormat: "Either" });
+  assert.equal(
+    ordered[0].therapist.slug,
+    "mid-oakland",
+    "the ~17mi provider must rank above the ~357mi one for an 'Either' search",
+  );
+});
+
 test("applyZipAwareOrdering — stamps ordering_score used by prominence pass", () => {
   const entries = [
     makeEntry({ slug: "far", zip: "91105", score: 100 }),
