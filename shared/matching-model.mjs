@@ -137,15 +137,30 @@ export const MATCH_INTAKE_QUESTIONS = [
   },
 ];
 
+// Keys are normalized (lowercased, en/em-dashes folded to hyphen) so the
+// lookup tolerates both the values the CMS actually stores ("Same week",
+// "1–2 weeks", "2–4 weeks", "Waitlist" — note the en-dashes) and the older
+// vocabulary. Before this, none of the real values matched, so every provider
+// scored as 99 (slowest) and fast providers were penalized under ASAP urgency.
 const WAIT_TIME_PRIORITY = {
-  "Immediate availability": 0,
-  "Within 1 week": 1,
-  "Within 2 weeks": 2,
+  "immediate availability": 0,
+  "same week": 1,
+  "within 1 week": 1,
+  "within 2 weeks": 2,
+  "1-2 weeks": 2,
+  "within a month": 3,
   "2-4 weeks": 3,
-  "Within a month": 3,
   "1-2 months": 4,
-  "Waitlist only": 5,
+  waitlist: 5,
+  "waitlist only": 5,
 };
+
+function normalizeWaitTimeKey(value) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[‐-―]/g, "-");
+}
 
 function normalizeText(value) {
   return String(value || "").trim();
@@ -511,11 +526,12 @@ function listOverlaps(a, b) {
 }
 
 function getWaitPriority(value) {
-  if (!value) {
+  const key = normalizeWaitTimeKey(value);
+  if (!key) {
     return 99;
   }
-  return Object.prototype.hasOwnProperty.call(WAIT_TIME_PRIORITY, value)
-    ? WAIT_TIME_PRIORITY[value]
+  return Object.prototype.hasOwnProperty.call(WAIT_TIME_PRIORITY, key)
+    ? WAIT_TIME_PRIORITY[key]
     : 99;
 }
 
@@ -957,10 +973,16 @@ function getProviderKind(therapist) {
     .toLowerCase()
     .replace(/\./g, "");
 
+  // Prescribers count as psychiatry / medication support. Besides psychiatrists
+  // (MD/DO), that includes psychiatric-mental-health nurse practitioners
+  // (PMHNP) — they prescribe, so excluding them from a "medication support"
+  // search dropped exactly the accessible prescribers a patient wants.
   if (
     haystack.includes("psychiatrist") ||
+    haystack.includes("psychiatric nurse") ||
     /\bmd\b/.test(credentials) ||
-    /\bdo\b/.test(credentials)
+    /\bdo\b/.test(credentials) ||
+    /\bpmhnp\b/.test(credentials)
   ) {
     return "Psychiatry";
   }
@@ -1107,9 +1129,9 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
         weight: 24,
       });
     }
-  } else if (profile.needs_medication_management === "No" && therapist.medication_management) {
-    breakdown.practical += 4;
   }
+  // When the user says they do NOT need medication management, a provider who
+  // offers it is neither a plus nor a minus — no adjustment either way.
 
   if (profile.insurance) {
     if (insuranceMatches(profile.insurance, therapist.insurance_accepted)) {
@@ -1211,9 +1233,14 @@ export function evaluateTherapistAgainstProfile(therapist, userProfile, learning
   if (profile.priority_mode === "Highest specialization") {
     // Primary: bipolar_years_experience when available (1% of therapists)
     breakdown.clinical += clamp(Number(therapist.bipolar_years_experience || 0), 0, 12);
-    // Proxy: breadth of bipolar specialties listed (98% populated)
-    const specialtyCount = (therapist.specialties || []).length;
-    breakdown.clinical += clamp(specialtyCount * 3, 0, 12);
+    // Proxy: breadth of BIPOLAR specialties listed (98% populated). Counting
+    // every specialty (which includes "Trauma", "Anxiety", "Medication
+    // Management", …) rewarded broad generalists over focused bipolar
+    // specialists — the opposite of "highest specialization".
+    const bipolarSpecialtyCount = (therapist.specialties || []).filter(function (s) {
+      return /bipolar|cycl|mixed/i.test(String(s));
+    }).length;
+    breakdown.clinical += clamp(bipolarSpecialtyCount * 3, 0, 12);
     // Proxy: number of treatment modalities (85% populated), more = deeper toolbox
     const modalityCount = (therapist.treatment_modalities || []).length;
     breakdown.clinical += clamp(modalityCount * 1.5, 0, 6);

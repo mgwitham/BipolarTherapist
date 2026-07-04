@@ -207,3 +207,78 @@ test("rankTherapistsForUser does not throw when tied therapists are missing a na
   assert.equal(ranked[0].therapist.slug, "aaa");
   assert.equal(ranked[1].therapist.slug, "zzz");
 });
+
+// --- Wait-time vocabulary (regression: the map keys didn't match real data) ---
+
+test("ASAP urgency rewards a fast provider and does not penalize it as 'too slow'", () => {
+  const fast = evaluateTherapistAgainstProfile(
+    compatibleTherapist({ estimated_wait_time: "Same week" }),
+    baseProfile({ urgency: "ASAP" }),
+    null,
+  );
+  const waitlisted = evaluateTherapistAgainstProfile(
+    compatibleTherapist({ estimated_wait_time: "Waitlist" }),
+    baseProfile({ urgency: "ASAP" }),
+    null,
+  );
+  assert.ok(
+    fast.reasons.some((r) => /fast availability/i.test(r)),
+    "'Same week' should read as fast availability under ASAP",
+  );
+  assert.ok(
+    !fast.cautions.some((c) => /too slow/i.test(c)),
+    "a fast provider must not be flagged 'too slow'",
+  );
+  assert.ok(fast.score > waitlisted.score, "fast should outrank waitlisted under ASAP");
+});
+
+test("en-dash wait-time values score identically to their hyphen form", () => {
+  const enDash = evaluateTherapistAgainstProfile(
+    compatibleTherapist({ estimated_wait_time: "2–4 weeks" }),
+    baseProfile({ urgency: "ASAP" }),
+    null,
+  );
+  const hyphen = evaluateTherapistAgainstProfile(
+    compatibleTherapist({ estimated_wait_time: "2-4 weeks" }),
+    baseProfile({ urgency: "ASAP" }),
+    null,
+  );
+  assert.equal(enDash.score, hyphen.score);
+});
+
+// --- Highest specialization counts bipolar specialties, not all ---
+
+test("'Highest specialization' favors a focused bipolar specialist over a broad generalist", () => {
+  const focused = evaluateTherapistAgainstProfile(
+    compatibleTherapist({ specialties: ["Bipolar I", "Bipolar II"] }),
+    baseProfile({ priority_mode: "Highest specialization" }),
+    null,
+  );
+  const generalist = evaluateTherapistAgainstProfile(
+    compatibleTherapist({
+      specialties: ["Anxiety", "Trauma", "Depression", "ADHD", "Bipolar I"],
+    }),
+    baseProfile({ priority_mode: "Highest specialization" }),
+    null,
+  );
+  assert.ok(
+    focused.score > generalist.score,
+    "two bipolar specialties should beat one bipolar + four unrelated ones",
+  );
+});
+
+// --- "No medication management" is neutral, not a boost ---
+
+test("when medication management is not needed, offering it is neither plus nor minus", () => {
+  const provides = evaluateTherapistAgainstProfile(
+    compatibleTherapist({ medication_management: true }),
+    baseProfile({ needs_medication_management: "No" }),
+    null,
+  );
+  const doesNot = evaluateTherapistAgainstProfile(
+    compatibleTherapist({ medication_management: false }),
+    baseProfile({ needs_medication_management: "No" }),
+    null,
+  );
+  assert.equal(provides.score, doesNot.score);
+});
