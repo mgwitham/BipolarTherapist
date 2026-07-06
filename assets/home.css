@@ -1506,14 +1506,33 @@ footer {
   }
   .hero-inner {
     grid-template-columns: 1fr;
-    gap: 32px;
+    gap: 0;
+  }
+  /* Dissolve the hero-text wrapper so its children become grid items and the
+     search card can slot in above the pills: heading → card → pills. Keeps
+     the "Find your specialist" tool in the first fold on phones. */
+  .hero-text {
+    display: contents;
+  }
+  .hero-eyebrow {
+    order: 1;
+    justify-self: start;
   }
   .hero-h1 {
+    order: 2;
     font-size: 34px;
   }
   .hero-sub {
+    order: 3;
     font-size: 15px;
     max-width: 100%;
+  }
+  .hero-visual {
+    order: 4;
+  }
+  .hero-pills {
+    order: 5;
+    margin-top: 20px;
   }
   .hero-pill {
     font-size: 11.5px;
