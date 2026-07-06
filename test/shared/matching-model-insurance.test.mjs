@@ -66,3 +66,15 @@ test("match flow credits an ALIASED insurance (BCBS) for the canonical query", (
     "aliased insurance (BCBS) should match Anthem Blue Cross — regression for the match-flow drift bug",
   );
 });
+
+test("insuranceMatches: a blank therapist entry or whitespace query does not match everything", async () => {
+  const { insuranceMatches } = await import("../../shared/therapist-picker-options.mjs");
+  // Regression: bidirectional indexOf("") === 0 made a stray "" (or a
+  // whitespace-only query) pass every insurance filter.
+  assert.equal(insuranceMatches("Aetna", [""]), false);
+  assert.equal(insuranceMatches(" ", ["Cigna"]), false);
+  assert.equal(insuranceMatches("Aetna", ["   ", "Cigna"]), false);
+  // Real matches still work.
+  assert.equal(insuranceMatches("Aetna", ["Aetna PPO"]), true);
+  assert.equal(insuranceMatches("Cigna", ["Cigna"]), true);
+});

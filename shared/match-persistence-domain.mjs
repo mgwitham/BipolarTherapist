@@ -2,6 +2,17 @@ function normalizeText(value) {
   return String(value || "").trim();
 }
 
+// Coerce a possibly-string numeric field to a number, preserving a
+// legitimate 0 (a `|| null` pattern would blank out a $0 budget or a
+// result_count of 0). Returns null for null/undefined/""/non-numeric.
+function numberOrNull(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  const num = Number(value);
+  return Number.isFinite(num) ? num : null;
+}
+
 function normalizeEnumValue(value, options) {
   const normalized = normalizeText(value);
   if (!normalized) {
@@ -292,10 +303,7 @@ export function normalizePortableMatchRequest(input) {
     insurance_preference: normalizeText(
       input.insurancePreference || input.insurance || input.insurance_preference,
     ),
-    budget_max:
-      typeof (input.budgetMax || input.budget_max) === "number"
-        ? input.budgetMax || input.budget_max
-        : Number(input.budgetMax || input.budget_max || 0) || null,
+    budget_max: numberOrNull(input.budgetMax ?? input.budget_max),
     priority_mode: normalizeEnumValue(
       input.priorityMode || input.priority_mode,
       PRIORITY_MODE_OPTIONS,
@@ -344,8 +352,8 @@ export function normalizePortableMatchOutcome(input) {
     provider_id: normalizeText(input.providerId || input.provider_id),
     therapist_slug: normalizeText(input.therapistSlug || input.therapist_slug),
     therapist_name: normalizeText(input.therapistName || input.therapist_name),
-    rank_position: Number(input.rankPosition || input.rank_position || 0) || null,
-    result_count: Number(input.resultCount || input.result_count || 0) || null,
+    rank_position: numberOrNull(input.rankPosition ?? input.rank_position),
+    result_count: numberOrNull(input.resultCount ?? input.result_count),
     top_slug: normalizeText(input.topSlug || input.top_slug),
     route_type: normalizeText(input.routeType || input.route_type),
     shortcut_type: normalizeText(input.shortcutType || input.shortcut_type),

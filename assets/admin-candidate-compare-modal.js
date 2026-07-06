@@ -412,11 +412,12 @@ export function createCandidateCompareModal(config) {
       errorSlotNode.textContent = "";
     }
     try {
+      const decidedId = currentItemId;
       await decideTherapistCandidate(currentItemId, decisionPayload);
       onDecisionComplete(currentItemId, decision);
       close();
       await loadData();
-      advanceToNextCard(currentItemId);
+      advanceToNextCard(decidedId);
     } catch (error) {
       siblings.forEach(function (node) {
         node.disabled = false;

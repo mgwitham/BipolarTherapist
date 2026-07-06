@@ -576,14 +576,53 @@ export async function handleCandidateIngestRoutes(context) {
             ].filter(Boolean),
           ),
         );
+        // Preserve admin-owned review state across re-ingest.
+        const effectiveReviewStatus = existing.reviewStatus || "queued";
+        const effectivePublishRecommendation = existing.publishRecommendation || "";
+        // A resolved dedupe decision (unique / rejected_duplicate / merged / …)
+        // must survive re-ingest; only re-evaluate a status the admin hasn't
+        // decided yet (unreviewed / possible_duplicate).
+        const existingDedupeStatus = String(existing.dedupeStatus || "")
+          .trim()
+          .toLowerCase();
+        const dedupeDecided =
+          existingDedupeStatus &&
+          existingDedupeStatus !== "unreviewed" &&
+          existingDedupeStatus !== "possible_duplicate";
+        const effectiveDedupe = dedupeDecided
+          ? {
+              dedupeStatus: existing.dedupeStatus,
+              dedupeReasons: Array.isArray(existing.dedupeReasons) ? existing.dedupeReasons : [],
+              matchedCandidateId: existing.matchedCandidateId || "",
+            }
+          : dedupeSignal;
+        // Recompute the lane/priority from the EFFECTIVE status, not the
+        // transient "queued" baked into docFields — otherwise a
+        // ready_to_publish candidate drops out of the publish_now lane.
+        const effectiveMeta = computeCandidateReviewMeta({
+          ...docFields,
+          ...effectiveDedupe,
+          reviewStatus: effectiveReviewStatus,
+          publishRecommendation: effectivePublishRecommendation,
+        });
+        // Keep prior notes but never drop a freshly generated DCA warning.
+        let effectiveNotes = existing.notes || docFields.notes;
+        if (verificationNote && !String(effectiveNotes || "").includes(verificationNote)) {
+          effectiveNotes =
+            [existing.notes, verificationNote].filter(Boolean).join("\n\n") || docFields.notes;
+        }
         transaction.patch(candidateId, function (patch) {
           return patch
             .setIfMissing({ reviewHistory: [] })
             .set({
               ...docFields,
-              reviewStatus: existing.reviewStatus || "queued",
-              publishRecommendation: existing.publishRecommendation || "",
-              notes: existing.notes || docFields.notes,
+              ...effectiveDedupe,
+              reviewStatus: effectiveReviewStatus,
+              publishRecommendation: effectivePublishRecommendation,
+              notes: effectiveNotes,
+              reviewLane: effectiveMeta.reviewLane,
+              reviewPriority: effectiveMeta.reviewPriority,
+              nextReviewDueAt: effectiveMeta.nextReviewDueAt,
               supportingSourceUrls: mergedSupportingUrls,
             })
             .append("reviewHistory", [historyEntry]);

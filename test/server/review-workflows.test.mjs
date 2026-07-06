@@ -92,6 +92,88 @@ test("workflow: public application submission can be approved into a live therap
   assert.equal(therapist.providerId, application.providerId);
 });
 
+test("security: POST /applications ignores attacker-supplied published_therapist_id / licensure_verification", async function () {
+  // Regression for the mass-assignment / forged-verification findings: the
+  // public submission must not let the body target an existing therapist doc
+  // (published_therapist_id → createOrReplace overwrite) or inject a
+  // "DCA-verified" snapshot.
+  const { client, state } = createMemoryClient({
+    "therapist-victim-slug": {
+      _id: "therapist-victim-slug",
+      _type: "therapist",
+      name: "Victim Provider",
+      status: "active",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  const submitResponse = await runHandlerRequest(handler, {
+    body: {
+      name: "Attacker Provider",
+      credentials: "LMFT",
+      email: "attacker@example.com",
+      city: "San Diego",
+      state: "CA",
+      bio: "Attempting to hijack an existing listing via mass assignment.",
+      license_state: "CA",
+      license_number: "LMFT99999",
+      care_approach: "n/a",
+      published_therapist_id: "therapist-victim-slug",
+      target_therapist_id: "therapist-victim-slug",
+      licensure_verification: {
+        primaryStatus: "ACTIVE",
+        boardName: "CA BBS",
+        verificationMethod: "dca_api",
+        disciplineFlag: false,
+      },
+    },
+    headers: { host: "localhost:8787" },
+    method: "POST",
+    url: "/applications",
+  });
+
+  assert.equal(submitResponse.statusCode, 201);
+  const application = state.documents.get(submitResponse.payload.id);
+  // The privileged fields were stripped, not persisted.
+  assert.equal(application.publishedTherapistId, "");
+  assert.equal(application.targetTherapistId, "");
+  // The forged snapshot was dropped — normalized to null, not the attacker's
+  // "ACTIVE / DCA-verified" object.
+  assert.ok(
+    !application.licensureVerification ||
+      application.licensureVerification.primaryStatus !== "ACTIVE",
+    `expected no forged verification, got ${JSON.stringify(application.licensureVerification)}`,
+  );
+  // The victim's live doc is untouched.
+  assert.equal(state.documents.get("therapist-victim-slug").name, "Victim Provider");
+});
+
+test("security: POST /applications/:id/reject 404s on a non-application document", async function () {
+  // Regression: reject had no _type guard, so it would stamp
+  // status:"rejected" onto a live therapist doc (or 500 on a missing id).
+  const { client, state } = createMemoryClient({
+    "therapist-live": {
+      _id: "therapist-live",
+      _type: "therapist",
+      name: "Live Provider",
+      status: "active",
+    },
+  });
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+  const sessionToken = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    body: {},
+    headers: { cookie: sessionToken, host: "localhost:8787" },
+    method: "POST",
+    url: "/applications/therapist-live/reject",
+  });
+
+  assert.equal(response.statusCode, 404);
+  // The therapist doc's status was not mutated.
+  assert.equal(state.documents.get("therapist-live").status, "active");
+});
+
 test("workflow: apply-live-fields updates only selected live therapist fields and review states", async function () {
   const { client, state } = createMemoryClient({
     "therapist-existing": {

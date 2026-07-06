@@ -50,15 +50,23 @@ export function containsHtmlEntities(value) {
   return typeof value === "string" && ENTITY_RE.test(value);
 }
 
+// String.fromCodePoint throws a RangeError outside the Unicode range
+// (0..U+10FFFF), so a malformed numeric entity like &#1114112; in scraped
+// data would otherwise crash the whole decode. Number.isFinite alone does
+// not bound the value.
+function isValidCodePoint(code) {
+  return Number.isFinite(code) && code >= 0 && code <= 0x10ffff;
+}
+
 function decodeOnce(input) {
   return input
     .replace(/&#x([0-9a-fA-F]+);/g, (_m, hex) => {
       const code = parseInt(hex, 16);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : _m;
+      return isValidCodePoint(code) ? String.fromCodePoint(code) : _m;
     })
     .replace(/&#(\d+);/g, (_m, dec) => {
       const code = parseInt(dec, 10);
-      return Number.isFinite(code) ? String.fromCodePoint(code) : _m;
+      return isValidCodePoint(code) ? String.fromCodePoint(code) : _m;
     })
     .replace(/&([a-zA-Z]+);/g, (_m, name) => {
       const repl = NAMED_ENTITIES[name.toLowerCase()];

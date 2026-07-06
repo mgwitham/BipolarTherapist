@@ -61,9 +61,9 @@ export function countActiveRefinements(profile) {
   if (!profile) return 0;
   let count = 0;
   if (profile.insurance) count += 1;
-  if (profile.care_format) count += 1;
+  if (profile.care_format && profile.care_format !== "Either") count += 1;
   if (profile.budget_max) count += 1;
-  if (profile.urgency && profile.urgency !== "ASAP") count += 1;
+  if (profile.urgency && profile.urgency !== "Flexible" && profile.urgency !== "ASAP") count += 1;
   if (Array.isArray(profile.bipolar_focus) && profile.bipolar_focus.length) count += 1;
   if (Array.isArray(profile.preferred_modalities) && profile.preferred_modalities.length)
     count += 1;
@@ -366,9 +366,14 @@ export function buildPrimaryMatchCardsMarkup(entries, profile, services) {
   const moreEntries = allEntries.slice(5); // ranks 6+, hidden behind Show more
 
   // Only show the "Best match" badge when rank 1 materially beats rank 2.
-  const leadScore = leadEntry && typeof leadEntry.score === "number" ? leadEntry.score : null;
+  const leadScore =
+    leadEntry && leadEntry.evaluation && typeof leadEntry.evaluation.score === "number"
+      ? leadEntry.evaluation.score
+      : null;
   const runnerScore =
-    runnerUps[0] && typeof runnerUps[0].score === "number" ? runnerUps[0].score : null;
+    runnerUps[0] && runnerUps[0].evaluation && typeof runnerUps[0].evaluation.score === "number"
+      ? runnerUps[0].evaluation.score
+      : null;
   const showBestBadge =
     leadScore !== null && runnerScore !== null ? leadScore - runnerScore > 0.05 : true;
 

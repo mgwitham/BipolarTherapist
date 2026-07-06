@@ -534,7 +534,7 @@ async function recoveryPostRecoveryRequestsIdApprove(context, match) {
       .set({
         status: "approved",
         reviewedAt: nowIso,
-        reviewedBy: (reviewer && (reviewer.name || reviewer.id)) || "admin",
+        reviewedBy: reviewer || "admin",
         outcomeMessage: customMessage,
         adminNote: adminNote || recovery.adminNote || "",
       })
@@ -651,7 +651,7 @@ async function recoveryPostRecoveryRequestsIdReject(context, match) {
     .set({
       status: "rejected",
       reviewedAt: new Date().toISOString(),
-      reviewedBy: (reviewer && (reviewer.name || reviewer.id)) || "admin",
+      reviewedBy: reviewer || "admin",
       outcomeMessage,
       adminNote: adminNote || recovery.adminNote || "",
     })
@@ -693,7 +693,7 @@ async function recoveryPostRecoveryRequestsIdDismiss(context, match) {
     .set({
       status: "dismissed",
       reviewedAt: new Date().toISOString(),
-      reviewedBy: (reviewer && (reviewer.name || reviewer.id)) || "admin",
+      reviewedBy: reviewer || "admin",
       adminNote: adminNote || recovery.adminNote || "",
     })
     .commit({ visibility: "sync" });

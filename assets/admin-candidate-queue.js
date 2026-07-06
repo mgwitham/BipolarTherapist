@@ -13,6 +13,11 @@ import { requireEscapeHtml } from "./escape-html.js";
 export { toggleFocusMode as toggleTriageFocusMode } from "./admin-triage-focus.js";
 
 let sharedCompareModal = null;
+// renderCandidateQueuePanel drives two panels (triage + review bay) but they
+// share a single compare-modal instance. Track which panel root is currently
+// active so the modal's panel-bound callbacks resolve the right panel at call
+// time instead of permanently capturing whichever rendered first.
+let activeQueueRoot = null;
 
 function getSharedCompareModal(options) {
   if (sharedCompareModal) {
@@ -510,7 +515,7 @@ export function renderCandidateQueuePanel(options) {
     escapeHtml: options.escapeHtml,
     fetchMatchedTherapist: options.fetchMatchedTherapist,
     getQueueRoot: function () {
-      return root;
+      return activeQueueRoot || root;
     },
     onDecisionComplete: function (id, decision) {
       setCandidateActionFlash(id, getCandidateDecisionOutcome(decision));
@@ -524,6 +529,9 @@ export function renderCandidateQueuePanel(options) {
         return String(entry.id) === String(id);
       });
       if (!item) return;
+      // Mark this panel active so the shared modal's navigation callbacks
+      // operate on the panel the compare was launched from.
+      activeQueueRoot = root;
       const matchTarget = findCandidateMergeTarget(item, {
         therapists: therapists,
         applications: applications,

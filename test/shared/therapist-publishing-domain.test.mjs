@@ -9,8 +9,10 @@ import {
   buildTherapistDocumentFromCandidate,
   buildTherapistOpsEvent,
   isIntakeStub,
+  normalizePortableApplicationDocument,
   scrubIntakeStub,
 } from "../../shared/therapist-publishing-domain.mjs";
+import { normalizeFieldReviewStates } from "../../shared/therapist-domain.mjs";
 import {
   normalizeLicensureVerification,
   parseBoolean,
@@ -22,6 +24,11 @@ const publishHelpers = {
   splitList,
   parseBoolean,
   parseNumber,
+  normalizeLicensureVerification,
+};
+
+const portableHelpers = {
+  normalizeFieldReviewStates,
   normalizeLicensureVerification,
 };
 
@@ -183,4 +190,33 @@ test("buildCandidateMergeFillFields fills training affiliations only when the th
     publishHelpers,
   );
   assert.equal(preserved.trainingAffiliations, undefined);
+});
+
+test("normalizePortableApplicationDocument preserves legitimate zero numeric values", function () {
+  // Regression: `doc.field || null` blanked a real 0 (e.g. a $0 sliding-scale
+  // floor or an explicit 0 bipolar-years answer) into "not provided".
+  const doc = normalizePortableApplicationDocument(
+    {
+      _id: "therapist-application-zero",
+      name: "Zero Fee",
+      sessionFeeMin: 0,
+      sessionFeeMax: 0,
+      yearsExperience: 0,
+      bipolarYearsExperience: 0,
+    },
+    portableHelpers,
+  );
+  assert.equal(doc.session_fee_min, 0);
+  assert.equal(doc.session_fee_max, 0);
+  assert.equal(doc.years_experience, 0);
+  assert.equal(doc.bipolar_years_experience, 0);
+});
+
+test("normalizePortableApplicationDocument maps a missing numeric field to null", function () {
+  const doc = normalizePortableApplicationDocument(
+    { _id: "therapist-application-missing", name: "No Fee" },
+    portableHelpers,
+  );
+  assert.equal(doc.session_fee_min, null);
+  assert.equal(doc.years_experience, null);
 });

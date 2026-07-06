@@ -65,3 +65,13 @@ test("containsHtmlEntities: detects entity shapes; false for clean text", () => 
   // Bare ampersand isn't an entity — common in legitimate copy.
   assert.equal(containsHtmlEntities("Smith & Jones"), false);
 });
+
+test("decodeHtmlEntities: leaves out-of-range numeric entities intact instead of throwing", () => {
+  // Regression: String.fromCodePoint throws RangeError above U+10FFFF, which
+  // would crash a scrape/import run on one malformed entity.
+  assert.doesNotThrow(() => decodeHtmlEntities("bio &#1114112; more"));
+  assert.equal(decodeHtmlEntities("bio &#1114112; more"), "bio &#1114112; more");
+  assert.equal(decodeHtmlEntities("hex &#x110000; tail"), "hex &#x110000; tail");
+  // Valid code points still decode alongside the invalid one.
+  assert.equal(decodeHtmlEntities("&#1114112; &#65;"), "&#1114112; A");
+});

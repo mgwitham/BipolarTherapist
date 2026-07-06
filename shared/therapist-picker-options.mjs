@@ -64,10 +64,17 @@ export function resolveInsuranceName(value) {
 //   1. Alias-resolved canonical equality (case-insensitive)
 //   2. Substring containment in either direction (handles partial names)
 export function insuranceMatches(userQuery, therapistValues) {
-  if (!userQuery) return false;
-  const resolved = resolveInsuranceName(userQuery).toLowerCase();
+  const resolved = resolveInsuranceName(userQuery).toLowerCase().trim();
+  // An empty resolved query would substring-match every value (indexOf("")
+  // === 0), so a whitespace-only query must not match anything.
+  if (!resolved) return false;
   return (therapistValues || []).some(function (tv) {
-    const tvLower = String(tv || "").toLowerCase();
+    const tvLower = String(tv || "")
+      .toLowerCase()
+      .trim();
+    // Skip blank therapist entries — otherwise a stray "" would
+    // substring-match every query and pass every insurance filter.
+    if (!tvLower) return false;
     const tvResolved = resolveInsuranceName(tv).toLowerCase();
     return (
       tvResolved === resolved ||

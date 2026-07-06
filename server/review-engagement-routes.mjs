@@ -41,12 +41,47 @@ export async function handleEngagementRoutes(context) {
   const periodKey = buildEngagementPeriodKey(occurredAt);
   const id = buildEngagementSummaryId(slug, periodKey);
 
-  const existing = await client.getDocument(id);
-  const next = isView
-    ? applyViewToSummary(existing, slug, source, occurredAt)
-    : applyCtaClickToSummary(existing, slug, route, occurredAt);
-
-  await client.transaction().createOrReplace(next).commit({ visibility: "async" });
+  // Read-modify-write on a shared per-therapist/per-week counter. A plain
+  // createOrReplace loses increments when two events for the same summary
+  // race (both read N, both write N+1). Gate the write on the revision we
+  // read and retry on conflict, matching appendFunnelLogEvents / the Stripe
+  // webhook. On the first event for a period there is no doc yet, so create
+  // it — a concurrent create surfaces as a conflict and we re-read.
+  const MAX_ATTEMPTS = 5;
+  let next = null;
+  let lastError = null;
+  for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
+    const existing = await client.getDocument(id);
+    next = isView
+      ? applyViewToSummary(existing, slug, source, occurredAt)
+      : applyCtaClickToSummary(existing, slug, route, occurredAt);
+    try {
+      if (existing && existing._rev) {
+        const fields = { ...next };
+        delete fields._id;
+        delete fields._type;
+        delete fields._rev;
+        delete fields._createdAt;
+        delete fields._updatedAt;
+        await client
+          .patch(id)
+          .ifRevisionId(existing._rev)
+          .set(fields)
+          .commit({ visibility: "async" });
+      } else {
+        await client.create(next);
+      }
+      lastError = null;
+      break;
+    } catch (error) {
+      lastError = error;
+      // Revision conflict or create race — another writer landed first.
+      // Re-read and recompute on the next attempt.
+    }
+  }
+  if (lastError) {
+    throw lastError;
+  }
 
   sendJson(
     response,

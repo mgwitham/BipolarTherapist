@@ -218,3 +218,19 @@ test("annotateMatchOutcomeForDisplay adds human-readable labels for normalized o
   assert.equal(annotated.labels.routeType, "Profile");
   assert.equal(annotated.labels.shortcutType, "shortlist");
 });
+
+test("normalizePortableMatchRequest preserves a legitimate budget_max of 0", function () {
+  // Regression: `|| null` blanked a $0 budget floor into "not provided".
+  assert.equal(normalizePortableMatchRequest({ budgetMax: 0 }).budget_max, 0);
+  assert.equal(normalizePortableMatchRequest({ budget_max: 0 }).budget_max, 0);
+  assert.equal(normalizePortableMatchRequest({ budgetMax: 150 }).budget_max, 150);
+  assert.equal(normalizePortableMatchRequest({}).budget_max, null);
+  assert.equal(normalizePortableMatchRequest({ budgetMax: "" }).budget_max, null);
+});
+
+test("normalizePortableMatchOutcome preserves rank_position and result_count of 0", function () {
+  assert.equal(normalizePortableMatchOutcome({ rankPosition: 0 }).rank_position, 0);
+  assert.equal(normalizePortableMatchOutcome({ resultCount: 0 }).result_count, 0);
+  assert.equal(normalizePortableMatchOutcome({}).rank_position, null);
+  assert.equal(normalizePortableMatchOutcome({}).result_count, null);
+});

@@ -106,6 +106,7 @@ import { orderMatchEntries as orderMatchEntriesBase } from "./match-ordering.js"
 import { initValuePillPopover } from "./therapist-pills.js";
 import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-state.js";
 import { getContactRoutes, renderContactDialogBody } from "./match-contact-dialog.js";
+import { publicHttpUrl } from "../shared/contact-href.mjs";
 import { INSURANCE_OPTIONS } from "../shared/therapist-picker-options.mjs";
 import {
   renderRoundAvatar,
@@ -360,18 +361,22 @@ function countOptionalIntakeAnswers(profile) {
   let count = 0;
   if (profile.insurance) count += 1;
   if (profile.budget_max) count += 1;
-  if (profile.care_format) count += 1;
+  // buildUserMatchProfile normalizes empty answers to truthy neutral
+  // defaults ("Either", "Open to either", "Best overall fit"), so guarding
+  // on truthiness alone counts those as real refinements. Exclude the
+  // neutral values so a user who answered nothing optional counts 0.
+  if (profile.care_format && String(profile.care_format).trim() !== "Either") count += 1;
   if (
     profile.needs_medication_management &&
     String(profile.needs_medication_management).trim() &&
-    String(profile.needs_medication_management).trim() !== "No preference"
+    String(profile.needs_medication_management).trim() !== "Open to either"
   ) {
     count += 1;
   }
   if (
     profile.priority_mode &&
     String(profile.priority_mode).trim() &&
-    String(profile.priority_mode).trim() !== "Balanced"
+    String(profile.priority_mode).trim() !== "Best overall fit"
   ) {
     count += 1;
   }
@@ -3348,6 +3353,13 @@ function renderPrimaryMatchCards(entries, profile) {
   // ("Takes my insurance" / "Telehealth only" / "Language") to open the
   // refine drawer.
   root.querySelectorAll("[data-mx-refine-open]").forEach(function (chip) {
+    // Mark bound so bindRefineButtons() (which scans document-wide and would
+    // otherwise re-bind these freshly-rendered nodes) skips them — otherwise
+    // one click double-fires the analytics event and refine-open counter.
+    if (chip.dataset.boundRefine === "true") {
+      return;
+    }
+    chip.dataset.boundRefine = "true";
     chip.addEventListener("click", function () {
       setRefineDrawerOpen(true);
       const target = chip.getAttribute("data-mx-refine-open");
@@ -3891,8 +3903,12 @@ function buildModalPrimaryCta(therapist, entry) {
   const method = String(therapist.preferred_contact_method || "").toLowerCase();
   const phone = String(therapist.phone || "").trim();
   const email = String(therapist.email || "").trim();
-  const booking = String(therapist.booking_url || "").trim();
-  const website = String(therapist.website || "").trim();
+  // Sanitize the scheme: escapeHtml (applied at the render site) does NOT
+  // neutralize a javascript: URL in an href. publicHttpUrl returns "" for
+  // any non-http(s) URL, so an unsafe booking/website value falls through to
+  // the fallback contact ladder instead of becoming a clickable XSS vector.
+  const booking = publicHttpUrl(therapist.booking_url);
+  const website = publicHttpUrl(therapist.website);
 
   function emailHref() {
     const route = getPreferredOutreach(entry);

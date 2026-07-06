@@ -119,7 +119,7 @@ export function applyZipAwareOrdering(entries, options) {
       return aDistance - bDistance;
     }
     if (Number.isFinite(aDistance) !== Number.isFinite(bDistance) && scoreDiff <= 10) {
-      return Number(Number.isFinite(aDistance)) - Number(Number.isFinite(bDistance));
+      return Number(Number.isFinite(bDistance)) - Number(Number.isFinite(aDistance));
     }
     // Returning 0 preserves input order via the engine's stable sort.
     // The subsequent sortByRankScore call below re-sorts with a complete

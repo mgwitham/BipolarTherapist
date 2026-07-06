@@ -12,6 +12,9 @@ import { trackFunnelEvent } from "./funnel-analytics.js";
 import { mountTurnstile } from "./turnstile-widget.js";
 
 let turnstileHandle = null;
+let searchRequestSeq = 0;
+let resendLocked = false;
+let resendCountdownTimer = null;
 
 function gtagEvent(name, params) {
   if (typeof window.gtag === "function") {
@@ -76,7 +79,7 @@ function setStatus(element, tone, title, body) {
   if (!element) return;
   element.dataset.tone = tone;
   element.hidden = false;
-  element.innerHTML = `<strong>${title}</strong>${body ? `<br /><span>${body}</span>` : ""}`;
+  element.innerHTML = `<strong>${escapeHtml(title)}</strong>${body ? `<br /><span>${escapeHtml(body)}</span>` : ""}`;
 }
 
 function clearStatus(element) {
@@ -94,7 +97,7 @@ function setSearchSummary(element, title, body) {
     return;
   }
   element.hidden = false;
-  element.innerHTML = `<strong>${title}</strong><p>${body || ""}</p>`;
+  element.innerHTML = `<strong>${escapeHtml(title)}</strong><p>${body ? escapeHtml(body) : ""}</p>`;
 }
 
 function showFallback(fallbackLink, anchorTarget) {
@@ -264,13 +267,17 @@ function debounce(fn, wait) {
 // Show resend element with 30-second countdown before enabling
 function startResendCountdown(resendEl, resendLink, seconds) {
   if (!resendEl || !resendLink) return;
+  if (resendCountdownTimer) window.clearTimeout(resendCountdownTimer);
   resendEl.hidden = false;
   resendLink.setAttribute("aria-disabled", "true");
+  resendLocked = true;
 
   let remaining = seconds;
 
   function tick() {
     if (remaining <= 0) {
+      resendLocked = false;
+      resendCountdownTimer = null;
       resendLink.removeAttribute("aria-disabled");
       resendLink.textContent = "Resend now";
       return;
@@ -279,7 +286,7 @@ function startResendCountdown(resendEl, resendLink, seconds) {
     const ss = String(remaining % 60).padStart(2, "0");
     resendLink.textContent = `Resend in ${mm}:${ss}`;
     remaining--;
-    window.setTimeout(tick, 1000);
+    resendCountdownTimer = window.setTimeout(tick, 1000);
   }
   tick();
 }
@@ -660,6 +667,7 @@ function initQuickClaim() {
     gtagEvent("claim_send_link_clicked", { therapist_slug: pickedResult.slug });
 
     const sendStart = Date.now();
+    let sendSucceeded = false;
     try {
       const result = await sendClaimLinkToSlug(pickedResult.slug, {
         turnstileToken:
@@ -684,6 +692,7 @@ function initQuickClaim() {
       gtagEvent("claim_link_sent", { therapist_slug: pickedResult.slug, method: "slug_picked" });
       lastSend = { kind: "slug", slug: pickedResult.slug, target: "confirm" };
       startResendCountdown(confirmResend, confirmResendLink, 30);
+      sendSucceeded = true;
     } catch (error) {
       const reason = (error && error.payload && error.payload.reason) || "";
       confirmSend.disabled = false;
@@ -718,13 +727,18 @@ function initQuickClaim() {
         );
       }
     } finally {
-      confirmSend.disabled = false;
-      confirmSend.removeAttribute("aria-disabled");
-      confirmSend.textContent = originalLabel;
+      // On success the resend countdown governs the next send, so leave the
+      // primary button disabled; only restore it when the send failed.
+      if (!sendSucceeded) {
+        confirmSend.disabled = false;
+        confirmSend.removeAttribute("aria-disabled");
+        confirmSend.textContent = originalLabel;
+      }
     }
   }
 
   async function replayLastSend() {
+    if (resendLocked) return;
     if (!lastSend) return;
     const link = lastSend.target === "confirm" ? confirmResendLink : quickResendLink;
     if (link) {
@@ -837,6 +851,7 @@ function initQuickClaim() {
 
   const runSearch = debounce(async function (query) {
     if (!searchResults) return;
+    const requestId = ++searchRequestSeq;
     const trimmed = (query || "").trim();
     if (trimmed.length < 2) {
       clearSearchResults(searchResults);
@@ -852,6 +867,9 @@ function initQuickClaim() {
     setSearchSummary(searchSummary, "Searching listings…", "Looking for likely public matches.");
     try {
       const payload = await searchTherapistQuickClaim(trimmed);
+      if (requestId !== searchRequestSeq || (searchInput && searchInput.value.trim() !== trimmed)) {
+        return;
+      }
       const results = payload && payload.results ? payload.results : [];
       renderSearchResults(searchResults, results, applyPickedResult);
       wireSearchStateActions();
@@ -1040,9 +1058,9 @@ function initQuickClaim() {
           "warn",
           "That email doesn't match the profile.",
           hint
-            ? "We have <strong>" +
-                escapeHtml(hint) +
-                "</strong> on file. Use that email, or use account recovery if you no longer have access."
+            ? "We have " +
+                hint +
+                " on file. Use that email, or use account recovery if you no longer have access."
             : "Contact us if you no longer have access to the email on file.",
         );
       } else if (reason === "rate_limited") {

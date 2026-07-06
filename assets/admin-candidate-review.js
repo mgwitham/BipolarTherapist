@@ -4,9 +4,7 @@ const REASONS_REQUIRING_PICKER = new Set(["archive", "reject_duplicate"]);
 
 function getCandidateNameForPrompt(root, id) {
   if (!root || !id) return "";
-  const card =
-    root.querySelector('[data-queue-card-id="' + id + '"]') ||
-    root.querySelector('[data-candidate-id="' + id + '"]');
+  const card = root.querySelector('[data-candidate-card-id="' + id + '"]');
   if (card) {
     const nameEl = card.querySelector(".queue-card-name, .queue-card-title, h3, h4");
     if (nameEl && nameEl.textContent) return nameEl.textContent.trim();

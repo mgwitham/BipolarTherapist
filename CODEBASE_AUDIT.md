@@ -11,7 +11,38 @@ Line numbers reflect the state of `claude/codebase-audit-azyfyi` at audit time.
 
 > **Baseline note:** With dependencies installed, `npm test` (1142 tests), `npm run lint`,
 > and `npm run typecheck` all pass on this branch. The bugs below are not caught by the
-> existing suite.
+> existing suite (before this change).
+
+---
+
+## Resolution status (fixes applied)
+
+All findings below have been **fixed** except the four noted as deferred. Ten regression
+tests were added; the full suite (`npm test`) now runs **1152 tests, all passing**, with
+`lint`, `typecheck`, `format:check`, and `build` clean.
+
+**Fixed:** C1; H1, H2, H3; M1–M7, M10–M15; L1, L3, L9, L10–L20, L21.
+
+**Deferred (with rationale):**
+
+- **L2 (`x-forwarded-for` rate-limit key)** — Production runs on Vercel, where the
+  platform-trusted `x-vercel-forwarded-for` header makes the spoofable fallback
+  unreachable, so the issue is not exploitable in prod. The existing tests and
+  self-hosted rate-limiting deliberately depend on the `x-forwarded-for` fallback;
+  changing the default would break both. Left as-is; hardening this belongs with a
+  deployment-level `trustProxy` decision, not a blind code change.
+- **L4 (`POST /match/requests` idempotent upsert)** and **L5 (engagement counter
+  ceiling)** — These are inherent to unauthenticated public-write endpoints and are
+  bounded by the existing per-IP rate limits, same as any public write. A real fix
+  is a product decision (proof-of-work / auth / per-entity ceilings), not a bug fix.
+- **M8/M9 (admin edit-drawer field clearing / tri-state coercion)** — A correct fix
+  requires a coordinated client + server + Studio-schema change: the ops update route
+  only writes numbers `>= 0` and only booleans, so "clear to empty" and a genuine
+  tri-state "unknown" aren't expressible without a contract change and a tri-state
+  UI. Documented for a dedicated follow-up rather than a risky half-fix.
+
+The per-finding entries below describe the original defect (retained as the historical
+record); consult the git history on this branch for the exact fix applied to each.
 
 ---
 

@@ -409,7 +409,12 @@ export function parseBody(request, maxRequestBodyBytes) {
     request.on("data", function (chunk) {
       raw += chunk;
       if (raw.length > maxRequestBodyBytes) {
-        reject(new Error("Request body too large."));
+        const tooLarge = new Error("Request body too large.");
+        // Tagged so the top-level handler returns a clean status instead of
+        // a 500 that leaks the raw parser/validation message.
+        tooLarge.statusCode = 413;
+        tooLarge.expose = true;
+        reject(tooLarge);
         request.destroy();
       }
     });
@@ -422,8 +427,11 @@ export function parseBody(request, maxRequestBodyBytes) {
 
       try {
         resolve(JSON.parse(raw));
-      } catch (error) {
-        reject(error);
+      } catch (_error) {
+        const parseError = new Error("Invalid JSON body.");
+        parseError.statusCode = 400;
+        parseError.expose = true;
+        reject(parseError);
       }
     });
 

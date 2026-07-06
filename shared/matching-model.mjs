@@ -558,7 +558,13 @@ function supportsTelehealthInState(therapist, careState) {
     return "unknown";
   }
 
-  return therapist.telehealth_states.includes(careState);
+  // careState is always uppercased by buildUserMatchProfile, but
+  // telehealth_states entries can arrive mixed-case (candidate imports
+  // don't normalize them), so compare case-insensitively — matching the
+  // in-person check, which normalizes via normalizeUpper.
+  return therapist.telehealth_states.some(function (state) {
+    return normalizeUpper(state) === careState;
+  });
 }
 
 function supportsInPersonInState(therapist, careState) {
@@ -636,32 +642,33 @@ function getMissingReadinessItems(therapist) {
 }
 
 export function getTherapistMatchReadiness(therapist) {
-  const completeness = getCompletenessScore(therapist || {});
+  const safeTherapist = therapist || {};
+  const completeness = getCompletenessScore(safeTherapist);
   let score = completeness;
   const strengths = [];
-  const missingItems = getMissingReadinessItems(therapist || {});
+  const missingItems = getMissingReadinessItems(safeTherapist);
 
-  if (therapist.verification_status === "editorially_verified") {
+  if (safeTherapist.verification_status === "editorially_verified") {
     score += 8;
     strengths.push("Editorial verification is already in place.");
   }
-  if (Number(therapist.bipolar_years_experience || 0) >= 8) {
+  if (Number(safeTherapist.bipolar_years_experience || 0) >= 8) {
     score += 6;
     strengths.push("Strong bipolar-specific experience strengthens trust.");
   }
-  if (therapist.medication_management) {
+  if (safeTherapist.medication_management) {
     score += 4;
     strengths.push("Medication-management support increases match coverage.");
   }
   if (
-    therapist.accepts_telehealth &&
-    therapist.telehealth_states &&
-    therapist.telehealth_states.length
+    safeTherapist.accepts_telehealth &&
+    safeTherapist.telehealth_states &&
+    safeTherapist.telehealth_states.length
   ) {
     score += 4;
     strengths.push("Telehealth coverage is clearly specified.");
   }
-  if (therapist.insurance_accepted && therapist.insurance_accepted.length >= 3) {
+  if (safeTherapist.insurance_accepted && safeTherapist.insurance_accepted.length >= 3) {
     score += 3;
     strengths.push("Insurance details are strong enough for practical matching.");
   }
