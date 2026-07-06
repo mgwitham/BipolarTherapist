@@ -319,22 +319,33 @@ export function createMemoryClient(initialDocuments) {
 
         if (query.includes(`_type == "therapistPublishEvent"`)) {
           // Mirrors the GROQ shape in server/review-read-routes.mjs:
-          // optionally filter by `before` cursor, order desc by
-          // coalesce(createdAt, _createdAt), then cap at $window.
-          const before = params && params.before;
+          // optionally filter by a compound (`ts`, `id`) cursor, order desc
+          // by (coalesce(createdAt, _createdAt), _id), then cap at $window.
+          // Also accepts the legacy `before` timestamp-only cursor.
+          const cursorTs = params && (params.ts != null ? params.ts : params.before);
+          const cursorId = params && params.id != null ? params.id : "";
           const windowCap = params && Number(params.window);
+          const stampOf = function (document) {
+            return document.createdAt || document._createdAt || "";
+          };
           const filtered = Array.from(state.documents.values()).filter(function (document) {
             if (document._type !== "therapistPublishEvent") return false;
-            if (before) {
-              const stamp = document.createdAt || document._createdAt || "";
-              if (!stamp || stamp >= before) return false;
+            if (cursorTs) {
+              const stamp = stampOf(document);
+              if (!stamp) return false;
+              if (stamp > cursorTs) return false;
+              // Compound tiebreak: at an equal timestamp, only rows with a
+              // strictly smaller _id belong to a later page.
+              if (stamp === cursorTs && !(String(document._id || "") < String(cursorId))) {
+                return false;
+              }
             }
             return true;
           });
           filtered.sort(function (a, b) {
-            const aStamp = a.createdAt || a._createdAt || "";
-            const bStamp = b.createdAt || b._createdAt || "";
-            return bStamp.localeCompare(aStamp);
+            const byStamp = stampOf(b).localeCompare(stampOf(a));
+            if (byStamp !== 0) return byStamp;
+            return String(b._id || "").localeCompare(String(a._id || ""));
           });
           return Number.isFinite(windowCap) && windowCap > 0
             ? filtered.slice(0, windowCap)

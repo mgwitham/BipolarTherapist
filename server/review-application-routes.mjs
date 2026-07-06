@@ -242,8 +242,37 @@ async function applicationPostIntake(context) {
   // Track the archived match so the post-verification branch knows to
   // un-archive instead of creating a fresh therapist doc. Cleared if
   // verification gates fail (the doc stays archived in that case).
-  const archivedRestoreTarget =
+  //
+  // Only restore when the archived doc is corroborated by a STRONG identity
+  // signal — a matching license number or email. The slug is derived from
+  // name+city+state, so two distinct providers with the same name in the
+  // same city collide on slug alone; restoring on that weak signal would
+  // overwrite a stranger's archived listing with this applicant's identity.
+  // A genuine returning provider matches their own license (this flow already
+  // DCA-verified it), so the "license"/"email" reason will be present.
+  const archivedDuplicate =
     duplicate && duplicate.kind === "therapist" && duplicate.archived ? duplicate : null;
+  const archivedMatchIsStrong =
+    archivedDuplicate &&
+    Array.isArray(archivedDuplicate.reasons) &&
+    archivedDuplicate.reasons.some(function (reason) {
+      return reason === "license" || reason === "email";
+    });
+  if (archivedDuplicate && !archivedMatchIsStrong) {
+    sendJson(
+      response,
+      409,
+      {
+        error:
+          "An archived listing already exists with a matching name and location, but we couldn't confirm it belongs to you. Please email support so we can verify and restore it safely.",
+        reason: "archived_match_unverified",
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+  const archivedRestoreTarget = archivedMatchIsStrong ? archivedDuplicate : null;
 
   // Synchronous DCA verification. Signup only collects the license
   // number (no type dropdown), so we race all 6 California license
@@ -587,7 +616,24 @@ async function applicationPostApplications(context) {
     parseBody,
     sendJson,
   } = context.deps;
-  const body = await parseBody(request);
+  const rawBody = await parseBody(request);
+  if (!rawBody || typeof rawBody !== "object" || Array.isArray(rawBody)) {
+    sendJson(response, 400, { error: "Invalid application payload." }, origin, config);
+    return true;
+  }
+  // Strip privileged linkage/verification fields from the untrusted public
+  // body. published_therapist_id / target_therapist_id let a crafted
+  // application target (and, on approval, createOrReplace-overwrite) an
+  // arbitrary live therapist; licensure_verification would let an applicant
+  // present a forged "DCA-verified" snapshot that gets published as
+  // editorially_verified. Only the server-side /applications/intake flow —
+  // which sets licensure_verification from an actual DCA response — is
+  // trusted to populate these.
+  const body = { ...rawBody };
+  delete body.published_therapist_id;
+  delete body.target_therapist_id;
+  delete body.target_therapist_slug;
+  delete body.licensure_verification;
   const duplicate = await findDuplicateTherapistEntity(client, body);
   if (duplicate) {
     const responsePayload =
@@ -1019,6 +1065,14 @@ async function applicationPostReject(context, match) {
 
   const applicationId = decodeURIComponent(rejectMatch[1]);
   const application = await client.getDocument(applicationId);
+  // Guard the document type before patching status:"rejected". Without this,
+  // a stale/mistyped id pointing at a live therapist doc would stamp
+  // status:"rejected" onto it (a meaningful field there), and a missing id
+  // would 500 on commit instead of returning a clean 404.
+  if (!application || application._type !== "therapistApplication") {
+    sendJson(response, 404, { error: "Application not found." }, origin, config);
+    return true;
+  }
   const actorName = getAuthorizedActor(request, config) || "admin";
   const body = await parseBody(request);
   await client

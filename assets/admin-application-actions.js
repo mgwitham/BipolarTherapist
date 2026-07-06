@@ -468,6 +468,14 @@ export function bindApplicationPanelInteractions(root, options) {
           options.setCoachActionStatus(root, id, offlineSuccessMessage);
           setApplicationActionFlash(id, offlineSuccessMessage);
         }
+      } catch (error) {
+        // Without this, a failed mutation (network / 401 / 409) rejected the
+        // handler silently: the button just re-enabled with no feedback and
+        // the admin believed the publish/reject/claim succeeded. Surface it.
+        const message =
+          error && error.message ? error.message : "That action failed. Please try again.";
+        options.setCoachActionStatus(root, id, message);
+        setApplicationActionFlash(id, message);
       } finally {
         button.disabled = false;
       }

@@ -10,8 +10,10 @@ import {
   mapFieldReviewStatesToSnakeCase,
   normalizeFieldReviewStates,
   normalizeLicense,
+  normalizeWebsite,
   pickStrongestDuplicateMatch,
   resolveApplicationIntakeType,
+  slugify,
 } from "../../shared/therapist-domain.mjs";
 
 test("normalizeLicense collapses leading zeros so G58999 == G058999", () => {
@@ -203,4 +205,23 @@ test("pickStrongestDuplicateMatch tiebreaks on reason count when top reason ties
   ]);
 
   assert.equal(best.record, therapistB);
+});
+
+test("slugify: folds diacritics instead of dropping them into hyphens", () => {
+  // Regression: "José García" previously slugified to "jos-garc-a", producing
+  // an unreadable URL and a dedupe miss vs the unaccented spelling.
+  assert.equal(slugify("José García"), "jose-garcia");
+  assert.equal(slugify("José García"), slugify("Jose Garcia"));
+  assert.equal(slugify("Zoë Ñoño"), "zoe-nono");
+});
+
+test("normalizeWebsite: normalizes the same URL identically with or without a protocol", () => {
+  // Regression: the try branch preserved path case while the fallback branch
+  // lowercased it, so the same site produced two dedupe keys.
+  assert.equal(normalizeWebsite("https://Example.com/About/"), "example.com/about");
+  assert.equal(normalizeWebsite("EXAMPLE.COM/ABOUT"), "example.com/about");
+  assert.equal(
+    normalizeWebsite("https://Example.com/About/"),
+    normalizeWebsite("EXAMPLE.COM/ABOUT"),
+  );
 });

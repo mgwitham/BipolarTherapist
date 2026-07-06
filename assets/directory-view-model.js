@@ -172,8 +172,17 @@ function buildPrimaryFitReasons(filters, therapist) {
     reasons.push("Good option if you want therapy only");
   }
 
-  if (filters.insurance && (therapist.insurance_accepted || []).includes(filters.insurance)) {
-    reasons.push("Accepts " + filters.insurance);
+  const selectedInsurance = Array.isArray(filters.insurance)
+    ? filters.insurance
+    : filters.insurance
+      ? [filters.insurance]
+      : [];
+  const acceptedInsurance = therapist.insurance_accepted || [];
+  const matchedInsurance = selectedInsurance.find(function (name) {
+    return acceptedInsurance.includes(name);
+  });
+  if (matchedInsurance) {
+    reasons.push("Accepts " + matchedInsurance);
   }
 
   if (

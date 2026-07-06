@@ -1180,17 +1180,25 @@ export function createReviewApiHandler(configOverride, clientOverride) {
       });
       Sentry.captureException(error);
       if (!response.writableEnded) {
-        const exposeError = process.env.NODE_ENV !== "production";
-        sendJson(
-          response,
-          500,
-          {
-            error:
-              exposeError && error && error.message ? error.message : "Unexpected server error.",
-          },
-          origin,
-          config,
-        );
+        // Errors explicitly tagged safe-to-surface (e.g. malformed/oversized
+        // request bodies from parseBody) get their own status and message
+        // rather than a 500 that would leak the raw parser exception.
+        const taggedStatus = Number.isInteger(error && error.statusCode) ? error.statusCode : null;
+        if (taggedStatus && error.expose) {
+          sendJson(response, taggedStatus, { error: error.message }, origin, config);
+        } else {
+          const exposeError = process.env.NODE_ENV !== "production";
+          sendJson(
+            response,
+            500,
+            {
+              error:
+                exposeError && error && error.message ? error.message : "Unexpected server error.",
+            },
+            origin,
+            config,
+          );
+        }
       }
       log.info("[http] response", {
         requestId,

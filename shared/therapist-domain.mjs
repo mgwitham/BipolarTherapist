@@ -24,11 +24,18 @@ const FIELD_REVIEW_STATE_KEY_PAIRS = [
 ];
 
 export function slugify(value) {
-  return String(value || "")
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  return (
+    String(value || "")
+      .normalize("NFD")
+      // Strip combining diacritical marks so "José" folds to "jose" rather
+      // than being deleted into hyphens ("jos-"). Keeps accented and
+      // unaccented spellings of the same name on one slug (dedupe + URL).
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+  );
 }
 
 export function normalizeText(value) {
@@ -93,7 +100,11 @@ export function normalizeWebsite(value) {
 
   try {
     const url = new URL(raw);
-    const pathname = url.pathname.replace(/\/+$/, "");
+    // Lowercase the path too, so the no-protocol fallback branch (which
+    // lowercases everything) and this branch normalize the same URL to the
+    // same string — otherwise dedupe misses "Example.com/About" vs the
+    // protocol-less form.
+    const pathname = url.pathname.replace(/\/+$/, "").toLowerCase();
     return `${url.hostname.toLowerCase()}${pathname}`;
   } catch (_error) {
     return normalizeLower(raw)

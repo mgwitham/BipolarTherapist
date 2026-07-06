@@ -230,7 +230,10 @@ export async function handleCandidateRoutes(context) {
       return true;
     }
 
-    allowedUpdates.lastReviewedAt = candidate.lastReviewedAt || "";
+    // Don't touch lastReviewedAt here: a field edit is not a review. Writing
+    // it back from the pre-read snapshot would clobber a concurrent decision
+    // (which sets lastReviewedAt: now) and reset never-reviewed candidates to
+    // "". A patch.set that omits the field leaves the stored value intact.
     const updated = await client
       .patch(candidateId)
       .set(allowedUpdates)

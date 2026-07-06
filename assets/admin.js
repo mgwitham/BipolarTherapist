@@ -215,6 +215,7 @@ let remoteReviewEvents = [];
 let reviewActivityItems = [];
 let reviewActivityNextCursor = "";
 let reviewActivityLoading = false;
+let reviewActivityRequestGeneration = 0;
 let publishedTherapists = [];
 const applicationLiveApplySummaries = {};
 let ingestionAutomationHistory = [];
@@ -1985,6 +1986,9 @@ async function executeInspectorAction(inspectorAction, inspectorId) {
     } else if (inspectorAction === "candidate_review") {
       await decideTherapistCandidate(inspectorId, { decision: "needs_review" });
       adminInspectorActionStatus = "Candidate sent to review.";
+    } else if (inspectorAction === "candidate_confirmation") {
+      await decideTherapistCandidate(inspectorId, { decision: "needs_confirmation" });
+      adminInspectorActionStatus = "Candidate sent to confirmation.";
     } else if (inspectorAction === "candidate_delete") {
       const deletePicker = await promptForRejectionReason({
         headline: "Why archive this candidate?",
@@ -3058,6 +3062,9 @@ async function loadReviewActivityFeed(options) {
     return;
   }
 
+  // Guard against rapid filter changes racing: a stale response must not
+  // clobber data (or the loading flag) belonging to a newer request.
+  const generation = ++reviewActivityRequestGeneration;
   reviewActivityLoading = true;
   adminStore.set("data.reviewActivityLoading", true);
 
@@ -3067,12 +3074,18 @@ async function loadReviewActivityFeed(options) {
       limit: config.limit || 12,
       before: config.reset ? "" : reviewActivityNextCursor,
     });
+    if (generation !== reviewActivityRequestGeneration) {
+      return;
+    }
     const items = response && Array.isArray(response.items) ? response.items : [];
     reviewActivityItems = config.reset ? items : reviewActivityItems.concat(items);
     reviewActivityNextCursor = response && response.next_cursor ? response.next_cursor : "";
     adminStore.set("data.reviewActivityItems", reviewActivityItems);
     adminStore.set("data.reviewActivityNextCursor", reviewActivityNextCursor);
   } catch (_error) {
+    if (generation !== reviewActivityRequestGeneration) {
+      return;
+    }
     if (config.reset) {
       reviewActivityItems = [];
       reviewActivityNextCursor = "";
@@ -3080,8 +3093,12 @@ async function loadReviewActivityFeed(options) {
       adminStore.set("data.reviewActivityNextCursor", "");
     }
   } finally {
-    reviewActivityLoading = false;
-    adminStore.set("data.reviewActivityLoading", false);
+    // Only the latest request clears the loading flag; a superseded call must
+    // leave it set so load-more stays disabled while the newer call is in-flight.
+    if (generation === reviewActivityRequestGeneration) {
+      reviewActivityLoading = false;
+      adminStore.set("data.reviewActivityLoading", false);
+    }
   }
 }
 
@@ -3679,6 +3696,10 @@ if (applicationStatusFilterEl) {
   applicationStatusFilterEl.addEventListener("change", function (event) {
     applicationFilters.status = event.target.value;
     applicationFilters.focus = event.target.value === "on_hold" ? "active_review" : "";
+    const focusFilter = document.getElementById("applicationFocusFilter");
+    if (focusFilter) {
+      focusFilter.value = applicationFilters.focus;
+    }
     persistApplicationFilters();
     trackFunnelEvent("admin_review_filter_changed", {
       filter: "status",
@@ -3723,6 +3744,14 @@ if (applicationClearFiltersEl) {
     const statusFilter = document.getElementById("applicationStatusFilter");
     if (statusFilter) {
       statusFilter.value = "";
+    }
+    const focusFilter = document.getElementById("applicationFocusFilter");
+    if (focusFilter) {
+      focusFilter.value = "";
+    }
+    const reviewGoal = document.getElementById("applicationReviewGoal");
+    if (reviewGoal) {
+      reviewGoal.value = "balanced";
     }
     renderApplications();
   });
@@ -4063,6 +4092,17 @@ document.getElementById("candidateDedupeStatusFilter").addEventListener("change"
     // Only trigger when the candidate queue is actually visible on screen.
     const rect = queueRoot.getBoundingClientRect();
     if (rect.width === 0 && rect.height === 0) return;
+    // Mirror the applications-list guard: if the applications list is also
+    // visible and nearer the top of the screen, defer to it so the two panels
+    // don't both fire on the same keypress.
+    const applicationsList = document.getElementById("applicationsList");
+    if (applicationsList) {
+      const alRect = applicationsList.getBoundingClientRect();
+      const alVisible = alRect.width > 0 && alRect.height > 0;
+      if (alVisible && Math.abs(alRect.top) < Math.abs(rect.top)) {
+        return;
+      }
+    }
     event.preventDefault();
     toggle();
   });

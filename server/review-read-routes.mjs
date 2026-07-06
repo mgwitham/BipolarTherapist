@@ -30,11 +30,95 @@ function parsePositiveInteger(value, fallback, maxValue) {
 }
 
 function formatCsvCell(value) {
-  const text = String(value == null ? "" : value);
+  let text = String(value == null ? "" : value);
+  // Neutralize spreadsheet formula injection: a cell beginning with = + - @
+  // (optionally after whitespace) is executed as a formula by Excel/Sheets.
+  // Some of these cells carry values from unauthenticated public endpoints
+  // (e.g. match request summaries), so prefix a single quote to force the
+  // cell to be treated as text.
+  if (/^[\s]*[=+\-@]/.test(text)) {
+    text = `'${text}`;
+  }
   if (/[",\n]/.test(text)) {
     return `"${text.replace(/"/g, '""')}"`;
   }
   return text;
+}
+
+// Projection shared by the /events feed and /events/export.
+const REVIEW_EVENT_PROJECTION = `{
+  _id, _createdAt, eventType, providerId, candidateId, candidateDocumentId, applicationId,
+  therapistId, decision, reviewStatus, publishRecommendation, actorName, rationale,
+  notes, changedFields, createdAt
+}`;
+
+function reviewEventSortStamp(doc) {
+  return (doc && (doc.createdAt || doc._createdAt)) || "";
+}
+
+// Compound cursor "<timestamp>|<_id>" gives a total order even when many
+// events share an identical createdAt (build*ReviewEvent stamps them in the
+// same millisecond), so page boundaries neither skip nor duplicate siblings.
+function encodeReviewEventCursor(doc) {
+  return `${reviewEventSortStamp(doc)}|${(doc && doc._id) || ""}`;
+}
+
+function decodeReviewEventCursor(raw) {
+  const value = String(raw || "").trim();
+  if (!value) return null;
+  const idx = value.lastIndexOf("|");
+  // Back-compat: a legacy timestamp-only cursor decodes with an empty id.
+  if (idx === -1) return { ts: value, id: "" };
+  return { ts: value.slice(0, idx), id: value.slice(idx + 1) };
+}
+
+// Fetch review events for an optional lane, scanning older windows until we
+// have enough lane matches to fill the page (plus one to detect a next page)
+// or the source is exhausted. This prevents the JS-side lane filter from
+// silently truncating results when any single window has few matches.
+async function fetchLaneEvents(client, options) {
+  const { laneFilter, cursor, limit } = options;
+  const WINDOW = 500;
+  const MAX_WINDOWS = 40;
+  const matched = [];
+  let scan = decodeReviewEventCursor(cursor);
+  let exhausted = false;
+  for (let i = 0; i < MAX_WINDOWS && matched.length <= limit && !exhausted; i += 1) {
+    const docs = await client.fetch(
+      `*[_type == "therapistPublishEvent"
+          && (!defined($ts)
+              || coalesce(createdAt, _createdAt) < $ts
+              || (coalesce(createdAt, _createdAt) == $ts && _id < $id))]
+        | order(coalesce(createdAt, _createdAt) desc, _id desc)[0...$window]${REVIEW_EVENT_PROJECTION}`,
+      {
+        ts: scan ? scan.ts : null,
+        id: scan ? scan.id : "",
+        window: WINDOW,
+      },
+    );
+    if (!docs.length) {
+      break;
+    }
+    for (const doc of docs) {
+      if (!laneFilter || getEventLane(doc) === laneFilter) {
+        matched.push(doc);
+        if (matched.length > limit) break;
+      }
+    }
+    if (docs.length < WINDOW) {
+      exhausted = true;
+    } else {
+      scan = decodeReviewEventCursor(encodeReviewEventCursor(docs[docs.length - 1]));
+    }
+  }
+
+  const hasMore = matched.length > limit;
+  const page = matched.slice(0, limit);
+  const lastDoc = page[page.length - 1];
+  return {
+    page,
+    nextCursor: hasMore && lastDoc ? encodeReviewEventCursor(lastDoc) : "",
+  };
 }
 
 function buildTextResponseHeaders(origin, config, contentType) {
@@ -241,38 +325,21 @@ export async function handleReadRoutes(context) {
     const beforeCursor = String((url && url.searchParams.get("before")) || "").trim();
     const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 50, 200);
 
-    // Push `before` cursor and a hard fetch window into GROQ so the
-    // event log doesn't get fully materialized on every admin page load.
-    // Lane filter stays JS-side (the lane logic in getEventLane() is
-    // non-trivial), but only operates over the bounded window. The
-    // window is intentionally larger than `limit` so lane-filtered
-    // pagination can find enough matches without a second round-trip.
-    const fetchWindow = Math.min(500, limit * 5);
-    const docs = await client.fetch(
-      `*[_type == "therapistPublishEvent" && (!defined($before) || coalesce(createdAt, _createdAt) < $before)]
-        | order(coalesce(createdAt, _createdAt) desc)[0...$window]{
-        _id, _createdAt, eventType, providerId, candidateId, candidateDocumentId, applicationId,
-        therapistId, decision, reviewStatus, publishRecommendation, actorName, rationale,
-        notes, changedFields, createdAt
-      }`,
-      { before: beforeCursor || null, window: fetchWindow },
-    );
-
-    const filtered = docs
-      .filter(function (doc) {
-        return !laneFilter || getEventLane(doc) === laneFilter;
-      })
-      .slice(0, limit + 1);
-
-    const hasMore = filtered.length > limit;
-    const page = filtered.slice(0, limit);
-    const lastDoc = page[page.length - 1];
+    // Scan the event log in bounded windows (never fully materialized) until
+    // enough lane matches fill the page. The lane filter stays JS-side (the
+    // lane logic in getEventLane() is non-trivial) but no longer truncates
+    // results when a single window has few matches. See fetchLaneEvents.
+    const { page, nextCursor } = await fetchLaneEvents(client, {
+      laneFilter,
+      cursor: beforeCursor,
+      limit,
+    });
     sendJson(
       response,
       200,
       {
         items: page.map(normalizeReviewEvent),
-        next_cursor: hasMore && lastDoc ? lastDoc.createdAt || lastDoc._createdAt || "" : "",
+        next_cursor: nextCursor,
       },
       origin,
       config,
@@ -754,26 +821,15 @@ export async function handleReadRoutes(context) {
       .toLowerCase();
     const limit = parsePositiveInteger(url && url.searchParams.get("limit"), 500, 1000);
 
-    // Bound the export the same way as /events: push `limit` into GROQ
-    // so we don't materialize the entire event log just to slice it
-    // down. Lane filter stays JS-side; over-fetch by 5x to give it
-    // enough matches without a second round-trip.
-    const fetchWindow = Math.min(limit * 5, 5000);
-    const docs = await client.fetch(
-      `*[_type == "therapistPublishEvent"] | order(coalesce(createdAt, _createdAt) desc)[0...$window]{
-        _id, _createdAt, eventType, providerId, candidateId, candidateDocumentId, applicationId,
-        therapistId, decision, reviewStatus, publishRecommendation, actorName, rationale,
-        notes, changedFields, createdAt
-      }`,
-      { window: fetchWindow },
-    );
-
-    const items = docs
-      .filter(function (doc) {
-        return !laneFilter || getEventLane(doc) === laneFilter;
-      })
-      .slice(0, limit)
-      .map(normalizeReviewEvent);
+    // Scan in bounded windows until `limit` lane matches are collected or the
+    // log is exhausted, so a lane export isn't silently truncated when the
+    // most recent events are mostly other lanes. See fetchLaneEvents.
+    const { page } = await fetchLaneEvents(client, {
+      laneFilter,
+      cursor: "",
+      limit,
+    });
+    const items = page.map(normalizeReviewEvent);
 
     if (format === "csv") {
       const rows = items.map(function (item) {
