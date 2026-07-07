@@ -1,4 +1,5 @@
 import { log } from "./logger.mjs";
+import { firstName } from "../shared/outreach-templates.mjs";
 import { getLicenseStateBoardInfo } from "./license-states.mjs";
 
 // License expiration warning system.
@@ -58,7 +59,7 @@ function buildEmail(therapist, threshold, expirationDate, portalBaseUrl) {
   const stateAbbr = boardInfo.abbreviation || therapist.licenseState || "your state";
   const subject = `Your ${stateAbbr} license expires in ${threshold} days. Renew before ${expirationDate}`;
   const heading = `Your ${stateAbbr} license expires in ${threshold} days`;
-  const greetingName = therapist.name ? therapist.name.split(/\s+/)[0] : "";
+  const greetingName = firstName(therapist.name, "");
   const preheader = `Renew before ${expirationDate} or your listing pauses.`;
 
   const bodyHtml = `<p style="margin:0 0 12px 0;">Your ${boardInfo.fullName} license on file with us expires on <strong>${expirationDate}</strong>, which is <strong>${threshold} days</strong> away.</p>

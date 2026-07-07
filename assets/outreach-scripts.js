@@ -13,6 +13,7 @@
  */
 
 import { escapeHtml as defaultEscapeHtml } from "./escape-html.js";
+import { firstName as therapistFirstName } from "../shared/outreach-templates.mjs";
 
 function isRealEmailAddress(value) {
   if (!value) return false;
@@ -59,7 +60,7 @@ export function buildOutreachScript(therapist, contactStrategy) {
   const t = therapist || {};
   const route = contactStrategy && contactStrategy.route ? contactStrategy.route : "profile";
 
-  const firstName = (t.name || "").split(" ")[0];
+  const firstName = therapistFirstName(t.name, "");
   const greeting = firstName ? "Hi " + firstName + "," : "Hi,";
 
   const intro =

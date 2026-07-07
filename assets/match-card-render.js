@@ -1,4 +1,5 @@
 import { escapeHtml } from "./escape-html.js";
+import { firstName as therapistFirstName } from "../shared/outreach-templates.mjs";
 import { getPreferredRouteType } from "./match-ranking.js";
 import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
 import { renderRoundAvatar, renderSpecialtyPills } from "./card-content.js";
@@ -196,7 +197,7 @@ export function buildMatchOutreachDisclosure(entry, options) {
   if (!inner) return "";
   const slug = String(therapist.slug || "");
   if (expanded) {
-    const firstName = String(therapist.name || "").split(" ")[0] || "them";
+    const firstName = therapistFirstName(therapist.name, "them");
     return (
       '<details open class="mx-outreach mx-outreach--expanded" data-mx-outreach="' +
       escapeHtml(slug) +

@@ -4,8 +4,29 @@ import test from "node:test";
 import {
   ADD_PHOTO_SUBJECT,
   FREE_LEADS_SUBJECT,
+  firstName,
   getOutreachTemplate,
 } from "../../shared/outreach-templates.mjs";
+
+test("firstName strips a leading honorific", () => {
+  assert.equal(firstName("Dr. Amara Osei"), "Amara");
+  assert.equal(firstName("Dr Amara Osei"), "Amara");
+  assert.equal(firstName("Mx. Jamie Rivera"), "Jamie");
+  assert.equal(firstName("Jane Smith"), "Jane");
+});
+
+test("firstName falls back when the name is empty or only a title", () => {
+  assert.equal(firstName(""), "there");
+  assert.equal(firstName(null), "there");
+  assert.equal(firstName("Dr."), "there");
+  assert.equal(firstName("Dr. "), "there");
+});
+
+test("firstName uses the caller's fallback for sentence-subject slots", () => {
+  assert.equal(firstName("", "They"), "They");
+  assert.equal(firstName("Dr.", "them"), "them");
+  assert.equal(firstName(undefined, ""), "");
+});
 
 test("getOutreachTemplate add_photo: focused photo ask with greeting, hook, and ref'd URL", () => {
   const { subject, body } = getOutreachTemplate("add_photo", {
