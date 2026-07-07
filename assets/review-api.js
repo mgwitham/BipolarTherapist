@@ -322,6 +322,33 @@ export async function previewTherapistPhotoRequest(slug) {
   });
 }
 
+// Sourced headshots awaiting admin review before they publish.
+export async function fetchPhotoReviewQueue() {
+  return request("/portal/photo-review-queue", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+// Approve a sourced photo: publishes it to the live listing and notifies
+// the therapist with a one-click opt-out.
+export async function approveSourcedPhoto(slug) {
+  return request("/portal/photo-review/approve", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ slug }),
+  });
+}
+
+// Reject a sourced photo: discards it and suppresses re-sourcing.
+export async function rejectSourcedPhoto(slug) {
+  return request("/portal/photo-review/reject", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ slug }),
+  });
+}
+
 // Server-side sign-out is stateless (signed tokens, no session table),
 // so this endpoint's job is funnel instrumentation + future-proofing.
 // The actual sign-out happens client-side via clearTherapistSessionToken.

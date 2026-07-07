@@ -5932,6 +5932,116 @@
       /* Profile search widget styles now live in assets/profile-search.css
        * and are loaded via admin-profile-search.js. Removed from inline so
        * outreach.html can reuse the same widget without copying. */
+
+      /* Sourced photo review queue (assets/admin-photo-review.js) */
+      .pr-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1rem;
+      }
+      .pr-card {
+        display: flex;
+        gap: 0.85rem;
+        border: 1px solid var(--border, #d8e0e3);
+        border-radius: 12px;
+        padding: 0.85rem;
+        background: #fff;
+      }
+      .pr-photo {
+        flex: 0 0 84px;
+        width: 84px;
+        height: 84px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #eef3f4;
+      }
+      .pr-photo img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+      .pr-photo-missing {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        font-size: 0.72rem;
+        color: #8aa1a8;
+      }
+      .pr-meta {
+        min-width: 0;
+        flex: 1;
+      }
+      .pr-name {
+        font-weight: 600;
+        font-size: 0.95rem;
+      }
+      .pr-tag {
+        display: inline-block;
+        font-size: 0.68rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: #7a5a12;
+        background: #fdf1d8;
+        border-radius: 999px;
+        padding: 0.05rem 0.45rem;
+        vertical-align: middle;
+      }
+      .pr-loc {
+        font-size: 0.8rem;
+        color: #607a82;
+      }
+      .pr-source {
+        font-size: 0.76rem;
+        color: #718c94;
+        margin: 0.3rem 0 0.55rem;
+        word-break: break-word;
+      }
+      .pr-source a {
+        color: var(--teal, #1a7a8f);
+      }
+      .pr-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.4rem;
+      }
+      .pr-approve,
+      .pr-reject {
+        font: inherit;
+        font-size: 0.8rem;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 0.35rem 0.7rem;
+        cursor: pointer;
+        border: 1px solid transparent;
+      }
+      .pr-approve {
+        background: var(--teal, #1a7a8f);
+        color: #fff;
+      }
+      .pr-approve:hover:not(:disabled) {
+        background: var(--teal-dark, #155f70);
+      }
+      .pr-reject {
+        background: #fff;
+        color: #a2402a;
+        border-color: #e4c4bb;
+      }
+      .pr-reject:hover:not(:disabled) {
+        background: #fbeee9;
+      }
+      .pr-approve:disabled,
+      .pr-reject:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .pr-status {
+        font-size: 0.76rem;
+        color: #607a82;
+      }
     </style>
   </head>
   <body>
@@ -6392,6 +6502,27 @@
                     </div>
                   </div>
                 </div>
+              </div>
+            </section>
+            <section
+              class="admin-region-shell"
+              id="photoReviewRegion"
+              data-view-group="portal"
+              style="margin-top: 1.5rem"
+            >
+              <header class="admin-live-header">
+                <h2 class="admin-live-title">Sourced photo review</h2>
+                <p class="admin-live-subtitle">
+                  Headshots auto-sourced from unclaimed listings’ own websites, awaiting review
+                  before they publish. Confirm the photo is the right person, then approve to
+                  publish (the therapist is emailed a one-click opt-out) or reject to discard.
+                </p>
+              </header>
+              <div class="panel" id="photoReviewPanel" style="padding: 1.5rem">
+                <div class="toolbar" style="margin-bottom: 0.8rem">
+                  <div class="subtle" id="photoReviewCount"></div>
+                </div>
+                <div id="photoReviewQueue"></div>
               </div>
             </section>
             <section
