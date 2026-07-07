@@ -1,0 +1,455 @@
+footer {
+  background: var(--teal-900);
+  color: rgba(255, 255, 255, 0.7);
+  padding: 48px 1.5rem 40px;
+  text-align: center;
+  margin-top: 3rem;
+}
+
+footer p {
+  font-size: 0.82rem;
+  line-height: 1.55;
+  margin: 0;
+}
+
+.footer-brand {
+  margin-bottom: 0.5rem;
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
+}
+
+.footer-brand strong {
+  color: #fff;
+  font-weight: 600;
+}
+
+footer a {
+  color: rgba(255, 255, 255, 0.65);
+  text-decoration: none;
+  font-size: 0.82rem;
+  font-weight: 400;
+  transition: color 0.18s;
+}
+footer a:visited,
+footer a:hover,
+footer a:active {
+  font-weight: 400;
+}
+footer a:hover,
+footer a:active {
+  color: #fff;
+}
+
+.footer-legal {
+  margin-top: 0.9rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.01em;
+}
+.footer-legal a {
+  margin: 0 0.35rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+}
+
+/* Browse-by-city block on minimal-footer pages (directory, therapist,
+   match, every city page). Two-column chip grid below 720px so the
+   12-city list stays compact, single line on wider viewports. */
+.footer-cities-inline {
+  margin: 1.5rem auto 0.5rem;
+  max-width: 640px;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+  font-size: 0.82rem;
+}
+.footer-cities-inline h2 {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0 0 0.85rem;
+}
+.footer-cities-inline a {
+  display: inline-block;
+  margin: 0 0.4rem 0.4rem;
+  padding: 4px 2px;
+  color: rgba(255, 255, 255, 0.65);
+  min-height: 28px;
+  line-height: 1.4;
+}
+.footer-cities-inline a:hover,
+.footer-cities-inline a:active {
+  color: #fff;
+}
+.footer-cities-inline .footer-city-all {
+  display: block;
+  margin: 0.6rem auto 0;
+  font-style: italic;
+  color: var(--teal-300, #6dbdd4);
+}
+.footer-cities-inline .footer-city-all:hover {
+  color: #fff;
+}
+
+@media (max-width: 720px) {
+  footer {
+    padding: 36px 20px 32px;
+  }
+  .footer-cities-inline {
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    column-gap: 12px;
+    row-gap: 4px;
+  }
+  .footer-cities-inline h2 {
+    grid-column: 1 / -1;
+  }
+  .footer-cities-inline a {
+    margin: 0;
+    padding: 6px 4px;
+    font-size: 0.875rem;
+  }
+  .footer-cities-inline .footer-city-all {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+  }
+  .footer-legal {
+    font-size: 0.78rem;
+    line-height: 1.65;
+  }
+  .footer-legal a {
+    display: inline-block;
+    margin: 4px 0.35rem;
+  }
+}
+
+@media (max-width: 860px) {
+  .layout,
+  .profile-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .dir-hero-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .results-explainer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .directory-decision-preview {
+    grid-template-columns: 1fr;
+  }
+
+  .directory-decision-preview-title {
+    font-size: 1.5rem;
+  }
+
+  .dir-hero-decision-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .directory-tradeoff-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .results-focus-banner {
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  .results-focus-banner-copy {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .results-focus-banner-chips {
+    justify-content: flex-start;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .results-focus-banner-chips {
+    justify-content: flex-start;
+  }
+
+  .results-focus-banner-label {
+    justify-self: start;
+  }
+
+  .results-focus-banner-pill-group {
+    justify-items: start;
+  }
+
+  .results-focus-banner-clear {
+    justify-self: start;
+  }
+
+  .card-header-status {
+    justify-items: start;
+    text-align: left;
+    min-width: 0;
+  }
+
+  .card-header-meta {
+    justify-items: start;
+  }
+
+  .card-header-availability {
+    justify-content: flex-start;
+  }
+
+  .card-header-availability-text,
+  .card-header-fee {
+    white-space: normal;
+  }
+
+  .sidebar {
+    order: 1;
+    min-height: auto;
+    overflow: visible;
+    padding-right: 0;
+    scrollbar-gutter: auto;
+  }
+
+  .results-tools {
+    align-items: stretch;
+  }
+
+  .mobile-filter-toggle {
+    display: flex !important;
+  }
+}
+
+@media (min-width: 861px) {
+  .sidebar {
+    display: flex !important;
+  }
+
+  .mobile-filter-toggle {
+    display: none !important;
+  }
+}
+
+/* Legacy card-grid mobile sheet rules removed. Mobile sheet layout is
+   owned entirely by assets/public-nav.css (2026-05-16 redesign). These
+   rules previously fought the new design and on cached Safari renders
+   could make non-current sheet items unreadable. */
+
+@media (max-width: 640px) {
+  body {
+    padding-bottom: calc(7rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  nav {
+    padding: 0 1rem;
+    height: 56px;
+  }
+
+  .nav-name {
+    font-size: 0.95rem;
+  }
+
+  /* Mobile nav layout owned by assets/public-nav.css (2026-05-16 redesign).
+     This block intentionally no longer styles .nav-links / .nav-hamburger /
+     .public-mobile-nav — see crisis-ribbon + Menu sheet rules there. */
+
+  .nav-cta {
+    padding: 0.45rem 0.8rem;
+  }
+
+  .dir-header,
+  .hero,
+  .layout,
+  .profile-layout,
+  .signup-layout {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+
+  .profile-top {
+    flex-direction: column;
+  }
+
+  .results-tools {
+    width: 100%;
+    justify-content: stretch;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .dir-header {
+    padding-top: 1.5rem;
+    padding-bottom: 1.6rem;
+  }
+
+  .dir-hero-copy {
+    gap: 0.8rem;
+  }
+
+  .dir-hero-panel-card {
+    padding: 1rem;
+  }
+
+  .results-tools .btn-secondary,
+  .results-tools select {
+    width: 100%;
+  }
+
+  .mobile-filter-toggle {
+    position: sticky;
+    top: 76px;
+    z-index: 75;
+    justify-content: center;
+    box-shadow: 0 16px 32px rgba(14, 77, 95, 0.12);
+  }
+
+  .directory-decision-preview {
+    padding: 1rem;
+  }
+
+  .public-trust-system {
+    grid-template-columns: 1fr;
+  }
+
+  .card-actions > * {
+    flex: 1 1 100%;
+  }
+
+  .card-mobile-handoff {
+    display: block;
+    margin-bottom: 0.75rem;
+    padding: 0.8rem 0.84rem;
+    border-radius: 16px;
+    border: 1px solid rgba(26, 122, 143, 0.12);
+    background: linear-gradient(180deg, rgba(248, 252, 253, 0.96), rgba(239, 247, 249, 0.96));
+  }
+
+  .card-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .card-open-profile-btn {
+    display: inline-flex;
+  }
+
+  .card-action-link {
+    text-align: center;
+    padding: 0.72rem 0.84rem;
+    border-radius: 14px;
+    border: 1px solid rgba(26, 122, 143, 0.12);
+    background: rgba(255, 255, 255, 0.94);
+    color: var(--teal-dark);
+    font-weight: 700;
+  }
+}
+
+.value-pill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0.6rem 0 0.25rem;
+}
+.value-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  padding: 0.3rem 0.66rem;
+  border-radius: 999px;
+  background: rgba(26, 122, 143, 0.09);
+  color: var(--teal-dark, #0e4d5f);
+  border: 1px solid rgba(26, 122, 143, 0.16);
+  letter-spacing: 0.01em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.value-pill--expandable {
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background-color 120ms ease,
+    border-color 120ms ease;
+}
+.value-pill--expandable:hover,
+.value-pill--expandable:focus-visible {
+  background: rgba(26, 122, 143, 0.18);
+  border-color: rgba(26, 122, 143, 0.32);
+  outline: none;
+}
+.value-pill--expandable::after {
+  content: "";
+  width: 0.42rem;
+  height: 0.42rem;
+  border-right: 1.4px solid currentColor;
+  border-bottom: 1.4px solid currentColor;
+  transform: rotate(45deg) translate(-1px, -1px);
+  opacity: 0.6;
+  margin-left: 0.1rem;
+}
+.value-pill[aria-expanded="true"] {
+  background: rgba(26, 122, 143, 0.22);
+  border-color: rgba(26, 122, 143, 0.4);
+}
+.value-pill-count {
+  font-weight: 700;
+  opacity: 0.72;
+  font-size: 0.7rem;
+}
+.value-pill-popover {
+  position: absolute;
+  z-index: 1000;
+  min-width: 180px;
+  max-width: 260px;
+  padding: 0.85rem 0.95rem;
+  background: #ffffff;
+  border: 1px solid rgba(15, 74, 92, 0.14);
+  border-radius: 14px;
+  box-shadow:
+    0 18px 44px rgba(15, 74, 92, 0.16),
+    0 2px 8px rgba(15, 74, 92, 0.08);
+  animation: value-pill-popover-in 120ms ease-out;
+}
+.value-pill-popover[hidden] {
+  display: none;
+}
+.value-pill-popover-title {
+  margin: 0 0 0.45rem;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted, #6b8290);
+}
+.value-pill-popover-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.32rem;
+}
+.value-pill-popover-list li {
+  font-size: 0.86rem;
+  font-weight: 600;
+  color: var(--navy, #0f2d3b);
+  line-height: 1.35;
+}
+@keyframes value-pill-popover-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

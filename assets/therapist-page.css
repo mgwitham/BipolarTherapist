@@ -33,6 +33,10 @@ html {
   margin: 0;
   padding: 0;
 }
+/* therapist.html doesn't load styles.css, so the interactive-teal
+   family is duplicated here (canonical values in styles.css :root —
+   keep in sync). --slate/--muted/--border are deliberate page-local
+   values, not copies. */
 :root {
   --teal: #1a7a8f;
   --teal-light: #2a9cb3;
@@ -81,7 +85,7 @@ body {
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 .nav-name {
   font-size: 1rem;
@@ -235,13 +239,13 @@ body {
   min-width: 0;
 }
 .ts-claim-banner-headline {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 700;
   color: #1d3a4a;
   margin-bottom: 2px;
 }
 .ts-claim-banner-sub {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: #4a6572;
   line-height: 1.45;
 }
@@ -250,7 +254,7 @@ body {
   background: #347f96;
   color: #fff;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 0.875rem;
   padding: 10px 18px;
   border-radius: 8px;
   text-decoration: none;
@@ -1018,13 +1022,28 @@ footer p {
   font-size: 0.82rem;
   line-height: 1.55;
 }
-.profile-footer-brand {
+/* Same name and metrics as the shared footer brand in styles.css —
+   this page doesn't load styles.css, so the rule is duplicated here
+   rather than diverged (.profile-footer-brand is the old name). */
+.footer-brand {
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
+  letter-spacing: 0.01em;
 }
-.profile-footer-brand strong {
+.footer-brand strong {
   color: #fff;
   font-weight: 600;
+}
+.footer-legal {
+  margin-top: 0.9rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.01em;
+}
+.footer-legal a {
+  margin: 0 0.35rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
 }
 footer a {
   color: rgba(255, 255, 255, 0.65);
@@ -1100,7 +1119,7 @@ footer a:active {
   .footer-cities-inline a {
     margin: 0;
     padding: 6px 4px;
-    font-size: 14px;
+    font-size: 0.875rem;
   }
   .footer-cities-inline .footer-city-all {
     grid-column: 1 / -1;
@@ -1320,7 +1339,7 @@ img.bth-avatar {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   color: #347f96;
   text-decoration: none;
   transition: color 0.15s;
@@ -1335,7 +1354,7 @@ img.bth-avatar {
   border: none;
   padding: 0;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: #c5d5da;
   font-family: inherit;
   margin-left: auto;
@@ -1758,7 +1777,7 @@ img.bth-avatar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
+  font-size: 1.375rem;
   font-weight: 600;
   flex-shrink: 0;
   object-fit: cover;
@@ -1776,7 +1795,7 @@ img.bth-avatar {
   margin-bottom: 8px;
 }
 .profile-hero-badge {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1829,7 +1848,7 @@ img.bth-avatar {
 .profile-hero-evidence-quote {
   margin: 0;
   font-style: italic;
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.5;
   color: #21434c;
 }
@@ -1841,14 +1860,14 @@ img.bth-avatar {
 }
 .profile-hero-evidence-cite {
   margin-top: 6px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #5d7882;
 }
 .profile-hero-name {
   font-family: "Hanken Grotesk", system-ui, sans-serif;
-  font-size: 28px;
+  font-size: 1.75rem;
   color: #17323b;
   line-height: 1.15;
   margin: 0 0 4px;
@@ -1856,19 +1875,19 @@ img.bth-avatar {
   font-weight: 600;
 }
 .profile-hero-cred {
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   color: #566f78;
   margin-bottom: 5px;
   line-height: 1.4;
 }
 .profile-hero-practice {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: #566f78;
   margin-bottom: 5px;
   line-height: 1.4;
 }
 .profile-hero-loc {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: #566f78;
   display: flex;
   align-items: center;
@@ -1877,7 +1896,7 @@ img.bth-avatar {
   line-height: 1.5;
 }
 .profile-hero-loc i {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: #4a9db5;
 }
 .profile-hero-loc-sep {
@@ -1901,7 +1920,7 @@ img.bth-avatar {
 }
 .profile-hero-years-num {
   font-family: "Hanken Grotesk", system-ui, sans-serif;
-  font-size: 30px;
+  font-size: 1.875rem;
   font-weight: 600;
   color: #1c4d5c;
   line-height: 1;
@@ -1912,13 +1931,13 @@ img.bth-avatar {
 }
 .profile-hero-years-unit {
   font-family: "Hanken Grotesk", system-ui, sans-serif;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: #347f96;
   letter-spacing: 0.005em;
 }
 .profile-hero-years-sub {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: #5a7d87;
   margin-top: 5px;
   font-weight: 400;
@@ -1930,7 +1949,7 @@ img.bth-avatar {
   flex-shrink: 0;
 }
 .profile-hero-years-detail {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: #3a5b65;
   line-height: 1.55;
 }
@@ -1949,7 +1968,7 @@ img.bth-avatar {
   align-items: center;
 }
 .profile-hero-tag {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   padding: 4px 11px;
   border-radius: 20px;
   display: inline-flex;
@@ -1968,7 +1987,7 @@ img.bth-avatar {
   color: #26667a;
 }
 .profile-hero-tag-more {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: #566f78;
   padding: 4px 4px;
 }
@@ -1980,10 +1999,10 @@ img.bth-avatar {
   .profile-hero-avatar {
     width: 60px;
     height: 60px;
-    font-size: 19px;
+    font-size: 1.1875rem;
   }
   .profile-hero-name {
-    font-size: 24px;
+    font-size: 1.5rem;
   }
   .profile-hero-years {
     flex-wrap: wrap;
@@ -2003,7 +2022,7 @@ img.bth-avatar {
   margin-bottom: 16px;
 }
 .profile-section-eyebrow {
-  font-size: 10.5px;
+  font-size: 0.65625rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -2012,7 +2031,7 @@ img.bth-avatar {
 }
 .profile-section-h2 {
   font-family: "Hanken Grotesk", system-ui, sans-serif;
-  font-size: 20px;
+  font-size: 1.25rem;
   color: #17323b;
   margin: 0 0 14px;
   line-height: 1.2;
@@ -2020,7 +2039,7 @@ img.bth-avatar {
   letter-spacing: -0.005em;
 }
 .profile-section-body {
-  font-size: 15px;
+  font-size: 0.9375rem;
   color: #3a5b65;
   line-height: 1.75;
   font-weight: 300;
@@ -2048,7 +2067,7 @@ img.bth-avatar {
   border: none;
   padding: 0;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: #347f96;
   cursor: pointer;
   text-decoration: none;
@@ -2087,7 +2106,7 @@ img.bth-avatar {
   padding-left: 0;
 }
 .profile-detail-label {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -2095,7 +2114,7 @@ img.bth-avatar {
   margin-bottom: 4px;
 }
 .profile-detail-value {
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   color: #17323b;
   line-height: 1.4;
 }
@@ -2105,7 +2124,7 @@ img.bth-avatar {
   gap: 6px;
 }
 .profile-affiliation-tag {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   font-weight: 600;
   color: #1c4d5c;
   background: #ebf7fb;
@@ -2115,7 +2134,7 @@ img.bth-avatar {
   line-height: 1.4;
 }
 .profile-detail-sub {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: #566f78;
   margin-top: 3px;
   font-weight: 400;
@@ -2142,7 +2161,7 @@ img.bth-avatar {
   margin-top: 6px;
 }
 .profile-detail-pill {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: #3a5b65;
   background: #f7f4ef;
   border: 0.5px solid #d8e8ec;
@@ -2151,7 +2170,7 @@ img.bth-avatar {
   line-height: 1.4;
 }
 .profile-detail-pill-more {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: #566f78;
   display: inline-flex;
   align-items: center;
@@ -2188,7 +2207,7 @@ img.bth-avatar {
 }
 .profile-reach-draft-label,
 .profile-reach-call-label {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -2196,7 +2215,7 @@ img.bth-avatar {
   margin-bottom: 4px;
 }
 .profile-reach-draft-hint {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: #566f78;
   font-style: italic;
   margin-bottom: 12px;
@@ -2207,7 +2226,7 @@ img.bth-avatar {
   border: 0.5px solid #e2eaec;
   border-radius: 10px;
   padding: 16px;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: #17323b;
   line-height: 1.75;
   font-weight: 400;
@@ -2225,7 +2244,7 @@ img.bth-avatar {
   border: 1px solid #b8dde8;
   border-radius: 8px;
   padding: 7px 16px;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   font-weight: 500;
   color: #347f96;
   cursor: pointer;
@@ -2244,7 +2263,7 @@ img.bth-avatar {
   color: #1c4d5c;
 }
 .profile-reach-copy i {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 .profile-reach-call {
   background: #fff;
@@ -2260,7 +2279,7 @@ img.bth-avatar {
   margin-bottom: 14px;
 }
 .profile-reach-call-body {
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   color: #3a5b65;
   line-height: 1.65;
   margin: 0;
@@ -2275,7 +2294,7 @@ img.bth-avatar {
   border: none;
   border-radius: 10px;
   padding: 13px;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   cursor: pointer;
   font-family: inherit;
@@ -2287,7 +2306,7 @@ img.bth-avatar {
   background: #0c2830;
 }
 .profile-reach-call-cta i {
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 /* ─── Profile redesign — FAQ + license (Step 10) ─────────────────────── */
@@ -2314,7 +2333,7 @@ img.bth-avatar {
   border: none;
   padding: 0;
   font-family: inherit;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   color: #17323b;
   cursor: pointer;
@@ -2322,7 +2341,7 @@ img.bth-avatar {
   line-height: 1.4;
 }
 .profile-faq-q i {
-  font-size: 16px;
+  font-size: 1rem;
   color: #4a9db5;
   flex-shrink: 0;
 }
@@ -2345,7 +2364,7 @@ img.bth-avatar {
   transform: rotate(180deg);
 }
 .profile-faq-a {
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   color: #3a5b65;
   line-height: 1.65;
   margin-top: 10px;
@@ -2354,7 +2373,7 @@ img.bth-avatar {
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: #566f78;
   padding: 18px 0 0;
   border-top: 0.5px solid #f0f4f5;
@@ -2363,7 +2382,7 @@ img.bth-avatar {
   line-height: 1.5;
 }
 .profile-faq-license i {
-  font-size: 16px;
+  font-size: 1rem;
   color: #3b9b5a;
   flex-shrink: 0;
 }
@@ -2376,7 +2395,7 @@ img.bth-avatar {
   padding: 22px;
 }
 .profile-side-eyebrow {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -2393,7 +2412,7 @@ img.bth-avatar {
   border: none;
   border-radius: 10px;
   padding: 14px;
-  font-size: 14.5px;
+  font-size: 0.90625rem;
   font-weight: 600;
   font-family: inherit;
   text-decoration: none;
@@ -2407,10 +2426,10 @@ img.bth-avatar {
   background: #c44e2c;
 }
 .profile-side-primary i {
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 .profile-side-note {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: #566f78;
   line-height: 1.55;
   text-align: center;
@@ -2422,14 +2441,14 @@ img.bth-avatar {
   gap: 11px;
   padding: 11px 0;
   border-bottom: 0.5px solid #eef3f4;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   min-width: 0;
 }
 .profile-side-item:last-of-type {
   border-bottom: none;
 }
 .profile-side-item i {
-  font-size: 17px;
+  font-size: 1.0625rem;
   color: #4a9db5;
   flex-shrink: 0;
   width: 20px;
@@ -2452,7 +2471,7 @@ img.bth-avatar {
 .profile-side-email {
   /* Slightly tighter type for long addresses so they breathe on
      narrow sidebars without forcing the @ to its own line. */
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.5;
 }
 /* Email row is click-to-copy: address fills the row, the "Copy" hint
@@ -2483,7 +2502,7 @@ img.bth-avatar {
 }
 .profile-side-guidance {
   margin: 14px 0 0;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: #566f78;
   line-height: 1.55;
   font-style: italic;
@@ -2497,7 +2516,7 @@ img.bth-avatar {
   border: 1px solid #d0dfe5;
   border-radius: 10px;
   padding: 11px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: #566f78;
   cursor: pointer;
   font-family: inherit;
@@ -2513,7 +2532,7 @@ img.bth-avatar {
   color: #347f96;
 }
 .profile-side-save i {
-  font-size: 15px;
+  font-size: 0.9375rem;
 }
 .profile-side-save.is-saved {
   border-color: #6dbdd4;

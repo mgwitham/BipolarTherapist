@@ -3,6 +3,7 @@ import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
 import { sanityImageUrl } from "./sanity-image.js";
 import { getDataFreshnessSummary, getTherapistMatchReadiness } from "../shared/matching-model.mjs";
+import { firstName as stripTitleFirstName } from "../shared/outreach-templates.mjs";
 import {
   getPublicResponsivenessSignal,
   summarizeTherapistContactRouteOutcomes,
@@ -602,7 +603,7 @@ function applyTherapistSeo(t) {
 // Used by both the FAQ section HTML and the FAQPage JSON-LD schema.
 function buildFAQItems(t) {
   const name = t.name || "This therapist";
-  const first = (t.name || "").split(" ")[0] || "They";
+  const first = stripTitleFirstName(t.name, "They");
   const phone = t.phone || null;
   const website = t.website || t.booking_url || null;
   let contactPath = [phone ? "calling " + phone : null, website ? "visiting their website" : null]

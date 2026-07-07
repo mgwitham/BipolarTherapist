@@ -152,6 +152,9 @@ function getInitials(name) {
   const parts = String(name || "")
     .trim()
     .split(/\s+/)
+    .filter(function (w) {
+      return !/^(dr|mr|mrs|ms|mx|prof)\.?$/i.test(w);
+    })
     .slice(0, 2);
   return (
     parts

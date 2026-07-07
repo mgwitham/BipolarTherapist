@@ -138,6 +138,70 @@ Match intake (match.html)
   → Review API → Sanity: persists matchRequest + matchOutcome
 ```
 
+## Design System Rules
+
+Rules for public-facing pages. They encode decisions already made; don't
+re-decide them per page.
+
+### CTA color
+
+- **Coral** (`--coral`) is the patient "find care" conversion color, and it is
+  reserved for the _single_ most-wanted action on a patient-facing page — the
+  homepage "Find care" button, the profile page's primary contact button.
+  Never repeat coral in a list of sibling actions (match/directory cards stay
+  teal even though they are contact actions).
+- **Teal** (`--teal` buttons, e.g. `.bth-btn-primary`) is everything else:
+  repeated card CTAs, secondary navigation, and _all_ therapist-facing
+  surfaces (signup, pricing, portal) — therapist conversion is deliberately
+  teal, not coral.
+
+### Design tokens
+
+Canonical tokens live in `assets/styles.css` `:root`, organized as: palette
+ramp (`--teal-900`…`--teal-50`, surfaces and accents), interactive teal family
+(`--teal`, `--teal-light`, `--teal-dark`, `--teal-faint` — buttons, links,
+focus; deliberately a different hue than the ramp), text hierarchy
+(`--text-dark/mid/light`), and neutrals. Rules:
+
+- Never eyeball a new teal or gray — pick an existing token.
+- Use `--font-display` / `--font-body` for fonts (`--serif`/`--sans` are
+  deprecated aliases; `--serif` was never a serif).
+- `results-page.css` and `therapist-page.css` duplicate the tokens they need
+  because those pages don't load `styles.css` — keep values in sync with
+  `styles.css` when editing.
+- `--slate`/`--muted` are page-local grays with different values in
+  `home.css` and `therapist-page.css` — check the page's own `:root` before
+  reusing them; prefer `--text-*` in new code.
+
+### CSS architecture
+
+- `assets/styles.css` is an **@import manifest**; the shared styles live in
+  ordered section files under `assets/styles/`. Import order IS the cascade —
+  the directory sections deliberately override each other by position. Add
+  new sections at the end of the manifest; never reorder imports.
+- Page-specific styles live in that page's stylesheet (`home.css`,
+  `match-page.css`, `therapist-page.css`, `directory-redesign.css`, …). New
+  shared components go in a new `assets/styles/` section file.
+- Prefix new component classes with `bth-` (existing prefixes `mx-` for
+  match, `dir-` for directory stay as-is; don't add unprefixed classes).
+- `@layer` is deliberately **not** used yet: mixing layered and unlayered
+  styles inverts specificity outcomes, and adopting it safely needs visual
+  regression coverage across all pages first. Don't introduce it piecemeal.
+
+### Footers
+
+Two variants, nothing in between:
+
+- **Full footer** (`index.html` only): four-column sitemap + mission line.
+- **Compact footer** (all other public pages): `.footer-brand` line, optional
+  one-line context (`match.html` keeps its clinical disclaimer, `about.html`
+  its tagline), then `.footer-legal` with exactly
+  `About · Guides · Privacy · Terms · Contact`.
+
+New public pages get the compact footer. `therapist-page.css` duplicates the
+footer rules from `styles.css` (that page doesn't load `styles.css`) — keep
+the two blocks identical when editing either.
+
 ## Test Infrastructure
 
 Tests use Node.js built-in `node:test` + `node:assert/strict`. Server tests use in-memory helpers in `test/server/test-helpers.mjs`:

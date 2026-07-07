@@ -913,10 +913,22 @@ function initHomeSearchForm() {
     const therapistCount =
       (content.stats && Number(content.stats.total_therapists)) ||
       (Array.isArray(content.therapists) ? content.therapists.length : 0);
+    // Below this, a real count reads as a warning ("6 specialists"),
+    // not social proof — swap the stat for the qualitative claim
+    // instead of publishing the small number next to "100%" and "0".
+    const PROOF_COUNT_THRESHOLD = 25;
     if (therapistCount > 0) {
       const countEl = document.querySelector("[data-proof-therapist-count]");
       if (countEl) {
-        countEl.textContent = String(therapistCount);
+        if (therapistCount >= PROOF_COUNT_THRESHOLD) {
+          countEl.textContent = String(therapistCount);
+        } else {
+          countEl.textContent = "Every";
+          const labelEl = countEl.nextElementSibling;
+          if (labelEl && labelEl.classList.contains("proof-label")) {
+            labelEl.textContent = "specialist license-verified";
+          }
+        }
       }
     }
 

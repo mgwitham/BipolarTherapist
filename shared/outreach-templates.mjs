@@ -9,13 +9,18 @@
 
 // Strip a leading title (Dr., Dr, Mr., Mrs., Ms., Mx.) and return the
 // first word. "Dr. Jane Smith" -> "Jane". Falls back to "there" if the
-// input is empty so the greeting never reads "Hi ,".
-export function firstName(fullName) {
+// input is empty so the greeting never reads "Hi ,". Callers that use
+// the name as a sentence subject ("They" / "them") pass their own
+// fallback. A name that is only a title ("Dr.") also falls back —
+// otherwise the stripped result would be the bare title itself.
+export function firstName(fullName, fallback = "there") {
   const tokens = String(fullName || "")
     .replace(/^(Dr\.?|Mr\.?|Mrs\.?|Ms\.?|Mx\.?)\s+/i, "")
     .trim()
     .split(/\s+/);
-  return tokens[0] || "there";
+  const first = tokens[0] || "";
+  if (!first || /^(Dr|Mr|Mrs|Ms|Mx)\.?$/i.test(first)) return fallback;
+  return first;
 }
 
 // Append ?ref=outreach so the profile page can attribute the view to

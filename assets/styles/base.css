@@ -1,0 +1,448 @@
+:root {
+  /* ── Palette ramp ─────────────────────────────────────────────
+     Surfaces, hero gradients, and text accents. This is the
+     canonical blue-green scale; results-page.css and
+     therapist-page.css duplicate the stops they need (those pages
+     don't load styles.css) — keep the values in sync. */
+  --teal-900: #0c2830;
+  --teal-800: #143a46;
+  --teal-700: #1c4d5c;
+  --teal-600: #26667a;
+  --teal-500: #347f96;
+  --teal-400: #4a9db5;
+  --teal-300: #6dbdd4;
+  --teal-100: #d6eff6;
+  --teal-50: #ebf7fb;
+  /* Coral darkened from #e8603c (3.4:1 white-on-coral, failed WCAG AA)
+     to #c94a2a (4.67:1) — the lightest coral that clears AA in both
+     directions, so white-on-coral CTA buttons and coral-on-white links
+     both pass. Hover goes a notch darker. Matters for the primary
+     "Find care" CTA on a site serving people in crisis. */
+  --coral: #c94a2a;
+  --coral-dark: #b8431f;
+  --coral-light: #fbe9e3;
+  --cream: #f7f4ef;
+  /* ── Typography ───────────────────────────────────────────────
+     One brand face for everything (Fraunces display serif was
+     dropped; headings are Hanken too). --font-display exists so
+     headings can diverge later without a rename hunt. --serif and
+     --sans are the deprecated old names — new code uses --font-*. */
+  --font-display: "Hanken Grotesk", system-ui, sans-serif;
+  --font-body: "Hanken Grotesk", system-ui, sans-serif;
+  --serif: var(--font-display);
+  --sans: var(--font-body);
+  /* ── Text hierarchy on light surfaces ────────────────────────── */
+  --text-dark: #17323b;
+  --text-mid: #3a5b65;
+  /* Lightened muted text darkened from #5d7a84 (4.21:1 on the --bg cream,
+     failed normal-text WCAG AA) to #527079 (4.88:1). Same blue-grey hue,
+     now legible for the small captions/labels that use it across home,
+     results, and city pages. */
+  --text-light: #527079;
+  --border: rgba(52, 127, 150, 0.15);
+
+  /* ── Interactive teal family ──────────────────────────────────
+     Buttons, links, focus rings, selected states. Deliberately its
+     own slightly-more-cyan hue than the palette ramp so interactive
+     elements read against teal surfaces. Pick from these four for
+     any interactive state — never eyeball a new teal. */
+  --teal: #1a7a8f;
+  --teal-light: #2a9cb3;
+  --teal-dark: #155f70;
+  --teal-faint: #e8f5f8;
+  /* ── Neutrals ─────────────────────────────────────────────────
+     --navy is the body default. --slate/--muted are legacy neutral
+     grays; prefer the --text-* hierarchy above in new code. (home.css
+     and therapist-page.css override --slate/--muted with page-local
+     values — same names, different grays — so check the page's own
+     :root before reusing them.) */
+  --navy: #1d3a4a;
+  --slate: #1a1a1a;
+  --muted: #333333;
+  --bg: #f7f5f2;
+  --white: #ffffff;
+  /* Success/availability green darkened from #3aaa7a (2.68:1 on --bg,
+     failed AA) to #1f7a52 (4.87:1). Drives the "Accepting new patients"
+     badge and other small status text, so it must clear normal-text AA. */
+  --green: #1f7a52;
+  --amber-bg: #fef3e2;
+  --amber-text: #8a5a00;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+/* iOS Safari zooms the viewport when a focused input's font-size is
+   below 16px, which breaks layout and traps scroll. Enforce 16px on
+   all form controls at mobile widths. !important is necessary because
+   many existing per-feature input rules (filter chips, search bars,
+   admin tables) set smaller sizes that would otherwise win. */
+@media (max-width: 768px) {
+  input,
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Buttery taps: touch-action: manipulation removes the browser's
+   ~300ms wait-for-double-tap delay on interactive controls, so taps
+   register instantly. It still allows scroll and pinch-zoom — it only
+   drops the double-tap-to-zoom gesture, which these controls never need. */
+a,
+button,
+[role="button"],
+label,
+summary {
+  touch-action: manipulation;
+}
+
+html {
+  scroll-behavior: smooth;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+
+body {
+  margin: 0;
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg);
+  color: var(--navy);
+  line-height: 1.6;
+  min-height: 100vh;
+  overflow-x: clip;
+  overscroll-behavior-x: none;
+}
+
+h1,
+h2,
+h3 {
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+}
+
+.btn-primary {
+  display: inline-block;
+  background: var(--coral);
+  color: #fff;
+  font-family: var(--sans);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 10px;
+  padding: 15px 24px;
+  cursor: pointer;
+  transition:
+    background 0.2s,
+    transform 0.15s;
+  text-align: center;
+  text-decoration: none;
+  line-height: 1.2;
+}
+.btn-primary:hover,
+.btn-primary:focus-visible {
+  background: var(--coral-dark);
+}
+.btn-primary--block {
+  display: block;
+  width: 100%;
+}
+
+@keyframes bthFadeLift {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes bthPulseGlow {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(26, 122, 143, 0);
+  }
+  40% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 8px rgba(26, 122, 143, 0.08);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 rgba(26, 122, 143, 0);
+  }
+}
+
+@keyframes bthFocusRing {
+  0% {
+    box-shadow: 0 0 0 0 rgba(26, 122, 143, 0.24);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(26, 122, 143, 0);
+  }
+}
+
+.motion-enter {
+  animation: bthFadeLift 320ms ease both;
+}
+
+.motion-pulse {
+  animation: bthCountPulse 520ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes bthCountPulse {
+  0% {
+    transform: scale(1);
+    background: var(--teal-faint);
+    box-shadow: 0 0 0 0 rgba(26, 122, 143, 0);
+  }
+  35% {
+    transform: scale(1.2);
+    background: rgba(26, 122, 143, 0.2);
+    box-shadow: 0 0 0 8px rgba(26, 122, 143, 0.12);
+  }
+  100% {
+    transform: scale(1);
+    background: var(--teal-faint);
+    box-shadow: 0 0 0 0 rgba(26, 122, 143, 0);
+  }
+}
+
+.motion-focus {
+  animation: bthFocusRing 620ms ease;
+}
+
+a {
+  color: inherit;
+}
+
+nav {
+  background: var(--white);
+  border-bottom: 1px solid var(--border);
+  padding: 0 1.5rem;
+  height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+
+.nav-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+}
+
+.nav-icon {
+  width: 34px;
+  height: 34px;
+  background: var(--teal);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 1.125rem;
+}
+
+.nav-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #000;
+}
+
+.nav-name span {
+  color: var(--teal);
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+/* Nav typography is locked across the site so links never visually shift
+   between pages or between active/non-active states. Color and structural
+   properties (padding, border, layout) can vary per variant. Anything that
+   wants to vary typography needs to override this rule deliberately. */
+.nav-links a,
+.nav-links a.nav-link-current,
+.nav-links a.nav-signin-link,
+.nav-links a.nav-zone-switch,
+.nav-links a.nav-shortlist {
+  font-family: "Hanken Grotesk", sans-serif !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.2 !important;
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.nav-links a {
+  color: var(--slate);
+}
+
+.nav-links a:hover {
+  color: var(--teal);
+}
+
+.nav-dark .nav-links a {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.nav-dark .nav-links a:hover {
+  color: #fff !important;
+}
+
+.nav-dark .nav-zone-switch {
+  color: rgba(255, 255, 255, 0.82) !important;
+}
+
+.nav-dark .nav-zone-switch:hover {
+  color: #fff !important;
+}
+
+.nav-browse-btn {
+  border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
+  background: transparent !important;
+  color: #fff !important;
+  padding: 8px 18px !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  white-space: nowrap;
+}
+
+.nav-browse-btn:hover {
+  border-color: #fff !important;
+  background: rgba(255, 255, 255, 0.08) !important;
+}
+
+.nav-link-current {
+  color: var(--teal) !important;
+}
+
+.nav-crisis-item {
+  margin-left: auto;
+}
+
+.nav-crisis-item + .nav-zone-switch-item {
+  margin-left: 0;
+}
+
+.nav-crisis-link {
+  color: var(--navy) !important;
+  font-size: 0.875rem !important;
+  font-weight: 500 !important;
+}
+
+.nav-crisis-link:hover {
+  color: var(--teal) !important;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.nav-cta {
+  background: var(--coral) !important;
+  color: white !important;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  font-weight: 500 !important;
+}
+
+.nav-cta:hover {
+  background: var(--coral-dark) !important;
+}
+
+.nav-signin-link {
+  color: var(--muted) !important;
+}
+
+.nav-signin-link:hover {
+  color: var(--teal) !important;
+}
+
+/* Zone-switch link. Right-aligned, muted, with a directional arrow —
+   visually reads as "go to a different space" (patient ↔ therapist). */
+.nav-zone-switch-item {
+  margin-left: auto;
+}
+
+.nav-zone-switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.75rem;
+  color: var(--muted) !important;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  transition:
+    color 0.15s ease,
+    border-color 0.15s ease,
+    background 0.15s ease;
+}
+
+.nav-zone-switch:hover {
+  color: var(--teal-dark) !important;
+  border-color: rgba(26, 122, 143, 0.22);
+  background: rgba(26, 122, 143, 0.06);
+}
+
+.public-mobile-nav {
+  display: none;
+}
+
+/* .public-mobile-nav.is-open and .public-mobile-nav-link sheet layout
+   live in assets/public-nav.css. Removed the legacy white-background
+   .is-open rule that was winning the cascade on prod (styles.css
+   loads after public-nav.css in the production bundle order) and
+   rendering the mobile sheet as a white surface. */
+
+.nav-hamburger {
+  display: none;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 24px;
+  height: 18px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.nav-hamburger span {
+  display: block;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  border-radius: 2px;
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+}
+
+.nav-hamburger[aria-expanded="true"] span:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+
+.nav-hamburger[aria-expanded="true"] span:nth-child(2) {
+  opacity: 0;
+}
+
+.nav-hamburger[aria-expanded="true"] span:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}

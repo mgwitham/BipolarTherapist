@@ -5,18 +5,15 @@
   margin: 0;
   padding: 0;
 }
+/* home.css is always loaded after styles.css (index.html only), so the
+   shared tokens — interactive teals, --navy, --green, --white — are
+   inherited from there; don't redeclare them. Only the page-local
+   overrides live here. */
 :root {
-  --teal: #1a7a8f;
-  --teal-light: #2a9cb3;
-  --teal-dark: #155f70;
-  --teal-faint: #e8f5f8;
-  --navy: #1d3a4a;
   --slate: #4a6572;
   --muted: #5a727f;
   --border: #d4e4e9;
   --bg: #f7fbfc;
-  --white: #ffffff;
-  --green: #1f7a52;
 }
 body {
   font-family: "Hanken Grotesk", sans-serif;
@@ -63,7 +60,7 @@ nav[aria-label="Main navigation"] {
 }
 .logo-wordmark {
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: #fff;
   letter-spacing: -0.01em;
@@ -78,7 +75,7 @@ nav[aria-label="Main navigation"] {
   list-style: none;
 }
 .nav-links a {
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   color: rgba(255, 255, 255, 0.82);
   text-decoration: none;
   transition: color 0.2s;
@@ -89,7 +86,7 @@ nav[aria-label="Main navigation"] {
   color: #fff;
 }
 .nav-crisis-link {
-  font-size: 12.5px !important;
+  font-size: 0.78125rem !important;
   color: rgba(255, 255, 255, 0.78) !important;
   border: 1px solid rgba(255, 255, 255, 0.3) !important;
   padding: 5px 14px !important;
@@ -104,7 +101,7 @@ nav[aria-label="Main navigation"] {
 }
 .nav-zone-switch {
   color: rgba(255, 255, 255, 0.82) !important;
-  font-size: 13.5px !important;
+  font-size: 0.84375rem !important;
 }
 .nav-zone-switch:hover {
   color: #fff !important;
@@ -610,14 +607,14 @@ h2 {
   gap: 12px;
 }
 .proof-num {
-  font-family: var(--serif);
-  font-size: 28px;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
   color: var(--teal-600);
   line-height: 1;
   font-weight: 600;
 }
 .proof-label {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: var(--text-mid);
   line-height: 1.4;
   max-width: 120px;
@@ -628,7 +625,7 @@ h2 {
   background: var(--border);
 }
 .proof-quote {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--text-mid);
   font-style: italic;
   max-width: 320px;
@@ -646,7 +643,7 @@ h2 {
   margin: 0 auto;
 }
 .section-eyebrow {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   /* teal-700 (not -500) so the small uppercase kicker clears AA 4.5:1
      on the cream section background. */
@@ -656,8 +653,8 @@ h2 {
   margin-bottom: 12px;
 }
 .section-h2 {
-  font-family: var(--serif);
-  font-size: clamp(28px, 3vw, 40px);
+  font-family: var(--font-display);
+  font-size: clamp(1.75rem, 3vw, 2.5rem);
   color: var(--text-dark);
   margin-bottom: 56px;
   letter-spacing: -0.02em;
@@ -689,8 +686,8 @@ h2 {
   box-shadow: 0 8px 32px rgba(52, 127, 150, 0.1);
 }
 .step-num {
-  font-family: var(--serif);
-  font-size: 52px;
+  font-family: var(--font-display);
+  font-size: 3.25rem;
   /* teal-400 keeps the large watermark numeral light while clearing the
      3:1 large-text contrast threshold (teal-100 was 1.19:1, invisible). */
   color: var(--teal-400);
@@ -716,15 +713,15 @@ h2 {
   color: var(--teal-600);
 }
 .step-h3 {
-  font-family: var(--serif);
-  font-size: 20px;
+  font-family: var(--font-display);
+  font-size: 1.25rem;
   color: var(--text-dark);
   margin-bottom: 10px;
   line-height: 1.25;
   font-weight: 600;
 }
 .step-body {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--text-mid);
   line-height: 1.65;
   font-weight: 300;
@@ -736,7 +733,7 @@ h2 {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 500;
   color: var(--teal-600);
   text-decoration: none;
@@ -759,7 +756,7 @@ h2 {
   align-items: start;
 }
 .explainer-prose p {
-  font-size: 16px;
+  font-size: 1rem;
   color: var(--text-mid);
   line-height: 1.75;
   margin-bottom: 20px;
@@ -776,7 +773,7 @@ h2 {
   display: flex;
   align-items: flex-start;
   gap: 12px;
-  font-size: 14.5px;
+  font-size: 0.90625rem;
   color: var(--text-dark);
   line-height: 1.5;
 }
@@ -804,14 +801,14 @@ h2 {
   color: #fff;
 }
 .callout-card h3 {
-  font-family: var(--serif);
-  font-size: 26px;
+  font-family: var(--font-display);
+  font-size: 1.625rem;
   margin-bottom: 16px;
   line-height: 1.2;
   font-weight: 600;
 }
 .callout-card > p {
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   color: rgba(255, 255, 255, 0.65);
   line-height: 1.65;
   margin-bottom: 28px;
@@ -830,15 +827,15 @@ h2 {
   padding: 16px;
 }
 .callout-stat-num {
-  font-family: var(--serif);
-  font-size: 28px;
+  font-family: var(--font-display);
+  font-size: 1.75rem;
   color: var(--teal-300);
   line-height: 1;
   margin-bottom: 4px;
   font-weight: 600;
 }
 .callout-stat-label {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: rgba(255, 255, 255, 0.62);
 }
 .btn-white {
@@ -847,7 +844,7 @@ h2 {
   background: #fff;
   color: var(--teal-800);
   font-family: var(--sans);
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
   border: none;
   border-radius: 10px;
@@ -892,7 +889,7 @@ h2 {
   justify-content: space-between;
   gap: 12px;
   font-family: var(--sans);
-  font-size: 14.5px;
+  font-size: 0.90625rem;
   font-weight: 500;
   color: var(--text-dark);
   cursor: pointer;
@@ -914,7 +911,7 @@ h2 {
   transition:
     max-height 0.3s ease,
     padding 0.3s;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--text-mid);
   line-height: 1.7;
   font-weight: 300;
@@ -927,7 +924,7 @@ h2 {
 .faq-footer {
   text-align: center;
   margin-top: 28px;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--text-mid);
 }
 .faq-footer a {
@@ -954,8 +951,8 @@ h2 {
   z-index: 2;
 }
 .cta-band h2 {
-  font-family: var(--serif);
-  font-size: clamp(32px, 4vw, 52px);
+  font-family: var(--font-display);
+  font-size: clamp(2rem, 4vw, 3.25rem);
   color: #fff;
   line-height: 1.1;
   margin-bottom: 16px;
@@ -963,7 +960,7 @@ h2 {
   font-weight: 600;
 }
 .cta-band > .cta-band-inner > p {
-  font-size: 17px;
+  font-size: 1.0625rem;
   color: rgba(255, 255, 255, 0.72);
   margin-bottom: 36px;
   font-weight: 300;
@@ -975,7 +972,7 @@ h2 {
   background: #fff;
   color: var(--teal-800);
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   border: none;
   border-radius: 10px;
@@ -992,7 +989,7 @@ h2 {
 .cta-secondary {
   display: block;
   margin-top: 16px;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   color: rgba(255, 255, 255, 0.55);
 }
 .cta-secondary a {
@@ -1016,7 +1013,7 @@ footer {
 .footer-col-cities .footer-city-all {
   display: block;
   margin-top: 4px;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   font-style: italic;
   color: rgba(255, 255, 255, 0.6);
 }
@@ -1024,7 +1021,7 @@ footer {
   color: rgba(255, 255, 255, 0.9);
 }
 .footer-brand-desc {
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.65;
   margin-top: 14px;
   font-weight: 300;
@@ -1032,12 +1029,12 @@ footer {
 }
 .footer-wordmark {
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.85);
 }
 .footer-col h4 {
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
   text-transform: uppercase;
@@ -1046,7 +1043,7 @@ footer {
 }
 .footer-col a {
   display: block;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   font-weight: 400;
   color: rgba(255, 255, 255, 0.5);
   text-decoration: none;
@@ -1073,13 +1070,13 @@ footer {
   flex-wrap: wrap;
 }
 .footer-legal {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: rgba(255, 255, 255, 0.55);
   line-height: 1.6;
   max-width: 560px;
 }
 .footer-crisis {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: rgba(255, 255, 255, 0.5);
 }
 .footer-crisis strong {
@@ -1118,7 +1115,7 @@ footer {
     padding: 24px 20px;
   }
   .step-num {
-    font-size: 40px;
+    font-size: 2.5rem;
   }
   .explainer {
     padding: 64px 20px;
@@ -1156,12 +1153,12 @@ footer {
     border-top: 0;
   }
   .footer-wordmark {
-    font-size: 17px;
+    font-size: 1.0625rem;
   }
   .footer-brand-desc {
     max-width: none;
     margin-top: 10px;
-    font-size: 13.5px;
+    font-size: 0.84375rem;
     color: rgba(255, 255, 255, 0.55);
   }
   .footer-col h4 {
@@ -1169,7 +1166,7 @@ footer {
     color: rgba(255, 255, 255, 0.95);
   }
   .footer-col a {
-    font-size: 14.5px;
+    font-size: 0.90625rem;
     margin-bottom: 12px;
     min-height: 24px;
     color: rgba(255, 255, 255, 0.62);
@@ -1188,7 +1185,7 @@ footer {
   .footer-col-cities .footer-city-all {
     grid-column: 1 / -1;
     margin-top: 8px;
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: var(--teal-300);
   }
   .footer-col-cities .footer-city-all:hover,
@@ -1204,13 +1201,13 @@ footer {
     border-top: 1px solid rgba(255, 255, 255, 0.12);
   }
   .footer-legal {
-    font-size: 12px;
+    font-size: 0.75rem;
     line-height: 1.7;
     color: rgba(255, 255, 255, 0.55);
     max-width: 420px;
   }
   .footer-crisis {
-    font-size: 13px;
+    font-size: 0.8125rem;
     color: rgba(255, 255, 255, 0.65);
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -1232,7 +1229,7 @@ footer {
     background: var(--coral);
     color: #fff;
     font-family: var(--sans);
-    font-size: 15px;
+    font-size: 0.9375rem;
     font-weight: 600;
     text-align: center;
     padding: 16px;
@@ -1277,7 +1274,11 @@ footer {
     22px 22px,
     100% 100%;
   padding: 80px 40px;
-  min-height: calc(100vh - 64px);
+  /* Cap the hero below one viewport so the proof strip peeks above
+     the fold. The old calc(100vh - 64px) filled the whole first
+     screen, leaving ~40% of the gradient empty below the content on
+     tall/desktop viewports and hiding every trust signal. */
+  min-height: min(680px, calc(100vh - 64px));
   display: flex;
   align-items: center;
 }
@@ -1307,7 +1308,7 @@ footer {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--teal-300);
   letter-spacing: 0.08em;
@@ -1324,8 +1325,8 @@ footer {
   flex-shrink: 0;
 }
 .hero-h1 {
-  font-family: var(--serif);
-  font-size: clamp(38px, 4.5vw, 58px);
+  font-family: var(--font-display);
+  font-size: clamp(2.375rem, 4.5vw, 3.625rem);
   color: #fff;
   line-height: 1.1;
   margin: 0 0 20px;
@@ -1339,7 +1340,7 @@ footer {
   color: var(--teal-300);
 }
 .hero-sub {
-  font-size: 17px;
+  font-size: 1.0625rem;
   color: rgba(255, 255, 255, 0.72);
   line-height: 1.65;
   margin: 0 0 32px;
@@ -1356,7 +1357,7 @@ footer {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: rgba(255, 255, 255, 0.85);
   background: rgba(255, 255, 255, 0.09);
   border: 1px solid rgba(255, 255, 255, 0.16);
@@ -1383,7 +1384,7 @@ footer {
   max-width: 460px;
 }
 .hero-card-label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   color: var(--text-light);
   text-transform: uppercase;
@@ -1395,7 +1396,7 @@ footer {
 }
 .hero-field-label {
   display: block;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--text-mid);
   margin-bottom: 6px;
@@ -1406,7 +1407,7 @@ footer {
   border: 1.5px solid #e2eef2;
   border-radius: 10px;
   padding: 14px 16px;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-family: var(--sans);
   color: var(--text-dark);
   background: var(--cream);
@@ -1422,20 +1423,20 @@ footer {
   background: #fff;
 }
 .hero-card .search-care-hint {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--text-light);
   margin: 6px 0 0;
   line-height: 1.4;
 }
 .hero-card .zip-resolved {
   display: block;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--text-light);
   margin-top: 6px;
   min-height: 1.2em;
 }
 .hero-card .zip-helper {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: var(--text-light);
   margin-top: 8px;
 }
@@ -1452,7 +1453,7 @@ footer {
   text-decoration: underline;
 }
 .hero-card .hero-validation-popup {
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: var(--coral-dark);
   background: var(--coral-light);
   border: 1px solid rgba(232, 96, 60, 0.25);
@@ -1478,11 +1479,11 @@ footer {
   flex-wrap: wrap;
 }
 .hero-card-footer-note {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: var(--text-light);
 }
 .hero-card-footer-link {
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   color: var(--teal-500);
   text-decoration: none;
 }
@@ -1520,11 +1521,11 @@ footer {
   }
   .hero-h1 {
     order: 2;
-    font-size: 34px;
+    font-size: 2.125rem;
   }
   .hero-sub {
     order: 3;
-    font-size: 15px;
+    font-size: 0.9375rem;
     max-width: 100%;
   }
   .hero-visual {
@@ -1535,7 +1536,7 @@ footer {
     margin-top: 20px;
   }
   .hero-pill {
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     padding: 5px 11px;
   }
   .hero-card {
