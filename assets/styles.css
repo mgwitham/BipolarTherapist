@@ -131,7 +131,7 @@ h3 {
   background: var(--coral);
   color: #fff;
   font-family: var(--sans);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   border: none;
   border-radius: 10px;
@@ -252,7 +252,7 @@ nav {
   align-items: center;
   justify-content: center;
   color: white;
-  font-size: 18px;
+  font-size: 1.125rem;
 }
 
 .nav-name {
@@ -1580,7 +1580,7 @@ nav {
   align-items: center;
   background: #e1f5ee;
   color: #085041;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   padding: 4px 10px;
   border-radius: 100px;
@@ -2489,7 +2489,7 @@ footer a:active {
   .footer-cities-inline a {
     margin: 0;
     padding: 6px 4px;
-    font-size: 14px;
+    font-size: 0.875rem;
   }
   .footer-cities-inline .footer-city-all {
     grid-column: 1 / -1;
@@ -2952,7 +2952,7 @@ footer a:active {
   .dir-vb-modal-body .filter-group select,
   .dir-vb-modal-body .filter-group input[type="text"],
   .dir-vb-canvas .results-tools select {
-    font-size: 16px;
+    font-size: 1rem;
   }
 }
 
@@ -4619,7 +4619,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
 }
 
 .outreach-script-label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -4628,7 +4628,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
 }
 
 .outreach-script-helper {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--muted);
   opacity: 0.85;
   line-height: 1.5;
@@ -4639,7 +4639,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
   margin: 0;
   padding: 0;
   font-family: inherit;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.65;
   color: var(--navy);
   white-space: pre-wrap;
@@ -4660,7 +4660,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
   border: 1px solid rgba(26, 122, 143, 0.32);
   background: var(--white);
   color: var(--teal);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   cursor: pointer;
   transition:
@@ -4696,7 +4696,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
 }
 
 .outreach-script-branch-label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -4706,14 +4706,14 @@ body.dir-vb .dir-vb-modal-apply:hover {
 
 .outreach-script-branch p {
   margin: 0;
-  font-size: 13px;
+  font-size: 0.8125rem;
   line-height: 1.6;
   color: var(--navy);
 }
 
 .outreach-script-branch-context {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   opacity: 0.9;
 }
 
@@ -4728,7 +4728,7 @@ body.dir-vb .dir-vb-modal-apply:hover {
   border-radius: 8px;
   background: var(--teal);
   color: var(--white);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   text-decoration: none;
   transition: background 0.15s;

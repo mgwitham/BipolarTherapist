@@ -632,7 +632,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
     overflow: hidden;
     touch-action: none;
   }
-  /* iOS Safari auto-zooms any focused input below 16px font-size,
+  /* iOS Safari auto-zooms any focused input below 1rem font-size,
      which yanks the drawer out of place. Bump every drawer field to
      16px on mobile so the viewport stays put when the keyboard opens. */
   body.match-refine-drawer-open .refine-input,
@@ -642,7 +642,7 @@ body.match-refine-drawer-open .refine-bottom-submit:active {
   body.match-refine-drawer-open .match-refinements input[type="tel"],
   body.match-refine-drawer-open .match-refinements input[type="email"],
   body.match-refine-drawer-open .match-refinements select {
-    font-size: 16px;
+    font-size: 1rem;
   }
 }
 .intake-adaptive-header h3 {
@@ -3327,7 +3327,7 @@ img.bth-avatar {
   align-items: center;
   background: #e1f5ee;
   color: #085041;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   padding: 4px 10px;
   border-radius: 100px;
@@ -3345,7 +3345,7 @@ img.bth-avatar {
 /* Zone 2 — voice cascade */
 .bth-voice {
   font-family: "Hanken Grotesk", system-ui, sans-serif;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.55;
   color: #4d6671;
   font-style: italic;
@@ -3403,7 +3403,7 @@ img.bth-avatar {
   justify-content: center;
   background: var(--teal);
   color: #ffffff;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   /* 44px minimum tap target — matches iOS HIG and WCAG. The
      primary CTA on each match card is the conversion event; a
@@ -3425,7 +3425,7 @@ img.bth-avatar {
   justify-content: center;
   background: transparent;
   color: var(--teal);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
   padding: 6px 14px;
   border-radius: 8px;
@@ -3438,7 +3438,7 @@ img.bth-avatar {
   color: var(--teal-dark);
 }
 .mx-profile-link {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--teal);
   text-decoration: none;
@@ -3482,12 +3482,12 @@ img.bth-avatar {
   .bth-btn-primary {
     flex: 1;
     min-height: 44px;
-    font-size: 14px;
+    font-size: 0.875rem;
   }
   .bth-btn-secondary {
     width: 100%;
     min-height: 44px;
-    font-size: 14px;
+    font-size: 0.875rem;
   }
 }
 
@@ -3620,7 +3620,7 @@ img.bth-avatar {
   width: 100%;
   background: var(--teal);
   color: #ffffff;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   padding: 14px 18px;
   border-radius: 10px;

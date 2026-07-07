@@ -110,14 +110,14 @@
 }
 
 .bsh-name {
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 500;
   color: var(--navy);
   line-height: 1.25;
 }
 
 .bsh-creds {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--muted);
   line-height: 1.4;
 }
@@ -131,7 +131,7 @@
 }
 
 .bsh-location {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 
@@ -142,7 +142,7 @@
   border-radius: 999px;
   background: rgba(26, 122, 143, 0.08);
   border: 1px solid rgba(26, 122, 143, 0.2);
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   color: var(--teal-dark);
   white-space: nowrap;
@@ -150,7 +150,7 @@
 
 /* Price */
 .bsh-price {
-  font-size: 18px;
+  font-size: 1.125rem;
   font-weight: 500;
   color: var(--navy);
 }
@@ -167,7 +167,7 @@
   align-items: center;
   padding: 3px 9px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   line-height: 1.3;
 }
@@ -190,7 +190,7 @@
 }
 
 .bsh-bio-text {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--muted);
   line-height: 1.6;
   overflow: hidden;
@@ -223,7 +223,7 @@
   align-items: center;
   gap: 3px;
   margin-top: 6px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--teal);
   background: none;
@@ -245,7 +245,7 @@
 
 .bsh-bipolar-text {
   margin: 0;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--muted);
   line-height: 1.6;
 }
@@ -262,7 +262,7 @@
 }
 
 .bsh-section-label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -282,7 +282,7 @@
   align-items: center;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 0.75rem;
   background: rgba(26, 122, 143, 0.06);
   border: 1px solid rgba(26, 122, 143, 0.16);
   color: var(--navy);
@@ -295,7 +295,7 @@
 }
 
 .bsh-ins-heading {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
@@ -309,14 +309,14 @@
   align-items: center;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 0.75rem;
   background: #f4f4f4;
   color: var(--muted);
   border: 1px solid #ddd;
 }
 
 .bsh-ins-note {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--muted);
   margin-top: 5px;
   opacity: 0.8;
@@ -333,7 +333,7 @@
   align-items: center;
   padding: 2px 9px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 0.75rem;
   background: rgba(26, 122, 143, 0.08);
   border: 1px solid rgba(26, 122, 143, 0.18);
   color: var(--teal-dark);
@@ -345,7 +345,7 @@
   align-items: center;
   padding: 2px 9px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: 0.75rem;
   background: var(--white);
   border: 1px dashed rgba(26, 122, 143, 0.35);
   color: var(--teal);
@@ -359,7 +359,7 @@
 }
 
 .bsh-ins-many-label {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--muted);
 }
 
@@ -367,7 +367,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--teal);
   background: none;
@@ -434,14 +434,14 @@
 }
 
 .bsh-outreach-summary-label {
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: var(--navy);
 }
 
 .bsh-outreach-summary-helper {
   flex: 1;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--muted);
   opacity: 0.8;
 }
@@ -473,7 +473,7 @@
   padding: 7px 10px;
   border-radius: 8px;
   border: 1px solid var(--border);
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--navy);
   background: var(--white);
   outline: none;
@@ -488,7 +488,7 @@
   display: inline-flex;
   align-items: center;
   margin-top: 2px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   color: var(--muted);
   background: none;
@@ -519,7 +519,7 @@
   border-radius: 12px;
   background: var(--teal);
   color: var(--white);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   text-decoration: none;
   transition: background 0.15s;
@@ -544,7 +544,7 @@
   background: var(--white);
   border: 1.5px solid var(--teal);
   color: var(--teal);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 500;
   text-decoration: none;
   transition: background 0.15s;
@@ -559,7 +559,7 @@
 }
 
 .bsh-footnote {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--muted);
   text-align: center;
   opacity: 0.75;

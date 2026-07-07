@@ -43,7 +43,7 @@ body {
     system-ui,
     -apple-system,
     sans-serif;
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -77,7 +77,7 @@ a {
   margin: 0 0 6px;
   font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 600;
-  font-size: 26px;
+  font-size: 1.625rem;
   line-height: 1.2;
   color: var(--text-dark);
   letter-spacing: -0.005em;
@@ -101,12 +101,12 @@ a {
   background: var(--teal-100);
   color: #143a46;
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   line-height: 1.4;
 }
 
 .filter-pill .ti {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--teal-500);
 }
 
@@ -120,7 +120,7 @@ a {
   background: none;
   color: var(--teal-500);
   font-family: inherit;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 500;
   cursor: pointer;
   transition: color 0.15s ease;
@@ -134,7 +134,7 @@ a {
 
 .filter-edit-btn .ti,
 .filter-start-new .ti {
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 /* Removable pills are buttons: same look as the static pill, plus an ×
@@ -152,7 +152,7 @@ a {
 }
 
 .filter-pill-removable .filter-pill-x {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--teal-700);
 }
 
@@ -187,7 +187,7 @@ a {
 }
 
 .rf-label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -202,7 +202,7 @@ a {
   background: var(--cream);
   color: var(--text-dark);
   font-family: inherit;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .rf-input:focus-visible {
@@ -236,7 +236,7 @@ a {
   border-radius: 18px;
   background: var(--cream);
   color: var(--text-mid);
-  font-size: 12px;
+  font-size: 0.75rem;
   line-height: 1.4;
   cursor: pointer;
   transition:
@@ -269,7 +269,7 @@ a {
   align-items: center;
   gap: 5px;
   color: var(--teal-500);
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   white-space: nowrap;
   transition: color 0.15s ease;
@@ -280,7 +280,7 @@ a {
 }
 
 .rf-start-over .ti {
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .rf-done-btn {
@@ -291,7 +291,7 @@ a {
   background: var(--teal-700);
   color: #fff;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   font-weight: 600;
   cursor: pointer;
   transition: background 0.15s ease;
@@ -314,7 +314,7 @@ button.results-empty-link {
   display: block;
   margin-top: 10px;
   color: var(--text-light);
-  font-size: 12px;
+  font-size: 0.75rem;
   text-decoration: underline;
   text-underline-offset: 3px;
   transition: color 0.15s ease;
@@ -330,7 +330,7 @@ button.results-empty-link {
   }
 
   .results-h1 {
-    font-size: 22px;
+    font-size: 1.375rem;
   }
 
   .rf-inputs-row {
@@ -360,12 +360,12 @@ button.results-empty-link {
 }
 
 .best-match-label .ti {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--teal-500);
 }
 
 .best-match-label span {
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -412,7 +412,7 @@ button.results-empty-link {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   letter-spacing: 0.02em;
   overflow: hidden;
@@ -445,7 +445,7 @@ button.results-empty-link {
 .card-name {
   margin: 0 0 2px;
   font-family: "Hanken Grotesk", system-ui, sans-serif;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   color: var(--text-dark);
   line-height: 1.3;
@@ -458,14 +458,14 @@ button.results-empty-link {
 
 .card-title {
   margin: 0;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: var(--text-light);
 }
 
 /* "Why this match" reason — featured card only. Sits under the title. */
 .card-reason {
   margin: 6px 0 0;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: var(--text-mid);
   line-height: 1.45;
 }
@@ -492,7 +492,7 @@ button.results-empty-link {
 }
 
 .card-save .ti {
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1;
 }
 
@@ -531,14 +531,14 @@ button.results-empty-link {
 }
 
 .bipolar-years-num {
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: #1c4d5c;
   line-height: 1;
 }
 
 .bipolar-years-label {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--teal-500);
   line-height: 1.3;
 }
@@ -561,7 +561,7 @@ button.results-empty-link {
   background: #ebf7fb;
   border: 1px solid #b8dde8;
   border-radius: 20px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: #1c4d5c;
 }
 
@@ -574,7 +574,7 @@ button.results-empty-link {
 }
 
 .specialty-tag-more {
-  font-size: 11px;
+  font-size: 0.6875rem;
   color: var(--text-light);
 }
 
@@ -586,7 +586,7 @@ button.results-empty-link {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--text-light);
   line-height: 1.5;
 }
@@ -640,7 +640,7 @@ button.results-empty-link {
   border: none;
   border-radius: 8px;
   padding: 10px 20px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
   cursor: pointer;
   transition:
@@ -660,7 +660,7 @@ button.results-empty-link {
 }
 
 .card-cta-primary .ti {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .card-cta-secondary {
@@ -672,7 +672,7 @@ button.results-empty-link {
   border-radius: 8px;
   padding: 10px 16px;
   font-family: inherit;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: var(--teal-500);
   cursor: pointer;
   transition:
@@ -681,7 +681,7 @@ button.results-empty-link {
 }
 
 .card-cta-secondary .ti {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .card-cta-secondary:hover {
@@ -711,7 +711,7 @@ button.results-empty-link {
   align-items: center;
   gap: 8px;
   margin: 24px 0 10px;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   color: var(--text-light);
 }
@@ -758,15 +758,15 @@ button.results-empty-link {
 .card-avatar-sm {
   width: 36px;
   height: 36px;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .card-name-sm {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 .card-meta-sm {
-  font-size: 11px;
+  font-size: 0.6875rem;
 }
 
 .card-meta-sm .card-meta-item:not(:last-child)::after {
@@ -783,7 +783,7 @@ button.results-empty-link {
   color: #fff;
   border: none;
   border-radius: 7px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 500;
   cursor: pointer;
   transition:
@@ -796,16 +796,16 @@ button.results-empty-link {
 }
 
 .card-cta-grid .ti {
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .card-cta-secondary-sm {
   padding: 7px 12px;
-  font-size: 12px;
+  font-size: 0.75rem;
 }
 
 .card-cta-secondary-sm .ti {
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 @media (max-width: 768px) {
@@ -820,7 +820,7 @@ button.results-empty-link {
   margin: 32px 0 0;
   padding: 24px 16px;
   text-align: center;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   color: var(--text-light);
   border-top: 0.5px solid #e2eaec;
 }
@@ -840,7 +840,7 @@ button.results-empty-link {
 }
 
 .results-footer-prompt .ti {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -992,7 +992,7 @@ button.results-empty-link {
 
 .results-empty-icon {
   display: inline-block;
-  font-size: 36px;
+  font-size: 2.25rem;
   color: var(--teal-300);
   margin-bottom: 14px;
   line-height: 1;
@@ -1002,7 +1002,7 @@ button.results-empty-link {
   margin: 0 0 10px;
   font-family: "Hanken Grotesk", system-ui, sans-serif;
   font-weight: 600;
-  font-size: 24px;
+  font-size: 1.5rem;
   color: var(--text-dark);
   line-height: 1.2;
 }
@@ -1010,7 +1010,7 @@ button.results-empty-link {
 .results-empty-body {
   margin: 0 auto 18px;
   max-width: 380px;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   color: var(--text-light);
   line-height: 1.55;
 }
@@ -1020,7 +1020,7 @@ button.results-empty-link {
   align-items: center;
   gap: 5px;
   color: var(--teal-500);
-  font-size: 13px;
+  font-size: 0.8125rem;
   font-weight: 500;
   transition: color 0.15s ease;
 }
@@ -1030,7 +1030,7 @@ button.results-empty-link {
 }
 
 .results-empty-link .ti {
-  font-size: 14px;
+  font-size: 0.875rem;
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -1096,7 +1096,7 @@ button.results-empty-link {
   }
 
   .results-h1 {
-    font-size: 20px;
+    font-size: 1.25rem;
   }
 
   /* Header bookmark — bump to 40×40 on phones for easier tapping. */

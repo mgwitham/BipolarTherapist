@@ -35,7 +35,7 @@ nav[aria-label="Main navigation"] .logo-mark {
 
 nav[aria-label="Main navigation"] .logo-wordmark {
   font-family: "Hanken Grotesk", system-ui, sans-serif;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
   color: #fff;
   letter-spacing: -0.01em;
@@ -59,7 +59,7 @@ nav[aria-label="Main navigation"] .nav-links a.nav-link-current,
 nav[aria-label="Main navigation"] .nav-links a.nav-zone-switch,
 nav[aria-label="Main navigation"] .nav-links a.nav-shortlist {
   font-family: "Hanken Grotesk", system-ui, sans-serif !important;
-  font-size: 13.5px !important;
+  font-size: 0.84375rem !important;
   font-weight: 400 !important;
   letter-spacing: 0 !important;
   line-height: 1.2 !important;
@@ -81,7 +81,7 @@ nav[aria-label="Main navigation"] .nav-link-current {
 }
 
 nav[aria-label="Main navigation"] .nav-crisis-link {
-  font-size: 12.5px !important;
+  font-size: 0.78125rem !important;
   color: rgba(255, 255, 255, 0.78) !important;
   border: 1px solid rgba(255, 255, 255, 0.3) !important;
   padding: 5px 14px !important;
@@ -98,7 +98,7 @@ nav[aria-label="Main navigation"] .nav-crisis-link:hover {
 
 nav[aria-label="Main navigation"] .nav-zone-switch {
   color: rgba(255, 255, 255, 0.82) !important;
-  font-size: 13.5px !important;
+  font-size: 0.84375rem !important;
   border: 0 !important;
   background: transparent !important;
   padding: 0 !important;
@@ -116,7 +116,7 @@ nav[aria-label="Main navigation"] .nav-shortlist-count {
   padding: 1px 7px;
   border-radius: 999px;
   background: rgba(255, 255, 255, 0.14);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 500;
   color: #fff;
   min-width: 18px;
@@ -244,7 +244,7 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
     background: #0a2128;
     color: rgba(255, 255, 255, 0.78);
     font-family: "Hanken Grotesk", system-ui, sans-serif;
-    font-size: 11.5px;
+    font-size: 0.71875rem;
     font-weight: 400;
     text-align: center;
     text-decoration: none;
@@ -285,7 +285,7 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
     overflow: hidden;
   }
   nav[aria-label="Main navigation"] .logo-wordmark {
-    font-size: 12px;
+    font-size: 0.75rem;
     letter-spacing: -0.015em;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -323,7 +323,7 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
     background: linear-gradient(180deg, #2a9cb3, #1a7a8f);
     color: #fff !important;
     font-family: "Hanken Grotesk", system-ui, sans-serif;
-    font-size: 13.5px !important;
+    font-size: 0.84375rem !important;
     font-weight: 600 !important;
     line-height: 1;
     text-decoration: none;
@@ -350,7 +350,7 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
     border: 1px solid rgba(255, 255, 255, 0.16);
     color: #fff;
     font-family: "Hanken Grotesk", system-ui, sans-serif;
-    font-size: 13.5px;
+    font-size: 0.84375rem;
     font-weight: 500;
     line-height: 1;
     cursor: pointer;
@@ -433,7 +433,7 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
   }
   .public-mobile-nav-link .public-mobile-nav-title {
     display: inline !important;
-    font-size: 17px;
+    font-size: 1.0625rem;
     font-weight: 500;
     color: inherit;
     line-height: 1.3;
@@ -447,7 +447,7 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     color: rgba(255, 255, 255, 0.55);
     font-family: "Hanken Grotesk", system-ui, sans-serif;
-    font-size: 12.5px;
+    font-size: 0.78125rem;
     text-align: center;
     line-height: 1.5;
   }
@@ -491,7 +491,7 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
 
 .public-mobile-nav-kicker {
   display: block;
-  font-size: 11px;
+  font-size: 0.6875rem;
   font-weight: 500;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -501,7 +501,7 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
 
 .public-mobile-nav-title {
   display: block;
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
   color: #fff;
   line-height: 1.25;
@@ -509,7 +509,7 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
 
 .public-mobile-nav-copy {
   display: block;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: rgba(255, 255, 255, 0.7);
   margin-top: 2px;
 }
