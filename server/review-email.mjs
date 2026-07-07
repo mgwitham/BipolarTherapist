@@ -539,6 +539,84 @@ export async function sendListingRemovalLink(
   });
 }
 
+// Notice sent to a therapist when a headshot we sourced from their own
+// website is published on their directory listing. Gives clear notice, a
+// one-click opt-out (long-lived signed link, no login), and a path to
+// claim the listing and manage the photo. This IS the opt-out mechanism
+// of the publish-first model — keep it plain, honest, and easy to act on.
+export async function sendSourcedPhotoNotice(
+  config,
+  therapist,
+  portalBaseUrl,
+  buildPhotoOptOutToken,
+  options = {},
+) {
+  if (!hasEmailConfig(config)) {
+    return { skipped: true, reason: "email_not_configured" };
+  }
+  const onFileEmail = String((therapist && therapist.email) || "")
+    .trim()
+    .toLowerCase();
+  if (!onFileEmail) {
+    return { skipped: true, reason: "no_email_on_file" };
+  }
+
+  const base = String(portalBaseUrl || "http://localhost:5173").replace(/\/+$/, "");
+  const slug = String((therapist && therapist.slug) || "").trim();
+  const token = buildPhotoOptOutToken(config, therapist);
+  const optOutUrl =
+    base + "/api/review/portal/photo-optout/confirm?token=" + encodeURIComponent(token);
+  const profileUrl = slug ? base + "/therapists/" + encodeURIComponent(slug) + "/" : base;
+  const claimUrl = slug ? base + "/claim?slug=" + encodeURIComponent(slug) : base + "/claim";
+  const photoUrl = String(options.photoUrl || "").trim();
+
+  const name = (therapist && therapist.name) || "there";
+  const heading = "We added a photo to your listing";
+
+  const photoBlockHtml = photoUrl
+    ? `<p style="margin:0 0 16px 0;"><img src="${escapeEmailHtml(photoUrl)}" alt="The photo now shown on your listing" width="120" style="width:120px;height:auto;border-radius:10px;" /></p>`
+    : "";
+
+  const bodyHtml =
+    `<p style="margin:0 0 12px 0;">Your BipolarTherapyHub listing didn't have a photo, so we added one we found on your own website (<a href="${escapeEmailHtml(profileUrl)}">see your listing</a>). Patients are far more likely to reach out to a listing with a face.</p>` +
+    photoBlockHtml +
+    `<p style="margin:0 0 12px 0;"><strong>Don't want it shown?</strong> Remove it in one click — no account needed:</p>`;
+
+  const html = renderBrandedEmail({
+    heading,
+    greetingName: name,
+    bodyHtml,
+    preheader: "We added a photo from your website to your listing. Remove it any time.",
+    primaryCta: { label: "Remove this photo →", url: optOutUrl },
+    footerLinesHtml: [
+      `Want to manage your listing instead? <a href="${escapeEmailHtml(claimUrl)}">Claim it here</a> to replace the photo, edit your profile, or add insurance and availability.`,
+      "You're receiving this because your practice is listed in our California bipolar-specialist directory. The opt-out link above never expires.",
+    ],
+  });
+
+  const text = renderBrandedEmailText({
+    heading,
+    greetingName: name,
+    bodyText:
+      "Your BipolarTherapyHub listing didn't have a photo, so we added one we found on your own website. Patients are far more likely to reach out to a listing with a face. Don't want it shown? Remove it in one click (no account needed) using the link below.",
+    primaryCta: { label: "Remove this photo", url: optOutUrl },
+    footerLines: [
+      "Prefer to manage your listing? Claim it at " + claimUrl,
+      "You're listed in our California bipolar-specialist directory. The opt-out link never expires.",
+    ],
+  });
+
+  await sendEmail(config, {
+    from: config.emailFrom,
+    to: [onFileEmail],
+    reply_to: "support@bipolartherapyhub.com",
+    subject: "A photo was added to your BipolarTherapyHub listing",
+    html,
+    text,
+  });
+  return { sent: true };
+}
+
 // Send the weekly engagement digest to a single paid therapist. The
 // digest object comes from shared/weekly-digest-domain.mjs; this just
 // adapts it to the email provider shape. Text-only keeps the template

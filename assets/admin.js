@@ -902,6 +902,7 @@ const adminLazyModuleLoaders = import.meta.glob([
   "./admin-candidate-queue.js",
   "./admin-application-review.js",
   "./admin-portal-requests.js",
+  "./admin-photo-review.js",
   "./admin-sourcing-intelligence.js",
   "./admin-ingestion-scorecard.js",
   "./admin-licensure-activity.js",
@@ -3138,6 +3139,14 @@ function renderPortalRequestsQueue() {
   });
 }
 
+function renderPhotoReviewQueue() {
+  withLazyAdminModule("./admin-photo-review.js", function (module) {
+    module.renderPhotoReviewQueuePanel({
+      authRequired: authRequired,
+    });
+  });
+}
+
 function renderAdminSection(label, renderFn) {
   if (typeof renderFn !== "function") {
     return;
@@ -3190,6 +3199,11 @@ function getAdminRenderSections() {
     { label: "funnel insights", anchor: "funnelInsights", render: renderFunnelInsights },
     { label: "needs attention", anchor: "needsAttentionSection", render: renderNeedsAttention },
     { label: "licensure activity", anchor: "licensureActivity", render: renderLicensureActivity },
+    {
+      label: "photo review queue",
+      anchor: "photoReviewQueue",
+      render: renderPhotoReviewQueue,
+    },
     {
       label: "portal requests queue",
       anchor: "portalRequestsQueue",

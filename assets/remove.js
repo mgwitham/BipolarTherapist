@@ -13,16 +13,26 @@ function isLikelyEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || "").trim());
 }
 
-// Render a toast if the user lands here after clicking a removal confirmation link.
-// The backend redirect targets /remove?removed=ok|expired|invalid.
+// Render a toast if the user lands here after clicking a confirmation link.
+// Listing-removal redirect: /remove?removed=ok|expired|invalid.
+// Photo opt-out redirect:   /remove?photo=removed|expired|invalid.
 function renderToast() {
   const params = new URLSearchParams(window.location.search);
   const removed = params.get("removed");
-  if (!removed) return;
+  const photo = params.get("photo");
+  if (!removed && !photo) return;
 
   const toast = document.createElement("div");
   toast.className = "remove-toast";
-  if (removed === "ok") {
+  if (photo === "removed") {
+    toast.classList.add("is-success");
+    toast.textContent =
+      "Done — that photo has been removed from your listing and won't be added again. If you'd like to manage the rest of your listing, you can claim it any time.";
+  } else if (photo === "expired" || photo === "invalid") {
+    toast.classList.add("is-error");
+    toast.textContent =
+      "That photo-removal link isn't valid or has already been used. Email support@bipolartherapyhub.com and we'll take the photo down right away.";
+  } else if (removed === "ok") {
     toast.classList.add("is-success");
     toast.textContent =
       "Your listing has been removed from Bipolar Therapy Hub. You'll no longer appear in the directory or in match results. You can create a new listing any time if you change your mind.";
