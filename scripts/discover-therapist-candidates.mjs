@@ -417,6 +417,66 @@ function inferBooleans(text) {
   };
 }
 
+// response.text() always runs the WHATWG UTF-8 decode algorithm,
+// regardless of what charset the page actually declares (per the Fetch
+// spec, Body.text() ignores Content-Type). A page genuinely served as
+// windows-1252/iso-8859-1 (common on older WordPress/site-builder
+// practice sites) then gets every non-ASCII byte silently misdecoded —
+// bytes that happen to form a valid UTF-8 sequence turn into a
+// different, wrong character rather than an obvious replacement glyph,
+// which is how scraped bios end up with garbled text nobody notices
+// until a patient reads the live profile. Sniff the real charset from
+// the Content-Type header first (most reliable), then a <meta charset>
+// / <meta http-equiv="Content-Type"> tag in the first slice of bytes
+// (HTML's own fallback mechanism, since plenty of sites omit the HTTP
+// header and rely on the meta tag instead), and only default to utf-8
+// once neither is present.
+const CHARSET_HEADER_RE = /charset=([^;]+)/i;
+const CHARSET_META_RE =
+  /<meta[^>]+charset=["']?\s*([a-z0-9_-]+)|<meta[^>]+http-equiv=["']content-type["'][^>]*content=["'][^"']*charset=([a-z0-9_-]+)/i;
+
+// Normalize the common aliases TextDecoder doesn't accept verbatim.
+function normalizeCharsetLabel(label) {
+  const lower = String(label || "")
+    .trim()
+    .toLowerCase();
+  if (lower === "latin1" || lower === "latin-1") return "iso-8859-1";
+  if (lower === "windows1252" || lower === "cp1252" || lower === "win-1252") {
+    return "windows-1252";
+  }
+  return lower;
+}
+
+export function detectHttpCharset(contentTypeHeader, headBytesText) {
+  const headerMatch = CHARSET_HEADER_RE.exec(contentTypeHeader || "");
+  if (headerMatch) {
+    return normalizeCharsetLabel(headerMatch[1]);
+  }
+  const metaMatch = CHARSET_META_RE.exec(headBytesText || "");
+  if (metaMatch) {
+    return normalizeCharsetLabel(metaMatch[1] || metaMatch[2]);
+  }
+  return "utf-8";
+}
+
+// Decode a fetched HTTP body using the page's actual declared charset
+// instead of assuming UTF-8. Sniffs the meta tag from a UTF-8-lenient
+// pass over the first 2KB (ASCII-range meta tags decode identically
+// under any single-byte or UTF-8 encoding, so this first pass is safe
+// regardless of the real charset) before committing to a final decode.
+export function decodeHttpBody(buffer, contentTypeHeader) {
+  const sniffWindow = buffer.subarray(0, 2048);
+  const sniffText = new TextDecoder("utf-8", { fatal: false }).decode(sniffWindow);
+  const charset = detectHttpCharset(contentTypeHeader, sniffText);
+  try {
+    return new TextDecoder(charset, { fatal: false }).decode(buffer);
+  } catch (_error) {
+    // Unknown/unsupported label (rare mis-typed charset in the wild) —
+    // fall back to UTF-8 rather than throwing away the whole fetch.
+    return new TextDecoder("utf-8", { fatal: false }).decode(buffer);
+  }
+}
+
 async function fetchSource(seed) {
   const source = String(seed.sourceUrl || "").trim();
   if (!source) {
@@ -440,7 +500,8 @@ async function fetchSource(seed) {
   if (!response.ok) {
     throw new Error(`Failed to fetch ${source}: ${response.status}`);
   }
-  return response.text();
+  const buffer = Buffer.from(await response.arrayBuffer());
+  return decodeHttpBody(buffer, response.headers.get("content-type"));
 }
 
 function buildCandidateRow(seed, html) {

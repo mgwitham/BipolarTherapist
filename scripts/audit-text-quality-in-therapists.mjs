@@ -18,6 +18,7 @@
 import process from "node:process";
 import fs from "node:fs";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createClient } from "@sanity/client";
 
 const argv = process.argv.slice(2);
@@ -296,6 +297,50 @@ function checkVeryShortBio(field, value) {
   return null;
 }
 
+// Encoding-mismatch artifacts ("mojibake") from ingestion: a source
+// page served non-UTF-8 bytes (windows-1252/ISO-8859-1 is common on
+// older practice sites) that got decoded as UTF-8 anyway, silently
+// turning a real character into a different, wrong one rather than an
+// obvious replacement glyph. Two independent, low-false-positive
+// signals — deliberately conservative so legitimate accented names
+// (José, François, Renée) never trip this:
+//
+// 1. The classic double-encoded-UTF-8 tell: "Ã" or "Â" immediately
+//    followed by another non-ASCII character. Real prose never
+//    produces this pairing, and correctly-encoded accented text never
+//    renders as a standalone "Ã"/"Â" glyph in the first place.
+// 2. An isolated "word" made ENTIRELY of Latin-1-Supplement/
+//    windows-1252 characters (U+0080–U+00FF) with no ASCII letters —
+//    a token bounded by whitespace/punctuation that nobody could have
+//    typed as a real word. A legitimate accented name embeds a single
+//    such character INSIDE an otherwise-ASCII word ("José"), so
+//    requiring the whole token to be non-ASCII avoids flagging those.
+const MOJIBAKE_DOUBLE_ENCODE_RE = /[ÃÂ][-ÿ]/;
+const MOJIBAKE_ISOLATED_TOKEN_RE = /(?:^|\s)([-ÿ]{2,6})(?:\s|[).,!?]|$)/;
+
+export function checkMojibake(field, value) {
+  const doubleEncode = value.match(MOJIBAKE_DOUBLE_ENCODE_RE);
+  if (doubleEncode) {
+    const at = value.indexOf(doubleEncode[0]);
+    return {
+      severity: "high",
+      code: "mojibake_double_encoded",
+      message: `Likely double-encoded UTF-8 (mojibake) in ${field}`,
+      snippet: value.slice(Math.max(0, at - 15), at + 15),
+    };
+  }
+  const isolated = value.match(MOJIBAKE_ISOLATED_TOKEN_RE);
+  if (isolated) {
+    return {
+      severity: "high",
+      code: "mojibake_isolated_token",
+      message: `Isolated non-ASCII token in ${field} — likely a corrupted character from scraping`,
+      snippet: isolated[1],
+    };
+  }
+  return null;
+}
+
 function checkThirdPersonFullName(field, value, doc) {
   // Bios written for a website often refer to the therapist by full
   // name 3+ times. Patient bios should be first-person or use the
@@ -330,6 +375,7 @@ const FIELD_CHECKS = [
   checkExcessiveWhitespace,
   checkLeadingTrailingWhitespace,
   checkPlaceholderText,
+  checkMojibake,
   checkTruncationArtifact,
   checkVeryShortBio,
 ];
@@ -446,7 +492,15 @@ async function main() {
   }
 }
 
-main().catch((err) => {
-  console.error(err instanceof Error ? err.stack || err.message : String(err));
-  process.exitCode = 1;
-});
+// Only run against live Sanity when invoked directly (`node
+// scripts/audit-text-quality-in-therapists.mjs`) — importing this
+// module for its exported checks (as the test suite does) must not
+// also kick off a network-dependent main().
+const invokedDirectly =
+  process.argv[1] && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
+if (invokedDirectly) {
+  main().catch((err) => {
+    console.error(err instanceof Error ? err.stack || err.message : String(err));
+    process.exitCode = 1;
+  });
+}
