@@ -41,19 +41,21 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
-          if [ -n "$CRON_SECRET" ]; then
-            AUTH_TOKEN="$CRON_SECRET"
-            echo "Auth: CRON_SECRET repository secret"
-          else
-            # Keyless: mint a GitHub OIDC token for our API's audience.
+          mint_token() {
+            if [ -n "$CRON_SECRET" ]; then
+              AUTH_TOKEN="$CRON_SECRET"
+              return
+            fi
+            # Keyless: GitHub OIDC tokens expire after ~5 minutes, so mint a
+            # fresh one before every call rather than once per job — a full
+            # sweep runs longer than a token lives.
             AUTH_TOKEN=$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
               "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=bipolartherapyhub-cron" | jq -r '.value')
             if [ -z "$AUTH_TOKEN" ] || [ "$AUTH_TOKEN" = "null" ]; then
               echo "::error::Could not obtain a GitHub OIDC token (is 'permissions: id-token: write' present?)"
               exit 1
             fi
-            echo "Auth: GitHub OIDC (keyless)"
-          fi
+          }
           BASE="https://www.bipolartherapyhub.com/api/review/cron/source-photos"
           DRY=""
           if [ "$DRY_RUN" = "true" ]; then DRY="&dry=1"; fi
@@ -61,7 +63,9 @@ jobs:
           total_queued=0
           total_processed=0
           remaining="unknown"
+          dry_streak=0
           for i in $(seq 1 "$MAX_CALLS"); do
+            mint_token
             http_out=$(curl -sS -w "\n%{http_code}" -H "Authorization: Bearer $AUTH_TOKEN" "$BASE?limit=10$DRY")
             code=$(printf '%s' "$http_out" | tail -n 1)
             body=$(printf '%s' "$http_out" | sed '$d')
@@ -78,6 +82,19 @@ jobs:
             total_processed=$((total_processed + processed))
             if [ "$remaining" = "0" ] || [ "$processed" = "0" ]; then
               break
+            fi
+            # Listings with no findable headshot stay eligible by design (they
+            # rotate to the back for future re-tries), so "remaining" never
+            # reaches 0 on its own. Once several consecutive calls queue
+            # nothing, the sweep has lapped the directory — stop.
+            if [ "$queued" = "0" ]; then
+              dry_streak=$((dry_streak + 1))
+              if [ "$dry_streak" -ge 3 ]; then
+                echo "No new photos queued in $dry_streak consecutive calls — directory swept."
+                break
+              fi
+            else
+              dry_streak=0
             fi
             sleep 3
           done
