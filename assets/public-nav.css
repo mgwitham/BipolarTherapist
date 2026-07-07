@@ -513,3 +513,25 @@ nav[aria-label="Main navigation"].nav-light .nav-hamburger {
   color: rgba(255, 255, 255, 0.7);
   margin-top: 2px;
 }
+
+/* Skip link for keyboard users. Shared by every page that uses the
+   public nav; visually hidden until focused, then drops in below the
+   top edge. Mirrors the same pattern on the homepage (home.css) and
+   the inline copies on about/pricing. */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.5rem 1rem;
+  background: white;
+  color: var(--teal-dark);
+  font-weight: 700;
+  font-size: 0.875rem;
+  border-radius: 0 0 8px 8px;
+  text-decoration: none;
+  transition: top 0.1s;
+}
+.skip-link:focus {
+  top: 0;
+}
