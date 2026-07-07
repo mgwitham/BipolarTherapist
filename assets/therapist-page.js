@@ -1,5 +1,5 @@
 import "./sentry-init.js";
-import { fetchPublicTherapistBySlug, fetchPublicTherapists } from "./cms.js";
+import { fetchPublicTherapistBySlug, fetchPublicTherapists, getCmsState } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
 import { sanityImageUrl } from "./sanity-image.js";
 import { getDataFreshnessSummary, getTherapistMatchReadiness } from "../shared/matching-model.mjs";
@@ -249,6 +249,43 @@ function safeExternalUrl(value) {
   } catch (_error) {
     return "";
   }
+}
+
+// ─── Hero avatar (initial render + background photo refresh) ───────────
+// Hash on slug so a clinician's avatar tone stays stable across visits.
+const HERO_AVATAR_TONE_COUNT = 6;
+function heroAvatarTone(slug, name) {
+  const key = String(slug || name || "");
+  let hash = 0;
+  for (let i = 0; i < key.length; i += 1) {
+    hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
+  }
+  return hash % HERO_AVATAR_TONE_COUNT;
+}
+function heroInitials(name) {
+  const titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
+  const parts = String(name || "")
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .filter(function (p) {
+      return !titlePrefix.test(p);
+    });
+  if (!parts.length) return "?";
+  if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+  return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+}
+function buildHeroAvatarHtml(t) {
+  const heroPhotoUrl = safeExternalUrl(t.photo_url);
+  return heroPhotoUrl
+    ? '<img src="' +
+        escapeHtml(sanityImageUrl(heroPhotoUrl, { width: 144, height: 144 })) +
+        '" alt="" width="72" height="72" class="profile-hero-avatar" fetchpriority="high" decoding="async" />'
+    : '<span class="profile-hero-avatar profile-hero-avatar--tone-' +
+        heroAvatarTone(t.slug, t.name) +
+        '">' +
+        escapeHtml(heroInitials(t.name)) +
+        "</span>";
 }
 
 // Per-therapist SEO: update/insert meta tags + Schema.org JSON-LD so
@@ -1662,6 +1699,39 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
   );
 }
 
+// Prerendered profile pages embed the therapist payload at build time, so a
+// headshot published (or removed via opt-out) after the last deploy never
+// reaches the embedded JSON — the directory always fetches live data, which
+// is how the two pages drift apart. After rendering instantly from the
+// embedded payload, re-fetch the live record and swap the hero avatar in
+// place when the photo changed, in either direction: newly published photos
+// appear, opted-out photos disappear, both without waiting for a redeploy.
+async function refreshHeroPhotoFromLiveData(rendered) {
+  try {
+    const fresh = await fetchPublicTherapistBySlug(rendered.slug);
+    // Only trust a payload that actually came from the live API — the
+    // fetch falls back to seed data on failure, and acting on that
+    // would wrongly strip a real photo.
+    if (!fresh || getCmsState().source !== "sanity") {
+      return;
+    }
+    if (safeExternalUrl(fresh.photo_url) === safeExternalUrl(rendered.photo_url)) {
+      return;
+    }
+    const avatar = document.querySelector("#profileWrap .profile-hero-avatar");
+    if (!avatar) {
+      return;
+    }
+    const holder = document.createElement("div");
+    holder.innerHTML = buildHeroAvatarHtml(fresh);
+    if (holder.firstElementChild) {
+      avatar.replaceWith(holder.firstElementChild);
+    }
+  } catch (_error) {
+    // Keep the embedded rendering; the refresh is best-effort.
+  }
+}
+
 (async function init() {
   const wrap = document.getElementById("profileWrap");
   function reveal() {
@@ -1683,10 +1753,10 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
     // and then to the network fetch if neither is present.
     const ssrData = readEmbeddedTherapistData() || window.__THERAPIST_DATA__;
     const therapistDirectoryPromise = fetchPublicTherapists();
-    const therapist =
-      ssrData && ssrData.slug === slug
-        ? ssrData
-        : await resolveTherapistForProfile(slug, therapistDirectoryPromise);
+    const usedEmbeddedData = Boolean(ssrData && ssrData.slug === slug);
+    const therapist = usedEmbeddedData
+      ? ssrData
+      : await resolveTherapistForProfile(slug, therapistDirectoryPromise);
     const therapistDirectory = await therapistDirectoryPromise;
     if (!therapist) {
       wrap.innerHTML =
@@ -1707,6 +1777,9 @@ async function resolveTherapistForProfile(slugValue, therapistDirectoryPromise) 
     renderProfile(therapist, therapistDirectory);
     initValuePillPopover();
     reveal();
+    if (usedEmbeddedData) {
+      refreshHeroPhotoFromLiveData(therapist);
+    }
   } catch (error) {
     console.error("Therapist profile failed to load.", error);
     wrap.innerHTML =
@@ -2188,40 +2261,8 @@ function renderProfile(t, therapistDirectory) {
       ? { href: backNavSavedUrl || "/results", label: "← Back to your matches" }
       : { href: "/directory", label: "← Back to directory" };
 
-  // ─── Hero card helpers (Step 5 redesign) ──────────────────────────────
-  // Hash on slug so a clinician's avatar tone stays stable across visits.
-  const HERO_AVATAR_TONE_COUNT = 6;
-  function heroAvatarTone(slug) {
-    const key = String(slug || t.name || "");
-    let hash = 0;
-    for (let i = 0; i < key.length; i += 1) {
-      hash = (hash * 31 + key.charCodeAt(i)) >>> 0;
-    }
-    return hash % HERO_AVATAR_TONE_COUNT;
-  }
-  function heroInitials(name) {
-    const titlePrefix = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
-    const parts = String(name || "")
-      .trim()
-      .split(/\s+/)
-      .filter(Boolean)
-      .filter(function (p) {
-        return !titlePrefix.test(p);
-      });
-    if (!parts.length) return "?";
-    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
-    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
-  }
-  const heroPhotoUrl = safeExternalUrl(t.photo_url);
-  const heroAvatarHtml = heroPhotoUrl
-    ? '<img src="' +
-      escapeHtml(sanityImageUrl(heroPhotoUrl, { width: 144, height: 144 })) +
-      '" alt="" width="72" height="72" class="profile-hero-avatar" fetchpriority="high" decoding="async" />'
-    : '<span class="profile-hero-avatar profile-hero-avatar--tone-' +
-      heroAvatarTone(t.slug) +
-      '">' +
-      escapeHtml(heroInitials(t.name)) +
-      "</span>";
+  // ─── Hero card (Step 5 redesign) ───────────────────────────────────────
+  const heroAvatarHtml = buildHeroAvatarHtml(t);
 
   // A profile earns the stronger "Bipolar specialist" label when it has any
   // years treating bipolar on file, or lists bipolar among its specialties.
