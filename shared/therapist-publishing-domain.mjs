@@ -121,6 +121,17 @@ export function shapePortalTherapist(therapist) {
     portal_completion_fields: Array.isArray(therapist.portalCompletionFields)
       ? therapist.portalCompletionFields
       : [],
+    // Photo state, including the public-source vault. photoUrl and
+    // photoCandidateUrl are dereferenced in the caller's GROQ projection
+    // ("photoUrl": photo.asset->url). The portal uses these to render the
+    // sourced-photo consent card (keep / replace / remove).
+    photo_url: therapist.photoUrl || "",
+    photo_source_type: therapist.photoSourceType || "",
+    photo_usage_permission_confirmed: Boolean(therapist.photoUsagePermissionConfirmed),
+    photo_suppressed: Boolean(therapist.photoSuppressed),
+    photo_candidate_url: therapist.photoCandidateUrl || "",
+    photo_candidate_status: therapist.photoCandidateStatus || "",
+    photo_candidate_source_host: therapist.photoCandidateSourceHost || "",
   };
 }
 

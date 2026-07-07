@@ -887,6 +887,61 @@
           margin-right: 0;
         }
       }
+
+      /* Sourced-photo consent card (assets/portal-photo-consent.js) */
+      .ppc-card {
+        margin-bottom: 1rem;
+        border: 1px solid rgba(26, 122, 143, 0.25);
+      }
+      .ppc-layout {
+        display: flex;
+        gap: 1rem;
+        align-items: flex-start;
+      }
+      .ppc-photo {
+        flex: 0 0 88px;
+        width: 88px;
+        height: 88px;
+        object-fit: cover;
+        border-radius: 12px;
+      }
+      .ppc-body {
+        min-width: 0;
+      }
+      .ppc-body h2 {
+        margin: 0 0 0.3rem;
+        font-size: 1.05rem;
+      }
+      .ppc-actions {
+        margin-top: 0.7rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+      }
+      .ppc-secondary {
+        font: inherit;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--teal-dark, #155f70);
+        background: #fff;
+        border: 1px solid rgba(26, 122, 143, 0.35);
+        border-radius: 8px;
+        padding: 0.5rem 0.85rem;
+        cursor: pointer;
+      }
+      .ppc-secondary:hover:not(:disabled) {
+        background: rgba(26, 122, 143, 0.06);
+      }
+      .ppc-secondary:disabled,
+      .ppc-keep:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      @media (max-width: 540px) {
+        .ppc-layout {
+          flex-direction: column;
+        }
+      }
     </style>
   </head>
   <body>
