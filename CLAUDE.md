@@ -173,6 +173,21 @@ focus; deliberately a different hue than the ramp), text hierarchy
   `home.css` and `therapist-page.css` — check the page's own `:root` before
   reusing them; prefer `--text-*` in new code.
 
+### CSS architecture
+
+- `assets/styles.css` is an **@import manifest**; the shared styles live in
+  ordered section files under `assets/styles/`. Import order IS the cascade —
+  the directory sections deliberately override each other by position. Add
+  new sections at the end of the manifest; never reorder imports.
+- Page-specific styles live in that page's stylesheet (`home.css`,
+  `match-page.css`, `therapist-page.css`, `directory-redesign.css`, …). New
+  shared components go in a new `assets/styles/` section file.
+- Prefix new component classes with `bth-` (existing prefixes `mx-` for
+  match, `dir-` for directory stay as-is; don't add unprefixed classes).
+- `@layer` is deliberately **not** used yet: mixing layered and unlayered
+  styles inverts specificity outcomes, and adopting it safely needs visual
+  regression coverage across all pages first. Don't introduce it piecemeal.
+
 ### Footers
 
 Two variants, nothing in between:

@@ -1,0 +1,123 @@
+/* ============================================================
+   Directory page — polished design system (v2)
+   Appended last so it wins the cascade against earlier
+   .dir-header / .dir-hero-shell rules above.
+   Mirrors the match page's hero + card language, normalized
+   to a 1080px canvas so both flows feel like one product.
+   ============================================================ */
+
+.dir-header {
+  background:
+    radial-gradient(circle at 12% 10%, rgba(26, 122, 143, 0.06), transparent 32%),
+    radial-gradient(circle at 88% 0%, rgba(90, 182, 201, 0.05), transparent 28%),
+    linear-gradient(180deg, #ffffff 0%, #f4fafb 100%);
+  color: var(--navy);
+  padding: 2.6rem 1.5rem 2rem;
+  border-bottom: 1px solid rgba(26, 122, 143, 0.08);
+}
+
+.dir-hero-shell {
+  max-width: 1080px;
+  margin: 0 auto;
+  display: block;
+  grid-template-columns: none;
+  gap: 0;
+  padding: 0;
+}
+
+.dir-hero-kicker {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.38rem 0.72rem;
+  border-radius: 999px;
+  background: rgba(26, 122, 143, 0.08);
+  border: 1px solid rgba(14, 77, 95, 0.12);
+  color: var(--teal-dark);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 0.9rem;
+}
+
+.dir-header h1 {
+  font-family: "Hanken Grotesk", sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.9rem, 3.6vw, 2.6rem);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: var(--navy);
+  margin: 0 0 0.55rem;
+  max-width: 34ch;
+}
+
+.dir-header p {
+  margin: 0;
+  color: var(--slate);
+  font-size: 1rem;
+  line-height: 1.65;
+  max-width: 60ch;
+  opacity: 1;
+}
+
+.dir-hero-trust {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 1.35rem;
+}
+
+.dir-hero-trust-card {
+  padding: 0.92rem 0.98rem;
+  border-radius: 18px;
+  border: 1px solid rgba(14, 77, 95, 0.12);
+  background: linear-gradient(180deg, #ffffff 0%, #f7fbfc 100%);
+  box-shadow: 0 14px 28px rgba(14, 77, 95, 0.05);
+}
+
+.dir-hero-trust-label {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 0.24rem;
+}
+
+.dir-hero-trust-title {
+  font-size: 0.94rem;
+  line-height: 1.35;
+  font-weight: 800;
+  color: var(--navy);
+}
+
+.dir-hero-trust-copy {
+  margin-top: 0.28rem;
+  font-size: 0.82rem;
+  line-height: 1.56;
+  color: var(--slate);
+}
+
+@media (max-width: 960px) {
+  .dir-hero-trust {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .dir-header {
+    padding: 2rem 1.1rem 1.5rem;
+  }
+  .dir-header h1 {
+    font-size: clamp(1.7rem, 6vw, 2.1rem);
+  }
+  /* iOS Safari auto-zooms text-entry controls below 16px on focus,
+     which yanks the layout. Force 16px on the dir-vb modal filter
+     controls the page serves on mobile so taps don't trigger a zoom. */
+  .dir-vb-modal-body .filter-group select,
+  .dir-vb-modal-body .filter-group input[type="text"],
+  .dir-vb-canvas .results-tools select {
+    font-size: 1rem;
+  }
+}
