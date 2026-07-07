@@ -155,6 +155,24 @@ re-decide them per page.
   surfaces (signup, pricing, portal) — therapist conversion is deliberately
   teal, not coral.
 
+### Design tokens
+
+Canonical tokens live in `assets/styles.css` `:root`, organized as: palette
+ramp (`--teal-900`…`--teal-50`, surfaces and accents), interactive teal family
+(`--teal`, `--teal-light`, `--teal-dark`, `--teal-faint` — buttons, links,
+focus; deliberately a different hue than the ramp), text hierarchy
+(`--text-dark/mid/light`), and neutrals. Rules:
+
+- Never eyeball a new teal or gray — pick an existing token.
+- Use `--font-display` / `--font-body` for fonts (`--serif`/`--sans` are
+  deprecated aliases; `--serif` was never a serif).
+- `results-page.css` and `therapist-page.css` duplicate the tokens they need
+  because those pages don't load `styles.css` — keep values in sync with
+  `styles.css` when editing.
+- `--slate`/`--muted` are page-local grays with different values in
+  `home.css` and `therapist-page.css` — check the page's own `:root` before
+  reusing them; prefer `--text-*` in new code.
+
 ### Footers
 
 Two variants, nothing in between:

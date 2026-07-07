@@ -33,6 +33,10 @@ html {
   margin: 0;
   padding: 0;
 }
+/* therapist.html doesn't load styles.css, so the interactive-teal
+   family is duplicated here (canonical values in styles.css :root —
+   keep in sync). --slate/--muted/--border are deliberate page-local
+   values, not copies. */
 :root {
   --teal: #1a7a8f;
   --teal-light: #2a9cb3;

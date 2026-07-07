@@ -1,4 +1,7 @@
 /* Results page — design tokens (mirrors homepage redesign) */
+/* results.html doesn't load styles.css, so the palette stops it needs
+   are duplicated here. Canonical values live in styles.css :root —
+   keep in sync. */
 :root {
   --teal-900: #0c2830;
   --teal-700: #1c4d5c;

@@ -1,4 +1,9 @@
 :root {
+  /* ── Palette ramp ─────────────────────────────────────────────
+     Surfaces, hero gradients, and text accents. This is the
+     canonical blue-green scale; results-page.css and
+     therapist-page.css duplicate the stops they need (those pages
+     don't load styles.css) — keep the values in sync. */
   --teal-900: #0c2830;
   --teal-800: #143a46;
   --teal-700: #1c4d5c;
@@ -17,8 +22,16 @@
   --coral-dark: #b8431f;
   --coral-light: #fbe9e3;
   --cream: #f7f4ef;
-  --serif: "Hanken Grotesk", system-ui, sans-serif;
-  --sans: "Hanken Grotesk", system-ui, sans-serif;
+  /* ── Typography ───────────────────────────────────────────────
+     One brand face for everything (Fraunces display serif was
+     dropped; headings are Hanken too). --font-display exists so
+     headings can diverge later without a rename hunt. --serif and
+     --sans are the deprecated old names — new code uses --font-*. */
+  --font-display: "Hanken Grotesk", system-ui, sans-serif;
+  --font-body: "Hanken Grotesk", system-ui, sans-serif;
+  --serif: var(--font-display);
+  --sans: var(--font-body);
+  /* ── Text hierarchy on light surfaces ────────────────────────── */
   --text-dark: #17323b;
   --text-mid: #3a5b65;
   /* Lightened muted text darkened from #5d7a84 (4.21:1 on the --bg cream,
@@ -28,10 +41,21 @@
   --text-light: #527079;
   --border: rgba(52, 127, 150, 0.15);
 
+  /* ── Interactive teal family ──────────────────────────────────
+     Buttons, links, focus rings, selected states. Deliberately its
+     own slightly-more-cyan hue than the palette ramp so interactive
+     elements read against teal surfaces. Pick from these four for
+     any interactive state — never eyeball a new teal. */
   --teal: #1a7a8f;
   --teal-light: #2a9cb3;
   --teal-dark: #155f70;
   --teal-faint: #e8f5f8;
+  /* ── Neutrals ─────────────────────────────────────────────────
+     --navy is the body default. --slate/--muted are legacy neutral
+     grays; prefer the --text-* hierarchy above in new code. (home.css
+     and therapist-page.css override --slate/--muted with page-local
+     values — same names, different grays — so check the page's own
+     :root before reusing them.) */
   --navy: #1d3a4a;
   --slate: #1a1a1a;
   --muted: #333333;
