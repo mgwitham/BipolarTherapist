@@ -1,7 +1,7 @@
 import { escapeHtml } from "./escape-html.js";
 import { firstName as therapistFirstName } from "../shared/outreach-templates.mjs";
 import { getPreferredRouteType } from "./match-ranking.js";
-import { renderOutreachPanelMarkup } from "./outreach-scripts.js";
+import { buildOutreachScript, renderOutreachPanelMarkup } from "./outreach-scripts.js";
 import { renderRoundAvatar, renderSpecialtyPills } from "./card-content.js";
 
 // "Accepting new patients" pill on the card. Surfaces a critical
@@ -198,8 +198,18 @@ export function buildMatchOutreachDisclosure(entry, options) {
   const slug = String(therapist.slug || "");
   if (expanded) {
     const firstName = therapistFirstName(therapist.name, "them");
+    // Two-line teaser of the drafted message. The full script stays a
+    // click away ("See full script") so the top match's identity —
+    // name, reasons, CTA — keeps the visual weight, not the template.
+    // Slice generously past two lines' worth of text so the CSS
+    // line-clamp does the truncating (and renders the ellipsis) —
+    // a tight slice would end mid-word with no ellipsis.
+    const previewText = buildOutreachScript(therapist, routeType ? { route: routeType } : null)
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 400);
     return (
-      '<details open class="mx-outreach mx-outreach--expanded" data-mx-outreach="' +
+      '<details class="mx-outreach mx-outreach--expanded" data-mx-outreach="' +
       escapeHtml(slug) +
       '">' +
       '<summary class="mx-outreach-expanded-summary">' +
@@ -208,8 +218,17 @@ export function buildMatchOutreachDisclosure(entry, options) {
       '<span class="mx-outreach-expanded-label">Reach out to ' +
       escapeHtml(firstName) +
       "</span>" +
+      (previewText
+        ? '<span class="mx-outreach-expanded-preview">&ldquo;' +
+          escapeHtml(previewText) +
+          "&rdquo;</span>"
+        : "") +
       "</div>" +
+      '<span class="mx-outreach-expanded-cta">' +
+      '<span class="mx-outreach-cta-closed">See full script</span>' +
+      '<span class="mx-outreach-cta-open">Hide script</span>' +
       '<svg class="mx-outreach-chevron mx-outreach-expanded-chevron" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      "</span>" +
       "</summary>" +
       '<div class="mx-outreach-body outreach-script-shell">' +
       inner +

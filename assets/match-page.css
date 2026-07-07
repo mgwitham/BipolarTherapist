@@ -4099,10 +4099,11 @@ img.bth-avatar {
   padding: 0.85rem 0.4rem 0.2rem;
 }
 
-/* Expanded outreach panel — used on the lead match card. The collapsed
-   <details> works for browsing but adds a tap of friction at the
-   conversion moment. For the top recommendation we render the drafted
-   message and tap-to-call inline by default. */
+/* Lead-card outreach panel. Closed by default with a two-line teaser
+   of the drafted message: the full script inline buried the top
+   match's identity under ~700px of template text, so the teaser keeps
+   the feature discoverable ("See full script") while the therapist —
+   name, fit reasons, CTA — keeps the visual weight. */
 .mx-outreach.mx-outreach--expanded {
   display: block;
   margin: 1.1rem -0.25rem 0;
@@ -4167,6 +4168,38 @@ img.bth-avatar {
 }
 .mx-outreach--expanded[open] .mx-outreach-expanded-chevron {
   transform: rotate(-180deg);
+}
+.mx-outreach-expanded-preview {
+  margin-top: 0.35rem;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  color: var(--muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+/* Teaser disappears once the full script is open — it would duplicate
+   the first lines of the message directly above it. */
+.mx-outreach--expanded[open] .mx-outreach-expanded-preview {
+  display: none;
+}
+.mx-outreach-expanded-cta {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--teal-dark);
+  white-space: nowrap;
+  padding-left: 0.75rem;
+}
+.mx-outreach--expanded:not([open]) .mx-outreach-cta-open {
+  display: none;
+}
+.mx-outreach--expanded[open] .mx-outreach-cta-closed {
+  display: none;
 }
 
 /* Email nudge card — shown once per session after first outreach panel opens */
