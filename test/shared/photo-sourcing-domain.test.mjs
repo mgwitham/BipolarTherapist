@@ -11,6 +11,7 @@ import {
   deriveVaultState,
   buildCandidatePatch,
   buildApprovalPatch,
+  buildAdminPhotoRemovalPatch,
   buildRejectionPatch,
   buildSuppressionPatch,
   buildClaimApprovalPatch,
@@ -137,6 +138,20 @@ test("buildSuppressionPatch clears a published public-source photo only", () => 
   const ownUpload = buildSuppressionPatch({ photoSourceType: "therapist_uploaded" });
   assert.equal(ownUpload.photoSuppressed, true);
   assert.equal("photo" in ownUpload, false);
+});
+
+test("buildAdminPhotoRemovalPatch takes down the photo but never suppresses", () => {
+  const patch = buildAdminPhotoRemovalPatch();
+  assert.equal(patch.photo, null);
+  assert.equal(patch.photoSourceType, null);
+  assert.equal(patch.photoCandidateStatus, "rejected");
+  // Suppression means "the therapist opted out" — an admin fixing a wrong
+  // pick must leave the listing open for a corrected upload or re-source.
+  assert.equal("photoSuppressed" in patch, false);
+
+  // After the patch applies, the listing is sourceable again.
+  const after = { website: "https://drjanesmith.com", ...patch };
+  assert.equal(isEligibleForSourcing(after), true);
 });
 
 test("buildClaimApprovalPatch confirms likeness consent on claim", () => {

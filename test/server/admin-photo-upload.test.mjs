@@ -191,3 +191,112 @@ test("upload targets: lists photo-less live listings, admin-gated", async () => 
   assert.equal(ok.response.statusCode, 200);
   assert.ok(Array.isArray(ok.response.payload.therapists));
 });
+
+test("admin remove: takes down a wrong public-source photo without suppressing", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-jamie": seedTherapist({
+      photo: { asset: { _ref: "image-wrong" } },
+      photoSourceType: "public_source",
+      photoCandidateStatus: "approved",
+      photoReviewedAt: "2026-07-01T00:00:00.000Z",
+      hasPhoto: true,
+    }),
+  });
+  const denied = buildContext({
+    client,
+    routePath: "/portal/photo-admin-remove",
+    authorized: false,
+    body: { slug: "jamie-rivera" },
+  });
+  await handleAuthAndPortalRoutes(denied.context);
+  assert.equal(denied.response.statusCode, 401);
+
+  const { response, context } = buildContext({
+    client,
+    routePath: "/portal/photo-admin-remove",
+    authorized: true,
+    body: { slug: "jamie-rivera" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.removed, true);
+
+  const doc = state.documents.get("therapist-jamie");
+  assert.equal(doc.photo, null);
+  assert.equal(doc.photoSourceType, null);
+  assert.equal(doc.photoCandidateStatus, "rejected");
+  // Not an opt-out: the listing must stay open for a corrected upload.
+  assert.notEqual(doc.photoSuppressed, true);
+});
+
+test("admin remove: refuses therapist-provided photos and photo-less listings", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": seedTherapist({
+      photo: { asset: { _ref: "image-own" } },
+      photoSourceType: "therapist_uploaded",
+      hasPhoto: true,
+    }),
+    "therapist-alex": {
+      ...seedTherapist(),
+      _id: "therapist-alex",
+      name: "Alex Kim",
+      slug: { current: "alex-kim", _type: "slug" },
+    },
+  });
+  const own = buildContext({
+    client,
+    routePath: "/portal/photo-admin-remove",
+    authorized: true,
+    body: { slug: "jamie-rivera" },
+  });
+  await handleAuthAndPortalRoutes(own.context);
+  assert.equal(own.response.statusCode, 409);
+  assert.match(own.response.payload.error, /provided by the therapist/);
+
+  const bare = buildContext({
+    client,
+    routePath: "/portal/photo-admin-remove",
+    authorized: true,
+    body: { slug: "alex-kim" },
+  });
+  await handleAuthAndPortalRoutes(bare.context);
+  assert.equal(bare.response.statusCode, 409);
+  assert.match(bare.response.payload.error, /no photo/);
+});
+
+test("admin remove then re-upload: the corrected photo publishes", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-jamie": seedTherapist({
+      photo: { asset: { _ref: "image-wrong" } },
+      photoSourceType: "public_source",
+      photoCandidateStatus: "approved",
+      hasPhoto: true,
+    }),
+  });
+  withAssetStub(client);
+  const removal = buildContext({
+    client,
+    routePath: "/portal/photo-admin-remove",
+    authorized: true,
+    body: { slug: "jamie-rivera" },
+  });
+  await handleAuthAndPortalRoutes(removal.context);
+  assert.equal(removal.response.statusCode, 200);
+
+  const upload = buildContext({
+    client,
+    routePath: "/portal/photo-admin-upload",
+    authorized: true,
+    body: {
+      slug: "jamie-rivera",
+      photo_upload_base64: PNG_DATA_URL,
+      photo_filename: "corrected.png",
+    },
+  });
+  await handleAuthAndPortalRoutes(upload.context);
+  assert.equal(upload.response.statusCode, 200);
+  assert.equal(upload.response.payload.published, true);
+  const doc = state.documents.get("therapist-jamie");
+  assert.equal(doc.photo.asset._ref, "image-manual-1");
+  assert.equal(doc.photoSourceType, "public_source");
+});
