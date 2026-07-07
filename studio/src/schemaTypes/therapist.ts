@@ -104,6 +104,62 @@ export const therapistType = defineType({
       group: "profile",
       initialValue: false,
     }),
+    // ── Public-source photo vault ──────────────────────────────────
+    // Headshots auto-sourced from a therapist's own website land in
+    // photoCandidate (NOT the live `photo` field) so nothing publishes
+    // until an admin approves. Approve copies photoCandidate → photo
+    // and stamps photoSourceType=public_source + photoReviewedAt.
+    defineField({
+      name: "photoCandidate",
+      title: "Sourced photo (pending review)",
+      type: "image",
+      group: "profile",
+      options: { hotspot: true },
+      description:
+        "Auto-sourced headshot awaiting admin review. Not shown publicly until approved.",
+    }),
+    defineField({
+      name: "photoCandidateStatus",
+      title: "Sourced photo status",
+      type: "string",
+      group: "profile",
+      options: {
+        list: [
+          { title: "Pending review", value: "pending" },
+          { title: "Approved (published)", value: "approved" },
+          { title: "Rejected", value: "rejected" },
+        ],
+        layout: "radio",
+      },
+    }),
+    defineField({
+      name: "photoCandidateSourceUrl",
+      title: "Sourced photo — source URL",
+      type: "url",
+      group: "profile",
+      description: "The therapist's own page the headshot was pulled from.",
+    }),
+    defineField({
+      name: "photoCandidateSourceHost",
+      title: "Sourced photo — source host",
+      type: "string",
+      group: "profile",
+    }),
+    defineField({
+      name: "photoCandidateSourcedAt",
+      title: "Sourced photo — sourced at",
+      type: "datetime",
+      group: "profile",
+    }),
+    defineField({
+      name: "photoSuppressed",
+      title: "Photo suppressed (opt-out)",
+      type: "boolean",
+      group: "profile",
+      initialValue: false,
+      description:
+        "Set when a therapist opts out of a public-source photo. Blocks re-sourcing and publishing.",
+    }),
     defineField({
       name: "bio",
       title: "Full bio",

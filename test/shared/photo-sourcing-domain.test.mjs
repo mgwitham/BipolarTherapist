@@ -1,0 +1,144 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import {
+  isSameSite,
+  extractHost,
+  isSourceablePhotoUrl,
+  isEligibleForSourcing,
+  isPendingReview,
+  canPublishCandidate,
+  deriveVaultState,
+  buildCandidatePatch,
+  buildApprovalPatch,
+  buildRejectionPatch,
+  buildSuppressionPatch,
+  buildClaimApprovalPatch,
+} from "../../shared/photo-sourcing-domain.mjs";
+
+test("isSameSite treats www and subdomains as the same registrable site", () => {
+  assert.equal(isSameSite("www.drjanesmith.com", "drjanesmith.com"), true);
+  assert.equal(isSameSite("staff.drjanesmith.com", "drjanesmith.com"), true);
+  assert.equal(isSameSite("https://drjanesmith.com/about", "drjanesmith.com"), true);
+  assert.equal(isSameSite("drjanesmith.com", "someoneelse.com"), false);
+  assert.equal(isSameSite("", "drjanesmith.com"), false);
+});
+
+test("extractHost strips scheme, path, and www", () => {
+  assert.equal(extractHost("https://www.drjanesmith.com/team/jane"), "drjanesmith.com");
+  assert.equal(extractHost("http://clinic.example.org?x=1"), "clinic.example.org");
+  assert.equal(extractHost(""), "");
+});
+
+test("isSourceablePhotoUrl accepts own-site headshots only", () => {
+  const site = "https://drjanesmith.com";
+  assert.equal(isSourceablePhotoUrl("https://drjanesmith.com/img/jane-headshot.jpg", site), true);
+  // Wrong site
+  assert.equal(isSourceablePhotoUrl("https://otherhost.com/jane.jpg", site), false);
+  // Blocked aggregator even if it somehow matched
+  assert.equal(
+    isSourceablePhotoUrl("https://psychologytoday.com/jane.jpg", "https://psychologytoday.com"),
+    false,
+  );
+  // Obvious non-headshot
+  assert.equal(isSourceablePhotoUrl("https://drjanesmith.com/logo.png", site), false);
+  assert.equal(isSourceablePhotoUrl("https://drjanesmith.com/placeholder.jpg", site), false);
+  // No site to compare against
+  assert.equal(isSourceablePhotoUrl("https://drjanesmith.com/jane.jpg", ""), false);
+});
+
+test("isEligibleForSourcing: unclaimed, no photo, has website, not suppressed", () => {
+  const base = { claimStatus: "unclaimed", website: "https://drjanesmith.com" };
+  assert.equal(isEligibleForSourcing(base), true);
+
+  // Already has a live photo
+  assert.equal(isEligibleForSourcing({ ...base, photo_url: "https://x/p.jpg" }), false);
+  assert.equal(isEligibleForSourcing({ ...base, photo: { asset: { _ref: "image-1" } } }), false);
+  // Claimed therapists manage their own photo
+  assert.equal(isEligibleForSourcing({ ...base, claimStatus: "claimed" }), false);
+  // Opted out
+  assert.equal(isEligibleForSourcing({ ...base, photoSuppressed: true }), false);
+  // Already has a candidate in flight
+  assert.equal(isEligibleForSourcing({ ...base, photoCandidateStatus: "pending" }), false);
+  assert.equal(isEligibleForSourcing({ ...base, photoCandidateStatus: "approved" }), false);
+  // No website to source from
+  assert.equal(isEligibleForSourcing({ ...base, website: "" }), false);
+  // A rejected candidate does not by itself block (suppression does that)
+  assert.equal(isEligibleForSourcing({ ...base, photoCandidateStatus: "rejected" }), true);
+});
+
+test("isPendingReview and canPublishCandidate honor suppression", () => {
+  const pending = { photoCandidateStatus: "pending" };
+  assert.equal(isPendingReview(pending), true);
+  assert.equal(canPublishCandidate(pending), true);
+
+  const suppressed = { photoCandidateStatus: "pending", photoSuppressed: true };
+  assert.equal(isPendingReview(suppressed), false);
+  assert.equal(canPublishCandidate(suppressed), false);
+
+  assert.equal(canPublishCandidate({ photoCandidateStatus: "approved" }), false);
+});
+
+test("deriveVaultState covers each state", () => {
+  assert.equal(deriveVaultState(null), "none");
+  assert.equal(deriveVaultState({}), "none");
+  assert.equal(deriveVaultState({ photoCandidateStatus: "pending" }), "pending_review");
+  assert.equal(deriveVaultState({ photoCandidateStatus: "rejected" }), "rejected");
+  assert.equal(deriveVaultState({ photoSuppressed: true }), "suppressed");
+  assert.equal(deriveVaultState({ photo_url: "x" }), "has_photo");
+  assert.equal(
+    deriveVaultState({ photo_url: "x", photoCandidateStatus: "approved" }),
+    "published_public_source",
+  );
+  // Suppression wins over a live photo (opt-out of a published one)
+  assert.equal(deriveVaultState({ photo_url: "x", photoSuppressed: true }), "suppressed");
+});
+
+test("buildCandidatePatch shapes a pending image reference with provenance", () => {
+  const patch = buildCandidatePatch({
+    assetRef: "image-abc",
+    sourceUrl: "https://www.drjanesmith.com/team/jane",
+    nowIso: "2026-07-07T00:00:00.000Z",
+  });
+  assert.equal(patch.photoCandidate.asset._ref, "image-abc");
+  assert.equal(patch.photoCandidateStatus, "pending");
+  assert.equal(patch.photoCandidateSourceHost, "drjanesmith.com");
+  assert.equal(patch.photoCandidateSourcedAt, "2026-07-07T00:00:00.000Z");
+});
+
+test("buildApprovalPatch publishes the candidate without claiming consent", () => {
+  const patch = buildApprovalPatch({
+    candidateAssetRef: "image-abc",
+    nowIso: "2026-07-07T00:00:00.000Z",
+  });
+  assert.equal(patch.photo.asset._ref, "image-abc");
+  assert.equal(patch.photoSourceType, "public_source");
+  assert.equal(patch.photoUsagePermissionConfirmed, false);
+  assert.equal(patch.photoCandidateStatus, "approved");
+});
+
+test("buildRejectionPatch suppresses without publishing", () => {
+  const patch = buildRejectionPatch();
+  assert.equal(patch.photoCandidateStatus, "rejected");
+  assert.equal(patch.photoSuppressed, true);
+  assert.equal("photo" in patch, false);
+});
+
+test("buildSuppressionPatch clears a published public-source photo only", () => {
+  const publicSrc = buildSuppressionPatch({ photoSourceType: "public_source" });
+  assert.equal(publicSrc.photoSuppressed, true);
+  assert.equal(publicSrc.photo, null);
+  assert.equal(publicSrc.photoSourceType, null);
+
+  // A therapist-uploaded photo is not ours to remove via opt-out
+  const ownUpload = buildSuppressionPatch({ photoSourceType: "therapist_uploaded" });
+  assert.equal(ownUpload.photoSuppressed, true);
+  assert.equal("photo" in ownUpload, false);
+});
+
+test("buildClaimApprovalPatch confirms likeness consent on claim", () => {
+  const patch = buildClaimApprovalPatch({ nowIso: "2026-07-07T00:00:00.000Z" });
+  assert.equal(patch.photoUsagePermissionConfirmed, true);
+  assert.equal(patch.photoSourceType, "practice_uploaded");
+  assert.equal(patch.photoCandidateStatus, "approved");
+});
