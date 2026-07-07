@@ -6009,6 +6009,7 @@
         gap: 0.4rem;
       }
       .pr-approve,
+      .pr-notify,
       .pr-reject {
         font: inherit;
         font-size: 0.8rem;
@@ -6025,6 +6026,15 @@
       .pr-approve:hover:not(:disabled) {
         background: var(--teal-dark, #155f70);
       }
+      .pr-notify {
+        background: #fff;
+        color: var(--teal-dark, #155f70);
+        border-color: #bcd6dd;
+      }
+      .pr-notify:hover:not(:disabled) {
+        background: #eef6f8;
+      }
+      .pr-notify:disabled,
       .pr-reject {
         background: #fff;
         color: #a2402a;

@@ -100,6 +100,9 @@ export function renderPhotoReviewQueuePanel(options) {
         '<button type="button" class="pr-approve" data-pr-approve="' +
         slug +
         '">Approve &amp; publish</button>' +
+        '<button type="button" class="pr-notify" data-pr-notify="' +
+        slug +
+        '" title="Publish and email the therapist a notice with a one-click opt-out">Approve + notify</button>' +
         '<button type="button" class="pr-reject" data-pr-reject="' +
         slug +
         '">Reject</button>' +
@@ -131,22 +134,26 @@ export function renderPhotoReviewQueuePanel(options) {
     if (typeof opts.onChange === "function") opts.onChange();
   }
 
+  async function doApprove(slug, notify) {
+    setRowBusy(slug, true, notify ? "Publishing + notifying…" : "Publishing…");
+    try {
+      const res = await approveSourcedPhoto(slug, notify);
+      if (res && res.published) {
+        removeRow(slug);
+      } else {
+        setRowBusy(slug, false, "Couldn't publish");
+      }
+    } catch (err) {
+      setRowBusy(slug, false, (err && err.message) || "Failed");
+    }
+  }
+
   function wireActions() {
     root.querySelectorAll("[data-pr-approve]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const slug = btn.getAttribute("data-pr-approve");
-        setRowBusy(slug, true, "Publishing…");
-        try {
-          const res = await approveSourcedPhoto(slug);
-          if (res && res.published) {
-            removeRow(slug);
-          } else {
-            setRowBusy(slug, false, "Couldn't publish");
-          }
-        } catch (err) {
-          setRowBusy(slug, false, (err && err.message) || "Failed");
-        }
-      });
+      btn.addEventListener("click", () => doApprove(btn.getAttribute("data-pr-approve"), false));
+    });
+    root.querySelectorAll("[data-pr-notify]").forEach((btn) => {
+      btn.addEventListener("click", () => doApprove(btn.getAttribute("data-pr-notify"), true));
     });
     root.querySelectorAll("[data-pr-reject]").forEach((btn) => {
       btn.addEventListener("click", async () => {

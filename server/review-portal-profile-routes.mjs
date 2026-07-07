@@ -425,17 +425,25 @@ async function loadPhotoReviewTarget(context) {
     sendJson(response, 404, { error: "Therapist not found." }, origin, config);
     return null;
   }
-  return doc;
+  return { doc, body };
 }
 
-// POST /portal/photo-review/approve — publish the sourced candidate. Copies
-// photoCandidate into the live photo field and emails the therapist a
-// notice with one-click opt-out + claim links.
+// POST /portal/photo-review/approve — publish the sourced candidate by
+// copying photoCandidate into the live photo field.
+//
+// The therapist notice + one-click opt-out email is NOT sent automatically.
+// It only goes out when the request carries `notify: true` (the panel's
+// "Approve + notify" action). Silent approval is the default so an admin
+// can publish in bulk and send notices deliberately — but note that the
+// notice is the opt-out's delivery mechanism, so a therapist approved
+// silently isn't told and can only opt out if they see their listing.
 async function adminPostPhotoApprove(context) {
   const { client, config, origin, response } = context;
   const { buildPhotoOptOutToken, sendJson } = context.deps;
-  const doc = await loadPhotoReviewTarget(context);
-  if (!doc) return true;
+  const target = await loadPhotoReviewTarget(context);
+  if (!target) return true;
+  const { doc, body } = target;
+  const notify = Boolean(body && body.notify === true);
 
   if (!canPublishCandidate(doc) || !doc.candidateAssetRef) {
     sendJson(
@@ -456,9 +464,10 @@ async function adminPostPhotoApprove(context) {
 
   appendFunnelEvent(client, "sourced_photo_published", { therapist_slug: doc.slug });
 
-  // Notice + opt-out. Best-effort — a mail failure shouldn't unpublish.
+  // Notice + opt-out only on explicit request. Best-effort — a mail
+  // failure never unpublishes.
   let noticeSent = false;
-  if (doc.email) {
+  if (notify && doc.email) {
     try {
       const result = await sendSourcedPhotoNotice(
         config,
@@ -484,8 +493,9 @@ async function adminPostPhotoApprove(context) {
 async function adminPostPhotoReject(context) {
   const { client, config, origin, response } = context;
   const { sendJson } = context.deps;
-  const doc = await loadPhotoReviewTarget(context);
-  if (!doc) return true;
+  const target = await loadPhotoReviewTarget(context);
+  if (!target) return true;
+  const { doc } = target;
 
   await client.patch(doc._id).set(buildRejectionPatch()).commit({ visibility: "sync" });
   sendJson(response, 200, { ok: true, rejected: true }, origin, config);

@@ -330,13 +330,13 @@ export async function fetchPhotoReviewQueue() {
   });
 }
 
-// Approve a sourced photo: publishes it to the live listing and notifies
-// the therapist with a one-click opt-out.
-export async function approveSourcedPhoto(slug) {
+// Approve a sourced photo: publishes it to the live listing. The notice +
+// opt-out email is sent only when notify is true (default: silent publish).
+export async function approveSourcedPhoto(slug, notify = false) {
   return request("/portal/photo-review/approve", {
     method: "POST",
     headers: getAdminHeaders(),
-    body: JSON.stringify({ slug }),
+    body: JSON.stringify({ slug, notify: notify === true }),
   });
 }
 

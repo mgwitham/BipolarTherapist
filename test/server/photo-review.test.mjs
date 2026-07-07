@@ -118,6 +118,24 @@ test("photo approve: publishes the candidate into the live photo field", async (
   assert.equal(doc.photo.asset._ref, "image-abc");
 });
 
+test("photo approve: does not send a notice email by default", async () => {
+  const { client } = createMemoryClient({ "therapist-jamie": seedTherapist() });
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/photo-review/approve",
+    client,
+    authorized: true,
+    body: { slug: "jamie-rivera" }, // no notify flag
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.published, true);
+  // Silent by default — nothing is sent even though the therapist has an
+  // email on file. (Email config is absent in tests too, but the point is
+  // the handler never even attempts a send without notify:true.)
+  assert.equal(response.payload.noticeSent, false);
+});
+
 test("photo approve: 409 when there is no pending candidate", async () => {
   const { client } = createMemoryClient({
     "therapist-jamie": seedTherapist({ photoCandidateStatus: "approved" }),
