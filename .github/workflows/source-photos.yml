@@ -1,0 +1,79 @@
+# Manually-triggered photo sourcing sweep. Calls the production
+# /api/review/cron/source-photos endpoint (merged in #1112) in a loop —
+# each call processes up to 10 unclaimed listings' own websites into the
+# review vault — until nothing eligible remains or max_calls is hit.
+# Sourced photos publish only after admin approval in the Portal →
+# "Sourced photo review" panel.
+#
+# Requires the CRON_SECRET repository secret (same value as the Vercel
+# CRON_SECRET env var): Settings → Secrets and variables → Actions.
+name: Source photos
+
+on:
+  workflow_dispatch:
+    inputs:
+      max_calls:
+        description: "Max endpoint calls (each processes up to 10 sites)"
+        required: false
+        default: "60"
+      dry_run:
+        description: "Dry run — report picks, write nothing"
+        type: boolean
+        required: false
+        default: false
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Sweep directory for sourceable headshots
+        env:
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          MAX_CALLS: ${{ inputs.max_calls }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SECRET repository secret is not set. Add it under Settings → Secrets and variables → Actions (same value as the Vercel CRON_SECRET env var)."
+            exit 1
+          fi
+          BASE="https://www.bipolartherapyhub.com/api/review/cron/source-photos"
+          DRY=""
+          if [ "$DRY_RUN" = "true" ]; then DRY="&dry=1"; fi
+
+          total_queued=0
+          total_processed=0
+          remaining="unknown"
+          for i in $(seq 1 "$MAX_CALLS"); do
+            http_out=$(curl -sS -w "\n%{http_code}" -H "Authorization: Bearer $CRON_SECRET" "$BASE?limit=10$DRY")
+            code=$(printf '%s' "$http_out" | tail -n 1)
+            body=$(printf '%s' "$http_out" | sed '$d')
+            echo "── call $i (HTTP $code)"
+            printf '%s' "$body" | jq . || printf '%s\n' "$body"
+            if [ "$code" != "200" ]; then
+              echo "::error::endpoint returned HTTP $code on call $i"
+              exit 1
+            fi
+            queued=$(printf '%s' "$body" | jq -r '.queued // 0')
+            processed=$(printf '%s' "$body" | jq -r '.processed // 0')
+            remaining=$(printf '%s' "$body" | jq -r '.remainingEligible // 0')
+            total_queued=$((total_queued + queued))
+            total_processed=$((total_processed + processed))
+            if [ "$remaining" = "0" ] || [ "$processed" = "0" ]; then
+              break
+            fi
+            sleep 3
+          done
+
+          {
+            echo "### Photo sourcing sweep"
+            echo ""
+            echo "- Mode: $([ "$DRY_RUN" = "true" ] && echo 'dry run' || echo 'live')"
+            echo "- Sites processed: $total_processed"
+            echo "- Headshots queued for review: $total_queued"
+            echo "- Still eligible after run: $remaining"
+            echo ""
+            echo "Review queued photos in the admin → Portal → Sourced photo review."
+          } >> "$GITHUB_STEP_SUMMARY"
