@@ -161,6 +161,9 @@ const PUBLIC_WRITE_RATE_LIMITS = {
   // Session-gated, but still cap per-IP so a claimed account can't spam
   // 4 MB uploads (each creates a Sanity asset).
   "POST /portal/photo": { limit: 15, windowMs: 60 * 60 * 1000 },
+  // Admin-gated manual headshot uploads; higher cap than the therapist
+  // path because batch screenshot triage is the intended workflow.
+  "POST /portal/photo-admin-upload": { limit: 60, windowMs: 60 * 60 * 1000 },
   "POST /portal/quick-claim": { limit: 120, windowMs: 60 * 60 * 1000 },
   "POST /portal/recovery-request": { limit: 30, windowMs: 60 * 60 * 1000 },
   "POST /portal/requests": { limit: 30, windowMs: 60 * 60 * 1000 },
