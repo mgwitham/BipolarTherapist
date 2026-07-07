@@ -875,6 +875,7 @@ function createReviewRouteModules() {
     {
       handler: handleCronRoutes,
       deps: {},
+      includeUrl: true,
     },
     {
       handler: handlePatientSignalRoutes,
