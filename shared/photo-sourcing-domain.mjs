@@ -196,4 +196,74 @@ export function buildClaimApprovalPatch({ nowIso }) {
   };
 }
 
-export const _internal = { BLOCKED_PHOTO_HOSTS, NON_HEADSHOT_HINTS, lowerHost };
+// ── HTML headshot extraction (pure; the script does the fetching) ──────
+
+// Resolve a possibly-relative image URL against the page it appeared on.
+// Returns "" when it can't be resolved. Uses the global URL constructor,
+// which is available in both Node and the browser (no I/O).
+export function resolveUrl(pageUrl, maybeRelative) {
+  const raw = String(maybeRelative || "").trim();
+  if (!raw) return "";
+  if (raw.startsWith("data:")) return "";
+  try {
+    return new URL(raw, String(pageUrl || "")).toString();
+  } catch {
+    return "";
+  }
+}
+
+// alt/class/src hints that a given <img> is a person's headshot.
+const HEADSHOT_HINTS = /(headshot|portrait|profile|provider|clinician|therapist|staff|team|bio)/i;
+
+// Pull ordered candidate headshot URLs out of a page's HTML. og:image and
+// twitter:image come first (a practice's own OG tag is usually the primary
+// person/brand image), then <img> tags whose alt/class/src hints at a
+// headshot. Returns absolute URLs, de-duplicated, order preserved. Pure
+// string work — the caller fetches the page and validates each candidate
+// with isSourceablePhotoUrl + real image checks.
+export function extractPhotoCandidatesFromHtml(html, pageUrl) {
+  const src = String(html || "");
+  const out = [];
+  const seen = new Set();
+  const push = (value) => {
+    const abs = resolveUrl(pageUrl, value);
+    if (abs && !seen.has(abs)) {
+      seen.add(abs);
+      out.push(abs);
+    }
+  };
+
+  // og:image / twitter:image (property or name, in either attribute order).
+  const metaRe = /<meta\b[^>]*>/gi;
+  let m;
+  while ((m = metaRe.exec(src))) {
+    const tag = m[0];
+    if (/(?:property|name)\s*=\s*["'](?:og:image|twitter:image)(?::url)?["']/i.test(tag)) {
+      const content = /\bcontent\s*=\s*["']([^"']+)["']/i.exec(tag);
+      if (content) push(content[1]);
+    }
+  }
+
+  // <img> tags with a headshot hint in alt/class or the src path.
+  const imgRe = /<img\b[^>]*>/gi;
+  while ((m = imgRe.exec(src))) {
+    const tag = m[0];
+    const srcAttr = /\bsrc\s*=\s*["']([^"']+)["']/i.exec(tag);
+    if (!srcAttr) continue;
+    const altAttr = /\balt\s*=\s*["']([^"']*)["']/i.exec(tag);
+    const classAttr = /\bclass\s*=\s*["']([^"']*)["']/i.exec(tag);
+    const hintHay = [srcAttr[1], altAttr && altAttr[1], classAttr && classAttr[1]]
+      .filter(Boolean)
+      .join(" ");
+    if (HEADSHOT_HINTS.test(hintHay)) push(srcAttr[1]);
+  }
+
+  return out;
+}
+
+export const _internal = {
+  BLOCKED_PHOTO_HOSTS,
+  NON_HEADSHOT_HINTS,
+  HEADSHOT_HINTS,
+  lowerHost,
+};

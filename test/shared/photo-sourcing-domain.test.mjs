@@ -14,6 +14,8 @@ import {
   buildRejectionPatch,
   buildSuppressionPatch,
   buildClaimApprovalPatch,
+  resolveUrl,
+  extractPhotoCandidatesFromHtml,
 } from "../../shared/photo-sourcing-domain.mjs";
 
 test("isSameSite treats www and subdomains as the same registrable site", () => {
@@ -141,4 +143,44 @@ test("buildClaimApprovalPatch confirms likeness consent on claim", () => {
   assert.equal(patch.photoUsagePermissionConfirmed, true);
   assert.equal(patch.photoSourceType, "practice_uploaded");
   assert.equal(patch.photoCandidateStatus, "approved");
+});
+
+test("resolveUrl makes relative img srcs absolute and rejects data URIs", () => {
+  const page = "https://drjanesmith.com/team/jane";
+  assert.equal(resolveUrl(page, "/img/jane.jpg"), "https://drjanesmith.com/img/jane.jpg");
+  assert.equal(resolveUrl(page, "photo.jpg"), "https://drjanesmith.com/team/photo.jpg");
+  assert.equal(
+    resolveUrl(page, "https://cdn.drjanesmith.com/j.jpg"),
+    "https://cdn.drjanesmith.com/j.jpg",
+  );
+  assert.equal(resolveUrl(page, "data:image/png;base64,AAAA"), "");
+  assert.equal(resolveUrl(page, ""), "");
+});
+
+test("extractPhotoCandidatesFromHtml prefers og:image, then headshot-hinted imgs", () => {
+  const page = "https://drjanesmith.com/team/jane";
+  const html = `
+    <head>
+      <meta property="og:image" content="/img/jane-og.jpg" />
+      <meta name="twitter:image" content="https://drjanesmith.com/img/jane-tw.jpg" />
+    </head>
+    <body>
+      <img src="/logo.png" alt="Practice logo" />
+      <img src="/img/jane-headshot.jpg" alt="Dr. Jane Smith" class="provider-photo" />
+      <img src="/img/random.jpg" alt="office" />
+    </body>`;
+  const out = extractPhotoCandidatesFromHtml(html, page);
+  // og/twitter images come first, in document order
+  assert.equal(out[0], "https://drjanesmith.com/img/jane-og.jpg");
+  assert.equal(out[1], "https://drjanesmith.com/img/jane-tw.jpg");
+  // headshot-hinted img included; logo and generic office img excluded
+  assert.ok(out.includes("https://drjanesmith.com/img/jane-headshot.jpg"));
+  assert.ok(!out.some((u) => u.endsWith("random.jpg")));
+});
+
+test("extractPhotoCandidatesFromHtml de-duplicates and tolerates empty input", () => {
+  assert.deepEqual(extractPhotoCandidatesFromHtml("", "https://x.com"), []);
+  const html = `<img src="/a.jpg" class="headshot"><img src="/a.jpg" alt="profile">`;
+  const out = extractPhotoCandidatesFromHtml(html, "https://x.com");
+  assert.deepEqual(out, ["https://x.com/a.jpg"]);
 });
