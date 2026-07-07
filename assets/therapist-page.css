@@ -1018,13 +1018,28 @@ footer p {
   font-size: 0.82rem;
   line-height: 1.55;
 }
-.profile-footer-brand {
+/* Same name and metrics as the shared footer brand in styles.css —
+   this page doesn't load styles.css, so the rule is duplicated here
+   rather than diverged (.profile-footer-brand is the old name). */
+.footer-brand {
   margin-bottom: 0.5rem;
   font-size: 0.95rem;
+  letter-spacing: 0.01em;
 }
-.profile-footer-brand strong {
+.footer-brand strong {
   color: #fff;
   font-weight: 600;
+}
+.footer-legal {
+  margin-top: 0.9rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
+  letter-spacing: 0.01em;
+}
+.footer-legal a {
+  margin: 0 0.35rem;
+  font-size: 0.78rem;
+  color: rgba(255, 255, 255, 0.55);
 }
 footer a {
   color: rgba(255, 255, 255, 0.65);

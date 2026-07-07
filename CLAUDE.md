@@ -138,6 +138,37 @@ Match intake (match.html)
   → Review API → Sanity: persists matchRequest + matchOutcome
 ```
 
+## Design System Rules
+
+Rules for public-facing pages. They encode decisions already made; don't
+re-decide them per page.
+
+### CTA color
+
+- **Coral** (`--coral`) is the patient "find care" conversion color, and it is
+  reserved for the _single_ most-wanted action on a patient-facing page — the
+  homepage "Find care" button, the profile page's primary contact button.
+  Never repeat coral in a list of sibling actions (match/directory cards stay
+  teal even though they are contact actions).
+- **Teal** (`--teal` buttons, e.g. `.bth-btn-primary`) is everything else:
+  repeated card CTAs, secondary navigation, and _all_ therapist-facing
+  surfaces (signup, pricing, portal) — therapist conversion is deliberately
+  teal, not coral.
+
+### Footers
+
+Two variants, nothing in between:
+
+- **Full footer** (`index.html` only): four-column sitemap + mission line.
+- **Compact footer** (all other public pages): `.footer-brand` line, optional
+  one-line context (`match.html` keeps its clinical disclaimer, `about.html`
+  its tagline), then `.footer-legal` with exactly
+  `About · Guides · Privacy · Terms · Contact`.
+
+New public pages get the compact footer. `therapist-page.css` duplicates the
+footer rules from `styles.css` (that page doesn't load `styles.css`) — keep
+the two blocks identical when editing either.
+
 ## Test Infrastructure
 
 Tests use Node.js built-in `node:test` + `node:assert/strict`. Server tests use in-memory helpers in `test/server/test-helpers.mjs`:
