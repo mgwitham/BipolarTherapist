@@ -349,6 +349,30 @@ export async function rejectSourcedPhoto(slug) {
   });
 }
 
+// Live listings without a photo — targets for manual headshot upload.
+export async function fetchPhotoUploadTargets() {
+  return request("/portal/photo-upload-targets", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
+// Manually publish a headshot (screenshot/file) onto a listing. Publishes
+// immediately as a public-source photo; notify sends the opt-out notice.
+export async function adminUploadTherapistPhoto({ slug, dataUrl, filename, sourceUrl, notify }) {
+  return request("/portal/photo-admin-upload", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({
+      slug,
+      photo_upload_base64: dataUrl,
+      photo_filename: filename || "manual-headshot",
+      source_url: sourceUrl || "",
+      notify: notify === true,
+    }),
+  });
+}
+
 // Server-side sign-out is stateless (signed tokens, no session table),
 // so this endpoint's job is funnel instrumentation + future-proofing.
 // The actual sign-out happens client-side via clearTherapistSessionToken.

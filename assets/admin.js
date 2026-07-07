@@ -3144,6 +3144,9 @@ function renderPhotoReviewQueue() {
     module.renderPhotoReviewQueuePanel({
       authRequired: authRequired,
     });
+    if (typeof module.renderManualPhotoUpload === "function") {
+      module.renderManualPhotoUpload({ authRequired: authRequired });
+    }
   });
 }
 

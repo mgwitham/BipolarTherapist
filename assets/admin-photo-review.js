@@ -1,4 +1,10 @@
-import { approveSourcedPhoto, fetchPhotoReviewQueue, rejectSourcedPhoto } from "./review-api.js";
+import {
+  adminUploadTherapistPhoto,
+  approveSourcedPhoto,
+  fetchPhotoReviewQueue,
+  fetchPhotoUploadTargets,
+  rejectSourcedPhoto,
+} from "./review-api.js";
 import { escapeHtml } from "./escape-html.js";
 
 // Admin panel: sourced headshots awaiting review before they publish.
@@ -199,4 +205,197 @@ export function renderPhotoReviewQueuePanel(options) {
 // backslash rather than pull in the full CSS.escape surface.
 function cssEscape(value) {
   return String(value).replace(/["\\\]]/g, "\\$&");
+}
+
+// ── Manual headshot upload ─────────────────────────────────────────────
+// Operator workflow for listings the sourcer can't reach (aggregator-only
+// websites): find a photo yourself, screenshot it, paste it here (or pick
+// a file), and publish it onto the listing. Same state shape as an
+// approved sourced photo, so opt-out/suppression/portal-consent all apply.
+
+const UPLOAD_ALLOWED_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const UPLOAD_MAX_BYTES = 4 * 1024 * 1024;
+
+function readFileAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onerror = () => reject(new Error("Couldn't read that file."));
+    reader.readAsDataURL(file);
+  });
+}
+
+export function renderManualPhotoUpload(options) {
+  const opts = options || {};
+  const root = document.getElementById("photoManualUpload");
+  if (!root) return;
+  if (opts.authRequired) {
+    root.innerHTML = "";
+    return;
+  }
+  // Idempotent: the render-all pass re-invokes on every portal render;
+  // don't wipe in-progress form state.
+  if (root.dataset.pruMounted === "true") return;
+  root.dataset.pruMounted = "true";
+
+  root.innerHTML =
+    '<div class="pru-form">' +
+    '<div class="pru-row">' +
+    '<label class="pru-label" for="pruTherapist">Therapist</label>' +
+    '<input type="text" id="pruTherapist" class="pru-input" list="pruTargets" ' +
+    'placeholder="Start typing a name…" autocomplete="off" />' +
+    '<datalist id="pruTargets"></datalist>' +
+    "</div>" +
+    '<div class="pru-row">' +
+    '<label class="pru-label" for="pruSourceUrl">Source URL <span class="subtle">(optional, where the photo came from)</span></label>' +
+    '<input type="url" id="pruSourceUrl" class="pru-input" placeholder="https://…" />' +
+    "</div>" +
+    '<div class="pru-drop" id="pruDrop" tabindex="0">' +
+    '<img id="pruPreview" alt="Preview of the headshot to publish" hidden />' +
+    '<span id="pruDropHint">Paste a screenshot here (Cmd+V) or ' +
+    '<button type="button" class="linklike" id="pruPick">choose a file</button></span>' +
+    '<input type="file" id="pruFile" accept="image/jpeg,image/png,image/webp" hidden />' +
+    "</div>" +
+    '<div class="pru-actions">' +
+    '<label class="pru-notify"><input type="checkbox" id="pruNotify" /> Email the therapist a notice with a one-click opt-out</label>' +
+    '<button type="button" class="pr-approve" id="pruPublish" disabled>Publish photo</button>' +
+    "</div>" +
+    '<div class="pr-status" id="pruStatus" role="status" aria-live="polite"></div>' +
+    "</div>";
+
+  const therapistInput = document.getElementById("pruTherapist");
+  const targetsList = document.getElementById("pruTargets");
+  const sourceInput = document.getElementById("pruSourceUrl");
+  const drop = document.getElementById("pruDrop");
+  const preview = document.getElementById("pruPreview");
+  const dropHint = document.getElementById("pruDropHint");
+  const fileInput = document.getElementById("pruFile");
+  const pickBtn = document.getElementById("pruPick");
+  const notifyBox = document.getElementById("pruNotify");
+  const publishBtn = document.getElementById("pruPublish");
+  const status = document.getElementById("pruStatus");
+
+  let targets = [];
+  let staged = null; // { dataUrl, filename }
+
+  function setStatus(message, tone) {
+    status.textContent = message || "";
+    status.classList.toggle("is-error", tone === "error");
+    status.classList.toggle("is-success", tone === "success");
+  }
+
+  function selectedTarget() {
+    const value = therapistInput.value.trim().toLowerCase();
+    if (!value) return null;
+    return (
+      targets.find((t) => `${t.name} (${t.slug})`.toLowerCase() === value) ||
+      targets.find((t) => t.slug === value) ||
+      targets.find((t) => t.name.toLowerCase() === value) ||
+      null
+    );
+  }
+
+  function refreshPublishState() {
+    publishBtn.disabled = !(staged && selectedTarget());
+  }
+
+  async function loadTargets() {
+    try {
+      const result = await fetchPhotoUploadTargets();
+      targets = (result && result.therapists) || [];
+      targetsList.innerHTML = targets
+        .map(
+          (t) =>
+            '<option value="' +
+            escapeHtml(`${t.name} (${t.slug})`) +
+            '">' +
+            escapeHtml([t.city, t.state].filter(Boolean).join(", ")) +
+            "</option>",
+        )
+        .join("");
+    } catch {
+      setStatus("Couldn't load the therapist list — type a slug instead.", "error");
+    }
+  }
+
+  async function stageFile(file) {
+    if (!file) return;
+    if (!UPLOAD_ALLOWED_MIMES.has(file.type)) {
+      setStatus("Photo must be a JPG, PNG, or WebP.", "error");
+      return;
+    }
+    if (file.size > UPLOAD_MAX_BYTES) {
+      setStatus("Photo is over 4 MB. Crop the screenshot tighter.", "error");
+      return;
+    }
+    try {
+      const dataUrl = await readFileAsDataUrl(file);
+      staged = { dataUrl, filename: file.name || "screenshot" };
+      preview.src = dataUrl;
+      preview.hidden = false;
+      dropHint.textContent = "Ready — paste or choose again to replace.";
+      setStatus("", null);
+      refreshPublishState();
+    } catch (err) {
+      setStatus(err.message, "error");
+    }
+  }
+
+  drop.addEventListener("paste", (event) => {
+    const items = (event.clipboardData && event.clipboardData.files) || [];
+    if (items.length) {
+      event.preventDefault();
+      stageFile(items[0]);
+    }
+  });
+  pickBtn.addEventListener("click", () => fileInput.click());
+  fileInput.addEventListener("change", () => {
+    stageFile(fileInput.files && fileInput.files[0]);
+    fileInput.value = "";
+  });
+  therapistInput.addEventListener("input", refreshPublishState);
+
+  publishBtn.addEventListener("click", async () => {
+    const target = selectedTarget();
+    if (!target || !staged) return;
+    publishBtn.disabled = true;
+    setStatus("Publishing…", null);
+    try {
+      const result = await adminUploadTherapistPhoto({
+        slug: target.slug,
+        dataUrl: staged.dataUrl,
+        filename: staged.filename,
+        sourceUrl: sourceInput.value.trim(),
+        notify: notifyBox.checked,
+      });
+      if (result && result.published) {
+        setStatus(
+          "Published on " +
+            target.name +
+            "'s listing" +
+            (result.noticeSent ? " — notice email sent." : "."),
+          "success",
+        );
+        staged = null;
+        preview.hidden = true;
+        therapistInput.value = "";
+        sourceInput.value = "";
+        notifyBox.checked = false;
+        dropHint.innerHTML =
+          'Paste a screenshot here (Cmd+V) or <button type="button" class="linklike" id="pruPick2">choose a file</button>';
+        const pick2 = document.getElementById("pruPick2");
+        if (pick2) pick2.addEventListener("click", () => fileInput.click());
+        loadTargets();
+        refreshPublishState();
+      } else {
+        setStatus("Publish didn't complete — try again.", "error");
+        refreshPublishState();
+      }
+    } catch (err) {
+      setStatus((err && err.message) || "Publish failed.", "error");
+      refreshPublishState();
+    }
+  });
+
+  loadTargets();
 }

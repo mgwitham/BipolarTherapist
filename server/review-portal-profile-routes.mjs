@@ -32,6 +32,7 @@ import {
   buildRejectionPatch,
   buildSuppressionPatch,
   canPublishCandidate,
+  extractHost,
 } from "../shared/photo-sourcing-domain.mjs";
 import { sendSourcedPhotoNotice } from "./review-email.mjs";
 
@@ -328,6 +329,8 @@ const PORTAL_PROFILE_ROUTES = [
   { methods: ["GET"], path: "/portal/photo-review-queue", handler: adminGetPhotoReviewQueue },
   { methods: ["POST"], path: "/portal/photo-review/approve", handler: adminPostPhotoApprove },
   { methods: ["POST"], path: "/portal/photo-review/reject", handler: adminPostPhotoReject },
+  { methods: ["GET"], path: "/portal/photo-upload-targets", handler: adminGetPhotoUploadTargets },
+  { methods: ["POST"], path: "/portal/photo-admin-upload", handler: adminPostPhotoUpload },
   { methods: ["GET"], path: "/portal/photo-optout/confirm", handler: publicGetPhotoOptOut },
   { methods: ["POST"], path: "/portal/photo/keep", handler: portalPostPhotoKeep },
   { methods: ["POST"], path: "/portal/photo/remove", handler: portalPostPhotoRemove },
@@ -495,6 +498,180 @@ async function adminGetPhotoReviewQueue(context) {
       }`,
   );
   sendJson(response, 200, { ok: true, therapists: rows || [] }, origin, config);
+  return true;
+}
+
+// GET /portal/photo-upload-targets — admin-only. Live listings without a
+// photo (and not opted out), for the manual-upload picker's autocomplete.
+async function adminGetPhotoUploadTargets(context) {
+  const { client, config, deps, origin, request, response } = context;
+  const { sendJson } = context.deps;
+  if (!deps.isAuthorized || !deps.isAuthorized(request, config)) {
+    sendJson(response, 401, { error: "Admin session required." }, origin, config);
+    return true;
+  }
+  const rows = await client.fetch(
+    `*[_type == "therapist" && listingActive != false && !defined(photo.asset) && photoSuppressed != true] | order(name asc) {
+        "slug": slug.current, name, city, state, claimStatus
+      }`,
+  );
+  sendJson(response, 200, { ok: true, therapists: rows || [] }, origin, config);
+  return true;
+}
+
+// POST /portal/photo-admin-upload — admin-only manual headshot publish.
+// The operator finds a photo themselves (often a screenshot), pastes or
+// picks it, and it goes live on the listing immediately — the human
+// doing the upload IS the review. Runs through the same state shape as
+// an approved sourced photo (public_source, consent unconfirmed), so the
+// opt-out email, suppression, and the portal consent card all apply
+// unchanged. Optional source_url records provenance; notify=true sends
+// the notice + one-click opt-out email.
+async function adminPostPhotoUpload(context) {
+  const { client, config, origin, request, response } = context;
+  const { buildPhotoOptOutToken, isAuthorized, parseBody, sendJson } = context.deps;
+  if (!isAuthorized || !isAuthorized(request, config)) {
+    sendJson(response, 401, { error: "Admin session required." }, origin, config);
+    return true;
+  }
+
+  const body = await parseBody(request);
+  const slug = String((body && body.slug) || "").trim();
+  const dataUrl = String((body && body.photo_upload_base64) || "").trim();
+  const filenameRaw = String((body && body.photo_filename) || "manual-headshot").trim();
+  const sourceUrl = String((body && body.source_url) || "").trim();
+  const notify = Boolean(body && body.notify === true);
+  if (!slug) {
+    sendJson(response, 400, { error: "slug is required." }, origin, config);
+    return true;
+  }
+
+  const ALLOWED_MIMES = new Set(["image/jpeg", "image/png", "image/webp"]);
+  const MAX_BYTES = 4 * 1024 * 1024;
+  const match = /^data:([^;]+);base64,(.+)$/.exec(dataUrl);
+  if (!match) {
+    sendJson(response, 400, { error: "Photo must be a base64-encoded data URL." }, origin, config);
+    return true;
+  }
+  const mimeType = String(match[1] || "")
+    .trim()
+    .toLowerCase();
+  if (!ALLOWED_MIMES.has(mimeType)) {
+    sendJson(response, 400, { error: "Photo must be a JPG, PNG, or WebP image." }, origin, config);
+    return true;
+  }
+  const buffer = Buffer.from(String(match[2] || "").trim(), "base64");
+  if (!buffer.length || buffer.length > MAX_BYTES) {
+    sendJson(
+      response,
+      400,
+      { error: "Photo is empty or over 4 MB. Crop the screenshot tighter." },
+      origin,
+      config,
+    );
+    return true;
+  }
+  if (!imageBytesMatchMime(buffer, mimeType)) {
+    sendJson(
+      response,
+      400,
+      { error: "Photo contents don't match a JPG, PNG, or WebP image." },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  const doc = await client.fetch(
+    `*[_type == "therapist" && slug.current == $slug][0]{
+      _id, name, email, "slug": slug.current,
+      claimStatus, photoSuppressed, photoSourceType,
+      "hasPhoto": defined(photo.asset)
+    }`,
+    { slug },
+  );
+  if (!doc) {
+    sendJson(response, 404, { error: "Therapist not found." }, origin, config);
+    return true;
+  }
+  if (doc.photoSuppressed) {
+    sendJson(
+      response,
+      409,
+      { error: "This therapist opted out of a sourced photo. Don't re-add one manually." },
+      origin,
+      config,
+    );
+    return true;
+  }
+  const existingType = String(doc.photoSourceType || "").toLowerCase();
+  if (
+    doc.hasPhoto &&
+    (existingType === "therapist_uploaded" || existingType === "practice_uploaded")
+  ) {
+    sendJson(
+      response,
+      409,
+      { error: "This listing already has a photo the therapist provided. Not overwriting it." },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  let asset;
+  try {
+    asset = await client.assets.upload("image", buffer, {
+      filename: filenameRaw || "manual-headshot",
+      contentType: mimeType,
+    });
+  } catch (error) {
+    log.error("Sanity asset upload failed for manual admin photo", {
+      slug,
+      err: error?.message || String(error),
+    });
+    sendJson(response, 502, { error: "Couldn't upload the photo. Try again." }, origin, config);
+    return true;
+  }
+
+  const nowIso = new Date().toISOString();
+  const patch = buildApprovalPatch({ candidateAssetRef: asset._id, nowIso });
+  if (sourceUrl) {
+    patch.photoCandidateSourceUrl = sourceUrl;
+    patch.photoCandidateSourceHost = extractHost(sourceUrl);
+  }
+  await client.patch(doc._id).set(patch).commit({ visibility: "sync" });
+
+  appendFunnelEvent(client, "sourced_photo_published", {
+    therapist_slug: doc.slug,
+    surface: "manual_upload",
+  });
+
+  let noticeSent = false;
+  if (notify && doc.email) {
+    try {
+      const result = await sendSourcedPhotoNotice(
+        config,
+        doc,
+        config.portalBaseUrl,
+        buildPhotoOptOutToken,
+        { photoUrl: asset.url || "" },
+      );
+      noticeSent = Boolean(result && result.sent);
+    } catch (error) {
+      log.warn("Manual-upload notice email failed", {
+        slug: doc.slug,
+        err: error?.message || String(error),
+      });
+    }
+  }
+  sendJson(
+    response,
+    200,
+    { ok: true, published: true, photo_url: asset.url || "", noticeSent },
+    origin,
+    config,
+  );
   return true;
 }
 
