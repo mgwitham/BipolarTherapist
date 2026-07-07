@@ -16,8 +16,45 @@ import {
   buildClaimApprovalPatch,
   resolveUrl,
   extractPhotoCandidatesFromHtml,
+  extractProfilePageLinks,
   summarizePhotoCoverage,
 } from "../../shared/photo-sourcing-domain.mjs";
+
+test("extractProfilePageLinks finds same-site about/team links only", () => {
+  const page = "https://drjanesmith.com/";
+  const html = `
+    <a href="/about">About Jane</a>
+    <a href="/services">Services</a>
+    <a href="https://drjanesmith.com/team/">Meet the team</a>
+    <a href="https://psychologytoday.com/profile/jane">My PT profile</a>
+    <a href="/contact">Meet with me</a>
+    <a href="/about#top">About (anchor dupe)</a>
+    <a href="/headshot.jpg">photo file</a>
+    <a href="mailto:jane@x.com">email</a>`;
+  const out = extractProfilePageLinks(html, page);
+  assert.deepEqual(out, [
+    "https://drjanesmith.com/about",
+    "https://drjanesmith.com/team/",
+    "https://drjanesmith.com/contact",
+  ]);
+});
+
+test("extractProfilePageLinks matches on link text when the path is opaque", () => {
+  const out = extractProfilePageLinks(
+    `<a href="/page-7">Our <strong>clinicians</strong></a><a href="/page-8">Fees</a>`,
+    "https://clinic.example",
+  );
+  assert.deepEqual(out, ["https://clinic.example/page-7"]);
+});
+
+test("extractProfilePageLinks never returns the page itself or empty input", () => {
+  assert.deepEqual(extractProfilePageLinks("", "https://x.com"), []);
+  const out = extractProfilePageLinks(
+    `<a href="https://x.com/about">About</a>`,
+    "https://x.com/about",
+  );
+  assert.deepEqual(out, []);
+});
 
 test("isSameSite treats www and subdomains as the same registrable site", () => {
   assert.equal(isSameSite("www.drjanesmith.com", "drjanesmith.com"), true);

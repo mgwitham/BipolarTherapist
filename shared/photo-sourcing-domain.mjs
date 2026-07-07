@@ -261,6 +261,54 @@ export function extractPhotoCandidatesFromHtml(html, pageUrl) {
   return out;
 }
 
+// href/link-text hints that an internal page holds bios or headshots.
+const PROFILE_PAGE_HINTS =
+  /(about|team|staff|meet|bio|our-story|clinician|provider|therapist|who-we-are|founder)/i;
+
+// Pull same-site links that likely lead to an about/team/bio page —
+// where most solo-practice headshots actually live when the homepage
+// doesn't carry one. Matches on the href path or the link text, returns
+// absolute URLs on the SAME site as pageUrl, de-duplicated, document
+// order, excluding the page itself. Pure string work; the caller fetches
+// and caps how many it follows.
+export function extractProfilePageLinks(html, pageUrl) {
+  const src = String(html || "");
+  const out = [];
+  const seen = new Set();
+  const pageHost = lowerHost(pageUrl);
+  const selfNormalized = resolveUrl(pageUrl, pageUrl)
+    .replace(/[#?].*$/, "")
+    .replace(/\/+$/, "");
+
+  const aRe = /<a\b[^>]*href\s*=\s*["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+  let m;
+  while ((m = aRe.exec(src))) {
+    const href = m[1];
+    if (/^(mailto:|tel:|javascript:|#)/i.test(href)) continue;
+    const abs = resolveUrl(pageUrl, href);
+    if (!abs) continue;
+    const absHost = lowerHost(abs);
+    if (!absHost || !isSameSite(absHost, pageHost)) continue;
+    const normalized = abs.replace(/[#?].*$/, "").replace(/\/+$/, "");
+    if (!normalized || normalized === selfNormalized) continue;
+    // Skip obvious non-page targets (documents, images, feeds).
+    if (/\.(jpe?g|png|webp|gif|svg|pdf|xml|ico|css|js)$/i.test(normalized)) continue;
+    const linkText = m[2].replace(/<[^>]*>/g, " ");
+    let path = normalized;
+    try {
+      path = new URL(normalized).pathname;
+    } catch {
+      /* keep full string */
+    }
+    if (!PROFILE_PAGE_HINTS.test(path) && !PROFILE_PAGE_HINTS.test(linkText)) continue;
+    if (!seen.has(normalized)) {
+      seen.add(normalized);
+      out.push(abs);
+    }
+  }
+  return out;
+}
+
 // ── Coverage metric (pure; the script fetches the docs) ────────────────
 
 // Photo-coverage summary over a set of live listings. Splits by claim

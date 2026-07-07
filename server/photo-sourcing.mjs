@@ -18,6 +18,7 @@ import {
   buildCandidatePatch,
   extractHost,
   extractPhotoCandidatesFromHtml,
+  extractProfilePageLinks,
   isEligibleForSourcing,
   isSourceablePhotoUrl,
 } from "../shared/photo-sourcing-domain.mjs";
@@ -80,6 +81,11 @@ async function validateImageWithSharp(buffer) {
   return { ok: true, width: w, height: h };
 }
 
+// When the homepage has no sourceable headshot, follow up to this many
+// same-site about/team/bio links looking for one. Kept small — each page
+// is another fetch inside a serverless time budget.
+const MAX_PROFILE_PAGES = 2;
+
 // Source one therapist. Returns { outcome, detail } where outcome is one
 // of: "queued", "no_candidate", "site_error". Never throws for per-site
 // failures — the caller stamps the attempt and moves on.
@@ -96,9 +102,38 @@ export async function sourceOneTherapist({ therapist, fetchImpl, validateImage, 
   const html = await pageRes.text();
   const finalUrl = pageRes.url || therapist.website;
 
-  const candidates = extractPhotoCandidatesFromHtml(html, finalUrl).filter((url) =>
-    isSourceablePhotoUrl(url, therapist.website),
-  );
+  const seen = new Set();
+  const candidates = [];
+  const addCandidates = (pageHtml, pageUrl) => {
+    extractPhotoCandidatesFromHtml(pageHtml, pageUrl)
+      .filter((url) => isSourceablePhotoUrl(url, therapist.website))
+      .forEach((url) => {
+        if (!seen.has(url)) {
+          seen.add(url);
+          candidates.push(url);
+        }
+      });
+  };
+  addCandidates(html, finalUrl);
+
+  // Homepage came up empty — most solo-practice headshots live one click
+  // deeper (/about, /team, /meet-the-therapist). Follow a couple of
+  // same-site profile-page links before giving up.
+  if (!candidates.length) {
+    const profilePages = extractProfilePageLinks(html, finalUrl).slice(0, MAX_PROFILE_PAGES);
+    for (const pageUrl of profilePages) {
+      let subRes;
+      try {
+        subRes = await fetchWithTimeout(fetchImpl, pageUrl);
+      } catch {
+        continue;
+      }
+      if (!subRes.ok) continue;
+      addCandidates(await subRes.text(), subRes.url || pageUrl);
+      if (candidates.length) break;
+    }
+  }
+
   if (!candidates.length) {
     return {
       outcome: "no_candidate",

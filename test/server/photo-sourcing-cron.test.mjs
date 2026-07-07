@@ -120,6 +120,53 @@ test("runPhotoSourcingBatch dry run writes nothing, uploads nothing", async () =
   assert.equal(doc.photoSourcingLastAttemptAt, undefined);
 });
 
+test("runPhotoSourcingBatch follows an about-page link when the homepage has no headshot", async () => {
+  const { client, state } = createMemoryClient({ deep: seedTherapist("deep") });
+  const pagesFetched = [];
+  const fetchImpl = async (url) => {
+    pagesFetched.push(String(url));
+    const u = String(url);
+    if (/\.jpg$/.test(u)) {
+      return {
+        ok: true,
+        status: 200,
+        url: u,
+        headers: { get: () => "image/jpeg" },
+        arrayBuffer: async () => new ArrayBuffer(5 * 1024),
+      };
+    }
+    if (/\/about/.test(u)) {
+      return {
+        ok: true,
+        status: 200,
+        url: u,
+        headers: { get: () => "text/html" },
+        text: async () =>
+          `<img src="https://deep.example/img/headshot.jpg" alt="Dr. deep portrait" />`,
+      };
+    }
+    // Homepage: no sourceable image, but an about link.
+    return {
+      ok: true,
+      status: 200,
+      url: u,
+      headers: { get: () => "text/html" },
+      text: async () => `<img src="/logo.png" alt="logo" /><a href="/about">About me</a>`,
+    };
+  };
+  const summary = await runPhotoSourcingBatch({
+    client,
+    fetchImpl,
+    validateImage: acceptAll,
+    uploadAsset: async () => ({ _id: "image-deep" }),
+  });
+  assert.equal(summary.queued, 1);
+  assert.ok(pagesFetched.some((u) => /\/about$/.test(u)));
+  const doc = state.documents.get("deep");
+  assert.equal(doc.photoCandidate.asset._ref, "image-deep");
+  assert.equal(doc.photoCandidateSourceUrl, "https://deep.example/img/headshot.jpg");
+});
+
 test("runPhotoSourcingBatch stamps attempts on site errors so they rotate back", async () => {
   const { client, state } = createMemoryClient({ down: seedTherapist("down") });
   const summary = await runPhotoSourcingBatch({
