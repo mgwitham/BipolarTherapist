@@ -1277,7 +1277,11 @@ footer {
     22px 22px,
     100% 100%;
   padding: 80px 40px;
-  min-height: calc(100vh - 64px);
+  /* Cap the hero below one viewport so the proof strip peeks above
+     the fold. The old calc(100vh - 64px) filled the whole first
+     screen, leaving ~40% of the gradient empty below the content on
+     tall/desktop viewports and hiding every trust signal. */
+  min-height: min(680px, calc(100vh - 64px));
   display: flex;
   align-items: center;
 }
