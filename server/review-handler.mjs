@@ -164,6 +164,7 @@ const PUBLIC_WRITE_RATE_LIMITS = {
   // Admin-gated manual headshot uploads; higher cap than the therapist
   // path because batch screenshot triage is the intended workflow.
   "POST /portal/photo-admin-upload": { limit: 60, windowMs: 60 * 60 * 1000 },
+  "POST /portal/photo-admin-remove": { limit: 60, windowMs: 60 * 60 * 1000 },
   "POST /portal/quick-claim": { limit: 120, windowMs: 60 * 60 * 1000 },
   "POST /portal/recovery-request": { limit: 30, windowMs: 60 * 60 * 1000 },
   "POST /portal/requests": { limit: 30, windowMs: 60 * 60 * 1000 },
