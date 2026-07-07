@@ -9,6 +9,7 @@
 
 import { runAbandonedClaimAlerts } from "./abandoned-claim-alerts.mjs";
 import { isAuthorizedCronRequest } from "./cron-auth.mjs";
+import { isAuthorizedGitHubActionsRequest } from "./github-oidc.mjs";
 import { runOutreachClickDigest } from "./outreach-click-digest.mjs";
 import { runPhotoSourcingBatch } from "./photo-sourcing.mjs";
 import { runReferralCadence } from "./referral-cadence-runner.mjs";
@@ -86,7 +87,13 @@ export async function handleCronRoutes(context) {
   //     "https://<host>/api/review/cron/source-photos?limit=4"
   // Query params: limit (1-10, default 4), dry=1 for a no-write pass.
   if (routePath === "/cron/source-photos") {
-    if (!checkCronAuth(request, config)) {
+    // This route (and only this route) also accepts a GitHub Actions OIDC
+    // token pinned to this repo's main branch, so the sweep workflow can
+    // authenticate keylessly — no CRON_SECRET copied into GitHub. Vercel
+    // cron / manual curl with the Bearer secret keeps working unchanged.
+    const cronAuthed = checkCronAuth(request, config);
+    const githubAuthed = cronAuthed ? false : await isAuthorizedGitHubActionsRequest(request);
+    if (!cronAuthed && !githubAuthed) {
       writeJson(response, 401, { error: "unauthorized" });
       return true;
     }

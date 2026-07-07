@@ -1,12 +1,14 @@
 # Manually-triggered photo sourcing sweep. Calls the production
-# /api/review/cron/source-photos endpoint (merged in #1112) in a loop —
-# each call processes up to 10 unclaimed listings' own websites into the
-# review vault — until nothing eligible remains or max_calls is hit.
-# Sourced photos publish only after admin approval in the Portal →
-# "Sourced photo review" panel.
+# /api/review/cron/source-photos endpoint in a loop — each call processes
+# up to 10 unclaimed listings' own websites into the review vault — until
+# nothing eligible remains or max_calls is hit. Sourced photos publish
+# only after admin approval in the Portal → "Sourced photo review" panel.
 #
-# Requires the CRON_SECRET repository secret (same value as the Vercel
-# CRON_SECRET env var): Settings → Secrets and variables → Actions.
+# Auth is keyless: the job requests a GitHub OIDC token (id-token: write)
+# and the API verifies it against GitHub's public keys, pinned to this
+# repository and refs/heads/main (see server/github-oidc.mjs). No secret
+# needs to be configured. If a CRON_SECRET Actions secret exists it is
+# used instead — handy if OIDC ever misbehaves.
 name: Source photos
 
 on:
@@ -22,6 +24,10 @@ on:
         required: false
         default: false
 
+permissions:
+  id-token: write
+  contents: read
+
 jobs:
   sweep:
     runs-on: ubuntu-latest
@@ -35,9 +41,18 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
-          if [ -z "$CRON_SECRET" ]; then
-            echo "::error::CRON_SECRET repository secret is not set. Add it under Settings → Secrets and variables → Actions (same value as the Vercel CRON_SECRET env var)."
-            exit 1
+          if [ -n "$CRON_SECRET" ]; then
+            AUTH_TOKEN="$CRON_SECRET"
+            echo "Auth: CRON_SECRET repository secret"
+          else
+            # Keyless: mint a GitHub OIDC token for our API's audience.
+            AUTH_TOKEN=$(curl -sS -H "Authorization: Bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+              "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=bipolartherapyhub-cron" | jq -r '.value')
+            if [ -z "$AUTH_TOKEN" ] || [ "$AUTH_TOKEN" = "null" ]; then
+              echo "::error::Could not obtain a GitHub OIDC token (is 'permissions: id-token: write' present?)"
+              exit 1
+            fi
+            echo "Auth: GitHub OIDC (keyless)"
           fi
           BASE="https://www.bipolartherapyhub.com/api/review/cron/source-photos"
           DRY=""
@@ -47,7 +62,7 @@ jobs:
           total_processed=0
           remaining="unknown"
           for i in $(seq 1 "$MAX_CALLS"); do
-            http_out=$(curl -sS -w "\n%{http_code}" -H "Authorization: Bearer $CRON_SECRET" "$BASE?limit=10$DRY")
+            http_out=$(curl -sS -w "\n%{http_code}" -H "Authorization: Bearer $AUTH_TOKEN" "$BASE?limit=10$DRY")
             code=$(printf '%s' "$http_out" | tail -n 1)
             body=$(printf '%s' "$http_out" | sed '$d')
             echo "── call $i (HTTP $code)"
