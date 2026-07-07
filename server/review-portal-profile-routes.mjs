@@ -26,6 +26,13 @@ import {
   validateWebsite,
 } from "../shared/contact-validation.mjs";
 import { formatPhoneUS } from "../shared/phone-format.mjs";
+import {
+  buildApprovalPatch,
+  buildRejectionPatch,
+  buildSuppressionPatch,
+  canPublishCandidate,
+} from "../shared/photo-sourcing-domain.mjs";
+import { sendSourcedPhotoNotice } from "./review-email.mjs";
 
 // Snapshot scoring + persistence helpers live in ./portal-completeness-snapshot.mjs
 // so the admin God-mode drawer (review-ops-routes.mjs) can recompute the score
@@ -317,7 +324,173 @@ const PORTAL_PROFILE_ROUTES = [
     handler: portalGetPhotoRequestPreview,
   },
   { methods: ["POST"], path: "/portal/photo-request", handler: portalPostPhotoRequest },
+  { methods: ["GET"], path: "/portal/photo-review-queue", handler: adminGetPhotoReviewQueue },
+  { methods: ["POST"], path: "/portal/photo-review/approve", handler: adminPostPhotoApprove },
+  { methods: ["POST"], path: "/portal/photo-review/reject", handler: adminPostPhotoReject },
+  { methods: ["GET"], path: "/portal/photo-optout/confirm", handler: publicGetPhotoOptOut },
 ];
+
+// GET /portal/photo-optout/confirm?token=... — the one-click opt-out link
+// in the sourced-photo notice email. No login: the signed token stands in
+// for authentication. Clears the public-source photo and suppresses
+// re-sourcing, then redirects to a friendly confirmation page.
+async function publicGetPhotoOptOut(context) {
+  const { client, config, response, url } = context;
+  const { readPhotoOptOutToken } = context.deps;
+  const token = String((url.searchParams && url.searchParams.get("token")) || "").trim();
+  const returnBase = String(config.portalBaseUrl || "http://localhost:5173").replace(/\/+$/, "");
+
+  function redirect(status) {
+    response.statusCode = 302;
+    response.setHeader("Location", `${returnBase}/remove?photo=${status}`);
+    response.end();
+    return true;
+  }
+
+  if (!token) return redirect("invalid");
+  const payload = readPhotoOptOutToken(config, token);
+  if (!payload || !payload.slug) return redirect("expired");
+
+  const therapist = await client.fetch(
+    `*[_type == "therapist" && slug.current == $slug][0]{ _id, "slug": slug.current, photoSourceType, photoSuppressed }`,
+    { slug: payload.slug },
+  );
+  if (!therapist) return redirect("invalid");
+
+  // Idempotent: an already-suppressed photo still redirects to success.
+  if (therapist.photoSuppressed) return redirect("removed");
+
+  await client
+    .patch(therapist._id)
+    .set(buildSuppressionPatch(therapist))
+    .commit({ visibility: "sync" });
+
+  appendFunnelEvent(client, "sourced_photo_opted_out", { therapist_slug: payload.slug });
+  return redirect("removed");
+}
+
+// GET /portal/photo-review-queue — admin-only. Sourced headshots awaiting
+// review before they publish (photoCandidate present, status=pending).
+async function adminGetPhotoReviewQueue(context) {
+  const { client, config, deps, origin, request, response } = context;
+  const { sendJson } = context.deps;
+  if (!deps.isAuthorized || !deps.isAuthorized(request, config)) {
+    sendJson(response, 401, { error: "Admin session required." }, origin, config);
+    return true;
+  }
+  const rows = await client.fetch(
+    `*[_type == "therapist" && photoCandidateStatus == "pending" && photoSuppressed != true && defined(photoCandidate.asset)] | order(photoCandidateSourcedAt desc) {
+        "slug": slug.current,
+        name,
+        city,
+        state,
+        website,
+        claimStatus,
+        photoCandidateSourceUrl,
+        photoCandidateSourceHost,
+        photoCandidateSourcedAt,
+        "candidateUrl": photoCandidate.asset->url,
+        "hasEmail": defined(email) && email != ""
+      }`,
+  );
+  sendJson(response, 200, { ok: true, therapists: rows || [] }, origin, config);
+  return true;
+}
+
+// Shared lookup for the approve/reject handlers: admin gate + fetch the
+// therapist by slug with the fields the domain module needs.
+async function loadPhotoReviewTarget(context) {
+  const { client, config, deps, origin, request, response } = context;
+  const { parseBody, sendJson } = context.deps;
+  if (!deps.isAuthorized || !deps.isAuthorized(request, config)) {
+    sendJson(response, 401, { error: "Admin session required." }, origin, config);
+    return null;
+  }
+  const body = await parseBody(request);
+  const slug = String((body && body.slug) || "").trim();
+  if (!slug) {
+    sendJson(response, 400, { error: "slug is required." }, origin, config);
+    return null;
+  }
+  const doc = await client.fetch(
+    `*[_type == "therapist" && slug.current == $slug][0]{
+      _id, name, email, "slug": slug.current,
+      photoCandidateStatus, photoSuppressed,
+      "candidateAssetRef": photoCandidate.asset._ref,
+      "candidateUrl": photoCandidate.asset->url
+    }`,
+    { slug },
+  );
+  if (!doc) {
+    sendJson(response, 404, { error: "Therapist not found." }, origin, config);
+    return null;
+  }
+  return doc;
+}
+
+// POST /portal/photo-review/approve — publish the sourced candidate. Copies
+// photoCandidate into the live photo field and emails the therapist a
+// notice with one-click opt-out + claim links.
+async function adminPostPhotoApprove(context) {
+  const { client, config, origin, response } = context;
+  const { buildPhotoOptOutToken, sendJson } = context.deps;
+  const doc = await loadPhotoReviewTarget(context);
+  if (!doc) return true;
+
+  if (!canPublishCandidate(doc) || !doc.candidateAssetRef) {
+    sendJson(
+      response,
+      409,
+      { error: "No pending photo to approve for this listing." },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  const nowIso = new Date().toISOString();
+  await client
+    .patch(doc._id)
+    .set(buildApprovalPatch({ candidateAssetRef: doc.candidateAssetRef, nowIso }))
+    .commit({ visibility: "sync" });
+
+  appendFunnelEvent(client, "sourced_photo_published", { therapist_slug: doc.slug });
+
+  // Notice + opt-out. Best-effort — a mail failure shouldn't unpublish.
+  let noticeSent = false;
+  if (doc.email) {
+    try {
+      const result = await sendSourcedPhotoNotice(
+        config,
+        doc,
+        config.portalBaseUrl,
+        buildPhotoOptOutToken,
+        { photoUrl: doc.candidateUrl },
+      );
+      noticeSent = Boolean(result && result.sent);
+    } catch (error) {
+      log.warn("Sourced-photo notice email failed", {
+        slug: doc.slug,
+        err: error?.message || String(error),
+      });
+    }
+  }
+  sendJson(response, 200, { ok: true, published: true, noticeSent }, origin, config);
+  return true;
+}
+
+// POST /portal/photo-review/reject — discard the candidate and suppress
+// re-sourcing. Does not publish anything.
+async function adminPostPhotoReject(context) {
+  const { client, config, origin, response } = context;
+  const { sendJson } = context.deps;
+  const doc = await loadPhotoReviewTarget(context);
+  if (!doc) return true;
+
+  await client.patch(doc._id).set(buildRejectionPatch()).commit({ visibility: "sync" });
+  sendJson(response, 200, { ok: true, rejected: true }, origin, config);
+  return true;
+}
 
 async function portalGetMe(context) {
   const { client, config, origin, request, response } = context;

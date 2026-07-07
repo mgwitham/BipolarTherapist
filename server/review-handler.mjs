@@ -741,6 +741,29 @@ function readListingRemovalToken(config, token) {
   return payload;
 }
 
+// Opt-out link in the sourced-photo notice email. Long-lived (90 days) —
+// the notice may sit in an inbox before the therapist acts, and the whole
+// point of an opt-out is that it stays easy to use.
+function buildPhotoOptOutToken(config, therapist) {
+  return createSignedPayload(
+    {
+      sub: "photo-optout",
+      slug: resolveSlug(therapist.slug),
+      exp: Date.now() + 1000 * 60 * 60 * 24 * 90,
+      nonce: crypto.randomBytes(12).toString("hex"),
+    },
+    config.sessionSecret,
+  );
+}
+
+function readPhotoOptOutToken(config, token) {
+  const payload = readSignedPayload(token, sessionVerificationSecrets(config));
+  if (!payload || payload.sub !== "photo-optout" || !payload.exp || payload.exp <= Date.now()) {
+    return null;
+  }
+  return payload;
+}
+
 async function sendListingRemovalLink(config, therapist, portalBaseUrl) {
   return sendListingRemovalLinkEmail(config, therapist, portalBaseUrl, buildListingRemovalToken);
 }
@@ -788,6 +811,7 @@ function createReviewRouteModules() {
       deps: {
         buildPortalRequestDocument,
         buildExpiredSessionCookie,
+        buildPhotoOptOutToken,
         buildRecoveryConfirmToken,
         buildRecoveryMagicLink,
         buildSessionCookie,
@@ -806,6 +830,7 @@ function createReviewRouteModules() {
         notifyTherapistOfRecoveryReceived,
         parseBody,
         readListingRemovalToken,
+        readPhotoOptOutToken,
         readPortalClaimToken,
         readRecoveryConfirmToken,
         readAdminSessionFromRequest,
