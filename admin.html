@@ -6115,6 +6115,23 @@
         border-radius: 8px;
         flex: none;
       }
+      .pru-current {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        border: 1px solid #e3d9c8;
+        background: #fdf9f0;
+        border-radius: 10px;
+        padding: 0.6rem 0.85rem;
+        font-size: 0.85rem;
+      }
+      .pru-current img {
+        width: 56px;
+        height: 56px;
+        object-fit: cover;
+        border-radius: 8px;
+        flex: none;
+      }
       .pru-actions {
         display: flex;
         flex-wrap: wrap;
@@ -6617,10 +6634,10 @@
               <div class="panel" id="photoReviewPanel" style="padding: 1.5rem">
                 <details class="pru-details">
                   <summary class="pru-summary">
-                    Upload a headshot manually
+                    Upload or fix a headshot manually
                     <span class="subtle">
-                      — for listings the sourcer can't reach; paste a screenshot, pick the
-                      therapist, publish
+                      — paste a screenshot to fill a photo-less listing, or pick a listing with a
+                      sourced photo to replace or remove a wrong one
                     </span>
                   </summary>
                   <div id="photoManualUpload"></div>

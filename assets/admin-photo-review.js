@@ -1,4 +1,5 @@
 import {
+  adminRemoveTherapistPhoto,
   adminUploadTherapistPhoto,
   approveSourcedPhoto,
   fetchPhotoReviewQueue,
@@ -246,6 +247,13 @@ export function renderManualPhotoUpload(options) {
     'placeholder="Start typing a name…" autocomplete="off" />' +
     '<datalist id="pruTargets"></datalist>' +
     "</div>" +
+    '<div class="pru-current" id="pruCurrent" hidden>' +
+    '<img id="pruCurrentImg" alt="Current published photo" />' +
+    '<div class="pru-current-meta">' +
+    '<span class="subtle">Current sourced photo. Uploading replaces it, or</span> ' +
+    '<button type="button" class="linklike" id="pruRemoveCurrent">remove it</button>' +
+    "</div>" +
+    "</div>" +
     '<div class="pru-row">' +
     '<label class="pru-label" for="pruSourceUrl">Source URL <span class="subtle">(optional, where the photo came from)</span></label>' +
     '<input type="url" id="pruSourceUrl" class="pru-input" placeholder="https://…" />' +
@@ -265,6 +273,9 @@ export function renderManualPhotoUpload(options) {
 
   const therapistInput = document.getElementById("pruTherapist");
   const targetsList = document.getElementById("pruTargets");
+  const currentWrap = document.getElementById("pruCurrent");
+  const currentImg = document.getElementById("pruCurrentImg");
+  const removeBtn = document.getElementById("pruRemoveCurrent");
   const sourceInput = document.getElementById("pruSourceUrl");
   const drop = document.getElementById("pruDrop");
   const preview = document.getElementById("pruPreview");
@@ -296,7 +307,14 @@ export function renderManualPhotoUpload(options) {
   }
 
   function refreshPublishState() {
-    publishBtn.disabled = !(staged && selectedTarget());
+    const target = selectedTarget();
+    publishBtn.disabled = !(staged && target);
+    publishBtn.textContent = target && target.hasPhoto ? "Replace photo" : "Publish photo";
+    // Surface the currently-published sourced photo for the selected
+    // listing so a wrong pick can be removed (or knowingly replaced).
+    const showCurrent = Boolean(target && target.hasPhoto && target.photoUrl);
+    currentWrap.hidden = !showCurrent;
+    if (showCurrent) currentImg.src = target.photoUrl;
   }
 
   async function loadTargets() {
@@ -309,10 +327,14 @@ export function renderManualPhotoUpload(options) {
             '<option value="' +
             escapeHtml(`${t.name} (${t.slug})`) +
             '">' +
-            escapeHtml([t.city, t.state].filter(Boolean).join(", ")) +
+            escapeHtml(
+              [t.city, t.state].filter(Boolean).join(", ") +
+                (t.hasPhoto ? " — has sourced photo" : ""),
+            ) +
             "</option>",
         )
         .join("");
+      refreshPublishState();
     } catch {
       setStatus("Couldn't load the therapist list — type a slug instead.", "error");
     }
@@ -354,6 +376,29 @@ export function renderManualPhotoUpload(options) {
     fileInput.value = "";
   });
   therapistInput.addEventListener("input", refreshPublishState);
+
+  removeBtn.addEventListener("click", async () => {
+    const target = selectedTarget();
+    if (!target || !target.hasPhoto) return;
+    if (!window.confirm("Remove the published photo from " + target.name + "'s listing?")) {
+      return;
+    }
+    removeBtn.disabled = true;
+    setStatus("Removing…", null);
+    try {
+      const result = await adminRemoveTherapistPhoto(target.slug);
+      if (result && result.removed) {
+        setStatus("Removed the photo from " + target.name + "'s listing.", "success");
+        await loadTargets();
+      } else {
+        setStatus("Remove didn't complete — try again.", "error");
+      }
+    } catch (err) {
+      setStatus((err && err.message) || "Remove failed.", "error");
+    }
+    removeBtn.disabled = false;
+    refreshPublishState();
+  });
 
   publishBtn.addEventListener("click", async () => {
     const target = selectedTarget();

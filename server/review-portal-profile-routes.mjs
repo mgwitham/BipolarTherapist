@@ -27,6 +27,7 @@ import {
 } from "../shared/contact-validation.mjs";
 import { formatPhoneUS } from "../shared/phone-format.mjs";
 import {
+  buildAdminPhotoRemovalPatch,
   buildApprovalPatch,
   buildClaimApprovalPatch,
   buildRejectionPatch,
@@ -331,6 +332,7 @@ const PORTAL_PROFILE_ROUTES = [
   { methods: ["POST"], path: "/portal/photo-review/reject", handler: adminPostPhotoReject },
   { methods: ["GET"], path: "/portal/photo-upload-targets", handler: adminGetPhotoUploadTargets },
   { methods: ["POST"], path: "/portal/photo-admin-upload", handler: adminPostPhotoUpload },
+  { methods: ["POST"], path: "/portal/photo-admin-remove", handler: adminPostPhotoRemove },
   { methods: ["GET"], path: "/portal/photo-optout/confirm", handler: publicGetPhotoOptOut },
   { methods: ["POST"], path: "/portal/photo/keep", handler: portalPostPhotoKeep },
   { methods: ["POST"], path: "/portal/photo/remove", handler: portalPostPhotoRemove },
@@ -501,8 +503,11 @@ async function adminGetPhotoReviewQueue(context) {
   return true;
 }
 
-// GET /portal/photo-upload-targets — admin-only. Live listings without a
-// photo (and not opted out), for the manual-upload picker's autocomplete.
+// GET /portal/photo-upload-targets — admin-only. Live listings the manual
+// tool can act on (not opted out): photo-less ones to fill, plus ones with
+// a public-source photo that can be replaced or removed if it turns out to
+// be the wrong person. Therapist/practice-uploaded photos never appear —
+// those aren't ours to touch.
 async function adminGetPhotoUploadTargets(context) {
   const { client, config, deps, origin, request, response } = context;
   const { sendJson } = context.deps;
@@ -511,11 +516,69 @@ async function adminGetPhotoUploadTargets(context) {
     return true;
   }
   const rows = await client.fetch(
-    `*[_type == "therapist" && listingActive != false && !defined(photo.asset) && photoSuppressed != true] | order(name asc) {
-        "slug": slug.current, name, city, state, claimStatus
+    `*[_type == "therapist" && listingActive != false && photoSuppressed != true &&
+        (!defined(photo.asset) || photoSourceType == "public_source")] | order(name asc) {
+        "slug": slug.current, name, city, state, claimStatus,
+        "hasPhoto": defined(photo.asset),
+        "photoUrl": photo.asset->url
       }`,
   );
   sendJson(response, 200, { ok: true, therapists: rows || [] }, origin, config);
+  return true;
+}
+
+// POST /portal/photo-admin-remove — admin caught a wrong published photo
+// (mismatched person, bad crop) and takes it down. Only removes
+// public-source photos; a photo the therapist or practice provided is
+// theirs, not ours. Doesn't suppress — unlike an opt-out, the listing
+// stays open for a corrected upload or a future re-source.
+async function adminPostPhotoRemove(context) {
+  const { client, config, origin, request, response } = context;
+  const { isAuthorized, parseBody, sendJson } = context.deps;
+  if (!isAuthorized || !isAuthorized(request, config)) {
+    sendJson(response, 401, { error: "Admin session required." }, origin, config);
+    return true;
+  }
+  const body = await parseBody(request);
+  const slug = String((body && body.slug) || "").trim();
+  if (!slug) {
+    sendJson(response, 400, { error: "slug is required." }, origin, config);
+    return true;
+  }
+  const doc = await client.fetch(
+    `*[_type == "therapist" && slug.current == $slug][0]{
+      _id, name, "slug": slug.current, photoSourceType,
+      "hasPhoto": defined(photo.asset)
+    }`,
+    { slug },
+  );
+  if (!doc) {
+    sendJson(response, 404, { error: "Therapist not found." }, origin, config);
+    return true;
+  }
+  if (!doc.hasPhoto) {
+    sendJson(response, 409, { error: "This listing has no photo to remove." }, origin, config);
+    return true;
+  }
+  const sourceType = String(doc.photoSourceType || "").toLowerCase();
+  if (sourceType === "therapist_uploaded" || sourceType === "practice_uploaded") {
+    sendJson(
+      response,
+      409,
+      { error: "This photo was provided by the therapist. Not removing it from here." },
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  await client.patch(doc._id).set(buildAdminPhotoRemovalPatch()).commit({ visibility: "sync" });
+
+  appendFunnelEvent(client, "sourced_photo_admin_removed", {
+    therapist_slug: doc.slug,
+    surface: "manual_upload",
+  });
+  sendJson(response, 200, { ok: true, removed: true }, origin, config);
   return true;
 }
 

@@ -349,7 +349,17 @@ export async function rejectSourcedPhoto(slug) {
   });
 }
 
-// Live listings without a photo — targets for manual headshot upload.
+// Remove a wrong published public-source photo (admin caught a mistake).
+export async function adminRemoveTherapistPhoto(slug) {
+  return request("/portal/photo-admin-remove", {
+    method: "POST",
+    headers: getAdminHeaders(),
+    body: JSON.stringify({ slug }),
+  });
+}
+
+// Live listings the manual photo tool can act on: photo-less ones to fill,
+// plus public-source-photo ones that can be replaced or removed.
 export async function fetchPhotoUploadTargets() {
   return request("/portal/photo-upload-targets", {
     method: "GET",

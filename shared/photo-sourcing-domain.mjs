@@ -160,6 +160,21 @@ export function buildApprovalPatch({ candidateAssetRef, nowIso }) {
   };
 }
 
+// Admin mistake-removal: a published public-source photo turned out to be
+// the wrong person. Clears the live photo and marks the candidate rejected
+// so the vault doesn't count it as a good pick — but does NOT suppress,
+// because suppression means "the therapist opted out" and blocks the fix
+// (a correct manual upload, or the therapist claiming and uploading).
+export function buildAdminPhotoRemovalPatch() {
+  return {
+    photo: null,
+    photoSourceType: null,
+    photoReviewedAt: null,
+    photoUsagePermissionConfirmed: false,
+    photoCandidateStatus: "rejected",
+  };
+}
+
 // Reject a candidate without publishing. Suppress so re-sourcing skips it.
 export function buildRejectionPatch() {
   return {
