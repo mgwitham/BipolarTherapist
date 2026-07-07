@@ -28,6 +28,7 @@ import {
 import { formatPhoneUS } from "../shared/phone-format.mjs";
 import {
   buildApprovalPatch,
+  buildClaimApprovalPatch,
   buildRejectionPatch,
   buildSuppressionPatch,
   canPublishCandidate,
@@ -328,7 +329,107 @@ const PORTAL_PROFILE_ROUTES = [
   { methods: ["POST"], path: "/portal/photo-review/approve", handler: adminPostPhotoApprove },
   { methods: ["POST"], path: "/portal/photo-review/reject", handler: adminPostPhotoReject },
   { methods: ["GET"], path: "/portal/photo-optout/confirm", handler: publicGetPhotoOptOut },
+  { methods: ["POST"], path: "/portal/photo/keep", handler: portalPostPhotoKeep },
+  { methods: ["POST"], path: "/portal/photo/remove", handler: portalPostPhotoRemove },
 ];
+
+// Shared session gate + fetch for the therapist's own sourced-photo
+// actions (keep / remove). Mirrors portalPostPhoto's auth: therapist
+// session cookie, doc looked up by the session slug.
+async function loadOwnPhotoTarget(context) {
+  const { client, config, origin, request, response } = context;
+  const { getAuthorizedTherapist, sendJson } = context.deps;
+  const session = getAuthorizedTherapist(request, config);
+  if (!session) {
+    sendJson(response, 401, { error: "Not signed in." }, origin, config);
+    return null;
+  }
+  const doc = await client.fetch(
+    `*[_type == "therapist" && slug.current == $slug][0]{
+      _id, "slug": slug.current,
+      photoSourceType, photoSuppressed, photoCandidateStatus,
+      "hasPhoto": defined(photo.asset),
+      "candidateAssetRef": photoCandidate.asset._ref,
+      "candidateUrl": photoCandidate.asset->url,
+      "photoUrl": photo.asset->url
+    }`,
+    { slug: session.slug },
+  );
+  if (!doc) {
+    sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
+    return null;
+  }
+  return doc;
+}
+
+function hasSourcedPhotoState(doc) {
+  const sourceType = String(doc.photoSourceType || "").toLowerCase();
+  const publishedSourced = doc.hasPhoto && sourceType === "public_source";
+  const pendingCandidate = doc.photoCandidateStatus === "pending" && doc.candidateAssetRef;
+  return { publishedSourced, pendingCandidate };
+}
+
+// POST /portal/photo/keep — the therapist confirms the sourced photo is
+// them and wants it on the listing. Works for both a published
+// public-source photo (confirms likeness consent) and a still-pending
+// candidate (publishes it, skipping the admin queue — the person in the
+// photo saying "yes, that's me" outranks admin review).
+async function portalPostPhotoKeep(context) {
+  const { client, config, origin, response } = context;
+  const { sendJson } = context.deps;
+  const doc = await loadOwnPhotoTarget(context);
+  if (!doc) return true;
+
+  const { publishedSourced, pendingCandidate } = hasSourcedPhotoState(doc);
+  if (!publishedSourced && !pendingCandidate) {
+    sendJson(response, 409, { error: "No sourced photo to confirm." }, origin, config);
+    return true;
+  }
+
+  const nowIso = new Date().toISOString();
+  const patch = {
+    ...buildClaimApprovalPatch({ nowIso }),
+    photoSuppressed: false,
+  };
+  if (!publishedSourced && pendingCandidate) {
+    patch.photo = { _type: "image", asset: { _type: "reference", _ref: doc.candidateAssetRef } };
+  }
+  await client.patch(doc._id).set(patch).commit({ visibility: "sync" });
+
+  appendFunnelEvent(client, "sourced_photo_kept", {
+    therapist_slug: doc.slug,
+    was_pending: !publishedSourced,
+  });
+  const photoUrl = doc.photoUrl || doc.candidateUrl || "";
+  sendJson(response, 200, { ok: true, kept: true, photo_url: photoUrl }, origin, config);
+  return true;
+}
+
+// POST /portal/photo/remove — the therapist doesn't want the sourced
+// photo. Clears a published public-source photo and/or discards a pending
+// candidate, and suppresses re-sourcing. Never touches a photo the
+// therapist uploaded themselves (that's what Replace is for).
+async function portalPostPhotoRemove(context) {
+  const { client, config, origin, response } = context;
+  const { sendJson } = context.deps;
+  const doc = await loadOwnPhotoTarget(context);
+  if (!doc) return true;
+
+  const { publishedSourced, pendingCandidate } = hasSourcedPhotoState(doc);
+  if (!publishedSourced && !pendingCandidate) {
+    sendJson(response, 409, { error: "No sourced photo to remove." }, origin, config);
+    return true;
+  }
+
+  await client.patch(doc._id).set(buildSuppressionPatch(doc)).commit({ visibility: "sync" });
+
+  appendFunnelEvent(client, "sourced_photo_opted_out", {
+    therapist_slug: doc.slug,
+    surface: "portal",
+  });
+  sendJson(response, 200, { ok: true, removed: true }, origin, config);
+  return true;
+}
 
 // GET /portal/photo-optout/confirm?token=... — the one-click opt-out link
 // in the sourced-photo notice email. No login: the signed token stands in
@@ -523,7 +624,11 @@ async function portalGetMe(context) {
         sessionFeeMin, sessionFeeMax, slidingScale,
         specialties, insuranceAccepted, telehealthStates, treatmentModalities, languages, clientPopulations,
         careApproach, estimatedWaitTime, yearsExperience, bipolarYearsExperience,
-        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount
+        medicationManagement, therapistReportedFields, portalFirstSaveAt, portalLastSaveAt, portalSaveCount,
+        "photoUrl": photo.asset->url,
+        photoSourceType, photoUsagePermissionConfirmed, photoSuppressed,
+        "photoCandidateUrl": photoCandidate.asset->url,
+        photoCandidateStatus, photoCandidateSourceHost
       }`,
     { slug: session.slug },
   );

@@ -4,6 +4,7 @@ import { escapeHtml } from "./escape-html.js";
 import { safeStripeRedirectUrl } from "./safe-url.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { mountPortalTdCompleteness, shouldShowCompleteness } from "./portal-td-completeness.js";
+import { renderPortalPhotoConsent } from "./portal-photo-consent.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
 import { getTherapistMatchReadiness } from "../shared/matching-model.mjs";
 import { getApplications } from "./store.js";
@@ -2140,6 +2141,9 @@ function bindPortalPhotoUpload(therapist) {
           therapist.photo_url = result.photo_url;
           therapist.photo_source_type = "therapist_uploaded";
         }
+        // Let the sourced-photo consent card (and anything else showing
+        // photo state) know the therapist replaced the photo themselves.
+        document.dispatchEvent(new CustomEvent("portal:photo-updated"));
       } else {
         setFeedback("Upload completed but no photo URL came back. Try refreshing.", "error");
         btnLabel.textContent = "Try again";
@@ -2534,6 +2538,7 @@ function renderPortal(therapist, options) {
     (sessionMode === "claim_token"
       ? '<section class="portal-card" style="margin-bottom:1rem"><h2>You\'re in</h2><p class="portal-subtle">Your secure link matched the email on this profile. Confirm to start editing.</p><div class="portal-actions"><button class="btn-primary" id="acceptClaimButton" type="button">Continue to your profile</button><div class="portal-feedback" id="claimAcceptFeedback"></div></div></section>'
       : "") +
+    '<div id="portalPhotoConsentMount" hidden></div>' +
     '<div id="portalTdCompletenessMount"></div>' +
     photoZone +
     planZone +
@@ -2541,6 +2546,19 @@ function renderPortal(therapist, options) {
     helpZone;
 
   bindPortalPhotoUpload(therapist);
+
+  // Sourced-photo consent card: shown when the listing carries a photo we
+  // pulled from the therapist's own website (published or pending) that
+  // they haven't confirmed yet. Replace routes into the existing headshot
+  // upload input rendered by photoZone above.
+  if (verifiedClaim) {
+    renderPortalPhotoConsent(document.getElementById("portalPhotoConsentMount"), therapist, {
+      onReplace: function () {
+        const uploadInput = document.getElementById("portalPhotoInput");
+        if (uploadInput) uploadInput.click();
+      },
+    });
+  }
 
   // Phase 1, focused onboarding flow for clinicians who haven't yet
   // satisfied the minimum go-live requirements (specialties + practice
