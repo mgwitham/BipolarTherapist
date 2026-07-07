@@ -261,6 +261,47 @@ export function extractPhotoCandidatesFromHtml(html, pageUrl) {
   return out;
 }
 
+// ── Coverage metric (pure; the script fetches the docs) ────────────────
+
+// Photo-coverage summary over a set of live listings. Splits by claim
+// status because the two populations need different plays: claimed
+// listings without a photo are a portal nudge; unclaimed ones are the
+// sourcing target. `withPhotoPct` is the headline KPI.
+export function summarizePhotoCoverage(therapists) {
+  const rows = Array.isArray(therapists) ? therapists : [];
+  const acc = {
+    total: rows.length,
+    withPhoto: 0,
+    claimed: { total: 0, withPhoto: 0 },
+    unclaimed: { total: 0, withPhoto: 0 },
+    pendingReview: 0,
+    suppressed: 0,
+    publicSource: 0,
+    sourceableUnclaimedNoPhoto: 0,
+  };
+  for (const t of rows) {
+    const claimed = isClaimed(t);
+    const bucket = claimed ? acc.claimed : acc.unclaimed;
+    bucket.total += 1;
+    if (hasLivePhoto(t)) {
+      acc.withPhoto += 1;
+      bucket.withPhoto += 1;
+    }
+    if (isSuppressed(t)) acc.suppressed += 1;
+    if (candidateStatus(t) === "pending" && !isSuppressed(t)) acc.pendingReview += 1;
+    const sourceType = String(
+      (t && (t.photoSourceType || t.photo_source_type)) || "",
+    ).toLowerCase();
+    if (sourceType === "public_source") acc.publicSource += 1;
+    if (isEligibleForSourcing(t)) acc.sourceableUnclaimedNoPhoto += 1;
+  }
+  const pct = (n, d) => (d > 0 ? Math.round((n / d) * 1000) / 10 : 0);
+  acc.withPhotoPct = pct(acc.withPhoto, acc.total);
+  acc.claimed.withPhotoPct = pct(acc.claimed.withPhoto, acc.claimed.total);
+  acc.unclaimed.withPhotoPct = pct(acc.unclaimed.withPhoto, acc.unclaimed.total);
+  return acc;
+}
+
 export const _internal = {
   BLOCKED_PHOTO_HOSTS,
   NON_HEADSHOT_HINTS,

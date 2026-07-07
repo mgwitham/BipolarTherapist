@@ -16,6 +16,7 @@ import {
   buildClaimApprovalPatch,
   resolveUrl,
   extractPhotoCandidatesFromHtml,
+  summarizePhotoCoverage,
 } from "../../shared/photo-sourcing-domain.mjs";
 
 test("isSameSite treats www and subdomains as the same registrable site", () => {
@@ -183,4 +184,40 @@ test("extractPhotoCandidatesFromHtml de-duplicates and tolerates empty input", (
   const html = `<img src="/a.jpg" class="headshot"><img src="/a.jpg" alt="profile">`;
   const out = extractPhotoCandidatesFromHtml(html, "https://x.com");
   assert.deepEqual(out, ["https://x.com/a.jpg"]);
+});
+
+test("summarizePhotoCoverage splits by claim status and computes the KPI", () => {
+  const rows = [
+    // claimed, has photo
+    { claimStatus: "claimed", photo_url: "x" },
+    // claimed, no photo
+    { claimStatus: "claimed" },
+    // unclaimed, has published public-source photo
+    { claimStatus: "unclaimed", photo_url: "x", photoSourceType: "public_source" },
+    // unclaimed, no photo, has website -> sourceable
+    { claimStatus: "unclaimed", website: "https://a.com" },
+    // unclaimed, pending review
+    { claimStatus: "unclaimed", photoCandidateStatus: "pending", website: "https://b.com" },
+    // unclaimed, opted out
+    { claimStatus: "unclaimed", photoSuppressed: true, website: "https://c.com" },
+  ];
+  const s = summarizePhotoCoverage(rows);
+  assert.equal(s.total, 6);
+  assert.equal(s.withPhoto, 2);
+  assert.equal(s.withPhotoPct, 33.3);
+  assert.equal(s.claimed.total, 2);
+  assert.equal(s.claimed.withPhoto, 1);
+  assert.equal(s.claimed.withPhotoPct, 50);
+  assert.equal(s.unclaimed.total, 4);
+  assert.equal(s.publicSource, 1);
+  assert.equal(s.pendingReview, 1);
+  assert.equal(s.suppressed, 1);
+  // Only the unclaimed/no-photo/has-website/not-suppressed/not-pending row
+  assert.equal(s.sourceableUnclaimedNoPhoto, 1);
+});
+
+test("summarizePhotoCoverage tolerates empty input", () => {
+  const s = summarizePhotoCoverage([]);
+  assert.equal(s.total, 0);
+  assert.equal(s.withPhotoPct, 0);
 });
