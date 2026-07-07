@@ -1,13 +1,10 @@
 #!/usr/bin/env node
-// Source candidate headshots for unclaimed listings from the therapist's
-// OWN website, into the review vault (photoCandidate, status=pending).
-// Nothing published: an admin approves each one in the photo review queue
-// before it goes live (see server/review-candidate-routes: photo review).
-//
-// Only own-site images are considered — aggregators (Psychology Today, etc.)
-// are blocked by the shared domain module, which also rejects logos and
-// placeholders. Each downloaded image is validated with sharp (real raster,
-// sane dimensions, roughly portrait/square) before upload.
+// CLI wrapper over the shared sourcing runner (server/photo-sourcing.mjs)
+// — the same code the /api/review/cron/source-photos endpoint runs.
+// Sources candidate headshots for unclaimed listings from the therapist's
+// OWN website into the review vault (photoCandidate, status=pending).
+// Nothing publishes: an admin approves each one in the Portal →
+// "Sourced photo review" panel first.
 //
 // Usage:
 //   node scripts/source-therapist-photos.mjs                 # dry run
@@ -19,22 +16,12 @@ import process from "node:process";
 import fs from "node:fs";
 import path from "node:path";
 import { createClient } from "@sanity/client";
-import sharp from "sharp";
-import {
-  isEligibleForSourcing,
-  isSourceablePhotoUrl,
-  extractPhotoCandidatesFromHtml,
-  buildCandidatePatch,
-  extractHost,
-} from "../shared/photo-sourcing-domain.mjs";
+import { runPhotoSourcingBatch } from "../server/photo-sourcing.mjs";
 
 const APPLY = process.argv.includes("--apply");
-const LIMIT = readIntFlag("--limit", Infinity);
+const LIMIT = readIntFlag("--limit", 1000);
 const ONLY_SLUG = readStrFlag("--slug", "");
-const FETCH_TIMEOUT_MS = 12000;
 const POLITE_DELAY_MS = 1500;
-const USER_AGENT =
-  "BipolarTherapyHubBot/1.0 (+https://www.bipolartherapyhub.com/about; photo sourcing for directory listings)";
 
 function readIntFlag(flag, fallback) {
   const i = process.argv.indexOf(flag);
@@ -63,51 +50,18 @@ function readEnvFile(filePath) {
 }
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchWithTimeout(url, opts = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
-  try {
-    return await fetch(url, {
-      ...opts,
-      redirect: "follow",
-      signal: controller.signal,
-      headers: { "user-agent": USER_AGENT, ...(opts.headers || {}) },
-    });
-  } finally {
-    clearTimeout(timer);
+// Politeness shim: the serverless runner keeps batches small so it needs
+// no delay, but a local sweep can hit hundreds of sites — space out the
+// page fetches (first request per listing) instead of hammering.
+let lastPageFetchAt = 0;
+async function politeFetch(url, opts) {
+  const sincePage = Date.now() - lastPageFetchAt;
+  const isPageFetch = !/\.(jpe?g|png|webp|gif|avif)(\?|$)/i.test(String(url));
+  if (isPageFetch && sincePage < POLITE_DELAY_MS) {
+    await sleep(POLITE_DELAY_MS - sincePage);
   }
-}
-
-// Download a candidate image and validate it looks like a real headshot:
-// a decodable raster of reasonable size and aspect ratio. Returns
-// { buffer, contentType, width, height } or null with a reason logged.
-async function fetchValidImage(url) {
-  let res;
-  try {
-    res = await fetchWithTimeout(url);
-  } catch (err) {
-    return { error: `fetch failed: ${err.message || err}` };
-  }
-  if (!res.ok) return { error: `HTTP ${res.status}` };
-  const contentType = String(res.headers.get("content-type") || "").toLowerCase();
-  if (!contentType.startsWith("image/")) return { error: `not an image (${contentType})` };
-  const buffer = Buffer.from(await res.arrayBuffer());
-  if (buffer.length < 3 * 1024) return { error: `too small (${buffer.length}b)` };
-  if (buffer.length > 8 * 1024 * 1024) return { error: `too large (${buffer.length}b)` };
-
-  let meta;
-  try {
-    meta = await sharp(buffer).metadata();
-  } catch {
-    return { error: "not decodable by sharp" };
-  }
-  const w = meta.width || 0;
-  const h = meta.height || 0;
-  if (w < 150 || h < 150) return { error: `dimensions too small (${w}x${h})` };
-  const ratio = w / h;
-  // Headshots are portrait-to-square-ish. Reject wide banners/logos.
-  if (ratio < 0.5 || ratio > 1.6) return { error: `aspect ratio ${ratio.toFixed(2)} not headshot` };
-  return { buffer, contentType, width: w, height: h };
+  if (isPageFetch) lastPageFetchAt = Date.now();
+  return fetch(url, opts);
 }
 
 async function main() {
@@ -126,101 +80,26 @@ async function main() {
     useCdn: false,
   });
 
-  const filter = ONLY_SLUG ? `&& slug.current == "${ONLY_SLUG}"` : "";
-  const docs = await client.fetch(
-    `*[_type == "therapist" ${filter}]{
-      _id, name, "slug": slug.current, website,
-      claimStatus, photoSuppressed, photoCandidateStatus,
-      "photo": photo{asset}
-    } | order(name asc)`,
-  );
-
-  const eligible = docs.filter(isEligibleForSourcing);
-  console.log(
-    `${docs.length} therapist(s); ${eligible.length} eligible for sourcing` +
-      (ONLY_SLUG ? ` (slug=${ONLY_SLUG})` : "") +
-      `. ${APPLY ? "APPLY" : "DRY RUN"}.\n`,
-  );
-
-  let sourced = 0;
-  let scanned = 0;
-  for (const t of eligible) {
-    if (sourced >= LIMIT) {
-      console.log(`\nReached --limit ${LIMIT}. Stopping.`);
-      break;
-    }
-    scanned += 1;
-    const label = `${t.name} (${t.slug || t._id})`;
-
-    let pageRes;
-    try {
-      pageRes = await fetchWithTimeout(t.website);
-    } catch (err) {
-      console.log(`  ✗ ${label}: site fetch failed — ${err.message || err}`);
-      await sleep(POLITE_DELAY_MS);
-      continue;
-    }
-    if (!pageRes.ok) {
-      console.log(`  ✗ ${label}: site HTTP ${pageRes.status}`);
-      await sleep(POLITE_DELAY_MS);
-      continue;
-    }
-    const html = await pageRes.text();
-    const finalUrl = pageRes.url || t.website;
-
-    const candidates = extractPhotoCandidatesFromHtml(html, finalUrl).filter((url) =>
-      isSourceablePhotoUrl(url, t.website),
-    );
-    if (!candidates.length) {
-      console.log(`  – ${label}: no sourceable candidate on ${extractHost(t.website)}`);
-      await sleep(POLITE_DELAY_MS);
-      continue;
-    }
-
-    let picked = null;
-    for (const url of candidates) {
-      const img = await fetchValidImage(url);
-      if (img.error) {
-        console.log(`      skip ${url} — ${img.error}`);
-        continue;
-      }
-      picked = { url, ...img };
-      break;
-    }
-    if (!picked) {
-      console.log(`  – ${label}: candidates found but none passed image validation`);
-      await sleep(POLITE_DELAY_MS);
-      continue;
-    }
-
-    console.log(
-      `  ✓ ${label}: ${picked.url} (${picked.width}x${picked.height}, ${picked.contentType})`,
-    );
-    sourced += 1;
-
-    if (APPLY) {
-      try {
-        const asset = await client.assets.upload("image", picked.buffer, {
-          filename: `${t.slug || t._id}-sourced`,
-          contentType: picked.contentType,
-        });
-        const nowIso = new Date().toISOString();
-        await client
-          .patch(t._id)
-          .set(buildCandidatePatch({ assetRef: asset._id, sourceUrl: picked.url, nowIso }))
-          .commit({ visibility: "sync" });
-      } catch (err) {
-        console.log(`      ! upload/patch failed — ${err.message || err}`);
-        sourced -= 1;
-      }
-    }
-    await sleep(POLITE_DELAY_MS);
-  }
+  console.log(`Photo sourcing — ${APPLY ? "APPLY" : "DRY RUN"}\n`);
+  const summary = await runPhotoSourcingBatch({
+    client,
+    limit: LIMIT,
+    deadlineMs: Infinity,
+    dryRun: !APPLY,
+    slug: ONLY_SLUG,
+    fetchImpl: politeFetch,
+    onEvent(e) {
+      const mark = e.outcome === "queued" ? "✓" : e.outcome === "no_candidate" ? "–" : "✗";
+      console.log(`  ${mark} ${e.name} (${e.slug}): ${e.detail}`);
+    },
+  });
 
   console.log(
-    `\nScanned ${scanned} site(s). ${sourced} candidate(s) ${APPLY ? "queued for review" : "would be queued"}.`,
+    `\nEligible: ${summary.eligible} · processed: ${summary.processed} · ` +
+      `queued: ${summary.queued} · no candidate: ${summary.noCandidate} · ` +
+      `site errors: ${summary.siteErrors}`,
   );
-  if (!APPLY && sourced > 0) console.log("DRY RUN — pass --apply to commit.");
+  if (!APPLY && summary.queued > 0) console.log("DRY RUN — pass --apply to commit.");
 }
 
 main().catch((err) => {

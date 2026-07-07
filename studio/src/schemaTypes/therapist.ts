@@ -161,6 +161,15 @@ export const therapistType = defineType({
         "Set when a therapist opts out of a public-source photo. Blocks re-sourcing and publishing.",
     }),
     defineField({
+      name: "photoSourcingLastAttemptAt",
+      title: "Photo sourcing — last attempt",
+      type: "datetime",
+      group: "profile",
+      readOnly: true,
+      description:
+        "Stamped by the sourcing job on every attempt (success or not) so batches rotate through the directory instead of retrying the same failing sites.",
+    }),
+    defineField({
       name: "bio",
       title: "Full bio",
       type: "text",

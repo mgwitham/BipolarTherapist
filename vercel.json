@@ -6,6 +6,9 @@
   "functions": {
     "api/therapists/[slug].mjs": {
       "includeFiles": "dist/therapist.html"
+    },
+    "api/review/[...path].mjs": {
+      "maxDuration": 60
     }
   },
   "redirects": [
