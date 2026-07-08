@@ -15,6 +15,7 @@ import { createClient } from "@sanity/client";
 
 import { buildCityPath, citySlug } from "./generate-seo-city-pages.mjs";
 import { buildGuideLinks } from "../shared/seo-related-guides.mjs";
+import { OG_CARD_VERSION } from "../shared/og-card-version.mjs";
 import { articles } from "../content/resources/articles.mjs";
 import {
   PUBLIC_THERAPIST_PROFILE_PROJECTION,
@@ -106,10 +107,6 @@ const ZIP_GEO = {
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
 const SITE_URL = "https://www.bipolartherapyhub.com";
-// Cache-bust token appended to og:image URLs so social crawlers
-// re-fetch the share card. Bump (v2 → v3 …) whenever the card art
-// changes or a crawler is stuck on a stale/broken cached image.
-const OG_CARD_VERSION = "v5";
 const DIST_DIR = path.join(ROOT, "dist");
 const TEMPLATE_PATH = path.join(DIST_DIR, "therapist.html");
 const PROFILE_OUTPUT_DIR = path.join(DIST_DIR, "therapists");

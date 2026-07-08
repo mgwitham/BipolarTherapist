@@ -25,6 +25,11 @@ import sharp from "sharp";
 import fs from "node:fs";
 import { fileURLToPath } from "node:url";
 
+// Re-exported from a dependency-free module so the runtime serverless
+// handler can import the version without pulling sharp/@vercel/og (which
+// break Vercel's serverless bundling) into its function bundle.
+export { OG_CARD_VERSION } from "./og-card-version.mjs";
+
 // Brand palette — sampled from the site CSS tokens and the favicon.
 export const COLOR = {
   bgTop: "#FAF6F0",
