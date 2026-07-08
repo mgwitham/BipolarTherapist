@@ -29,6 +29,15 @@ test("leaves non-Sanity photo URLs untransformed", () => {
   assert.match(html, /src="https:\/\/example\.com\/photo\.jpg"/);
 });
 
+test("does not treat cdn.sanity.io elsewhere in the URL as the Sanity CDN", () => {
+  const html = buildProviderAvatarHtml({
+    name: "Jamie Rivera",
+    photo_url: "https://evil.example/cdn.sanity.io/photo.jpg",
+  });
+  assert.match(html, /src="https:\/\/evil\.example\/cdn\.sanity\.io\/photo\.jpg"/);
+  assert.doesNotMatch(html, /fit=crop/);
+});
+
 test("falls back to an initials tile with inline colors when no photo", () => {
   const html = buildProviderAvatarHtml({ name: "Jamie Rivera", slug: "jamie-rivera" });
   assert.match(html, /^<div class="city-provider-avatar"/);

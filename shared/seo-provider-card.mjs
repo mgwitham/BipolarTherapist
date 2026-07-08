@@ -57,9 +57,17 @@ function getAvatarRamp(provider) {
 // Sanity CDN thumbnail params — mirrors assets/sanity-image.js so the CDN
 // serves a small, modern-format crop instead of the original. No-op for
 // non-Sanity URLs (some photo_url values are external aggregator links).
+function isSanityCdnUrl(raw) {
+  try {
+    return new URL(raw).hostname === "cdn.sanity.io";
+  } catch {
+    return false;
+  }
+}
+
 function providerThumbUrl(url) {
   const raw = String(url || "").trim();
-  if (!raw || raw.indexOf("cdn.sanity.io") === -1) return raw;
+  if (!isSanityCdnUrl(raw)) return raw;
   const size = AVATAR_PX * 2;
   const params = "w=" + size + "&h=" + size + "&fit=crop&auto=format&q=75";
   return raw + (raw.indexOf("?") === -1 ? "?" : "&") + params;
