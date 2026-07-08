@@ -29,6 +29,18 @@ test("leaves non-Sanity photo URLs untransformed", () => {
   assert.match(html, /src="https:\/\/example\.com\/photo\.jpg"/);
 });
 
+test("only a real cdn.sanity.io host gets CDN params, not lookalike URLs", () => {
+  const lookalikes = [
+    "https://cdn.sanity.io.evil.com/photo.jpg",
+    "https://evil.com/cdn.sanity.io/photo.jpg",
+    "not-a-url-cdn.sanity.io",
+  ];
+  for (const photo_url of lookalikes) {
+    const html = buildProviderAvatarHtml({ name: "Jamie Rivera", photo_url });
+    assert.doesNotMatch(html, /fit=crop/, photo_url);
+  }
+});
+
 test("falls back to an initials tile with inline colors when no photo", () => {
   const html = buildProviderAvatarHtml({ name: "Jamie Rivera", slug: "jamie-rivera" });
   assert.match(html, /^<div class="city-provider-avatar"/);
