@@ -17,6 +17,7 @@ import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
 import { formatNameList, summarizeProviders } from "../shared/seo-provider-stats.mjs";
+import { buildProviderCardHtml } from "../shared/seo-provider-card.mjs";
 import { buildGuideLinks } from "../shared/seo-related-guides.mjs";
 import { articles } from "../content/resources/articles.mjs";
 
@@ -168,63 +169,8 @@ function buildJsonLd(city, state, slug, providers) {
   ];
 }
 
-// Two-letter initials from a name. Skips credentials in parens, prefers
-// first + last initial. Used for the small avatar tile on provider cards.
-function getInitials(name) {
-  const parts = String(name || "")
-    .replace(/\(.*?\)/g, "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (!parts.length) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-// Stable tone index 0-5 from a string so providers consistently get the
-// same avatar color across rebuilds. Mirrors the .profile-hero-avatar
-// tone palette in therapist-page.css.
-function toneForName(name) {
-  let hash = 0;
-  const str = String(name || "");
-  for (let i = 0; i < str.length; i += 1) {
-    hash = (hash * 31 + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash) % 6;
-}
-
 function buildProviderCardsHtml(providers) {
-  return providers
-    .map(function (p) {
-      const fullName = String(p.name || "").trim();
-      const credentials = String(p.credentials || "").trim();
-      const role = String(p.title || "").trim();
-      const initials = getInitials(fullName);
-      const tone = toneForName(fullName);
-      const href = "/therapists/" + encodeURIComponent(String(p.slug || "").trim()) + "/";
-      return (
-        '<a class="city-provider-card" href="' +
-        escapeAttribute(href) +
-        '">' +
-        '<div class="city-provider-avatar city-provider-avatar--tone-' +
-        tone +
-        '" aria-hidden="true">' +
-        escapeHtml(initials) +
-        "</div>" +
-        '<div class="city-provider-body">' +
-        '<div class="city-provider-name">' +
-        escapeHtml(fullName) +
-        (credentials
-          ? '<span class="city-provider-creds">' + escapeHtml(credentials) + "</span>"
-          : "") +
-        "</div>" +
-        (role ? '<div class="city-provider-role">' + escapeHtml(role) + "</div>" : "") +
-        '<div class="city-provider-cta">View profile <span aria-hidden="true">&rarr;</span></div>' +
-        "</div>" +
-        "</a>"
-      );
-    })
-    .join("");
+  return providers.map((p) => buildProviderCardHtml(p, p.title)).join("");
 }
 
 function buildCityHeroHtml(city, state, providers) {
@@ -945,6 +891,7 @@ async function fetchTherapists(config) {
   return client.fetch(
     `*[_type == "therapist" && listingActive == true && status == "active" && defined(slug.current) && defined(city)] | order(name asc) {
        _updatedAt, "slug": slug.current, name, credentials, title, city, state,
+       "photo_url": photo.asset->url,
        sessionFeeMin, sessionFeeMax, acceptsTelehealth, acceptsInPerson,
        acceptingNewPatients, treatmentModalities, specialties
      }`,

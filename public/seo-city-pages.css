@@ -277,9 +277,15 @@
   font-family: var(--sans);
   font-weight: 700;
   font-size: 16px;
-  color: #fff;
   flex-shrink: 0;
   letter-spacing: 0.02em;
+}
+/* Headshot variant: the generator emits an <img> when the therapist has a
+   photo. Initials tiles carry their bg/ink colors inline, set by
+   shared/seo-provider-card.mjs to match the hydrated card avatars. */
+.seo-city-fallback .city-provider-avatar--photo {
+  object-fit: cover;
+  background: var(--cream);
 }
 .seo-city-fallback .city-provider-body {
   flex: 1 1 auto;

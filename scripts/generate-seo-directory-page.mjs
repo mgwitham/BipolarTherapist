@@ -18,6 +18,7 @@ import fs from "node:fs";
 import path from "node:path";
 import process from "node:process";
 import { escapeHtml } from "../shared/escape-html.mjs";
+import { buildProviderCardHtml } from "../shared/seo-provider-card.mjs";
 import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
 
@@ -71,59 +72,12 @@ function escapeAttribute(value) {
   return escapeHtml(value).replace(/`/g, "&#96;");
 }
 
-// Two-letter initials, mirrors the city generator.
-function getInitials(name) {
-  const parts = String(name || "")
-    .replace(/\(.*?\)/g, "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (!parts.length) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function toneForName(name) {
-  let hash = 0;
-  const str = String(name || "");
-  for (let i = 0; i < str.length; i += 1) {
-    hash = (hash * 31 + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash) % 6;
-}
-
 function buildProviderCardsHtml(providers) {
   return providers
     .map(function (p) {
-      const fullName = String(p.name || "").trim();
-      const credentials = String(p.credentials || "").trim();
       const role = String(p.title || "").trim();
       const city = String(p.city || "").trim();
-      const meta = [role, city].filter(Boolean).join(" · ");
-      const initials = getInitials(fullName);
-      const tone = toneForName(fullName);
-      const href = "/therapists/" + encodeURIComponent(String(p.slug || "").trim()) + "/";
-      return (
-        '<a class="city-provider-card" href="' +
-        escapeAttribute(href) +
-        '">' +
-        '<div class="city-provider-avatar city-provider-avatar--tone-' +
-        tone +
-        '" aria-hidden="true">' +
-        escapeHtml(initials) +
-        "</div>" +
-        '<div class="city-provider-body">' +
-        '<div class="city-provider-name">' +
-        escapeHtml(fullName) +
-        (credentials
-          ? '<span class="city-provider-creds">' + escapeHtml(credentials) + "</span>"
-          : "") +
-        "</div>" +
-        (meta ? '<div class="city-provider-role">' + escapeHtml(meta) + "</div>" : "") +
-        '<div class="city-provider-cta">View profile <span aria-hidden="true">&rarr;</span></div>' +
-        "</div>" +
-        "</a>"
-      );
+      return buildProviderCardHtml(p, [role, city].filter(Boolean).join(" · "));
     })
     .join("");
 }
@@ -245,7 +199,8 @@ async function fetchTherapists(config) {
   });
   return client.fetch(
     `*[_type == "therapist" && listingActive == true && status == "active" && defined(slug.current)] | order(name asc) {
-       "slug": slug.current, name, credentials, title, city, state
+       "slug": slug.current, name, credentials, title, city, state,
+       "photo_url": photo.asset->url
      }`,
   );
 }
