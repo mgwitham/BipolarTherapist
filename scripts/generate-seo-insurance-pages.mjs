@@ -17,6 +17,7 @@ import {
   formatNameList,
   summarizeProviders,
 } from "../shared/seo-provider-stats.mjs";
+import { buildProviderCardHtml } from "../shared/seo-provider-card.mjs";
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
@@ -107,61 +108,13 @@ function canonicalUrl(slug) {
   return SITE_URL + buildInsurancePath(slug);
 }
 
-function getInitials(name) {
-  const parts = String(name || "")
-    .replace(/\(.*?\)/g, "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean);
-  if (!parts.length) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
-
-function toneForName(name) {
-  let hash = 0;
-  const str = String(name || "");
-  for (let i = 0; i < str.length; i += 1) {
-    hash = (hash * 31 + str.charCodeAt(i)) | 0;
-  }
-  return Math.abs(hash) % 6;
-}
-
 function providerMeta(provider) {
   return [provider.title, provider.city, provider.state].filter(Boolean).join(" · ");
 }
 
 function buildProviderCardsHtml(providers) {
   return providers
-    .map((provider) => {
-      const name = String(provider.name || "").trim();
-      const credentials = String(provider.credentials || "").trim();
-      const href = "/therapists/" + encodeURIComponent(String(provider.slug || "").trim()) + "/";
-      const meta = providerMeta(provider);
-      const initials = getInitials(name);
-      const tone = toneForName(name);
-      return (
-        '<a class="city-provider-card" href="' +
-        escapeAttribute(href) +
-        '">' +
-        '<div class="city-provider-avatar city-provider-avatar--tone-' +
-        tone +
-        '" aria-hidden="true">' +
-        escapeHtml(initials) +
-        "</div>" +
-        '<div class="city-provider-body">' +
-        '<div class="city-provider-name">' +
-        escapeHtml(name) +
-        (credentials
-          ? '<span class="city-provider-creds">' + escapeHtml(credentials) + "</span>"
-          : "") +
-        "</div>" +
-        (meta ? '<div class="city-provider-role">' + escapeHtml(meta) + "</div>" : "") +
-        '<div class="city-provider-cta">View profile <span aria-hidden="true">&rarr;</span></div>' +
-        "</div>" +
-        "</a>"
-      );
-    })
+    .map((provider) => buildProviderCardHtml(provider, providerMeta(provider)))
     .join("");
 }
 
@@ -717,6 +670,7 @@ async function fetchTherapists(config) {
   return client.fetch(
     `*[_type == "therapist" && listingActive == true && status == "active" && defined(slug.current)] | order(name asc) {
        _updatedAt, "slug": slug.current, name, credentials, title, city, state, insuranceAccepted,
+       "photo_url": photo.asset->url,
        sessionFeeMin, sessionFeeMax, acceptsTelehealth, acceptsInPerson, acceptingNewPatients,
        treatmentModalities, specialties
      }`,
