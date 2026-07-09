@@ -22,6 +22,8 @@ export const REFERRAL_TEMPLATES = ["referral_intro", "referral_follow_up", "refe
  */
 export function audienceNoun(segment) {
   switch (segment) {
+    case "outpatient_therapist":
+      return "clients";
     case "school_counseling":
       return "students";
     case "primary_care":
@@ -48,6 +50,20 @@ export function withReferralRef(url) {
 export const REFERRAL_INTRO_SUBJECT = "A free bipolar therapy search tool for California";
 export const REFERRAL_RESOURCE_SUBJECT = "A resource for finding bipolar therapy in California";
 
+// Therapist-segment variants. The pitch flips from "share this with the
+// people you serve" to "use this when you need to refer a client out" — the
+// moment a clinician decides bipolar disorder is beyond their scope and has
+// to end or transfer treatment is exactly when they need a vetted place to
+// send someone.
+export const REFERRAL_THERAPIST_INTRO_SUBJECT = "For when a client needs a bipolar specialist";
+export const REFERRAL_THERAPIST_RESOURCE_SUBJECT =
+  "A referral option for clients with bipolar disorder";
+
+/** @param {unknown} segment */
+function isTherapistSegment(segment) {
+  return segment === "outpatient_therapist";
+}
+
 /**
  * @typedef {{ contactName?: unknown, orgName?: unknown, segment?: unknown, directoryUrl?: unknown }} ReferralVars
  */
@@ -64,6 +80,26 @@ export function buildReferralIntroBody({ contactName, orgName, segment, director
   const who = audienceNoun(segment);
   const url = String(directoryUrl || "");
   const org = String(orgName || "").trim();
+  if (isTherapistSegment(segment)) {
+    return [
+      `Hi ${first},`,
+      "",
+      "I wanted to share a free tool for one of the harder moments in practice: when a client needs bipolar specialty care you cannot provide.",
+      "",
+      "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder. When you are referring out, ending treatment, or a client needs deeper mood expertise, you can point them there. They can search by location, insurance, and therapy needs. No account, no cost:",
+      "",
+      url,
+      "",
+      "Referring out is easier when the client has a solid place to land. That is the whole point of the site.",
+      "",
+      "Feel free to keep it handy for the next time it comes up.",
+      "",
+      "If this is not useful for your practice, just reply and I will not follow up.",
+      "",
+      "Michael Witham",
+      "BipolarTherapyHub",
+    ].join("\n");
+  }
   return [
     `Hi ${first},`,
     "",
@@ -95,6 +131,22 @@ export function buildReferralFollowUpBody({ contactName, segment, directoryUrl }
   const first = firstName(contactName);
   const who = audienceNoun(segment);
   const url = String(directoryUrl || "");
+  if (isTherapistSegment(segment)) {
+    return [
+      `Hi ${first},`,
+      "",
+      "Circling back in case this is useful. BipolarTherapyHub is a free directory of California bipolar specialists, for when you need to refer a client out:",
+      "",
+      url,
+      "",
+      "Clients can search it themselves by location and insurance. No sign-up, no cost.",
+      "",
+      "If it is not relevant to your practice, just reply and I will leave it there.",
+      "",
+      "Michael",
+      "bipolartherapyhub.com",
+    ].join("\n");
+  }
   return [
     `Hi ${first},`,
     "",
@@ -121,6 +173,24 @@ export function buildReferralResourceBody({ contactName, segment, directoryUrl }
   const first = firstName(contactName);
   const who = audienceNoun(segment);
   const url = String(directoryUrl || "");
+  if (isTherapistSegment(segment)) {
+    return [
+      `Hi ${first},`,
+      "",
+      "Last note from me.",
+      "",
+      "If you ever need to transition a client with bipolar disorder out of your care, BipolarTherapyHub may give them a solid next step:",
+      "",
+      url,
+      "",
+      "It is free, public, and built so clients can explore it themselves.",
+      "",
+      "If a printable one page version would be helpful for your office, reply and I can send one.",
+      "",
+      "Michael Witham",
+      "bipolartherapyhub.com",
+    ].join("\n");
+  }
   return [
     `Hi ${first},`,
     "",
@@ -151,20 +221,22 @@ export function buildReferralResourceBody({ contactName, segment, directoryUrl }
 export function getReferralTemplate(template, vars) {
   const refUrl = withReferralRef(String(vars && vars.directoryUrl ? vars.directoryUrl : ""));
   const withUrl = { ...vars, directoryUrl: refUrl };
+  const therapist = isTherapistSegment(vars && vars.segment);
+  const introSubject = therapist ? REFERRAL_THERAPIST_INTRO_SUBJECT : REFERRAL_INTRO_SUBJECT;
   if (template === "referral_follow_up") {
     return {
-      subject: `Re: ${REFERRAL_INTRO_SUBJECT}`,
+      subject: `Re: ${introSubject}`,
       body: buildReferralFollowUpBody(withUrl),
     };
   }
   if (template === "referral_resource") {
     return {
-      subject: REFERRAL_RESOURCE_SUBJECT,
+      subject: therapist ? REFERRAL_THERAPIST_RESOURCE_SUBJECT : REFERRAL_RESOURCE_SUBJECT,
       body: buildReferralResourceBody(withUrl),
     };
   }
   return {
-    subject: REFERRAL_INTRO_SUBJECT,
+    subject: introSubject,
     body: buildReferralIntroBody(withUrl),
   };
 }
