@@ -8,7 +8,12 @@
 // Callers that work in snake_case (the frontend match viewmodel)
 // should normalize at the boundary.
 
-import { phoneHref, emailHref, publicHttpUrl as normalizeUrlHref } from "./contact-href.mjs";
+import {
+  phoneHref,
+  emailHref,
+  publicHttpUrl as normalizeUrlHref,
+  withReferralAttribution,
+} from "./contact-href.mjs";
 import { escapeHtml } from "./escape-html.mjs";
 
 const HONORIFIC_PATTERN = /^(dr|mr|mrs|ms|mx|prof|professor)\.?$/i;
@@ -96,7 +101,9 @@ function renderBodyParagraph(text) {
 }
 
 function renderBookingLayout(therapist, firstName) {
-  const href = normalizeUrlHref(therapist.bookingUrl);
+  const href = withReferralAttribution(normalizeUrlHref(therapist.bookingUrl), {
+    campaign: "match",
+  });
   return (
     renderHeading("Book with " + firstName) +
     renderBodyParagraph(
@@ -106,13 +113,13 @@ function renderBookingLayout(therapist, firstName) {
     '<div class="mx-contact-actions">' +
     '<a class="mx-btn-primary" href="' +
     escapeHtml(href) +
-    '" target="_blank" rel="noopener noreferrer" data-contact-primary="booking">Open booking page →</a>' +
+    '" target="_blank" rel="noopener" data-contact-primary="booking">Open booking page →</a>' +
     "</div>"
   );
 }
 
 function renderWebsiteLayout(therapist, firstName) {
-  const href = normalizeUrlHref(therapist.website);
+  const href = withReferralAttribution(normalizeUrlHref(therapist.website), { campaign: "match" });
   return (
     renderHeading("Contact " + firstName) +
     renderBodyParagraph(
@@ -122,7 +129,7 @@ function renderWebsiteLayout(therapist, firstName) {
     '<div class="mx-contact-actions">' +
     '<a class="mx-btn-primary" href="' +
     escapeHtml(href) +
-    '" target="_blank" rel="noopener noreferrer" data-contact-primary="website">Continue to ' +
+    '" target="_blank" rel="noopener" data-contact-primary="website">Continue to ' +
     escapeHtml(firstName) +
     "'s site →</a>" +
     "</div>"

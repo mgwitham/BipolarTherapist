@@ -22,6 +22,7 @@ import {
   pickRecommendedFirstContact,
 } from "../../assets/match-ranking.js";
 import { buildUserMatchProfile } from "../../shared/matching-model.mjs";
+import { withReferralAttribution } from "../../shared/contact-href.mjs";
 
 test("buildStarterProfile returns the expected lightweight California starter shape", function () {
   const profile = buildStarterProfile({
@@ -72,7 +73,8 @@ test("getPreferredOutreach favors the configured booking route", function () {
 
   assert.deepEqual(outreach, {
     label: "Book intro",
-    href: "https://example.com/book",
+    // Outbound booking href carries hub referral attribution (campaign "match").
+    href: withReferralAttribution("https://example.com/book", { campaign: "match" }),
     external: true,
   });
 });

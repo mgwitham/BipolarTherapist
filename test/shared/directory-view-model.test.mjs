@@ -7,6 +7,7 @@ import {
   buildDirectoryRecommendationModel,
 } from "../../assets/directory-view-model.js";
 import { getPreferredContactRoute } from "../../assets/directory-logic.js";
+import { withReferralAttribution } from "../../shared/contact-href.mjs";
 import { preloadZipcodes } from "../../assets/zip-lookup.js";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -182,7 +183,11 @@ test("directory contact routes reject unsafe public URLs and normalize contact h
     phone: "",
     email: "",
   });
-  assert.equal(bareBooking.href, "https://calendly.com/jamie");
+  // Outbound booking href carries hub referral attribution (campaign "directory").
+  assert.equal(
+    bareBooking.href,
+    withReferralAttribution("https://calendly.com/jamie", { campaign: "directory" }),
+  );
   assert.equal(bareBooking.external, true);
 
   const emailRoute = getPreferredContactRoute({

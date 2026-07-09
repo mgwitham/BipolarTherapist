@@ -20,6 +20,7 @@ import {
   normalizeFieldReviewStates,
 } from "../../shared/therapist-domain.mjs";
 import { hasActiveFeatured } from "../../shared/therapist-subscription-domain.mjs";
+import { publicHttpUrl, withReferralAttribution } from "../../shared/contact-href.mjs";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -520,6 +521,14 @@ function renderSSRProfile(t) {
     .join("");
 
   const phoneDigits = t.phone ? t.phone.replace(/[^0-9+]/g, "") : "";
+  // Outbound practice/booking links carry hub referral attribution so a real
+  // click-through from this profile shows up as bipolartherapyhub.com in the
+  // therapist's analytics; rel="noopener" (not "noopener noreferrer") keeps
+  // the Referer header intact.
+  const websiteHref = withReferralAttribution(publicHttpUrl(t.website), { campaign: "profile" });
+  const bookingHref = withReferralAttribution(publicHttpUrl(t.booking_url), {
+    campaign: "profile",
+  });
 
   return `
   <div class="profile-header" id="section-about" data-profile-section>
@@ -543,8 +552,8 @@ function renderSSRProfile(t) {
         <div class="profile-contact-card">
           <div class="profile-contact-card-label">Contact</div>
           ${t.phone ? `<a href="tel:${esc(phoneDigits)}" class="profile-contact-row" aria-label="Call ${esc(t.name)}"><span class="profile-contact-icon" aria-hidden="true">📞</span><span class="profile-contact-value">${esc(t.phone)}</span></a>` : ""}
-          ${t.website ? `<a href="${esc(t.website)}" target="_blank" rel="noopener noreferrer" class="profile-contact-row" aria-label="Visit ${esc(t.name)}'s website"><span class="profile-contact-icon" aria-hidden="true">🌐</span><span class="profile-contact-value">Practice website →</span></a>` : ""}
-          ${t.booking_url ? `<a href="${esc(t.booking_url)}" target="_blank" rel="noopener noreferrer" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">📅</span><span class="profile-contact-value">Booking link</span></a>` : ""}
+          ${t.website ? `<a href="${esc(websiteHref)}" target="_blank" rel="noopener" class="profile-contact-row" aria-label="Visit ${esc(t.name)}'s website"><span class="profile-contact-icon" aria-hidden="true">🌐</span><span class="profile-contact-value">Practice website →</span></a>` : ""}
+          ${t.booking_url ? `<a href="${esc(bookingHref)}" target="_blank" rel="noopener" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">📅</span><span class="profile-contact-value">Booking link</span></a>` : ""}
           ${!t.phone && !t.website && !t.booking_url ? '<div class="profile-contact-empty">No direct contact path listed yet.</div>' : ""}
         </div>
       </div>
@@ -609,7 +618,7 @@ function renderSSRProfile(t) {
         <div class="profile-section-content">
           <p class="outreach-intro">Reaching out is easier than it feels. The full outreach guide loads below.</p>
           ${t.phone ? `<a href="tel:${esc(phoneDigits)}" class="btn-contact" data-profile-contact-route="phone" data-profile-contact-priority="primary">Call ${esc(t.phone)}</a>` : ""}
-          ${t.website ? `<a href="${esc(t.website)}" target="_blank" rel="noopener noreferrer" class="btn-contact btn-contact--secondary" data-profile-contact-route="website" data-profile-contact-priority="secondary">Visit website →</a>` : ""}
+          ${t.website ? `<a href="${esc(websiteHref)}" target="_blank" rel="noopener" class="btn-contact btn-contact--secondary" data-profile-contact-route="website" data-profile-contact-priority="secondary">Visit website →</a>` : ""}
         </div>
       </section>
       <section class="profile-section profile-section-collapsible" id="section-faq" data-profile-section>

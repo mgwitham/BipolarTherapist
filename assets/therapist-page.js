@@ -18,6 +18,7 @@ import {
   trackFunnelEvent,
 } from "./funnel-analytics.js";
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
+import { withReferralAttribution } from "../shared/contact-href.mjs";
 import {
   submitMatchOutcome,
   submitTherapistCtaClick,
@@ -249,6 +250,14 @@ function safeExternalUrl(value) {
   } catch (_error) {
     return "";
   }
+}
+
+// A therapist's own booking/website URL, tagged with hub referral attribution
+// so a real click-through from this profile shows up as bipolartherapyhub.com
+// in their analytics. Pairs with rel="noopener" (referrer preserved) on the
+// anchors. Only for practice/booking links — never photos.
+function outboundSiteUrl(value) {
+  return withReferralAttribution(safeExternalUrl(value), { campaign: "profile" });
 }
 
 // ─── Hero avatar (initial render + background photo refresh) ───────────
@@ -780,7 +789,7 @@ function buildFAQItems(t) {
 function buildMobileStickyBar(t) {
   const phone = t.phone || null;
   const email = t.email && t.email !== "contact@example.com" ? t.email : "";
-  const website = safeExternalUrl(t.website) || safeExternalUrl(t.booking_url);
+  const website = outboundSiteUrl(t.website) || outboundSiteUrl(t.booking_url);
   const phoneDigits = phone ? phone.replace(/[^0-9+]/g, "") : null;
   const fee_min = t.session_fee_min;
   const fee_max = t.session_fee_max;
@@ -806,7 +815,7 @@ function buildMobileStickyBar(t) {
       });
     return words[0] || "";
   })();
-  const bookingUrl = safeExternalUrl(t.booking_url);
+  const bookingUrl = outboundSiteUrl(t.booking_url);
   let primaryHtml = "";
   function emailPrimary() {
     return (
@@ -834,12 +843,12 @@ function buildMobileStickyBar(t) {
     primaryHtml =
       '<a href="' +
       escapeHtml(bookingUrl) +
-      '" target="_blank" rel="noopener noreferrer" class="mobile-sticky-cta" data-profile-contact-route="booking" data-profile-contact-priority="primary">Book</a>';
+      '" target="_blank" rel="noopener" class="mobile-sticky-cta" data-profile-contact-route="booking" data-profile-contact-priority="primary">Book</a>';
   } else if (pref === "website" && website) {
     primaryHtml =
       '<a href="' +
       escapeHtml(website) +
-      '" target="_blank" rel="noopener noreferrer" class="mobile-sticky-cta" data-profile-contact-route="website" data-profile-contact-priority="primary">Visit website</a>';
+      '" target="_blank" rel="noopener" class="mobile-sticky-cta" data-profile-contact-route="website" data-profile-contact-priority="primary">Visit website</a>';
   } else if (phone && phoneDigits) {
     primaryHtml = phonePrimary();
   } else if (email) {
@@ -863,7 +872,7 @@ function buildMobileStickyBar(t) {
     (website
       ? '<a href="' +
         escapeHtml(website) +
-        '" target="_blank" rel="noopener noreferrer" class="mobile-sticky-secondary" data-profile-contact-route="website" data-profile-contact-priority="secondary">Website</a>'
+        '" target="_blank" rel="noopener" class="mobile-sticky-secondary" data-profile-contact-route="website" data-profile-contact-priority="secondary">Website</a>'
       : "") +
     "</div>" +
     "</div>" +
@@ -1952,8 +1961,8 @@ function renderProfile(t, therapistDirectory) {
   })();
   const firstStepExpectation = String(t.first_step_expectation || "").trim();
   const contactQuestionItems = [];
-  const bookingUrl = safeExternalUrl(t.booking_url);
-  const websiteUrl = safeExternalUrl(t.website);
+  const bookingUrl = outboundSiteUrl(t.booking_url);
+  const websiteUrl = outboundSiteUrl(t.website);
   const bookingHealthy = Boolean(bookingUrl) && isBookingRouteHealthy(t);
   const websiteHealthy = Boolean(websiteUrl) && isWebsiteRouteHealthy(t);
   function buildPreferredContactButton() {
@@ -1961,7 +1970,7 @@ function renderProfile(t, therapistDirectory) {
       return (
         '<a href="' +
         escapeHtml(bookingUrl) +
-        '" target="_blank" rel="noopener noreferrer" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">' +
+        '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">' +
         escapeHtml(primaryContactLabel || "Book consultation") +
         "</a>"
       );
@@ -1970,7 +1979,7 @@ function renderProfile(t, therapistDirectory) {
       return (
         '<a href="' +
         escapeHtml(websiteUrl) +
-        '" target="_blank" rel="noopener noreferrer" class="btn-contact" data-profile-contact-route="website" data-profile-contact-priority="primary">' +
+        '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="website" data-profile-contact-priority="primary">' +
         escapeHtml(primaryContactLabel || "Visit " + therapistFirstName + "'s website →") +
         "</a>"
       );
@@ -2016,7 +2025,7 @@ function renderProfile(t, therapistDirectory) {
       return (
         '<a href="' +
         escapeHtml(bookingUrl) +
-        '" target="_blank" rel="noopener noreferrer" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">Book a consultation →</a>'
+        '" target="_blank" rel="noopener" class="btn-contact" data-profile-contact-route="booking" data-profile-contact-priority="primary">Book a consultation →</a>'
       );
     }
     return "";
@@ -2046,13 +2055,13 @@ function renderProfile(t, therapistDirectory) {
     contactBtns +=
       '<a href="' +
       escapeHtml(websiteUrl) +
-      '" target="_blank" rel="noopener noreferrer" class="btn-website" data-profile-contact-route="website" data-profile-contact-priority="secondary">Visit website</a>';
+      '" target="_blank" rel="noopener" class="btn-website" data-profile-contact-route="website" data-profile-contact-priority="secondary">Visit website</a>';
   }
   if (bookingUrl && bookingHealthy && t.preferred_contact_method !== "booking") {
     contactBtns +=
       '<a href="' +
       escapeHtml(bookingUrl) +
-      '" target="_blank" rel="noopener noreferrer" class="btn-website" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
+      '" target="_blank" rel="noopener" class="btn-website" data-profile-contact-route="booking" data-profile-contact-priority="secondary">Booking link</a>';
   }
 
   const bestNextStepCopy =
@@ -2171,13 +2180,13 @@ function renderProfile(t, therapistDirectory) {
     secondaryButtons +=
       '<a href="' +
       escapeHtml(websiteUrl) +
-      '" target="_blank" rel="noopener noreferrer" class="btn-website">Visit website</a>';
+      '" target="_blank" rel="noopener" class="btn-website">Visit website</a>';
   }
   if (bookingUrl && bookingHealthy && t.preferred_contact_method !== "booking") {
     secondaryButtons +=
       '<a href="' +
       escapeHtml(bookingUrl) +
-      '" target="_blank" rel="noopener noreferrer" class="btn-website">Booking link</a>';
+      '" target="_blank" rel="noopener" class="btn-website">Booking link</a>';
   }
   secondaryButtons +=
     '<a href="/portal?slug=' +
@@ -2804,7 +2813,7 @@ function renderProfile(t, therapistDirectory) {
       return (
         '<a href="' +
         escapeHtml(bookingUrl) +
-        '" target="_blank" rel="noopener noreferrer" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="booking">' +
+        '" target="_blank" rel="noopener" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="booking">' +
         "" +
         tiSvg("calendar") +
         " Book a consultation" +
@@ -2815,7 +2824,7 @@ function renderProfile(t, therapistDirectory) {
       return (
         '<a href="' +
         escapeHtml(websiteUrl) +
-        '" target="_blank" rel="noopener noreferrer" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="website">' +
+        '" target="_blank" rel="noopener" class="profile-side-primary" data-profile-side-primary data-profile-contact-route="website">' +
         "" +
         tiSvg("world") +
         " Visit " +
@@ -2863,7 +2872,7 @@ function renderProfile(t, therapistDirectory) {
   };
   const prefRoute = prefMap[prefKey] || prefKey; // normalize booking_url → booking
   function sideContactRow(route, iconClass, href, label, opts) {
-    const external = opts && opts.external ? ' target="_blank" rel="noopener noreferrer"' : "";
+    const external = opts && opts.external ? ' target="_blank" rel="noopener"' : "";
     const anchorCls = opts && opts.cls ? ' class="' + opts.cls + '"' : "";
     const preferred = route === prefRoute;
     // No "Preferred" badge here: the primary CTA above already states

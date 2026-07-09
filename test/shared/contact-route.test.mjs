@@ -2,6 +2,12 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import { getPreferredContactRoute } from "../../assets/directory-logic.js";
+import { withReferralAttribution } from "../../shared/contact-href.mjs";
+
+// Outbound booking/website hrefs carry hub referral attribution (campaign
+// "directory" from getPreferredContactRoute) so a real click-through shows up
+// as bipolartherapyhub.com in the therapist's analytics.
+const ref = (url) => withReferralAttribution(url, { campaign: "directory" });
 
 test("getPreferredContactRoute returns null when nothing is usable", () => {
   assert.equal(getPreferredContactRoute({}), null);
@@ -16,8 +22,11 @@ test("getPreferredContactRoute falls back booking > website > phone > email", ()
     phone: "415-555-2671",
     email: "jane@example.com",
   };
-  assert.equal(getPreferredContactRoute(all).href, "https://book.example.com/");
-  assert.equal(getPreferredContactRoute({ ...all, booking_url: "" }).href, "https://example.com/");
+  assert.equal(getPreferredContactRoute(all).href, ref("https://book.example.com/"));
+  assert.equal(
+    getPreferredContactRoute({ ...all, booking_url: "" }).href,
+    ref("https://example.com/"),
+  );
   assert.equal(
     getPreferredContactRoute({ phone: all.phone, email: all.email }).href,
     "tel:4155552671",
@@ -53,7 +62,7 @@ test("getPreferredContactRoute ignores the placeholder email and an invalid phon
     email: "contact@example.com", // placeholder -> excluded
     website: "https://example.com",
   });
-  assert.equal(route.href, "https://example.com/");
+  assert.equal(route.href, ref("https://example.com/"));
 });
 
 test("getPreferredContactRoute applies a custom label", () => {

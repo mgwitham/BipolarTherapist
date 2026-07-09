@@ -292,7 +292,7 @@ export function renderLeadResultCard(entry, options) {
         '" data-match-primary-route="' +
         escapeHtml(routeType || "") +
         '"' +
-        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
+        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
         ">" +
         escapeHtml(ctaLabel) +
         "</a>"
@@ -342,7 +342,7 @@ export function renderSupportingResultCard(entry, options) {
         '" data-match-primary-route="' +
         escapeHtml(routeType || "") +
         '"' +
-        (preferredRoute.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
+        (preferredRoute.external ? ' target="_blank" rel="noopener"' : "") +
         ">" +
         escapeHtml(ctaLabel) +
         "</a>"

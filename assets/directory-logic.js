@@ -15,6 +15,7 @@ import {
   phoneHref as normalizePhoneHref,
   emailHref as normalizeEmailHref,
   publicHttpUrl as normalizePublicHttpUrl,
+  withReferralAttribution,
 } from "../shared/contact-href.mjs";
 
 // Multi-select filter helper, "any selected value of the filter set
@@ -172,8 +173,16 @@ export function isPsychiatristProvider(therapist) {
 }
 
 export function getPreferredContactRoute(therapist) {
-  const bookingUrl = normalizePublicHttpUrl(therapist.booking_url);
-  const websiteUrl = normalizePublicHttpUrl(therapist.website);
+  // Outbound links to a therapist's own booking/website carry hub referral
+  // attribution so a real click-through shows up as bipolartherapyhub.com in
+  // their analytics (paired with rel="noopener" at the render layer, which
+  // keeps the Referer header intact).
+  const bookingUrl = withReferralAttribution(normalizePublicHttpUrl(therapist.booking_url), {
+    campaign: "directory",
+  });
+  const websiteUrl = withReferralAttribution(normalizePublicHttpUrl(therapist.website), {
+    campaign: "directory",
+  });
   const phoneHref = normalizePhoneHref(therapist.phone);
   const emailHref =
     therapist.email && therapist.email !== "contact@example.com"

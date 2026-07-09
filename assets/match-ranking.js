@@ -3,6 +3,7 @@ import { insuranceMatches } from "../shared/therapist-picker-options.mjs";
 import {
   phoneHref as normalizeTelHref,
   publicHttpUrl as normalizeExternalUrl,
+  withReferralAttribution,
 } from "../shared/contact-href.mjs";
 
 export const FEEDBACK_REASON_OPTIONS = [
@@ -342,7 +343,12 @@ export function getPreferredOutreach(entry, options) {
 
   // Build every working route in priority order: website → booking → email → phone
   const available = [];
-  const websiteHref = normalizeExternalUrl(therapist.website);
+  // Outbound website/booking hrefs carry hub referral attribution so a real
+  // click-through surfaces as bipolartherapyhub.com in the therapist's own
+  // analytics; rel="noopener" at the render site keeps the Referer intact.
+  const websiteHref = withReferralAttribution(normalizeExternalUrl(therapist.website), {
+    campaign: "match",
+  });
   if (websiteHref && websiteHealthy) {
     available.push({
       type: "website",
@@ -351,7 +357,9 @@ export function getPreferredOutreach(entry, options) {
       external: true,
     });
   }
-  const bookingHref = normalizeExternalUrl(therapist.booking_url);
+  const bookingHref = withReferralAttribution(normalizeExternalUrl(therapist.booking_url), {
+    campaign: "match",
+  });
   if (bookingHref && bookingHealthy) {
     available.push({
       type: "booking",

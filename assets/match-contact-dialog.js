@@ -1,5 +1,10 @@
 import { buildContactModalContent } from "../shared/contact-modal-content.mjs";
-import { phoneHref, emailHref, publicHttpUrl } from "../shared/contact-href.mjs";
+import {
+  phoneHref,
+  emailHref,
+  publicHttpUrl,
+  withReferralAttribution,
+} from "../shared/contact-href.mjs";
 
 export function getDomainFromUrl(url) {
   try {
@@ -45,13 +50,16 @@ export function getContactRoutes(entry) {
       });
     }
   }
+  // href carries hub referral attribution (real click-through shows as
+  // bipolartherapyhub.com in the therapist's analytics); display/raw keep the
+  // clean URL so the visible domain stays uncluttered.
   const bookingHref = publicHttpUrl(therapist.booking_url);
   if (bookingHref) {
     routes.push({
       type: "booking",
       label: "Book online",
       display: getDomainFromUrl(bookingHref) || "Booking page",
-      href: bookingHref,
+      href: withReferralAttribution(bookingHref, { campaign: "match" }),
       raw: bookingHref,
     });
   }
@@ -61,7 +69,7 @@ export function getContactRoutes(entry) {
       type: "website",
       label: "Website",
       display: getDomainFromUrl(siteHref) || "Website",
-      href: siteHref,
+      href: withReferralAttribution(siteHref, { campaign: "match" }),
       raw: siteHref,
     });
   }

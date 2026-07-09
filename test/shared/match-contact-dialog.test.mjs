@@ -7,6 +7,7 @@ import {
   getDomainFromUrl,
   renderContactDialogBody,
 } from "../../assets/match-contact-dialog.js";
+import { withReferralAttribution } from "../../shared/contact-href.mjs";
 
 test("getDomainFromUrl strips protocol + www, and is safe on junk", function () {
   assert.equal(getDomainFromUrl("https://www.example.com/book"), "example.com");
@@ -37,7 +38,12 @@ test("getContactRoutes builds routes in phone/email/booking/website order", func
   );
   assert.equal(routes[0].href, "tel:4155551234");
   assert.equal(routes[1].href, "mailto:dr@example.com");
-  assert.equal(routes[2].href, "https://calendly.com/dr"); // bare domain gets https://
+  // href carries hub referral attribution (campaign "match"); display/raw stay clean.
+  assert.equal(
+    routes[2].href,
+    withReferralAttribution("https://calendly.com/dr", { campaign: "match" }),
+  ); // bare domain gets https://
+  assert.equal(routes[2].display, "calendly.com");
   assert.equal(routes[3].display, "drsite.com");
 });
 

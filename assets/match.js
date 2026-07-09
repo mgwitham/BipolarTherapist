@@ -106,7 +106,7 @@ import { orderMatchEntries as orderMatchEntriesBase } from "./match-ordering.js"
 import { initValuePillPopover } from "./therapist-pills.js";
 import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-state.js";
 import { getContactRoutes, renderContactDialogBody } from "./match-contact-dialog.js";
-import { publicHttpUrl } from "../shared/contact-href.mjs";
+import { publicHttpUrl, withReferralAttribution } from "../shared/contact-href.mjs";
 import { INSURANCE_OPTIONS } from "../shared/therapist-picker-options.mjs";
 import {
   renderRoundAvatar,
@@ -3837,7 +3837,7 @@ function renderDetailsBody(entry) {
     '" data-match-primary-route="' +
     escapeHtml(ctaInfo.routeLabel) +
     '"' +
-    (ctaInfo.external ? ' target="_blank" rel="noopener noreferrer"' : "") +
+    (ctaInfo.external ? ' target="_blank" rel="noopener"' : "") +
     ">" +
     escapeHtml(ctaInfo.label) +
     "</a>";
@@ -3907,8 +3907,13 @@ function buildModalPrimaryCta(therapist, entry) {
   // neutralize a javascript: URL in an href. publicHttpUrl returns "" for
   // any non-http(s) URL, so an unsafe booking/website value falls through to
   // the fallback contact ladder instead of becoming a clickable XSS vector.
-  const booking = publicHttpUrl(therapist.booking_url);
-  const website = publicHttpUrl(therapist.website);
+  // Tag with hub referral attribution so a real click-through from the match
+  // flow shows up as bipolartherapyhub.com in the therapist's analytics
+  // (rel="noopener" at the render site keeps the Referer header intact).
+  const booking = withReferralAttribution(publicHttpUrl(therapist.booking_url), {
+    campaign: "match",
+  });
+  const website = withReferralAttribution(publicHttpUrl(therapist.website), { campaign: "match" });
 
   function emailHref() {
     const route = getPreferredOutreach(entry);
