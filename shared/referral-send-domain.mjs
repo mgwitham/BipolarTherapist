@@ -53,6 +53,8 @@ export function buildReferralEmailContent(contact, params) {
     contactName: record.contactName,
     orgName: record.orgName,
     segment: record.segment,
+    city: record.city,
+    state: record.state,
     directoryUrl: params.directoryUrl || DEFAULT_DIRECTORY_URL,
   });
   return {

@@ -37,7 +37,7 @@ export async function runReferralCadence({ client, nowIso, limit } = {}) {
   try {
     contacts = await client.fetch(
       `*[_type == "referralContact" && defined(email) && optedOut != true && !(status in $halting)]{
-        _id, email, orgName, contactName, segment, status, sequence, lastContactedAt, emailsSent, emailLog
+        _id, email, orgName, contactName, segment, city, state, status, sequence, lastContactedAt, emailsSent, emailLog
       } | order(coalesce(lastContactedAt, "1970-01-01") asc)`,
       { halting: HALTING },
     );
