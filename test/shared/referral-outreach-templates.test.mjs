@@ -7,6 +7,7 @@ import {
   REFERRAL_THERAPIST_INTRO_SUBJECT,
   REFERRAL_THERAPIST_RESOURCE_SUBJECT,
   audienceNoun,
+  cityDirectoryUrl,
   getReferralTemplate,
   withReferralRef,
 } from "../../shared/referral-outreach-templates.mjs";
@@ -61,17 +62,48 @@ test("getReferralTemplate resource uses a standalone subject", () => {
   assert.ok(!/^Re:/.test(subject));
 });
 
+test("cityDirectoryUrl builds the SEO city page URL and falls back to empty", () => {
+  assert.equal(
+    cityDirectoryUrl("Los Angeles", "CA", "https://www.bipolartherapyhub.com"),
+    "https://www.bipolartherapyhub.com/bipolar-therapists/los-angeles-ca/",
+  );
+  assert.equal(
+    cityDirectoryUrl("Fresno", "", "https://www.bipolartherapyhub.com/"),
+    "https://www.bipolartherapyhub.com/bipolar-therapists/fresno-ca/",
+  );
+  assert.equal(cityDirectoryUrl("", "CA", "https://x.org"), "");
+  assert.equal(cityDirectoryUrl("Fresno", "CA", ""), "");
+});
+
 test("outpatient_therapist gets refer-out copy and its own subjects", () => {
   const intro = getReferralTemplate("referral_intro", {
     contactName: "Alex Rivera, LMFT",
     orgName: "Rivera Counseling",
     segment: "outpatient_therapist",
+    city: "Pasadena",
+    state: "CA",
     directoryUrl: "https://www.bipolartherapyhub.com",
   });
   assert.equal(intro.subject, REFERRAL_THERAPIST_INTRO_SUBJECT);
   assert.match(intro.body, /^Hi Alex,/);
+  assert.match(intro.body, /referral resource/);
   assert.match(intro.body, /referring out|refer a client out/i);
+  assert.match(intro.body, /resources for termination/);
+  assert.match(intro.body, /bipolar specialists seeing clients in Pasadena/);
+  assert.notEqual(
+    intro.body
+      .split("\n")
+      .indexOf("https://www.bipolartherapyhub.com/bipolar-therapists/pasadena-ca/"),
+    -1,
+  );
   assert.notEqual(intro.body.split("\n").indexOf("https://www.bipolartherapyhub.com"), -1);
+
+  const noCity = getReferralTemplate("referral_intro", {
+    segment: "outpatient_therapist",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+  });
+  assert.doesNotMatch(noCity.body, /seeing clients in/);
+  assert.doesNotMatch(noCity.body, /bipolar-therapists\//);
 
   const followUp = getReferralTemplate("referral_follow_up", {
     segment: "outpatient_therapist",

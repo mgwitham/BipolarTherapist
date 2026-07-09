@@ -55,7 +55,8 @@ export const REFERRAL_RESOURCE_SUBJECT = "A resource for finding bipolar therapy
 // moment a clinician decides bipolar disorder is beyond their scope and has
 // to end or transfer treatment is exactly when they need a vetted place to
 // send someone.
-export const REFERRAL_THERAPIST_INTRO_SUBJECT = "For when a client needs a bipolar specialist";
+export const REFERRAL_THERAPIST_INTRO_SUBJECT =
+  "A new referral resource for clients with bipolar disorder";
 export const REFERRAL_THERAPIST_RESOURCE_SUBJECT =
   "A referral option for clients with bipolar disorder";
 
@@ -65,7 +66,35 @@ function isTherapistSegment(segment) {
 }
 
 /**
- * @typedef {{ contactName?: unknown, orgName?: unknown, segment?: unknown, directoryUrl?: unknown }} ReferralVars
+ * URL of a contact's city page (e.g. /bipolar-therapists/fresno-ca/). Slug
+ * rules mirror citySlug in scripts/generate-seo-city-pages.mjs — keep them in
+ * sync. Returns "" when there is no city or no base URL to anchor to, so
+ * callers can fall back to the homepage link.
+ *
+ * @param {unknown} city
+ * @param {unknown} state
+ * @param {unknown} baseUrl
+ * @returns {string}
+ */
+export function cityDirectoryUrl(city, state, baseUrl) {
+  const base = String(baseUrl || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const slug = String(city || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  if (!base || !slug) return "";
+  const stateSlug =
+    String(state || "CA")
+      .trim()
+      .toLowerCase() || "ca";
+  return `${base}/bipolar-therapists/${slug}-${stateSlug}/`;
+}
+
+/**
+ * @typedef {{ contactName?: unknown, orgName?: unknown, segment?: unknown, directoryUrl?: unknown, city?: unknown, state?: unknown, cityUrl?: unknown }} ReferralVars
  */
 
 /**
@@ -75,24 +104,36 @@ function isTherapistSegment(segment) {
  * @param {ReferralVars} vars
  * @returns {string}
  */
-export function buildReferralIntroBody({ contactName, orgName, segment, directoryUrl }) {
+export function buildReferralIntroBody({
+  contactName,
+  orgName,
+  segment,
+  directoryUrl,
+  city,
+  cityUrl,
+}) {
   const first = firstName(contactName);
   const who = audienceNoun(segment);
   const url = String(directoryUrl || "");
   const org = String(orgName || "").trim();
   if (isTherapistSegment(segment)) {
+    const cityName = String(city || "").trim();
+    const cityLink = String(cityUrl || "").trim();
+    const cityBlock =
+      cityName && cityLink
+        ? [`Here are the bipolar specialists seeing clients in ${cityName}:`, "", cityLink, ""]
+        : [];
     return [
       `Hi ${first},`,
       "",
-      "I wanted to share a free tool for one of the harder moments in practice: when a client needs bipolar specialty care you cannot provide.",
+      "A quick note about a new referral resource for California therapists.",
       "",
-      "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder. When you are referring out, ending treatment, or a client needs deeper mood expertise, you can point them there. They can search by location, insurance, and therapy needs. No account, no cost:",
+      "BipolarTherapyHub is a free directory of therapists who specialize in bipolar disorder. If a client ever needs a bipolar referral, whether you are referring out mid treatment or preparing resources for termination, the site gives them a solid place to land.",
+      "",
+      ...cityBlock,
+      "You can explore the full site here. Clients can search by location, insurance, and therapy needs on their own. No account, no cost:",
       "",
       url,
-      "",
-      "Referring out is easier when the client has a solid place to land. That is the whole point of the site.",
-      "",
-      "Feel free to keep it handy for the next time it comes up.",
       "",
       "If this is not useful for your practice, just reply and I will not follow up.",
       "",
@@ -220,8 +261,9 @@ export function buildReferralResourceBody({ contactName, segment, directoryUrl }
  */
 export function getReferralTemplate(template, vars) {
   const refUrl = withReferralRef(String(vars && vars.directoryUrl ? vars.directoryUrl : ""));
-  const withUrl = { ...vars, directoryUrl: refUrl };
   const therapist = isTherapistSegment(vars && vars.segment);
+  const cityUrl = therapist ? cityDirectoryUrl(vars && vars.city, vars && vars.state, refUrl) : "";
+  const withUrl = { ...vars, directoryUrl: refUrl, cityUrl };
   const introSubject = therapist ? REFERRAL_THERAPIST_INTRO_SUBJECT : REFERRAL_INTRO_SUBJECT;
   if (template === "referral_follow_up") {
     return {
