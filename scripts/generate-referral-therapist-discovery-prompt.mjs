@@ -35,7 +35,7 @@ const DEFAULT_OUT_PATH = path.join(
 );
 const SUPPRESSION_PATH = path.join(ROOT, "data", "suppression.json");
 const API_VERSION = "2026-04-02";
-const DEFAULT_COUNT_PER_CITY = 10;
+const DEFAULT_COUNT_PER_CITY = 25;
 const DEFAULT_MIN_COVERAGE = 4;
 
 function parseArgs(argv) {
