@@ -87,6 +87,7 @@
     "cms:enrich:emails": "node scripts/enrich-therapist-emails.mjs",
     "cms:enrich:emails:write": "node scripts/enrich-therapist-emails.mjs --write",
     "cms:discovery-prompt": "node scripts/generate-discovery-prompt.mjs",
+    "cms:referral-discovery-prompt": "node scripts/generate-referral-therapist-discovery-prompt.mjs",
     "cms:discovery:emails": "node scripts/generate-email-discovery-prompt.mjs",
     "cms:apply:email-discovery": "node scripts/apply-email-discovery.mjs",
     "cms:apply:email-discovery:write": "node scripts/apply-email-discovery.mjs --write",

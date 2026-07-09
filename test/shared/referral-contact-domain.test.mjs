@@ -161,6 +161,17 @@ test("prescriber and treatment_program are valid segments", () => {
   assert.ok(SEGMENT_VALUES.has("treatment_program"));
 });
 
+test("outpatient_therapist is a valid segment and outranks the others on base fit", () => {
+  assert.ok(SEGMENT_VALUES.has("outpatient_therapist"));
+  const fit = scoreContactFit({
+    segment: "outpatient_therapist",
+    orgName: "Rivera Counseling",
+    contactName: "Alex Rivera",
+    role: "LMFT",
+  });
+  assert.ok(fit.score >= 75);
+});
+
 test("a bipolar-specialist psychiatrist scores high", () => {
   const fit = scoreContactFit({
     segment: "prescriber",

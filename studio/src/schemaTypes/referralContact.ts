@@ -53,6 +53,7 @@ export const referralContactType = defineType({
       group: "identity",
       options: {
         list: [
+          { title: "Therapist / private practice", value: "outpatient_therapist" },
           { title: "Psychiatrist / prescriber", value: "prescriber" },
           { title: "Community / peer org", value: "community_peer" },
           { title: "Treatment program (PHP/IOP/SUD)", value: "treatment_program" },

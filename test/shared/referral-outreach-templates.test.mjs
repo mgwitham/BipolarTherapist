@@ -4,12 +4,15 @@ import assert from "node:assert/strict";
 import {
   REFERRAL_INTRO_SUBJECT,
   REFERRAL_TEMPLATES,
+  REFERRAL_THERAPIST_INTRO_SUBJECT,
+  REFERRAL_THERAPIST_RESOURCE_SUBJECT,
   audienceNoun,
   getReferralTemplate,
   withReferralRef,
 } from "../../shared/referral-outreach-templates.mjs";
 
 test("audienceNoun adapts to the segment", () => {
+  assert.equal(audienceNoun("outpatient_therapist"), "clients");
   assert.equal(audienceNoun("school_counseling"), "students");
   assert.equal(audienceNoun("primary_care"), "patients");
   assert.equal(audienceNoun("hospital_case_mgmt"), "patients");
@@ -56,6 +59,42 @@ test("getReferralTemplate resource uses a standalone subject", () => {
     directoryUrl: "https://x.org",
   });
   assert.ok(!/^Re:/.test(subject));
+});
+
+test("outpatient_therapist gets refer-out copy and its own subjects", () => {
+  const intro = getReferralTemplate("referral_intro", {
+    contactName: "Alex Rivera, LMFT",
+    orgName: "Rivera Counseling",
+    segment: "outpatient_therapist",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+  });
+  assert.equal(intro.subject, REFERRAL_THERAPIST_INTRO_SUBJECT);
+  assert.match(intro.body, /^Hi Alex,/);
+  assert.match(intro.body, /referring out|refer a client out/i);
+  assert.notEqual(intro.body.split("\n").indexOf("https://www.bipolartherapyhub.com"), -1);
+
+  const followUp = getReferralTemplate("referral_follow_up", {
+    segment: "outpatient_therapist",
+    directoryUrl: "https://x.org",
+  });
+  assert.equal(followUp.subject, `Re: ${REFERRAL_THERAPIST_INTRO_SUBJECT}`);
+  assert.match(followUp.body, /refer a client out/);
+
+  const resource = getReferralTemplate("referral_resource", {
+    segment: "outpatient_therapist",
+    directoryUrl: "https://x.org",
+  });
+  assert.equal(resource.subject, REFERRAL_THERAPIST_RESOURCE_SUBJECT);
+  assert.ok(!/^Re:/.test(resource.subject));
+  assert.match(resource.body, /transition a client/);
+});
+
+test("non-therapist segments keep the original subjects", () => {
+  const intro = getReferralTemplate("referral_intro", {
+    segment: "primary_care",
+    directoryUrl: "https://x.org",
+  });
+  assert.equal(intro.subject, REFERRAL_INTRO_SUBJECT);
 });
 
 test("unknown template falls back to intro", () => {
