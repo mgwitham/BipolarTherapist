@@ -220,8 +220,9 @@ test("prescriber gets medication-management copy, its own subjects, and the city
     directoryUrl: "https://x.org",
   });
   assert.equal(followUp.subject, `Re: ${REFERRAL_PRESCRIBER_INTRO_SUBJECT}`);
-  // Prescriber-specific opener that speaks to their role.
-  assert.match(followUp.body, /You handle the medication\./);
+  // Thin-city fallback leads with the value, no preamble.
+  assert.match(followUp.body, /for the therapy side of any referral you make/);
+  assert.match(followUp.body, /license verified/);
   // Closes on the value and the signature. The CAN-SPAM footer carries the
   // STOP opt-out, so the body never mentions replying.
   assert.doesNotMatch(followUp.body, /reply/i);
@@ -280,11 +281,8 @@ test("prescriber follow-up leads with the city list when a city is on file", () 
   // Still threads under the intro they actually received.
   assert.match(subject, /^Re: /);
   assert.match(body, /^Hi Priya,/);
-  assert.match(
-    body,
-    /You handle the medication\. Finding the right therapist is the harder half\./,
-  );
-  assert.match(body, /bipolar specialists currently seeing patients in San Diego/);
+  // Covered city leads straight with the local list, no preamble.
+  assert.match(body, /^Here are the bipolar specialists currently seeing patients in San Diego:/m);
 
   const lines = body.split("\n");
   const link = "https://www.bipolartherapyhub.com/r/pnair-1234";

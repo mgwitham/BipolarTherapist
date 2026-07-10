@@ -292,10 +292,11 @@ export function buildReferralFollowUpBody({
     // generic intro, so this follow-up is their first sight of the city list.
     // Lead with it: it is the one thing the big directories cannot give them.
     if (canLinkCityPage(cityName, cityLink, cityListingCount)) {
+      // Lead with the value: the local list, no preamble.
       return [
         `Hi ${first},`,
         "",
-        `You handle the medication. Finding the right therapist is the harder half. Here are the bipolar specialists currently seeing patients in ${cityName}:`,
+        `Here are the bipolar specialists currently seeing patients in ${cityName}:`,
         "",
         cityLink,
         "",
@@ -308,11 +309,11 @@ export function buildReferralFollowUpBody({
     return [
       `Hi ${first},`,
       "",
-      "You handle the medication. Finding the right therapist is the harder half. BipolarTherapyHub is a free, license-verified directory of California bipolar specialists, built for exactly that:",
+      "A free directory of California therapists who specialize in bipolar disorder, for the therapy side of any referral you make:",
       "",
       url,
       "",
-      "Patients can search it themselves by location and insurance. No sign-up, no cost.",
+      "Every listing is license verified. Patients can search it themselves by location and insurance. No sign-up, no cost.",
       "",
       "Michael",
       "bipolartherapyhub.com",
