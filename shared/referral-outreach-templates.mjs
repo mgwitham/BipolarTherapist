@@ -85,6 +85,31 @@ function isPrescriberSegment(segment) {
   return segment === "prescriber";
 }
 
+// A city page is only generated when the city has at least this many active
+// listings — keep in sync with MIN_PROVIDERS in generate-seo-city-pages.mjs.
+// Linking a clinician to a city below the threshold sends them to a 404.
+export const MIN_CITY_PAGE_PROVIDERS = 2;
+
+/**
+ * Whether we may link a contact to their city page. Fail-safe: a caller that
+ * cannot prove the page exists (count omitted / unknown) gets no city link
+ * rather than a broken one.
+ *
+ * @param {unknown} cityName
+ * @param {unknown} cityUrl
+ * @param {unknown} cityListingCount
+ * @returns {boolean}
+ */
+function canLinkCityPage(cityName, cityUrl, cityListingCount) {
+  const count = Number(cityListingCount);
+  return Boolean(
+    String(cityName || "").trim() &&
+    String(cityUrl || "").trim() &&
+    Number.isFinite(count) &&
+    count >= MIN_CITY_PAGE_PROVIDERS,
+  );
+}
+
 /**
  * URL of a contact's city page (e.g. /bipolar-therapists/fresno-ca/). Slug
  * rules mirror citySlug in scripts/generate-seo-city-pages.mjs — keep them in
@@ -114,7 +139,7 @@ export function cityDirectoryUrl(city, state, baseUrl) {
 }
 
 /**
- * @typedef {{ contactName?: unknown, orgName?: unknown, segment?: unknown, directoryUrl?: unknown, city?: unknown, state?: unknown, cityUrl?: unknown, referralCode?: unknown }} ReferralVars
+ * @typedef {{ contactName?: unknown, orgName?: unknown, segment?: unknown, directoryUrl?: unknown, city?: unknown, state?: unknown, cityUrl?: unknown, referralCode?: unknown, cityListingCount?: unknown }} ReferralVars
  */
 
 /**
@@ -131,6 +156,7 @@ export function buildReferralIntroBody({
   directoryUrl,
   city,
   cityUrl,
+  cityListingCount,
 }) {
   const first = firstName(contactName);
   const who = audienceNoun(segment);
@@ -139,10 +165,9 @@ export function buildReferralIntroBody({
   if (isTherapistSegment(segment)) {
     const cityName = String(city || "").trim();
     const cityLink = String(cityUrl || "").trim();
-    const cityBlock =
-      cityName && cityLink
-        ? [`Here are the bipolar specialists seeing clients in ${cityName}:`, "", cityLink, ""]
-        : [];
+    const cityBlock = canLinkCityPage(cityName, cityLink, cityListingCount)
+      ? [`Here are the bipolar specialists seeing clients in ${cityName}:`, "", cityLink, ""]
+      : [];
     return [
       `Hi ${first},`,
       "",
@@ -166,20 +191,19 @@ export function buildReferralIntroBody({
     const cityLink = String(cityUrl || "").trim();
     // The city list is the strongest thing in this email — the one thing the
     // big directories can't hand a prescriber — so it leads when we have it.
-    const leadBlock =
-      cityName && cityLink
-        ? [
-            `Here are the bipolar specialists currently seeing patients in ${cityName}:`,
-            "",
-            cityLink,
-            "",
-            "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder. Every listing is license verified against state records. When a patient needs therapy alongside medication management, this gives them a vetted place to start instead of a cold search.",
-          ]
-        : [
-            "A quick note about a free therapy referral resource for your patients with bipolar disorder.",
-            "",
-            "BipolarTherapyHub is a directory of California therapists who specialize in bipolar disorder. Every listing is license verified against state records. When a patient needs therapy alongside medication management, the site gives them a vetted place to start instead of a cold search.",
-          ];
+    const leadBlock = canLinkCityPage(cityName, cityLink, cityListingCount)
+      ? [
+          `Here are the bipolar specialists currently seeing patients in ${cityName}:`,
+          "",
+          cityLink,
+          "",
+          "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder. Every listing is license verified against state records. When a patient needs therapy alongside medication management, this gives them a vetted place to start instead of a cold search.",
+        ]
+      : [
+          "A quick note about a free therapy referral resource for your patients with bipolar disorder.",
+          "",
+          "BipolarTherapyHub is a directory of California therapists who specialize in bipolar disorder. Every listing is license verified against state records. When a patient needs therapy alongside medication management, the site gives them a vetted place to start instead of a cold search.",
+        ];
     return [
       `Hi ${first},`,
       "",
@@ -220,7 +244,14 @@ export function buildReferralIntroBody({
  * @param {ReferralVars} vars
  * @returns {string}
  */
-export function buildReferralFollowUpBody({ contactName, segment, directoryUrl }) {
+export function buildReferralFollowUpBody({
+  contactName,
+  segment,
+  directoryUrl,
+  city,
+  cityUrl,
+  cityListingCount,
+}) {
   const first = firstName(contactName);
   const who = audienceNoun(segment);
   const url = String(directoryUrl || "");
@@ -241,6 +272,27 @@ export function buildReferralFollowUpBody({ contactName, segment, directoryUrl }
     ].join("\n");
   }
   if (isPrescriberSegment(segment)) {
+    const cityName = String(city || "").trim();
+    const cityLink = String(cityUrl || "").trim();
+    // Prescribers contacted before the prescriber copy existed received the old
+    // generic intro, so this follow-up is their first sight of the city list.
+    // Lead with it: it is the one thing the big directories cannot give them.
+    if (canLinkCityPage(cityName, cityLink, cityListingCount)) {
+      return [
+        `Hi ${first},`,
+        "",
+        `Circling back in case this is useful. Here are the bipolar specialists currently seeing patients in ${cityName}:`,
+        "",
+        cityLink,
+        "",
+        "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder, for when a patient needs therapy alongside medication management. Every listing is license verified. Patients can search it themselves by location and insurance. No sign-up, no cost.",
+        "",
+        "No need to reply. Reply STOP anytime and I will leave it there.",
+        "",
+        "Michael",
+        "bipolartherapyhub.com",
+      ].join("\n");
+    }
     return [
       `Hi ${first},`,
       "",

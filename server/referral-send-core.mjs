@@ -10,6 +10,30 @@ import {
   buildReferralSendPatch,
 } from "../shared/referral-send-domain.mjs";
 
+/**
+ * How many active listings a contact's city has. The SEO city page only exists
+ * at or above MIN_CITY_PAGE_PROVIDERS, so the templates use this to decide
+ * whether the city link is safe to include. Returns 0 on any failure —
+ * fail-safe: an email with no city link beats one that 404s.
+ *
+ * @param {{ fetch: Function }} client
+ * @param {unknown} city
+ * @returns {Promise<number>}
+ */
+export async function fetchCityListingCount(client, city) {
+  const name = String(city || "").trim();
+  if (!name) return 0;
+  try {
+    const count = await client.fetch(
+      `count(*[_type == "therapist" && listingActive == true && city == $city])`,
+      { city: name },
+    );
+    return Number.isFinite(Number(count)) ? Number(count) : 0;
+  } catch (_error) {
+    return 0;
+  }
+}
+
 // CAN-SPAM footer — physical postal address required; null blocks the send.
 export function buildReferralFooter() {
   const address = (process.env.OUTREACH_FOOTER_ADDRESS || "").trim();
@@ -96,9 +120,11 @@ export function getReferralSendConfig() {
 export async function deliverReferralTouch(client, contact, options) {
   const { template, config, campaign, nowIso } = options;
   const now = nowIso || new Date().toISOString();
+  const cityListingCount = await fetchCityListingCount(client, contact && contact.city);
   const { subject, text, html } = buildReferralEmailContent(contact, {
     template,
     footer: config.footer,
+    cityListingCount,
   });
 
   const result = await resendSend({

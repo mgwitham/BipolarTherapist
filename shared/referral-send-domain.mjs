@@ -67,7 +67,7 @@ function sentIntroSubject(record) {
  * as spam.
  *
  * @param {object} contact
- * @param {{ template: string, directoryUrl?: string, footer?: { text?: string, html?: string } }} params
+ * @param {{ template: string, directoryUrl?: string, cityListingCount?: number, footer?: { text?: string, html?: string } }} params
  * @returns {{ subject: string, text: string, html: string }}
  */
 export function buildReferralEmailContent(contact, params) {
@@ -82,6 +82,10 @@ export function buildReferralEmailContent(contact, params) {
     directoryUrl: params.directoryUrl || DEFAULT_DIRECTORY_URL,
     // Stable per contact, so the intro and every follow-up share one code.
     referralCode: referralCodeForContact(record),
+    // How many active listings the contact's city has. Omitted/0 means the
+    // city page was never generated, so the templates suppress the city link
+    // rather than send the clinician to a 404.
+    cityListingCount: params.cityListingCount,
   });
   let resolvedSubject = subject;
   if (params.template === "referral_follow_up") {
