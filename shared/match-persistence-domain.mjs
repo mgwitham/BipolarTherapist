@@ -1,3 +1,5 @@
+import { sanitizeReferralCode } from "./referral-attribution.mjs";
+
 function normalizeText(value) {
   return String(value || "").trim();
 }
@@ -328,6 +330,10 @@ export function normalizePortableMatchRequest(input) {
     cultural_preferences: normalizeText(input.culturalPreferences || input.cultural_preferences),
     request_summary: normalizeText(input.requestSummary || input.request_summary),
     source_surface: normalizeText(input.sourceSurface || input.source_surface) || "match_flow",
+    // Attribution code of the clinician whose referral link brought this
+    // patient in; "" when the visit was unattributed. Sanitized because it
+    // originates in a URL query param.
+    referral_code: sanitizeReferralCode(input.referralCode || input.referral_code),
     created_at: normalizeText(input.createdAt || input.created_at) || new Date().toISOString(),
     result_count:
       input.resultCount === undefined && input.result_count === undefined
@@ -401,6 +407,7 @@ export function buildMatchRequestDocument(input) {
     createdAt: record.created_at,
     requestSummary: record.request_summary,
     sourceSurface: record.source_surface,
+    referralCode: record.referral_code || undefined,
     resultCount: record.result_count == null ? undefined : record.result_count,
   };
 }

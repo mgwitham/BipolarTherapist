@@ -24,11 +24,52 @@ test("audienceNoun adapts to the segment", () => {
   assert.equal(audienceNoun("anything_else"), "the people you work with");
 });
 
-test("withReferralRef preserves the visible website url", () => {
+test("withReferralRef passes the url through untouched when there is no code", () => {
   assert.equal(withReferralRef("https://x.org"), "https://x.org");
   assert.equal(withReferralRef("https://x.org/?a=1"), "https://x.org/?a=1");
   assert.equal(withReferralRef(""), "");
   assert.equal(withReferralRef("[directory]"), "[directory]");
+});
+
+test("withReferralRef stamps the attribution code when one is supplied", () => {
+  assert.equal(
+    withReferralRef("https://x.org", "nkennedy-3f2a"),
+    "https://x.org?ref=nkennedy-3f2a",
+  );
+  assert.equal(withReferralRef("", "nkennedy-3f2a"), "");
+});
+
+test("a referral code stamps every link, and the city URL stays well-formed", () => {
+  const { body } = getReferralTemplate("referral_intro", {
+    contactName: "Nigel Kennedy",
+    segment: "prescriber",
+    city: "Los Angeles",
+    state: "CA",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+    referralCode: "nkennedy-3f2a",
+  });
+  const lines = body.split("\n");
+
+  // The code must be appended AFTER the city path is built. Stamping the base
+  // URL first would produce ".../?ref=x/bipolar-therapists/los-angeles-ca/".
+  assert.ok(
+    lines.includes(
+      "https://www.bipolartherapyhub.com/bipolar-therapists/los-angeles-ca/?ref=nkennedy-3f2a",
+    ),
+    `city link malformed:\n${body}`,
+  );
+  assert.ok(lines.includes("https://www.bipolartherapyhub.com?ref=nkennedy-3f2a"));
+  assert.doesNotMatch(body, /ref=nkennedy-3f2a\//, "query string must not appear inside a path");
+});
+
+test("no referral code means clean, unstamped links", () => {
+  const { body } = getReferralTemplate("referral_intro", {
+    segment: "prescriber",
+    city: "Los Angeles",
+    state: "CA",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+  });
+  assert.doesNotMatch(body, /[?&]ref=/);
 });
 
 test("getReferralTemplate intro: greeting, audience noun, clean homepage link", () => {

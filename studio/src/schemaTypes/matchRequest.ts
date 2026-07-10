@@ -251,6 +251,15 @@ export const matchRequestType = defineType({
       },
     }),
     defineField({
+      name: "referralCode",
+      title: "Referral code",
+      type: "string",
+      group: "meta",
+      description:
+        "Attribution code of the clinician whose referral link brought this patient in. Empty for organic visits.",
+      readOnly: true,
+    }),
+    defineField({
       name: "resultCount",
       title: "Result count",
       description:

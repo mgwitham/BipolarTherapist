@@ -8,6 +8,7 @@ import {
   resolveReferralSend,
 } from "../../shared/referral-send-domain.mjs";
 import { REFERRAL_INTRO_SUBJECT } from "../../shared/referral-outreach-templates.mjs";
+import { referralCodeForContact } from "../../shared/referral-attribution.mjs";
 
 const NOW = "2026-06-13T12:00:00.000Z";
 
@@ -68,6 +69,36 @@ test("buildReferralEmailContent threads a follow-up under the intro subject actu
   // The resource touch is standalone and never rethreads.
   const resource = buildReferralEmailContent(contacted, { template: "referral_resource" });
   assert.ok(!/^Re:/.test(resource.subject));
+});
+
+test("buildReferralEmailContent stamps the contact's own attribution code on its links", () => {
+  const contact = {
+    contactName: "Nigel Kennedy",
+    email: "appointments@nigelkennedymd.com",
+    segment: "prescriber",
+    city: "Los Angeles",
+    state: "CA",
+  };
+  const expected = referralCodeForContact(contact);
+  assert.ok(expected, "fixture must yield a code");
+
+  const intro = buildReferralEmailContent(contact, { template: "referral_intro" });
+  assert.match(intro.text, new RegExp(`ref=${expected}`));
+  assert.match(
+    intro.text,
+    /https:\/\/www\.bipolartherapyhub\.com\/bipolar-therapists\/los-angeles-ca\/\?ref=/,
+  );
+
+  // Same contact, later touch → same code, so attribution survives the cadence.
+  const followUp = buildReferralEmailContent(contact, { template: "referral_follow_up" });
+  assert.match(followUp.text, new RegExp(`ref=${expected}`));
+
+  // A contact with no identity gets clean links rather than an invented code.
+  const anonymous = buildReferralEmailContent(
+    { segment: "prescriber" },
+    { template: "referral_intro" },
+  );
+  assert.doesNotMatch(anonymous.text, /[?&]ref=/);
 });
 
 test("buildReferralEmailContent defaults to the public homepage URL", () => {

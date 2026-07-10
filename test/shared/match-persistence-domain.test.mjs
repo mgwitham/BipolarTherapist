@@ -234,3 +234,40 @@ test("normalizePortableMatchOutcome preserves rank_position and result_count of 
   assert.equal(normalizePortableMatchOutcome({}).rank_position, null);
   assert.equal(normalizePortableMatchOutcome({}).result_count, null);
 });
+
+test("match request carries the referral attribution code onto the document", function () {
+  const normalized = normalizePortableMatchRequest({
+    journey_id: "j-1",
+    referral_code: "nkennedy-3f2a",
+  });
+  assert.equal(normalized.referral_code, "nkennedy-3f2a");
+
+  const document = buildMatchRequestDocument({ journey_id: "j-1", referral_code: "nkennedy-3f2a" });
+  assert.equal(document.referralCode, "nkennedy-3f2a");
+
+  // camelCase callers (scripts, API) work too.
+  assert.equal(
+    buildMatchRequestDocument({ requestId: "r", referralCode: "abc-1234" }).referralCode,
+    "abc-1234",
+  );
+});
+
+test("referral code is sanitized and omitted when absent", function () {
+  // Arrives from a URL query param, so it is never trusted verbatim.
+  assert.equal(
+    normalizePortableMatchRequest({ referral_code: "<script>alert(1)</script>" }).referral_code,
+    "script-alert-1-script",
+  );
+  assert.equal(
+    normalizePortableMatchRequest({ referral_code: "  NKennedy-3F2A " }).referral_code,
+    "nkennedy-3f2a",
+  );
+
+  // An organic visit sends "" — the field must be omitted, not stored empty.
+  assert.equal(normalizePortableMatchRequest({}).referral_code, "");
+  assert.equal(buildMatchRequestDocument({ journey_id: "j-2" }).referralCode, undefined);
+  assert.equal(
+    buildMatchRequestDocument({ journey_id: "j-2", referral_code: "" }).referralCode,
+    undefined,
+  );
+});
