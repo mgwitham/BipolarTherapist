@@ -180,8 +180,6 @@ export function buildReferralIntroBody({
       "",
       url,
       "",
-      "If this is not useful for your practice, just reply and I will not follow up.",
-      "",
       "Michael Witham",
       "BipolarTherapyHub",
     ].join("\n");
@@ -265,8 +263,6 @@ export function buildReferralFollowUpBody({
       "",
       "Clients can search it themselves by location and insurance. No sign-up, no cost.",
       "",
-      "If it is not relevant to your practice, just reply and I will leave it there.",
-      "",
       "Michael",
       "bipolartherapyhub.com",
     ].join("\n");
@@ -343,9 +339,11 @@ export function buildReferralResourceBody({
   // The handout is a Print this list button on every city page, not a file we
   // mail out. Point at it rather than offering to send something: the clinician
   // gets it in one click and nobody waits on a reply.
+  // Therapists say "client", prescribers and everyone else say "patient".
+  const recipient = isTherapistSegment(segment) ? "client" : "patient";
   const printLine = hasCity
-    ? `That page has a "Print this list" button. It prints as a one page handout with names, credentials, and phone numbers, ready to hand to a patient.`
-    : `Every city page has a "Print this list" button. It prints as a one page handout with names, credentials, and phone numbers, ready to hand to a patient.`;
+    ? `That page has a "Print this list" button. It prints as a one page handout with names, credentials, and phone numbers, ready to hand to a ${recipient}.`
+    : `Every city page has a "Print this list" button. It prints as a one page handout with names, credentials, and phone numbers, ready to hand to a ${recipient}.`;
 
   if (isTherapistSegment(segment)) {
     return [

@@ -167,6 +167,7 @@ test("outpatient_therapist gets refer-out copy and its own subjects", () => {
   });
   assert.equal(followUp.subject, `Re: ${REFERRAL_THERAPIST_INTRO_SUBJECT}`);
   assert.match(followUp.body, /refer a client out/);
+  assert.doesNotMatch(followUp.body, /reply/i);
 
   const resource = getReferralTemplate("referral_resource", {
     segment: "outpatient_therapist",
@@ -414,4 +415,43 @@ test("the resource email points at the print button instead of promising a file"
     assert.doesNotMatch(body, /reply and I can send one/i, `${segment} still offers to mail it`);
     assert.match(body, /Print this list/, `${segment} never mentions the button`);
   }
+});
+
+test("neither the prescriber nor the therapist campaign asks for a reply", () => {
+  // The CAN-SPAM footer carries the STOP opt-out, so a body that mentions
+  // replying only draws attention to the thing we are not asking for.
+  for (const segment of ["prescriber", "outpatient_therapist"]) {
+    for (const template of REFERRAL_TEMPLATES) {
+      const { body } = getReferralTemplate(template, {
+        contactName: "Sam Reed",
+        segment,
+        city: "Pasadena",
+        state: "CA",
+        cityListingCount: 7,
+        directoryUrl: "https://www.bipolartherapyhub.com",
+      });
+      assert.doesNotMatch(body, /reply/i, `${segment}/${template} asks for a reply`);
+      assert.doesNotMatch(body, /call|meeting|schedule/i, `${segment}/${template} asks for time`);
+    }
+  }
+});
+
+test("the printed handout is offered in the recipient's own vocabulary", () => {
+  const therapist = getReferralTemplate("referral_resource", {
+    segment: "outpatient_therapist",
+    city: "Pasadena",
+    state: "CA",
+    cityListingCount: 7,
+    directoryUrl: "https://www.bipolartherapyhub.com",
+  });
+  assert.match(therapist.body, /hand to a client\./);
+
+  const prescriber = getReferralTemplate("referral_resource", {
+    segment: "prescriber",
+    city: "Pasadena",
+    state: "CA",
+    cityListingCount: 7,
+    directoryUrl: "https://www.bipolartherapyhub.com",
+  });
+  assert.match(prescriber.body, /hand to a patient\./);
 });
