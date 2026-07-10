@@ -110,6 +110,42 @@
         flex-wrap: wrap;
         margin-bottom: 12px;
       }
+      .seg-pills {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 10px;
+      }
+      .seg-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 6px 12px;
+        border: 1px solid var(--gray-300);
+        border-radius: 999px;
+        background: #fff;
+        color: var(--gray-700);
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+      .seg-pill:hover {
+        border-color: var(--teal);
+        color: var(--teal);
+      }
+      .seg-pill.active {
+        background: var(--teal);
+        border-color: var(--teal);
+        color: #fff;
+      }
+      .seg-pill-n {
+        font-variant-numeric: tabular-nums;
+        font-size: 11px;
+        opacity: 0.7;
+      }
+      .seg-pill.active .seg-pill-n {
+        opacity: 0.9;
+      }
       .form-input {
         padding: 8px 10px;
         border: 1px solid var(--gray-300);

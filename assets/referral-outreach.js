@@ -108,19 +108,29 @@ function redirectToAdminLogin() {
 }
 
 // ---- filtering ----
+// Anyone who has already received an email sinks to the bottom of the list, so
+// the top of the working queue is always people who have never been contacted.
+// Within each group the server's order (fitScore desc) is preserved — Array
+// sort is stable, so equal ranks keep their incoming positions.
+export function contactedRank(contact) {
+  return Number(contact && contact.emailsSent) > 0 ? 1 : 0;
+}
+
 function filtered() {
   const { status, segment, search } = state.filters;
   const q = search.trim().toLowerCase();
-  return state.contacts.filter((c) => {
-    if (status && (c.status || "new") !== status) return false;
-    if (segment && c.segment !== segment) return false;
-    if (q) {
-      const hay =
-        `${c.orgName || ""} ${c.contactName || ""} ${c.email || ""} ${c.role || ""}`.toLowerCase();
-      if (!hay.includes(q)) return false;
-    }
-    return true;
-  });
+  return state.contacts
+    .filter((c) => {
+      if (status && (c.status || "new") !== status) return false;
+      if (segment && c.segment !== segment) return false;
+      if (q) {
+        const hay =
+          `${c.orgName || ""} ${c.contactName || ""} ${c.email || ""} ${c.role || ""}`.toLowerCase();
+        if (!hay.includes(q)) return false;
+      }
+      return true;
+    })
+    .sort((a, b) => contactedRank(a) - contactedRank(b));
 }
 
 // ---- render ----
@@ -136,8 +146,17 @@ function render() {
   const opens = state.contacts.reduce((n, c) => n + openCount(c.emailLog), 0);
   const allVisibleChecked = rows.length > 0 && rows.every((c) => state.checked.has(c._id));
 
-  const segmentOptions = ['<option value="">All segments</option>']
-    .concat(SEGMENTS.map((s) => `<option value="${s.value}">${escapeHtml(s.label)}</option>`))
+  // Segment picker is a pill row, not a <select>: the segments are the primary
+  // way the list is sliced, so they stay visible with their counts rather than
+  // hidden behind a dropdown.
+  const segmentCount = (value) =>
+    value ? state.contacts.filter((c) => c.segment === value).length : state.contacts.length;
+  const segmentPills = [{ value: "", label: "All" }]
+    .concat(SEGMENTS.map((s) => ({ value: s.value, label: s.label })))
+    .map((s) => {
+      const active = state.filters.segment === s.value;
+      return `<button type="button" class="seg-pill${active ? " active" : ""}" data-segment="${escapeHtml(s.value)}" aria-pressed="${active}">${escapeHtml(s.label)} <span class="seg-pill-n">${segmentCount(s.value)}</span></button>`;
+    })
     .join("");
   const statusOptions = ['<option value="">All statuses</option>']
     .concat(
@@ -172,8 +191,8 @@ function render() {
       <div class="stat"><div class="n">${opens}</div><div class="l">Opens</div></div>
       <div class="stat"><div class="n">${replied}</div><div class="l">Replied+</div></div>
     </div>
+    <div class="seg-pills" role="group" aria-label="Filter by segment">${segmentPills}</div>
     <div class="filters">
-      <select class="form-input" data-filter="segment">${segmentOptions}</select>
       <select class="form-input" data-filter="status">${statusOptions}</select>
       <input class="form-input" data-filter="search" placeholder="Search org, name, email…" value="${escapeHtml(state.filters.search)}" style="min-width:220px" />
     </div>
@@ -238,14 +257,12 @@ function renderDetail(c) {
     (s) =>
       `<option value="${s.value}"${s.value === (c.status || "new") ? " selected" : ""}>${escapeHtml(s.label)}</option>`,
   ).join("");
-  const fitReasons = Array.isArray(c.fitReasons) ? c.fitReasons.join(" · ") : "";
   return `
     <div class="detail">
       <h2>${escapeHtml(c.orgName || "—")}</h2>
       <div class="muted">${escapeHtml(c.contactName || "")}${c.role ? " · " + escapeHtml(c.role) : ""}</div>
       <div class="row"><span class="k">Email</span><span>${escapeHtml(c.email || "—")}</span></div>
       <div class="row"><span class="k">Segment</span><span>${escapeHtml(SEGMENT_LABEL.get(c.segment) || c.segment || "—")} · ${escapeHtml(c.city || "")} ${escapeHtml(c.state || "")}</span></div>
-      <div class="row"><span class="k">Fit</span><span>${c.fitScore != null ? escapeHtml(String(c.fitScore)) : "—"} <span class="muted">${escapeHtml(fitReasons)}</span></span></div>
       <div class="row"><span class="k">Source</span><span>${c.provenance && c.provenance.sourceUrl ? `<a href="${escapeHtml(c.provenance.sourceUrl)}" target="_blank" rel="noopener">verified source ↗</a>` : "—"}</span></div>
       <div class="row"><span class="k">Next touch</span><span>${escapeHtml(nextTouchLabel(c))}</span></div>
 
@@ -454,6 +471,15 @@ function bindEvents() {
       if (input) input.click();
       return;
     }
+    const segPill = event.target.closest("[data-segment]");
+    if (segPill) {
+      state.filters.segment = segPill.getAttribute("data-segment");
+      // Selection can scroll out of the filtered view; drop it so the detail
+      // panel never shows a contact that isn't in the visible list.
+      state.selectedId = null;
+      render();
+      return;
+    }
     if (event.target.closest("[data-bulk-send]")) {
       bulkSend();
       return;
@@ -537,4 +563,5 @@ async function init() {
   await reload();
 }
 
-init();
+// Guarded so unit tests can import the pure helpers above without a DOM.
+if (typeof document !== "undefined") init();
