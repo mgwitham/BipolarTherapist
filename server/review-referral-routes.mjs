@@ -210,12 +210,23 @@ async function handleSend(context) {
       log.error("suppression list error", { err: err?.message || String(err) });
       return json(response, 500, { error: "Suppression list could not be read; send blocked." });
     }
-    if (suppressionEntry || contact.optedOut === true || contact.status === "opted_out") {
+    // Delivery-terminal statuses: the address is undeliverable or the person
+    // asked out. A bounce/complaint must block the manual send button too, not
+    // only the automated cadence — otherwise a dead address stays sendable by
+    // hand. (replied/engaged/partner are NOT here: a manual send to an engaged
+    // contact is a legitimate reply.)
+    const DELIVERY_TERMINAL = new Set(["opted_out", "bounced", "complained"]);
+    if (suppressionEntry || contact.optedOut === true || DELIVERY_TERMINAL.has(contact.status)) {
+      const reasonByStatus = {
+        bounced: "This address bounced. Send blocked.",
+        complained: "This contact filed a spam complaint. Send blocked.",
+        opted_out: "This contact is opted out. Send blocked.",
+      };
       return json(response, 403, {
         error: "suppressed",
         message: suppressionEntry
           ? `This address is permanently suppressed (${suppressionEntry.reason || "opted out"}${suppressionEntry.date ? `, ${suppressionEntry.date}` : ""}). Send blocked.`
-          : "This contact is opted out. Send blocked.",
+          : reasonByStatus[contact.status] || "This contact is opted out. Send blocked.",
       });
     }
   }
