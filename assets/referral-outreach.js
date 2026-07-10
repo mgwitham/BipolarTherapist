@@ -149,7 +149,7 @@ function render() {
     <header class="top">
       <div>
         <h1>Referral Outreach</h1>
-        <div class="sub">Demand-side pipeline · <a href="/outreach.html">therapist outreach →</a></div>
+        <div class="sub">Demand-side pipeline · <a href="/outreach">therapist outreach →</a></div>
       </div>
       <div>
         <button class="btn-primary" data-import>⬆ Import contacts</button>
