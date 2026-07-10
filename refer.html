@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <title>Refer a Patient · Verified California Bipolar Therapists · BipolarTherapyHub</title>
+    <meta
+      name="description"
+      content="A free referral resource for clinicians. Every therapist is license verified against California state records and vetted for bipolar-specific experience."
+    />
+    <link rel="canonical" href="https://www.bipolartherapyhub.com/refer" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="BipolarTherapyHub" />
+    <meta property="og:url" content="https://www.bipolartherapyhub.com/refer" />
+    <meta
+      property="og:title"
+      content="Refer a Patient · Verified California Bipolar Therapists · BipolarTherapyHub"
+    />
+    <meta
+      property="og:description"
+      content="A free referral resource for clinicians. Every therapist is license verified against California state records and vetted for bipolar-specific experience."
+    />
+    <meta property="og:image" content="https://www.bipolartherapyhub.com/og/refer.png?v1" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta
+      name="twitter:title"
+      content="Refer a Patient · Verified California Bipolar Therapists · BipolarTherapyHub"
+    />
+    <meta
+      name="twitter:description"
+      content="A free referral resource for clinicians. Every therapist is license verified against California state records and vetted for bipolar-specific experience."
+    />
+    <meta name="twitter:image" content="https://www.bipolartherapyhub.com/og/refer.png?v1" />
+    <link rel="stylesheet" href="assets/fonts.css" />
+    <link rel="stylesheet" href="assets/styles.css" />
+    <link rel="stylesheet" href="assets/public-nav.css" />
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      :root {
+        --teal: #1a7a8f;
+        --teal-light: #2a9cb3;
+        --teal-dark: #155f70;
+        --teal-faint: #e8f5f8;
+        --navy: #1d3a4a;
+        --slate: #4a6572;
+        --muted: #5a727f;
+        --border: #d4e4e9;
+        --bg: #f7fbfc;
+        --white: #ffffff;
+      }
+
+      body {
+        font-family: var(--sans);
+        background: linear-gradient(180deg, #f8fcfd 0%, #f4f9fb 100%);
+        color: var(--navy);
+        line-height: 1.65;
+      }
+
+      .skip-link {
+        position: absolute;
+        top: -100%;
+        left: 0;
+        background: var(--teal);
+        color: white;
+        padding: 0.5rem 1rem;
+        z-index: 999;
+        text-decoration: none;
+        font-weight: 600;
+        transition: top 0.1s;
+      }
+      .skip-link:focus {
+        top: 0;
+      }
+
+      /* ---- NAV ---- */
+      nav {
+        background: rgba(255, 255, 255, 0.92);
+        backdrop-filter: blur(10px);
+        border-bottom: 1px solid var(--border);
+        padding: 0 1.5rem;
+        height: 64px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        position: sticky;
+        top: 0;
+        z-index: 100;
+      }
+      nav a.nav-logo {
+        text-decoration: none;
+        font-size: 1rem;
+        font-weight: 700;
+        color: #000;
+        flex-shrink: 0;
+      }
+      nav a.nav-logo span {
+        color: var(--teal);
+      }
+      .nav-links {
+        display: flex;
+        gap: 1.5rem;
+        align-items: center;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+      .nav-links a {
+        font-family: var(--sans);
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        color: var(--slate);
+        transition: color 0.2s;
+      }
+      .nav-links a:hover {
+        color: var(--teal);
+      }
+      .nav-crisis-item {
+        margin-left: auto;
+      }
+      .nav-crisis-item + .nav-zone-switch-item {
+        margin-left: 0;
+      }
+      .nav-crisis-link {
+        color: var(--navy) !important;
+        font-size: 0.875rem !important;
+        font-weight: 500 !important;
+      }
+      .nav-crisis-link:hover {
+        color: var(--teal) !important;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .nav-zone-switch-item {
+        margin-left: auto;
+      }
+      .nav-zone-switch {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.35rem 0.75rem;
+        color: var(--muted) !important;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        transition:
+          color 0.15s ease,
+          border-color 0.15s ease;
+      }
+      .nav-zone-switch:hover {
+        color: var(--teal-dark) !important;
+        border-color: rgba(26, 122, 143, 0.22);
+      }
+
+      /* ---- HERO ---- */
+      .refer-hero {
+        background: linear-gradient(160deg, #0a3a4a 0%, #1a7a8f 60%, #2a9cb3 100%);
+        color: white;
+        padding: 5rem 1.5rem 4.5rem;
+      }
+      .refer-hero-inner {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      .refer-hero-eyebrow {
+        display: inline-block;
+        font-family: var(--sans);
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.85);
+        background: rgba(255, 255, 255, 0.12);
+        padding: 0.35rem 0.85rem;
+        border-radius: 999px;
+        margin-bottom: 1.25rem;
+      }
+      .refer-hero h1 {
+        font-family: var(--serif);
+        font-size: clamp(2.1rem, 4.4vw, 3rem);
+        font-weight: 600;
+        line-height: 1.12;
+        color: white;
+        margin-bottom: 1.5rem;
+        letter-spacing: -0.01em;
+      }
+      .refer-hero p {
+        font-size: 1.05rem;
+        color: rgba(255, 255, 255, 0.88);
+        margin-bottom: 1rem;
+        max-width: 60ch;
+      }
+      .refer-hero-cta {
+        display: inline-block;
+        margin-top: 0.75rem;
+        background: white;
+        color: var(--teal-dark);
+        font-weight: 700;
+        font-size: 1rem;
+        text-decoration: none;
+        padding: 0.8rem 1.6rem;
+        border-radius: 10px;
+        transition: background 0.15s ease;
+      }
+      .refer-hero-cta:hover {
+        background: var(--teal-faint);
+      }
+
+      /* ---- BODY SECTIONS ---- */
+      main {
+        display: block;
+      }
+      .refer-body {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 3rem 1.5rem 1rem;
+      }
+      .refer-section {
+        padding: 1.75rem 0;
+      }
+      .refer-section + .refer-section {
+        border-top: 1px solid var(--border);
+      }
+      .refer-section-tag {
+        display: inline-block;
+        font-size: 0.78rem;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: var(--teal-dark);
+        background: var(--teal-faint);
+        padding: 0.3rem 0.75rem;
+        border-radius: 999px;
+        margin-bottom: 1rem;
+      }
+      .refer-section h2 {
+        font-family: var(--serif);
+        font-size: clamp(1.45rem, 2.6vw, 1.75rem);
+        font-weight: 600;
+        line-height: 1.2;
+        color: var(--navy);
+        margin-bottom: 1rem;
+      }
+      .refer-section p {
+        font-size: 1rem;
+        color: var(--slate);
+        margin-bottom: 1rem;
+      }
+      .refer-section p:last-child {
+        margin-bottom: 0;
+      }
+
+      /* ---- VETTING CHECKLIST ---- */
+      .refer-checks {
+        list-style: none;
+        display: grid;
+        gap: 0.9rem;
+        margin-top: 0.25rem;
+      }
+      .refer-checks li {
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.15rem;
+        display: flex;
+        gap: 0.85rem;
+        align-items: flex-start;
+      }
+      .refer-check-mark {
+        flex-shrink: 0;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        background: var(--teal-faint);
+        color: var(--teal-dark);
+        font-weight: 700;
+        font-size: 0.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 0.15rem;
+      }
+      .refer-checks strong {
+        display: block;
+        color: var(--navy);
+        margin-bottom: 0.15rem;
+      }
+      .refer-checks span.refer-check-detail {
+        color: var(--slate);
+        font-size: 0.95rem;
+      }
+
+      /* ---- HOW TO REFER STEPS ---- */
+      .refer-steps {
+        list-style: none;
+        counter-reset: refer-step;
+        display: grid;
+        gap: 0.9rem;
+        margin-top: 0.25rem;
+      }
+      .refer-steps li {
+        counter-increment: refer-step;
+        background: var(--white);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1rem 1.15rem 1rem 3.1rem;
+        position: relative;
+        color: var(--slate);
+        font-size: 0.98rem;
+      }
+      .refer-steps li::before {
+        content: counter(refer-step);
+        position: absolute;
+        left: 1rem;
+        top: 1.05rem;
+        width: 1.5rem;
+        height: 1.5rem;
+        border-radius: 50%;
+        background: var(--teal);
+        color: white;
+        font-weight: 700;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .refer-steps strong {
+        color: var(--navy);
+      }
+
+      .refer-cta-row {
+        margin-top: 1.5rem;
+      }
+      .refer-cta {
+        display: inline-block;
+        background: var(--teal);
+        color: white;
+        font-weight: 700;
+        font-size: 1rem;
+        text-decoration: none;
+        padding: 0.8rem 1.6rem;
+        border-radius: 10px;
+        transition: background 0.15s ease;
+      }
+      .refer-cta:hover {
+        background: var(--teal-dark);
+      }
+
+      /* ---- CLOSING BLOCK ---- */
+      .refer-closing {
+        max-width: 720px;
+        margin: 0 auto;
+        padding: 1rem 1.5rem 4rem;
+      }
+      .refer-closing-card {
+        background: var(--teal-faint);
+        border: 1px solid rgba(26, 122, 143, 0.16);
+        border-radius: 14px;
+        padding: 1.75rem;
+      }
+      .refer-closing-card p {
+        font-size: 1rem;
+        color: var(--slate);
+        margin-bottom: 0.85rem;
+      }
+      .refer-closing-card p:last-child {
+        margin-bottom: 0;
+        color: var(--navy);
+        font-weight: 500;
+      }
+      .refer-closing-card a {
+        color: var(--teal-dark);
+        font-weight: 600;
+      }
+
+      /* ---- RESPONSIVE ---- */
+      @media (max-width: 640px) {
+        .refer-hero {
+          padding: 3.5rem 1.25rem 3rem;
+        }
+        .refer-hero p {
+          font-size: 1rem;
+        }
+        .refer-body {
+          padding: 2rem 1.25rem 0.5rem;
+        }
+        .refer-closing {
+          padding: 0.75rem 1.25rem 3rem;
+        }
+        .refer-closing-card {
+          padding: 1.4rem;
+        }
+      }
+    </style>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        "url": "https://www.bipolartherapyhub.com/refer",
+        "name": "Refer a Patient to a Verified Bipolar Therapist",
+        "description": "A free referral resource for clinicians. Every therapist is license verified against California state records and vetted for bipolar-specific experience.",
+        "audience": {
+          "@type": "MedicalAudience",
+          "audienceType": "Clinician"
+        },
+        "isPartOf": {
+          "@type": "WebSite",
+          "@id": "https://www.bipolartherapyhub.com/#website",
+          "url": "https://www.bipolartherapyhub.com/",
+          "name": "BipolarTherapyHub"
+        },
+        "about": {
+          "@type": "Organization",
+          "@id": "https://www.bipolartherapyhub.com/#organization",
+          "name": "BipolarTherapyHub",
+          "url": "https://www.bipolartherapyhub.com/",
+          "logo": "https://www.bipolartherapyhub.com/favicon.png",
+          "description": "A California directory of license-verified therapists who specialize in bipolar disorder. Curated for fit, evidence, and clinical relevance.",
+          "areaServed": {
+            "@type": "AdministrativeArea",
+            "name": "California, United States"
+          }
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
+    <nav aria-label="Main navigation" class="nav-dark">
+      <a href="/" class="nav-logo" aria-label="BipolarTherapyHub, home">
+        <img
+          class="logo-mark"
+          src="/favicon.svg"
+          alt=""
+          aria-hidden="true"
+          width="32"
+          height="32"
+        />
+        <span class="logo-wordmark">BipolarTherapy<span>Hub</span></span>
+      </a>
+      <button
+        class="nav-hamburger"
+        aria-label="Open menu"
+        aria-expanded="false"
+        aria-controls="mobileNav"
+      >
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <ul class="nav-links">
+        <li>
+          <a
+            href="tel:988"
+            class="nav-crisis-link"
+            aria-label="In crisis? Call or text the Suicide and Crisis Lifeline at 988"
+            >In crisis? Call or text 988</a
+          >
+        </li>
+        <li><a href="/#startMatch" id="navBrowseLink">Get matched</a></li>
+        <li><a href="/directory">Browse directory</a></li>
+        <li><a href="/about">About</a></li>
+        <li><a href="/signup" id="navCtaLink" class="nav-zone-switch">For therapists →</a></li>
+      </ul>
+    </nav>
+    <div class="public-mobile-nav" id="mobileNav" aria-label="Mobile navigation">
+      <a href="/" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">Home</span>
+      </a>
+      <a href="/#startMatch" class="public-mobile-nav-link" id="navBrowseLinkMobile">
+        <span class="public-mobile-nav-title">Get matched</span>
+      </a>
+      <a href="/directory" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">Browse directory</span>
+      </a>
+      <a href="/directory" class="public-mobile-nav-link mobile-shortlist-nav" data-shortlist-link>
+        <span class="public-mobile-nav-title"
+          >My list <span class="nav-shortlist-count" data-shortlist-count hidden>0</span></span
+        >
+      </a>
+      <a href="/about" class="public-mobile-nav-link">
+        <span class="public-mobile-nav-title">About</span>
+      </a>
+      <a href="/signup" class="public-mobile-nav-link nav-zone-switch">
+        <span class="public-mobile-nav-title">For therapists →</span>
+      </a>
+    </div>
+
+    <main id="main-content">
+      <section class="refer-hero" aria-labelledby="referHeroHeading">
+        <div class="refer-hero-inner">
+          <span class="refer-hero-eyebrow">For referring clinicians</span>
+          <h1 id="referHeroHeading">Refer a patient to a bipolar specialist.</h1>
+          <p>
+            A free list of California therapists who actually treat bipolar disorder. Every
+            clinician is license verified against state records, and availability is checked so your
+            patient is not calling full practices.
+          </p>
+          <p>No account. No referral fees. One link worth keeping.</p>
+          <a class="refer-hero-cta" href="/bipolar-therapists/">Browse therapists by city →</a>
+        </div>
+      </section>
+
+      <div class="refer-body">
+        <section class="refer-section" aria-labelledby="referWhyHeading">
+          <span class="refer-section-tag">Why this exists</span>
+          <h2 id="referWhyHeading">The referral list in your drawer is probably stale.</h2>
+          <p>
+            If you prescribe for bipolar disorder or see it in your intake screens, you know the
+            problem. The patient needs a therapist who understands mood episodes, and the big
+            directories bury the specialists under thousands of generalists. Half the numbers you
+            hand out reach full practices or dead voicemail.
+          </p>
+          <p>
+            BipolarTherapyHub is a single-condition directory. Only therapists with documented
+            bipolar experience are listed. Nothing is sold, ranked for pay, or padded with group
+            practice marketing pages.
+          </p>
+        </section>
+
+        <section class="refer-section" aria-labelledby="referVettingHeading">
+          <span class="refer-section-tag">How therapists are vetted</span>
+          <h2 id="referVettingHeading">Three checks before anyone is listed.</h2>
+          <ul class="refer-checks">
+            <li>
+              <span class="refer-check-mark" aria-hidden="true">✓</span>
+              <div>
+                <strong>Active California license</strong>
+                <span class="refer-check-detail"
+                  >Every listing is verified against California state licensing records. License
+                  numbers are shown on each profile.</span
+                >
+              </div>
+            </li>
+            <li>
+              <span class="refer-check-mark" aria-hidden="true">✓</span>
+              <div>
+                <strong>Documented bipolar experience</strong>
+                <span class="refer-check-detail"
+                  >Listings require evidence of bipolar-specific practice from the clinician's own
+                  materials. Generalists are not included.</span
+                >
+              </div>
+            </li>
+            <li>
+              <span class="refer-check-mark" aria-hidden="true">✓</span>
+              <div>
+                <strong>Individual clinicians only</strong>
+                <span class="refer-check-detail"
+                  >No group practice marketing pages, no treatment center funnels. Every profile is
+                  one licensed person your patient can actually reach.</span
+                >
+              </div>
+            </li>
+          </ul>
+        </section>
+
+        <section class="refer-section" aria-labelledby="referHowHeading">
+          <span class="refer-section-tag">How to refer</span>
+          <h2 id="referHowHeading">Three ways to use it, all under a minute.</h2>
+          <ol class="refer-steps">
+            <li>
+              <strong>Send your patient the city link.</strong> Each city page lists the verified
+              specialists nearby with insurance, fees, and telehealth details.
+            </li>
+            <li>
+              <strong>Point them to the match tool.</strong> Patients answer a few questions at
+              bipolartherapyhub.com and get a ranked shortlist built around their needs.
+            </li>
+            <li>
+              <strong>Bookmark this page.</strong> The directory is maintained continuously, so the
+              list stays current between your appointments.
+            </li>
+          </ol>
+          <div class="refer-cta-row">
+            <a class="refer-cta" href="/bipolar-therapists/">Find your city's list →</a>
+          </div>
+        </section>
+      </div>
+
+      <div class="refer-closing">
+        <div class="refer-closing-card">
+          <p>
+            BipolarTherapyHub is an independent, mission-driven platform built by someone who has
+            lived with bipolar disorder for over 20 years. There are no paid rankings, no referral
+            fees, and no data selling. Patients use it free.
+          </p>
+          <p>
+            Questions about the directory or a specific listing?
+            <a href="mailto:support@bipolartherapyhub.com">support@bipolartherapyhub.com</a>
+          </p>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p class="footer-brand"><strong>BipolarTherapyHub</strong></p>
+      <p id="footerTagline">
+        Every therapist here is verified for bipolar expertise.
+        <a href="/directory">Browse the directory →</a>
+      </p>
+      <!-- BROWSE-BY-CITY-LIST -->
+      <p class="footer-legal">
+        <a href="/about">About</a> · <a href="/resources/">Guides</a> ·
+        <a href="/privacy">Privacy</a> · <a href="/terms">Terms</a> ·
+        <a href="mailto:support@bipolartherapyhub.com">Contact</a>
+      </p>
+    </footer>
+    <script type="module" src="assets/shortlist-nav.js"></script>
+    <script type="module" src="assets/nav.js"></script>
+  </body>
+</html>
