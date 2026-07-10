@@ -222,7 +222,9 @@ test("prescriber gets medication-management copy, its own subjects, and the city
   });
   assert.equal(followUp.subject, `Re: ${REFERRAL_PRESCRIBER_INTRO_SUBJECT}`);
   assert.match(followUp.body, /medication management/);
-  assert.match(followUp.body, /No need to reply/);
+  // Closes on the value and the signature. The CAN-SPAM footer carries the
+  // STOP opt-out, so the body never mentions replying.
+  assert.doesNotMatch(followUp.body, /reply/i);
   // No city on file: falls back to the homepage link, no dangling city line.
   assert.doesNotMatch(followUp.body, /seeing patients in/);
   assert.ok(hasLinkLine(followUp.body, "https://x.org"));
@@ -290,7 +292,7 @@ test("prescriber follow-up leads with the city list when a city is on file", () 
   // The bare homepage link is redundant once the city list is present.
   assert.ok(!lines.includes("https://www.bipolartherapyhub.com?ref=pnair-1234"));
   assert.match(body, /license verified/);
-  assert.match(body, /No need to reply/);
+  assert.doesNotMatch(body, /reply/i);
   assert.doesNotMatch(body, /call|meeting|schedule/i);
 });
 

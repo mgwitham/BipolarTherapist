@@ -287,8 +287,6 @@ export function buildReferralFollowUpBody({
         "",
         "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder, for when a patient needs therapy alongside medication management. Every listing is license verified. Patients can search it themselves by location and insurance. No sign-up, no cost.",
         "",
-        "No need to reply. Reply STOP anytime and I will leave it there.",
-        "",
         "Michael",
         "bipolartherapyhub.com",
       ].join("\n");
@@ -301,8 +299,6 @@ export function buildReferralFollowUpBody({
       url,
       "",
       "Patients can search it themselves by location and insurance. No sign-up, no cost.",
-      "",
-      "No need to reply. Reply STOP anytime and I will leave it there.",
       "",
       "Michael",
       "bipolartherapyhub.com",
