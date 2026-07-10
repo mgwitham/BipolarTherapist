@@ -3353,6 +3353,8 @@ function setAuthUiState() {
     if (navLogout) navLogout.style.display = "none";
     const navOutreach = document.getElementById("navOutreach");
     if (navOutreach) navOutreach.style.display = "none";
+    const navReferralOutreach = document.getElementById("navReferralOutreach");
+    if (navReferralOutreach) navReferralOutreach.style.display = "none";
     if (authError) {
       authError.style.display = authErrorVisible ? "block" : "none";
     }
@@ -3386,6 +3388,8 @@ function setAuthUiState() {
   if (navLogout) navLogout.style.display = "inline-block";
   const navOutreach = document.getElementById("navOutreach");
   if (navOutreach) navOutreach.style.display = "inline-block";
+  const navReferralOutreach = document.getElementById("navReferralOutreach");
+  if (navReferralOutreach) navReferralOutreach.style.display = "inline-block";
   if (authError) {
     authError.style.display = "none";
   }
