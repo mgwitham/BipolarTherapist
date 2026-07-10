@@ -1,4 +1,5 @@
 import { slugify as slugifyReviewerId } from "../shared/therapist-domain.mjs";
+import { buildReferralAttributionReport } from "../shared/referral-attribution.mjs";
 
 function getEventLane(doc) {
   const eventType = String((doc && doc.eventType) || "");
@@ -384,6 +385,32 @@ export async function handleReadRoutes(context) {
       response,
       200,
       (Array.isArray(docs) ? docs : []).map(annotateMatchRequestForDisplay),
+      origin,
+      config,
+    );
+    return true;
+  }
+
+  // Which clinicians' referral links produced completed match intakes.
+  // Reads the durable matchRequest documents, not the funnel event ring
+  // buffer, so an intake from months ago still counts.
+  if (request.method === "GET" && routePath === "/match/referral-attribution") {
+    if (!isAuthorized(request, config)) {
+      sendJson(response, 401, { error: "Unauthorized." }, origin, config);
+      return true;
+    }
+
+    const [matchRequests, contacts] = await Promise.all([
+      client.fetch(`*[_type == "matchRequest"]{ referralCode, createdAt, _createdAt }`),
+      client.fetch(
+        `*[_type == "referralContact"]{ orgName, contactName, email, role, segment, city, status, emailsSent }`,
+      ),
+    ]);
+
+    sendJson(
+      response,
+      200,
+      buildReferralAttributionReport(matchRequests, contacts),
       origin,
       config,
     );

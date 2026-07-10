@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   REFERRAL_CODE_MAX_LENGTH,
+  buildReferralAttributionReport,
   REFERRAL_PARAM,
   appendReferralCode,
   parseReferralCode,
@@ -106,4 +107,89 @@ test("append then parse round-trips", () => {
   const url = appendReferralCode("https://www.bipolartherapyhub.com/", code);
   assert.equal(parseReferralCode(url), code);
   assert.ok(url.includes(`${REFERRAL_PARAM}=`));
+});
+
+const KENNEDY = {
+  contactName: "Nigel Kennedy",
+  orgName: "Dr. Nigel Kennedy, MD PhD",
+  email: "appointments@nigelkennedymd.com",
+  segment: "prescriber",
+  city: "Los Angeles",
+  status: "contacted",
+  emailsSent: 2,
+};
+const RAWDIN = {
+  contactName: "Blake Rawdin",
+  email: "blake@blakerawdinmd.com",
+  segment: "prescriber",
+  city: "San Francisco",
+  status: "contacted",
+  emailsSent: 1,
+};
+
+test("buildReferralAttributionReport ties intakes to the clinician who referred them", () => {
+  const kennedyCode = referralCodeForContact(KENNEDY);
+  const report = buildReferralAttributionReport(
+    [
+      { referralCode: kennedyCode, createdAt: "2026-07-02T00:00:00.000Z" },
+      { referralCode: kennedyCode, createdAt: "2026-07-09T00:00:00.000Z" },
+      { referralCode: "", createdAt: "2026-07-05T00:00:00.000Z" },
+      { createdAt: "2026-07-06T00:00:00.000Z" },
+    ],
+    [KENNEDY, RAWDIN],
+  );
+
+  assert.equal(report.totals.totalIntakes, 4);
+  assert.equal(report.totals.attributedIntakes, 2);
+  assert.equal(report.totals.organicIntakes, 2);
+  assert.equal(report.totals.referrersWithIntake, 1);
+  assert.equal(report.totals.referrersEmailed, 2);
+
+  // Highest-converting referrer sorts first.
+  const [first, second] = report.rows;
+  assert.equal(first.contactName, "Nigel Kennedy");
+  assert.equal(first.intakes, 2);
+  assert.equal(first.firstIntakeAt, "2026-07-02T00:00:00.000Z");
+  assert.equal(first.lastIntakeAt, "2026-07-09T00:00:00.000Z");
+
+  // Emailed but no intake yet: kept visible, because "0 intakes" is the finding.
+  assert.equal(second.contactName, "Blake Rawdin");
+  assert.equal(second.intakes, 0);
+  assert.equal(second.emailsSent, 1);
+});
+
+test("buildReferralAttributionReport keeps intakes whose contact no longer resolves", () => {
+  const report = buildReferralAttributionReport(
+    [{ referralCode: "ghost-0000", createdAt: "2026-07-01T00:00:00.000Z" }],
+    [],
+  );
+  assert.equal(report.rows.length, 1);
+  assert.equal(report.rows[0].unmatched, true);
+  assert.equal(report.rows[0].code, "ghost-0000");
+  assert.equal(report.rows[0].intakes, 1);
+  // An orphaned code must still count toward the channel's total.
+  assert.equal(report.totals.attributedIntakes, 1);
+  assert.equal(report.totals.organicIntakes, 0);
+});
+
+test("buildReferralAttributionReport hides never-emailed contacts and sanitizes stored codes", () => {
+  const report = buildReferralAttributionReport(
+    [{ referralCode: " NKennedy-" + referralCodeForContact(KENNEDY).split("-")[1].toUpperCase() }],
+    [KENNEDY, { contactName: "Not Yet Emailed", email: "new@x.com", emailsSent: 0 }],
+  );
+  const names = report.rows.map((row) => row.contactName);
+  assert.ok(names.includes("Nigel Kennedy"));
+  assert.ok(!names.includes("Not Yet Emailed"), "a contact with no email and no intake is noise");
+  // Case/whitespace variants of a stored code still resolve to the contact.
+  assert.equal(report.rows[0].intakes, 1);
+  assert.equal(report.rows[0].unmatched, false);
+});
+
+test("buildReferralAttributionReport handles empty and malformed input", () => {
+  const empty = buildReferralAttributionReport([], []);
+  assert.deepEqual(empty.rows, []);
+  assert.equal(empty.totals.totalIntakes, 0);
+  const junk = buildReferralAttributionReport(null, null);
+  assert.deepEqual(junk.rows, []);
+  assert.equal(junk.totals.attributedIntakes, 0);
 });

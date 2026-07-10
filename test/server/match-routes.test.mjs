@@ -2,10 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createReviewApiHandler } from "../../server/review-handler.mjs";
+import { ADMIN_SESSION_COOKIE } from "../../server/review-http-auth.mjs";
+import { referralCodeForContact } from "../../shared/referral-attribution.mjs";
 import {
   createMemoryClient,
   createTestApiConfig,
   createTransactionSpy,
+  readSetCookieHeader,
   runHandlerRequest,
 } from "./test-helpers.mjs";
 
@@ -123,4 +126,78 @@ test("POST /match/requests still enforces field length limits", async () => {
 
   assert.equal(response.statusCode, 400);
   assert.match(response.payload.error, /journey_id/);
+});
+
+// --- GET /match/referral-attribution (admin) ---
+
+const KENNEDY_CONTACT = {
+  _id: "referralContact.kennedy",
+  _type: "referralContact",
+  contactName: "Nigel Kennedy",
+  orgName: "Dr. Nigel Kennedy, MD PhD",
+  email: "appointments@nigelkennedymd.com",
+  segment: "prescriber",
+  city: "Los Angeles",
+  status: "contacted",
+  emailsSent: 1,
+};
+
+async function loginAsAdmin(handler) {
+  const response = await runHandlerRequest(handler, {
+    body: { username: "architect", password: "secret-pass" },
+    headers: { host: "localhost:8787" },
+    method: "POST",
+    url: "/auth/login",
+  });
+  assert.equal(response.statusCode, 200);
+  const cookie = readSetCookieHeader(response, ADMIN_SESSION_COOKIE);
+  assert.ok(cookie);
+  return cookie;
+}
+
+test("GET /match/referral-attribution requires an admin session", async () => {
+  const { handler } = createHandler();
+  const response = await runHandlerRequest(handler, {
+    headers: { host: "localhost:8787" },
+    method: "GET",
+    url: "/match/referral-attribution",
+  });
+  assert.equal(response.statusCode, 401);
+});
+
+test("GET /match/referral-attribution rolls intakes up to the referring clinician", async () => {
+  const code = referralCodeForContact(KENNEDY_CONTACT);
+  const { handler } = createHandler({
+    docs: [
+      KENNEDY_CONTACT,
+      {
+        _id: "match-request-1",
+        _type: "matchRequest",
+        requestId: "j-1",
+        referralCode: code,
+        createdAt: "2026-07-09T00:00:00.000Z",
+      },
+      {
+        _id: "match-request-2",
+        _type: "matchRequest",
+        requestId: "j-2",
+        createdAt: "2026-07-09T01:00:00.000Z",
+      },
+    ],
+  });
+  const cookie = await loginAsAdmin(handler);
+
+  const response = await runHandlerRequest(handler, {
+    headers: { cookie, host: "localhost:8787" },
+    method: "GET",
+    url: "/match/referral-attribution",
+  });
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(response.payload.totals.attributedIntakes, 1);
+  assert.equal(response.payload.totals.organicIntakes, 1);
+  assert.equal(response.payload.rows.length, 1);
+  assert.equal(response.payload.rows[0].contactName, "Nigel Kennedy");
+  assert.equal(response.payload.rows[0].intakes, 1);
+  assert.equal(response.payload.rows[0].code, code);
 });

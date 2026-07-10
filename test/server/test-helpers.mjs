@@ -364,6 +364,12 @@ export function createMemoryClient(initialDocuments) {
           });
         }
 
+        if (query.includes(`*[_type == "referralContact"]`)) {
+          return Array.from(state.documents.values()).filter(function (document) {
+            return document._type === "referralContact";
+          });
+        }
+
         if (query.includes(`providerFieldObservation`)) {
           return Array.from(state.documents.values()).filter(function (document) {
             return document._type === "providerFieldObservation";
