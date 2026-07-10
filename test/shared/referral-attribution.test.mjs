@@ -8,6 +8,7 @@ import {
   appendReferralCode,
   parseReferralCode,
   referralCodeForContact,
+  referralLandingUrl,
   sanitizeReferralCode,
 } from "../../shared/referral-attribution.mjs";
 
@@ -192,4 +193,20 @@ test("buildReferralAttributionReport handles empty and malformed input", () => {
   const junk = buildReferralAttributionReport(null, null);
   assert.deepEqual(junk.rows, []);
   assert.equal(junk.totals.attributedIntakes, 0);
+});
+
+test("referralLandingUrl builds a clean /r/<code> link (no ?ref= clutter)", () => {
+  assert.equal(
+    referralLandingUrl("https://www.bipolartherapyhub.com", "vmd-1xvt"),
+    "https://www.bipolartherapyhub.com/r/vmd-1xvt",
+  );
+  // Trailing slash on the base is normalized, not doubled.
+  assert.equal(referralLandingUrl("https://x.org/", "abc-1234"), "https://x.org/r/abc-1234");
+  // Untrusted code is sanitized before it lands in the path.
+  assert.equal(referralLandingUrl("https://x.org", "  ABC-1234 "), "https://x.org/r/abc-1234");
+  // No code → the bare base URL (an unattributed but clean link).
+  assert.equal(referralLandingUrl("https://x.org", ""), "https://x.org");
+  assert.equal(referralLandingUrl("https://x.org", null), "https://x.org");
+  // No base → "".
+  assert.equal(referralLandingUrl("", "abc-1234"), "");
 });
