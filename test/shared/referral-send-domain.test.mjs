@@ -8,7 +8,6 @@ import {
   resolveReferralSend,
 } from "../../shared/referral-send-domain.mjs";
 import { REFERRAL_INTRO_SUBJECT } from "../../shared/referral-outreach-templates.mjs";
-import { referralCodeForContact } from "../../shared/referral-attribution.mjs";
 
 const NOW = "2026-06-13T12:00:00.000Z";
 
@@ -71,7 +70,7 @@ test("buildReferralEmailContent threads a follow-up under the intro subject actu
   assert.ok(!/^Re:/.test(resource.subject));
 });
 
-test("buildReferralEmailContent stamps the contact's own attribution code on its links", () => {
+test("buildReferralEmailContent emits untracked direct links (tracking is off)", () => {
   const contact = {
     contactName: "Nigel Kennedy",
     email: "appointments@nigelkennedymd.com",
@@ -79,35 +78,24 @@ test("buildReferralEmailContent stamps the contact's own attribution code on its
     city: "Los Angeles",
     state: "CA",
   };
-  const expected = referralCodeForContact(contact);
-  assert.ok(expected, "fixture must yield a code");
 
   const intro = buildReferralEmailContent(contact, {
     template: "referral_intro",
     cityListingCount: 12,
   });
-  // The email carries the contact's own code as a clean /r/ link — no visible
-  // ?ref= param, no city path (the /r/ endpoint resolves both).
+  // No attribution code, no /r/ redirect, no ?ref= — a covered city links
+  // straight to its page.
   assert.match(
     intro.text,
-    new RegExp(`https://www\\.bipolartherapyhub\\.com/r/los-angeles-ca/${expected}`),
+    /https:\/\/www\.bipolartherapyhub\.com\/bipolar-therapists\/los-angeles-ca\//,
   );
   assert.doesNotMatch(intro.text, /\?ref=/);
-  assert.doesNotMatch(intro.text, /bipolar-therapists\//);
+  assert.doesNotMatch(intro.text, /\/r\//);
 
-  // Same contact, later touch → same code, so attribution survives the cadence.
-  // No count passed here, so the link is the short /r/<code> form (homepage).
+  // A thin city (no count) links to the homepage, still untracked.
   const followUp = buildReferralEmailContent(contact, { template: "referral_follow_up" });
-  assert.match(followUp.text, new RegExp(`/r/${expected}`));
-
-  // A contact with no identity gets a clean, code-less link rather than an
-  // invented code.
-  const anonymous = buildReferralEmailContent(
-    { segment: "prescriber" },
-    { template: "referral_intro" },
-  );
-  assert.doesNotMatch(anonymous.text, /\/r\//);
-  assert.doesNotMatch(anonymous.text, /[?&]ref=/);
+  assert.doesNotMatch(followUp.text, /\?ref=/);
+  assert.doesNotMatch(followUp.text, /\/r\//);
 });
 
 test("buildReferralEmailContent defaults to the public homepage URL", () => {
@@ -185,27 +173,29 @@ test("buildReferralEmailContent names the city only when the caller proves the p
     city: "Folsom",
     state: "CA",
   };
-  const code = referralCodeForContact(contact);
-
-  // The visible link is always the clean /r/ redirect, never a city path.
-  // The listing count only decides whether the copy *names* the city, so an
-  // unproven / thin city never promises a page the redirect can't deliver.
+  // Tracking off: the listing count decides whether the copy names the city AND
+  // whether the link points at the city page. An unproven / thin city stays
+  // generic and links to the homepage, so we never promise a page that 404s.
   const blind = buildReferralEmailContent(contact, { template: "referral_intro" });
   assert.doesNotMatch(blind.text, /seeing patients in Folsom/);
-  assert.match(blind.text, new RegExp(`/r/${code}`));
   assert.doesNotMatch(blind.text, /bipolar-therapists\//);
+  assert.doesNotMatch(blind.text, /\/r\//);
 
   const thin = buildReferralEmailContent(contact, {
     template: "referral_intro",
     cityListingCount: 1,
   });
   assert.doesNotMatch(thin.text, /seeing patients in Folsom/);
+  assert.doesNotMatch(thin.text, /bipolar-therapists\//);
 
   const covered = buildReferralEmailContent(contact, {
     template: "referral_intro",
     cityListingCount: 5,
   });
   assert.match(covered.text, /seeing patients in Folsom/);
-  assert.match(covered.text, new RegExp(`/r/folsom-ca/${code}`));
-  assert.doesNotMatch(covered.text, /bipolar-therapists\//);
+  assert.match(
+    covered.text,
+    /https:\/\/www\.bipolartherapyhub\.com\/bipolar-therapists\/folsom-ca\//,
+  );
+  assert.doesNotMatch(covered.text, /\/r\//);
 });
