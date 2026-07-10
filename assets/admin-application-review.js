@@ -320,8 +320,16 @@ export function renderApplicationsPanel(options) {
   // XSS sink. Throwing here prevents the panel from rendering at
   // all in that case, surfacing the wiring bug immediately.
   requireEscapeHtml(options, "renderApplicationsPanel");
-  const applications =
+  // Coerce to an array before any .filter/.map. When the admin session expires
+  // mid-load, the /applications fetch 401s and remoteApplications lands as null;
+  // the authRequired gate below normally bails first, but on a racing lazy
+  // render this panel can run before that flag propagates. Guarding here (as
+  // every other consumer in this file already does) turns an expired session
+  // into a clean empty panel + login gate, instead of a "Cannot read properties
+  // of null (reading 'filter')" throw that the caller mislabels as a stale deploy.
+  const rawApplications =
     options.dataMode === "sanity" ? options.remoteApplications : options.getApplications();
+  const applications = Array.isArray(rawApplications) ? rawApplications : [];
   const root = document.getElementById("applicationsList");
 
   if (options.authRequired) {

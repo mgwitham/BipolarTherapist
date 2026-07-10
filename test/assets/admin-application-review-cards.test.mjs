@@ -57,3 +57,41 @@ test("admin signup card styles support the compact anatomy", function () {
   assert.doesNotMatch(html, /\.application-identity-row/);
   assert.doesNotMatch(html, /\.application-issues-grid/);
 });
+
+// Regression: an expired admin session 401s the /applications fetch and leaves
+// remoteApplications === null. The panel must render an empty state, not throw
+// "Cannot read properties of null (reading 'filter')" — that throw was caught
+// upstream and mislabeled as a stale deploy ("a new version was deployed").
+test("applications panel renders empty (not throws) when the session drops data to null", async () => {
+  const originalDocument = globalThis.document;
+  let written = "";
+  globalThis.document = {
+    getElementById(id) {
+      if (id !== "applicationsList") return null;
+      return {
+        set innerHTML(value) {
+          written = value;
+        },
+        get innerHTML() {
+          return written;
+        },
+      };
+    },
+  };
+  try {
+    const { default: controller } =
+      await import("../../assets/admin-application-review.js?nullguard");
+    const options = {
+      escapeHtml: (s) => String(s),
+      dataMode: "sanity",
+      remoteApplications: null, // <-- the 401 state
+      authRequired: false, // <-- flag hasn't propagated yet (the race)
+    };
+    assert.doesNotThrow(function () {
+      controller.render({ store: {}, deps: { buildApplicationsOptions: () => options } });
+    });
+    assert.match(written, /No signups to review right now/);
+  } finally {
+    globalThis.document = originalDocument;
+  }
+});
