@@ -15,7 +15,7 @@ import {
   REMOVAL_STEPS,
 } from "../shared/funnel-step-definitions.mjs";
 import { proportionsAreSeparated, wilsonInterval } from "../shared/stats-domain.mjs";
-import { fetchFunnelEventLog } from "./review-api.js";
+import { fetchFunnelEventLog, fetchReferralAttribution } from "./review-api.js";
 import { escapeHtml } from "./escape-html.js";
 
 const DASHBOARD_ID = "adminFunnelDashboard";
@@ -598,7 +598,83 @@ function renderOutreachEngagement(events) {
   );
 }
 
-function renderDashboard(container, logData) {
+// Who referred a patient who then completed match intake. Sourced from the
+// durable matchRequest documents, so this section does not age out with the
+// funnel event buffer. Contacts we emailed but who produced no intake are kept
+// visible: "30 emailed, 0 intakes" is the finding that matters early on.
+function renderReferralAttribution(report) {
+  if (!report || !Array.isArray(report.rows)) {
+    return '<p class="admin-funnel-empty">Referral attribution unavailable.</p>';
+  }
+  const allRows = report.rows;
+  const totals = report.totals || {};
+  if (!allRows.length) {
+    return '<p class="admin-funnel-empty">No referral emails sent yet, and no attributed intakes.</p>';
+  }
+
+  // Rows are sorted intakes-desc, so every converting referrer survives the
+  // cap. Hundreds of emailed-but-zero-intake rows would bury them. The hidden
+  // count is stated below rather than silently dropped.
+  const DISPLAY_LIMIT = 25;
+  const rows = allRows.slice(0, DISPLAY_LIMIT);
+  const hidden = allRows.length - rows.length;
+
+  const body = rows
+    .map(function (row) {
+      const who = row.unmatched
+        ? escapeHtml(row.code) + ' <span style="color:#6b8290">(no matching contact)</span>'
+        : escapeHtml(row.contactName || row.orgName || row.code);
+      const where = [row.city, row.segment].filter(Boolean).join(" · ");
+      const last = row.lastIntakeAt ? escapeHtml(String(row.lastIntakeAt).slice(0, 10)) : "—";
+      return (
+        "<tr>" +
+        '<td class="admin-funnel-step">' +
+        who +
+        (where ? '<br><span style="color:#6b8290">' + escapeHtml(where) + "</span>" : "") +
+        "</td>" +
+        '<td class="r">' +
+        escapeHtml(String(row.emailsSent)) +
+        "</td>" +
+        '<td class="r">' +
+        (row.intakes > 0 ? "<strong>" + row.intakes + "</strong>" : "0") +
+        "</td>" +
+        "<td>" +
+        last +
+        "</td>" +
+        "</tr>"
+      );
+    })
+    .join("");
+
+  const attributed = Number(totals.attributedIntakes || 0);
+  const organic = Number(totals.organicIntakes || 0);
+  const emailed = Number(totals.referrersEmailed || 0);
+  const converting = Number(totals.referrersWithIntake || 0);
+
+  return (
+    '<table class="admin-funnel-table">' +
+    '<thead><tr><th>Referrer</th><th class="r">Emails sent</th><th class="r">Intakes</th><th>Last intake</th></tr></thead>' +
+    "<tbody>" +
+    body +
+    "</tbody></table>" +
+    '<p class="admin-funnel-caption">' +
+    attributed +
+    " attributed " +
+    (attributed === 1 ? "intake" : "intakes") +
+    " from " +
+    converting +
+    " of " +
+    emailed +
+    " emailed referrers · " +
+    organic +
+    " organic " +
+    (organic === 1 ? "intake" : "intakes") +
+    (hidden > 0 ? " · " + hidden + " more referrers with no intake yet are not shown" : "") +
+    "</p>"
+  );
+}
+
+function renderDashboard(container, logData, referralReport) {
   const events = Array.isArray(logData.events) ? logData.events : [];
   const lastSevenDays = { ms: 7 * 24 * 60 * 60 * 1000 };
   const signupRows = buildFunnelRow(events, SIGNUP_STEPS, lastSevenDays);
@@ -661,6 +737,9 @@ function renderDashboard(container, logData) {
     '<section class="admin-funnel-section"><h3>Shortlist quality, last 7 days</h3>' +
     renderShortlistQuality(events) +
     "</section>" +
+    '<section class="admin-funnel-section"><h3>Referral attribution, all time</h3>' +
+    renderReferralAttribution(referralReport) +
+    "</section>" +
     '<section class="admin-funnel-section"><h3>Out-of-state waitlist interest</h3>' +
     renderWaitlistByState(events) +
     "</section>" +
@@ -690,9 +769,16 @@ async function loadFunnelDashboard() {
     status.hidden = false;
   }
   try {
-    const result = await fetchFunnelEventLog();
+    // Attribution is a separate durable read; if it fails, still render the
+    // rest of the dashboard rather than blanking the page.
+    const [result, referralReport] = await Promise.all([
+      fetchFunnelEventLog(),
+      fetchReferralAttribution().catch(function () {
+        return null;
+      }),
+    ]);
     if (status) status.hidden = true;
-    renderDashboard(container, result || {});
+    renderDashboard(container, result || {}, referralReport);
   } catch (error) {
     if (status) {
       status.hidden = false;

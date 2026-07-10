@@ -156,3 +156,111 @@ export function parseReferralCode(search) {
   }
   return "";
 }
+
+/**
+ * Roll up match intakes by the clinician who referred them.
+ *
+ * Reads durable `matchRequest` documents rather than the funnel event ring
+ * buffer, so a referral that landed months ago still shows up. `contacts` are
+ * `referralContact` documents; their codes are derived here (the code is not
+ * stored on the contact, it is a function of identity).
+ *
+ * Every contact that has been emailed appears in the report, including those
+ * with zero intakes — "we emailed 30 prescribers and got 0 intakes" is the
+ * finding that matters most early, and a table that hides the zeros can't
+ * show it. A code with no matching contact (a renamed or deleted contact,
+ * or a hand-shared link) is reported as `unmatched` rather than dropped.
+ *
+ * @param {Array<{ referralCode?: unknown, createdAt?: unknown, _createdAt?: unknown }>} matchRequests
+ * @param {Array<Record<string, unknown>>} contacts
+ * @returns {{ rows: Array<object>, totals: { totalIntakes: number, attributedIntakes: number, organicIntakes: number, referrersWithIntake: number, referrersEmailed: number } }}
+ */
+export function buildReferralAttributionReport(matchRequests, contacts) {
+  const requests = Array.isArray(matchRequests) ? matchRequests : [];
+  const contactList = Array.isArray(contacts) ? contacts : [];
+
+  /** @type {Map<string, { intakes: number, firstIntakeAt: string, lastIntakeAt: string }>} */
+  const byCode = new Map();
+  let organicIntakes = 0;
+
+  for (const request of requests) {
+    const code = sanitizeReferralCode(request && request.referralCode);
+    if (!code) {
+      organicIntakes += 1;
+      continue;
+    }
+    const at = String((request && (request.createdAt || request._createdAt)) || "");
+    const bucket = byCode.get(code) || { intakes: 0, firstIntakeAt: "", lastIntakeAt: "" };
+    bucket.intakes += 1;
+    if (at && (!bucket.firstIntakeAt || at < bucket.firstIntakeAt)) bucket.firstIntakeAt = at;
+    if (at && (!bucket.lastIntakeAt || at > bucket.lastIntakeAt)) bucket.lastIntakeAt = at;
+    byCode.set(code, bucket);
+  }
+
+  const rows = [];
+  const claimed = new Set();
+
+  for (const contact of contactList) {
+    const code = referralCodeForContact(contact);
+    if (!code) continue;
+    const emailsSent = Number((contact && contact.emailsSent) || 0);
+    const bucket = byCode.get(code);
+    // Not yet emailed and no intakes: nothing to report on this contact.
+    if (!bucket && emailsSent <= 0) continue;
+    claimed.add(code);
+    rows.push({
+      code,
+      orgName: String((contact && contact.orgName) || ""),
+      contactName: String((contact && contact.contactName) || ""),
+      email: String((contact && contact.email) || ""),
+      segment: String((contact && contact.segment) || ""),
+      city: String((contact && contact.city) || ""),
+      status: String((contact && contact.status) || ""),
+      emailsSent,
+      intakes: bucket ? bucket.intakes : 0,
+      firstIntakeAt: bucket ? bucket.firstIntakeAt : "",
+      lastIntakeAt: bucket ? bucket.lastIntakeAt : "",
+      unmatched: false,
+    });
+  }
+
+  // Codes we saw on intakes but can't tie to a live contact. Never drop these:
+  // silently discarding a real intake would understate the channel.
+  for (const [code, bucket] of byCode) {
+    if (claimed.has(code)) continue;
+    rows.push({
+      code,
+      orgName: "",
+      contactName: "",
+      email: "",
+      segment: "",
+      city: "",
+      status: "",
+      emailsSent: 0,
+      intakes: bucket.intakes,
+      firstIntakeAt: bucket.firstIntakeAt,
+      lastIntakeAt: bucket.lastIntakeAt,
+      unmatched: true,
+    });
+  }
+
+  rows.sort((a, b) => {
+    if (b.intakes !== a.intakes) return b.intakes - a.intakes;
+    if (b.emailsSent !== a.emailsSent) return b.emailsSent - a.emailsSent;
+    return (a.contactName || a.orgName || a.code).localeCompare(
+      b.contactName || b.orgName || b.code,
+    );
+  });
+
+  const attributedIntakes = rows.reduce((sum, row) => sum + row.intakes, 0);
+  return {
+    rows,
+    totals: {
+      totalIntakes: attributedIntakes + organicIntakes,
+      attributedIntakes,
+      organicIntakes,
+      referrersWithIntake: rows.filter((row) => row.intakes > 0).length,
+      referrersEmailed: rows.filter((row) => row.emailsSent > 0).length,
+    },
+  };
+}

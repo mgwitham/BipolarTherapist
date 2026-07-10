@@ -675,6 +675,15 @@ export async function fetchFunnelEventLog() {
   });
 }
 
+// Admin-only: match intakes rolled up by the clinician who referred them.
+// Durable (reads matchRequest docs), unlike the funnel event ring buffer.
+export async function fetchReferralAttribution() {
+  return request("/match/referral-attribution", {
+    method: "GET",
+    headers: getAdminHeaders(),
+  });
+}
+
 export async function createStripeBillingPortalSession(payload) {
   return request("/stripe/portal-session", {
     method: "POST",
