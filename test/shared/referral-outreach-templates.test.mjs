@@ -289,7 +289,9 @@ test("prescriber follow-up leads with the city list when a city is on file", () 
 
   const lines = body.split("\n");
   const link = "https://www.bipolartherapyhub.com/r/san-diego-ca/pnair-1234";
-  assert.ok(lines.includes(link), `clean /r/ link missing:\n${body}`);
+  // Equality, not substring — hasLinkLine keeps CodeQL's URL-sanitization rule
+  // from misreading it as a permissive host check.
+  assert.ok(hasLinkLine(body, link), `clean /r/ link missing:\n${body}`);
   // Exactly one link, and it leads (right under the city-list line).
   assert.deepEqual(
     lines.filter((l) => /^https?:\/\//.test(l.trim())),
