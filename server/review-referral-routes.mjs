@@ -2,7 +2,11 @@ import { log } from "./logger.mjs";
 import { getRateLimiter } from "./rate-limit-store.mjs";
 import { getSuppressionEntry } from "./outreach-suppression.mjs";
 import { resendSend } from "./outreach-resend.mjs";
-import { deliverReferralTouch, getReferralSendConfig } from "./referral-send-core.mjs";
+import {
+  deliverReferralTouch,
+  fetchCityListingCount,
+  getReferralSendConfig,
+} from "./referral-send-core.mjs";
 import {
   CONTACT_STATUS_VALUES,
   SEGMENT_VALUES,
@@ -244,9 +248,12 @@ async function handleSend(context) {
       return json(response, 500, {
         error: "Could not resolve a test recipient. Set OUTREACH_TEST_TO.",
       });
+    // Match the real send path exactly, so a test email shows the same city
+    // link (or absence of one) the contact would actually receive.
     const { subject, text, html } = buildReferralEmailContent(contact, {
       template,
       footer: config.footer,
+      cityListingCount: await fetchCityListingCount(client, contact && contact.city),
     });
     try {
       await resendSend({

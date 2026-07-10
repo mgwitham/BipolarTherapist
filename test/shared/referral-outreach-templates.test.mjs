@@ -14,6 +14,16 @@ import {
   withReferralRef,
 } from "../../shared/referral-outreach-templates.mjs";
 
+// Assert an email body contains a link on its own line, matched exactly.
+// Written as an equality check rather than `lines.includes(url)` so CodeQL's
+// incomplete-url-substring-sanitization rule doesn't read it as a permissive
+// URL check (it is array membership over exact lines, not substring matching).
+function hasLinkLine(body, url) {
+  return String(body)
+    .split("\n")
+    .some((line) => line.trim() === url);
+}
+
 test("audienceNoun adapts to the segment", () => {
   assert.equal(audienceNoun("outpatient_therapist"), "clients");
   assert.equal(audienceNoun("school_counseling"), "students");
@@ -47,6 +57,7 @@ test("a referral code stamps every link, and the city URL stays well-formed", ()
     state: "CA",
     directoryUrl: "https://www.bipolartherapyhub.com",
     referralCode: "nkennedy-3f2a",
+    cityListingCount: 12,
   });
   const lines = body.split("\n");
 
@@ -127,6 +138,7 @@ test("outpatient_therapist gets refer-out copy and its own subjects", () => {
     city: "Pasadena",
     state: "CA",
     directoryUrl: "https://www.bipolartherapyhub.com",
+    cityListingCount: 7,
   });
   assert.equal(intro.subject, REFERRAL_THERAPIST_INTRO_SUBJECT);
   assert.match(intro.body, /^Hi Alex,/);
@@ -173,6 +185,7 @@ test("prescriber gets medication-management copy, its own subjects, and the city
     city: "San Diego",
     state: "CA",
     directoryUrl: "https://www.bipolartherapyhub.com",
+    cityListingCount: 4,
   });
   assert.equal(intro.subject, REFERRAL_PRESCRIBER_INTRO_SUBJECT);
   assert.match(intro.body, /^Hi Priya,/);
@@ -210,6 +223,9 @@ test("prescriber gets medication-management copy, its own subjects, and the city
   assert.equal(followUp.subject, `Re: ${REFERRAL_PRESCRIBER_INTRO_SUBJECT}`);
   assert.match(followUp.body, /medication management/);
   assert.match(followUp.body, /No need to reply/);
+  // No city on file: falls back to the homepage link, no dangling city line.
+  assert.doesNotMatch(followUp.body, /seeing patients in/);
+  assert.ok(hasLinkLine(followUp.body, "https://x.org"));
 
   const resource = getReferralTemplate("referral_resource", {
     segment: "prescriber",
@@ -244,4 +260,107 @@ test("every referral template id resolves to a non-empty subject and body", () =
     assert.ok(subject.length > 0, `${id} subject`);
     assert.ok(body.length > 0, `${id} body`);
   }
+});
+
+test("prescriber follow-up leads with the city list when a city is on file", () => {
+  const { subject, body } = getReferralTemplate("referral_follow_up", {
+    contactName: "Dr. Priya Nair",
+    segment: "prescriber",
+    city: "San Diego",
+    state: "CA",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+    referralCode: "pnair-1234",
+    cityListingCount: 4,
+  });
+
+  // Still threads under the intro they actually received.
+  assert.match(subject, /^Re: /);
+  assert.match(body, /^Hi Priya,/);
+  assert.match(body, /Circling back/);
+  assert.match(body, /bipolar specialists currently seeing patients in San Diego/);
+
+  const lines = body.split("\n");
+  const cityLine =
+    "https://www.bipolartherapyhub.com/bipolar-therapists/san-diego-ca/?ref=pnair-1234";
+  assert.ok(lines.includes(cityLine), `city link missing or malformed:\n${body}`);
+  // The city list leads: nothing but the greeting precedes it.
+  assert.ok(lines.indexOf(cityLine) < 5);
+  // The bare homepage link is redundant once the city list is present.
+  assert.ok(!lines.includes("https://www.bipolartherapyhub.com?ref=pnair-1234"));
+  assert.match(body, /license verified/);
+  assert.match(body, /No need to reply/);
+  assert.doesNotMatch(body, /call|meeting|schedule/i);
+});
+
+test("therapist follow-up copy is unchanged by the prescriber city link", () => {
+  const { body } = getReferralTemplate("referral_follow_up", {
+    segment: "outpatient_therapist",
+    city: "Pasadena",
+    state: "CA",
+    directoryUrl: "https://x.org",
+  });
+  assert.match(body, /refer a client out/);
+  assert.doesNotMatch(body, /seeing patients in/);
+});
+
+test("a city with too few listings never gets a city link (it would 404)", () => {
+  // Folsom has 0 active listings; generate-seo-city-pages only builds a page at
+  // MIN_CITY_PAGE_PROVIDERS (2), so /bipolar-therapists/folsom-ca/ does not exist.
+  for (const count of [0, 1]) {
+    const intro = getReferralTemplate("referral_intro", {
+      contactName: "Dr. Sam Reed",
+      segment: "prescriber",
+      city: "Folsom",
+      state: "CA",
+      directoryUrl: "https://www.bipolartherapyhub.com",
+      cityListingCount: count,
+    });
+    assert.doesNotMatch(intro.body, /folsom/i, `count=${count} leaked a city link`);
+    assert.doesNotMatch(intro.body, /seeing patients in/);
+    // Still a usable email: the homepage link remains.
+    assert.ok(hasLinkLine(intro.body, "https://www.bipolartherapyhub.com"));
+
+    const followUp = getReferralTemplate("referral_follow_up", {
+      segment: "prescriber",
+      city: "Folsom",
+      state: "CA",
+      directoryUrl: "https://www.bipolartherapyhub.com",
+      cityListingCount: count,
+    });
+    assert.doesNotMatch(followUp.body, /folsom/i);
+    assert.ok(hasLinkLine(followUp.body, "https://www.bipolartherapyhub.com"));
+  }
+
+  // Therapist segment is guarded too.
+  const therapistIntro = getReferralTemplate("referral_intro", {
+    segment: "outpatient_therapist",
+    city: "Folsom",
+    state: "CA",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+    cityListingCount: 1,
+  });
+  assert.doesNotMatch(therapistIntro.body, /folsom/i);
+});
+
+test("an unknown listing count suppresses the city link, fail-safe", () => {
+  // A caller that forgets to pass the count must not produce a 404 link.
+  for (const count of [undefined, null, "", NaN, "many"]) {
+    const { body } = getReferralTemplate("referral_intro", {
+      segment: "prescriber",
+      city: "Los Angeles",
+      state: "CA",
+      directoryUrl: "https://www.bipolartherapyhub.com",
+      cityListingCount: count,
+    });
+    assert.doesNotMatch(body, /bipolar-therapists\//, `count=${String(count)} leaked a city link`);
+  }
+  // A count above the threshold, passed as a numeric string, still works.
+  const { body } = getReferralTemplate("referral_intro", {
+    segment: "prescriber",
+    city: "Los Angeles",
+    state: "CA",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+    cityListingCount: "12",
+  });
+  assert.match(body, /bipolar-therapists\/los-angeles-ca\//);
 });

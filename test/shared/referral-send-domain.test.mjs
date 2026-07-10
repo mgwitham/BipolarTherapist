@@ -82,7 +82,10 @@ test("buildReferralEmailContent stamps the contact's own attribution code on its
   const expected = referralCodeForContact(contact);
   assert.ok(expected, "fixture must yield a code");
 
-  const intro = buildReferralEmailContent(contact, { template: "referral_intro" });
+  const intro = buildReferralEmailContent(contact, {
+    template: "referral_intro",
+    cityListingCount: 12,
+  });
   assert.match(intro.text, new RegExp(`ref=${expected}`));
   assert.match(
     intro.text,
@@ -166,4 +169,29 @@ test("buildReferralSendPatch derives a deterministic _key from nowIso", () => {
     { template: "referral_intro", subject: "S", textBody: "B", nowIso: NOW },
   );
   assert.equal(a.emailLog[0]._key, b.emailLog[0]._key);
+});
+
+test("buildReferralEmailContent suppresses the city link unless the caller proves the page exists", () => {
+  const contact = {
+    contactName: "Dr. Sam Reed",
+    email: "sam@reedpsych.com",
+    segment: "prescriber",
+    city: "Folsom",
+    state: "CA",
+  };
+  // Caller omits the count (or the city is below threshold) → no city link.
+  const blind = buildReferralEmailContent(contact, { template: "referral_intro" });
+  assert.doesNotMatch(blind.text, /bipolar-therapists\//);
+
+  const thin = buildReferralEmailContent(contact, {
+    template: "referral_intro",
+    cityListingCount: 1,
+  });
+  assert.doesNotMatch(thin.text, /bipolar-therapists\//);
+
+  const covered = buildReferralEmailContent(contact, {
+    template: "referral_intro",
+    cityListingCount: 5,
+  });
+  assert.match(covered.text, /bipolar-therapists\/folsom-ca\//);
 });
