@@ -149,9 +149,9 @@ test("prescriber gets medication-management copy, its own subjects, and the city
   assert.ok(cityLineIndex < homeLineIndex, "city link should precede the homepage link");
   assert.ok(cityLineIndex < 6, "city link should sit near the top of the email");
   assert.match(intro.body, /Michael Witham/);
-  // Soft ask: no reply requested, no meeting.
-  assert.match(intro.body, /No need to reply either way/);
-  assert.doesNotMatch(intro.body, /just reply and I will not follow up/);
+  // Soft ask: the intro closes on the link and the signature — no reply
+  // solicited either way, no meeting requested.
+  assert.doesNotMatch(intro.body, /reply/i);
   assert.doesNotMatch(intro.body, /call|meeting|schedule|chat/i);
 
   const noCity = getReferralTemplate("referral_intro", {
@@ -160,7 +160,7 @@ test("prescriber gets medication-management copy, its own subjects, and the city
   });
   assert.doesNotMatch(noCity.body, /seeing patients in/);
   assert.doesNotMatch(noCity.body, /bipolar-therapists\//);
-  assert.match(noCity.body, /No need to reply either way/);
+  assert.doesNotMatch(noCity.body, /reply/i);
 
   const followUp = getReferralTemplate("referral_follow_up", {
     segment: "prescriber",

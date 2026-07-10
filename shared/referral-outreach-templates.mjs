@@ -184,8 +184,6 @@ export function buildReferralIntroBody({
       "",
       url,
       "",
-      "No need to reply either way. I hope it is useful.",
-      "",
       "Michael Witham",
       "BipolarTherapyHub",
     ].join("\n");
