@@ -107,6 +107,21 @@ export function buildProviderAvatarHtml(provider) {
   );
 }
 
+// Phone and email for the printed handout, in that order: 99% of listings have
+// a phone and it is the channel a patient holding paper will actually use.
+// Returns "" when the caller's query supplied neither, so a card without
+// contact data prints cleanly rather than showing an empty line.
+export function buildProviderPrintContactHtml(provider) {
+  const p = provider || {};
+  const phone = String(p.phone || "").trim();
+  const email = String(p.email || "").trim();
+  const parts = [];
+  if (phone) parts.push(escapeHtml(phone));
+  if (email) parts.push(escapeHtml(email));
+  if (!parts.length) return "";
+  return '<div class="city-provider-print-contact">' + parts.join(" &middot; ") + "</div>";
+}
+
 // One provider card. `metaText` is the generator-specific second line
 // (city pages pass the role, directory/insurance pages add city/state).
 export function buildProviderCardHtml(provider, metaText) {
@@ -130,7 +145,11 @@ export function buildProviderCardHtml(provider, metaText) {
     (meta ? '<div class="city-provider-role">' + escapeHtml(meta) + "</div>" : "") +
     '<div class="city-provider-cta">View profile <span aria-hidden="true">&rarr;</span></div>' +
     // Print only. On paper a "View profile →" link is useless, so the handout
-    // shows the typable URL instead. Hidden on screen; see seo-city-pages.css.
+    // shows the phone, email, and typable URL instead — the patient is holding
+    // this away from a screen. Both contact fields are already public on the
+    // profile page. Callers whose query omits them simply render no contact
+    // line. Hidden on screen; see public/seo-city-pages.css.
+    buildProviderPrintContactHtml(p) +
     '<div class="city-provider-print-url">bipolartherapyhub.com' +
     escapeHtml(href) +
     "</div>" +
