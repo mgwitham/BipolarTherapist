@@ -327,7 +327,7 @@ function renderRepliesCard(open) {
   bodyEl.innerHTML =
     `<p class="admin-home-replies-lede">
       ${count} outreach ${count === 1 ? "email" : "emails"} sent more than 24h ago without a reply, bounce, or opt-out logged.
-      Check Gmail and mark each one in the Outreach CRM.
+      Check Gmail and mark each one in Directory Outreach.
     </p>
     <ul class="admin-home-replies-list">${previewHtml}</ul>` +
     (count > 5 ? `<p class="admin-home-replies-more">+ ${count - 5} more</p>` : "");

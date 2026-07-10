@@ -126,8 +126,8 @@ test("dead confirmation/outreach/ops/listings modules are removed from the bundl
   const adminJs = read("assets/admin.js");
 
   // These subsystems were removed entirely (superseded by the standalone
-  // Outreach CRM, the Home tab, and the Reports activity log). The files
-  // must be gone and admin.js must no longer reference them.
+  // Directory Outreach page, the Home tab, and the Reports activity log).
+  // The files must be gone and admin.js must no longer reference them.
   const deadModules = [
     "admin-ops-inbox.js",
     "admin-confirmation-workspace.js",
@@ -159,4 +159,33 @@ test("dead confirmation/outreach/ops/listings modules are removed from the bundl
 
   // Licensure ACTIVITY (read-only Reports panel) survives.
   assert.match(html, /id="licensureActivity"/);
+});
+
+test("admin page: nav links to both outreach CRMs, gated on auth", function () {
+  const html = read("admin.html");
+  const adminJs = read("assets/admin.js");
+
+  // Two distinct CRMs with distinct audiences: Directory Outreach emails
+  // therapists already listed in the directory; Referral Outreach emails
+  // professionals who refer patients in. The old shared "Outreach CRM"
+  // label was ambiguous once the second one existed.
+  assert.match(html, /id="navOutreach"/);
+  assert.match(html, /id="navReferralOutreach"/);
+  assert.match(html, /href="\/referral-outreach"/);
+  assert.match(html, />\s*Directory Outreach\s*</);
+  assert.match(html, />\s*Referral Outreach\s*</);
+  assert.doesNotMatch(html, /Outreach CRM/);
+
+  // Both nav pills are hidden until the admin session resolves, and both
+  // are revealed together. A link left visible pre-auth leaks the route.
+  assert.match(adminJs, /navReferralOutreach\.style\.display = "none"/);
+  assert.match(adminJs, /navReferralOutreach\.style\.display = "inline-block"/);
+});
+
+test("outreach page: titled Directory Outreach, links to Referral Outreach", function () {
+  assert.match(read("outreach.html"), /<title>Directory Outreach,/);
+  const outreachJs = read("assets/outreach.js");
+  assert.match(outreachJs, />Directory Outreach</);
+  assert.match(outreachJs, /Referral Outreach →/);
+  assert.doesNotMatch(outreachJs, /Outreach CRM/);
 });

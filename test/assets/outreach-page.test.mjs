@@ -42,7 +42,7 @@ test("outreach page: header links to the referral outreach CRM", () => {
   // (prescribers, peer orgs, outpatient therapists) is unreachable from the
   // therapist outreach page except by typing the URL.
   assert.match(outreachJs, /href="\/referral-outreach"/);
-  assert.match(outreachJs, /Referrals →/);
+  assert.match(outreachJs, /Referral Outreach →/);
   // Clean URLs only: /outreach.html and /referral-outreach.html both 308.
   assert.doesNotMatch(outreachJs, /href="\/referral-outreach\.html"/);
 });

@@ -522,9 +522,9 @@ function renderDashboard() {
 
   const header = `
     <div style="background:#2a5f6e;color:#fff;height:52px;padding:0 24px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;">
-      <span style="font-size:15px;font-weight:700;letter-spacing:-0.3px;">Outreach CRM</span>
+      <span style="font-size:15px;font-weight:700;letter-spacing:-0.3px;">Directory Outreach</span>
       <div style="display:flex;align-items:center;gap:8px;">
-        <a href="/referral-outreach" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:6px;padding:4px 12px;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Open the referral outreach pipeline (prescribers, peer orgs, therapists)">Referrals →</a>
+        <a href="/referral-outreach" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:6px;padding:4px 12px;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Open the referral outreach pipeline (prescribers, peer orgs, therapists)">Referral Outreach →</a>
         <a href="/admin" style="background:transparent;color:#fff;border:1px solid rgba(255,255,255,0.4);border-radius:6px;padding:4px 12px;font-size:13px;font-weight:500;text-decoration:none;display:inline-flex;align-items:center;gap:4px;" title="Open the admin page">Admin →</a>
         <button id="logout-btn" style="background:rgba(255,255,255,0.15);color:#fff;border:none;border-radius:6px;padding:5px 13px;font-size:13px;">Log out</button>
       </div>
