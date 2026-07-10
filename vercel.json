@@ -29,7 +29,13 @@
       "missing": [{ "type": "query", "key": "shortlist" }],
       "destination": "/",
       "permanent": true
-    }
+    },
+    {
+      "source": "/r/:city/:code",
+      "destination": "/bipolar-therapists/:city/?ref=:code",
+      "permanent": false
+    },
+    { "source": "/r/:code", "destination": "/?ref=:code", "permanent": false }
   ],
   "rewrites": [
     { "source": "/api/public/(.*)", "destination": "/api/public/[...path]" },

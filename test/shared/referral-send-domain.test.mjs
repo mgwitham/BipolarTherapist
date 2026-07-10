@@ -86,21 +86,27 @@ test("buildReferralEmailContent stamps the contact's own attribution code on its
     template: "referral_intro",
     cityListingCount: 12,
   });
-  assert.match(intro.text, new RegExp(`ref=${expected}`));
+  // The email carries the contact's own code as a clean /r/ link — no visible
+  // ?ref= param, no city path (the /r/ endpoint resolves both).
   assert.match(
     intro.text,
-    /https:\/\/www\.bipolartherapyhub\.com\/bipolar-therapists\/los-angeles-ca\/\?ref=/,
+    new RegExp(`https://www\\.bipolartherapyhub\\.com/r/los-angeles-ca/${expected}`),
   );
+  assert.doesNotMatch(intro.text, /\?ref=/);
+  assert.doesNotMatch(intro.text, /bipolar-therapists\//);
 
   // Same contact, later touch → same code, so attribution survives the cadence.
+  // No count passed here, so the link is the short /r/<code> form (homepage).
   const followUp = buildReferralEmailContent(contact, { template: "referral_follow_up" });
-  assert.match(followUp.text, new RegExp(`ref=${expected}`));
+  assert.match(followUp.text, new RegExp(`/r/${expected}`));
 
-  // A contact with no identity gets clean links rather than an invented code.
+  // A contact with no identity gets a clean, code-less link rather than an
+  // invented code.
   const anonymous = buildReferralEmailContent(
     { segment: "prescriber" },
     { template: "referral_intro" },
   );
+  assert.doesNotMatch(anonymous.text, /\/r\//);
   assert.doesNotMatch(anonymous.text, /[?&]ref=/);
 });
 
@@ -171,7 +177,7 @@ test("buildReferralSendPatch derives a deterministic _key from nowIso", () => {
   assert.equal(a.emailLog[0]._key, b.emailLog[0]._key);
 });
 
-test("buildReferralEmailContent suppresses the city link unless the caller proves the page exists", () => {
+test("buildReferralEmailContent names the city only when the caller proves the page exists", () => {
   const contact = {
     contactName: "Dr. Sam Reed",
     email: "sam@reedpsych.com",
@@ -179,19 +185,27 @@ test("buildReferralEmailContent suppresses the city link unless the caller prove
     city: "Folsom",
     state: "CA",
   };
-  // Caller omits the count (or the city is below threshold) → no city link.
+  const code = referralCodeForContact(contact);
+
+  // The visible link is always the clean /r/ redirect, never a city path.
+  // The listing count only decides whether the copy *names* the city, so an
+  // unproven / thin city never promises a page the redirect can't deliver.
   const blind = buildReferralEmailContent(contact, { template: "referral_intro" });
+  assert.doesNotMatch(blind.text, /seeing patients in Folsom/);
+  assert.match(blind.text, new RegExp(`/r/${code}`));
   assert.doesNotMatch(blind.text, /bipolar-therapists\//);
 
   const thin = buildReferralEmailContent(contact, {
     template: "referral_intro",
     cityListingCount: 1,
   });
-  assert.doesNotMatch(thin.text, /bipolar-therapists\//);
+  assert.doesNotMatch(thin.text, /seeing patients in Folsom/);
 
   const covered = buildReferralEmailContent(contact, {
     template: "referral_intro",
     cityListingCount: 5,
   });
-  assert.match(covered.text, /bipolar-therapists\/folsom-ca\//);
+  assert.match(covered.text, /seeing patients in Folsom/);
+  assert.match(covered.text, new RegExp(`/r/folsom-ca/${code}`));
+  assert.doesNotMatch(covered.text, /bipolar-therapists\//);
 });

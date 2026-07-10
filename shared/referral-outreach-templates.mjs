@@ -9,7 +9,7 @@
 // CTA is sharing the website, never signing up.
 
 import { firstName } from "./outreach-templates.mjs";
-import { appendReferralCode } from "./referral-attribution.mjs";
+import { appendReferralCode, referralLandingUrl } from "./referral-attribution.mjs";
 
 export const REFERRAL_TEMPLATES = ["referral_intro", "referral_follow_up", "referral_resource"];
 
@@ -142,21 +142,36 @@ function canLinkCityPage(cityName, cityUrl, cityListingCount) {
  * @param {unknown} baseUrl
  * @returns {string}
  */
-export function cityDirectoryUrl(city, state, baseUrl) {
-  const base = String(baseUrl || "")
-    .trim()
-    .replace(/\/+$/, "");
+/**
+ * City-page slug, e.g. "irvine-ca". One source of truth shared by the city URL
+ * and the /r/ redirect link so the email and the redirect always agree. Mirrors
+ * citySlug in scripts/generate-seo-city-pages.mjs. Returns "" without a city.
+ *
+ * @param {unknown} city
+ * @param {unknown} state
+ * @returns {string}
+ */
+export function citySlug(city, state) {
   const slug = String(city || "")
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  if (!base || !slug) return "";
+  if (!slug) return "";
   const stateSlug =
     String(state || "CA")
       .trim()
       .toLowerCase() || "ca";
-  return `${base}/bipolar-therapists/${slug}-${stateSlug}/`;
+  return `${slug}-${stateSlug}`;
+}
+
+export function cityDirectoryUrl(city, state, baseUrl) {
+  const base = String(baseUrl || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const slug = citySlug(city, state);
+  if (!base || !slug) return "";
+  return `${base}/bipolar-therapists/${slug}/`;
 }
 
 /**
@@ -185,21 +200,26 @@ export function buildReferralIntroBody({
   const org = String(orgName || "").trim();
   if (isTherapistSegment(segment)) {
     const cityName = String(city || "").trim();
-    const cityLink = String(cityUrl || "").trim();
-    const cityBlock = canLinkCityPage(cityName, cityLink, cityListingCount)
-      ? [`Here are the bipolar specialists seeing clients in ${cityName}:`, "", cityLink, ""]
-      : [];
+    const hasCity = canLinkCityPage(cityName, String(cityUrl || "").trim(), cityListingCount);
+    // One link. When the city has a page, lead with it and let the copy name
+    // the city; otherwise the same link lands on the homepage.
+    const descriptive =
+      "BipolarTherapyHub is a free directory of therapists who specialize in bipolar disorder. If a client ever needs a bipolar referral, whether you are referring out mid treatment or preparing resources for termination, the site gives them a solid place to land. Clients can search by location, insurance, and therapy needs on their own. No account, no cost.";
+    const lines = hasCity
+      ? [
+          `Here are the bipolar specialists seeing clients in ${cityName}:`,
+          "",
+          url,
+          "",
+          descriptive,
+        ]
+      : [descriptive, "", url];
     return [
       `Hi ${first},`,
       "",
       "A quick note about a new referral resource for California therapists.",
       "",
-      "BipolarTherapyHub is a free directory of therapists who specialize in bipolar disorder. If a client ever needs a bipolar referral, whether you are referring out mid treatment or preparing resources for termination, the site gives them a solid place to land.",
-      "",
-      ...cityBlock,
-      "You can explore the full site here. Clients can search by location, insurance, and therapy needs on their own. No account, no cost:",
-      "",
-      url,
+      ...lines,
       "",
       "Michael Witham",
       "BipolarTherapyHub",
@@ -207,34 +227,28 @@ export function buildReferralIntroBody({
   }
   if (isPrescriberSegment(segment)) {
     const cityName = String(city || "").trim();
-    const cityLink = String(cityUrl || "").trim();
-    // The city list is the strongest thing in this email — the one thing the
-    // big directories can't hand a prescriber — so it leads when we have it.
-    const leadBlock = canLinkCityPage(cityName, cityLink, cityListingCount)
+    const hasCity = canLinkCityPage(cityName, String(cityUrl || "").trim(), cityListingCount);
+    // One link. The city list is the strongest thing in this email — the one
+    // thing the big directories can't hand a prescriber — so it leads when the
+    // city has a page; otherwise the same link lands on the homepage.
+    const descriptive =
+      "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder. Every listing is license verified against state records. When a patient needs therapy alongside medication management, it is a vetted place to start instead of a cold search. Patients can search by location and insurance on their own, with no account and no cost.";
+    const lines = hasCity
       ? [
           `Here are the bipolar specialists currently seeing patients in ${cityName}:`,
           "",
-          cityLink,
+          url,
           "",
-          "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder. Every listing is license verified against state records. When a patient needs therapy alongside medication management, this gives them a vetted place to start instead of a cold search.",
+          descriptive,
         ]
       : [
           "A quick note about a free therapy referral resource for your patients with bipolar disorder.",
           "",
-          "BipolarTherapyHub is a directory of California therapists who specialize in bipolar disorder. Every listing is license verified against state records. When a patient needs therapy alongside medication management, the site gives them a vetted place to start instead of a cold search.",
+          descriptive,
+          "",
+          url,
         ];
-    return [
-      `Hi ${first},`,
-      "",
-      ...leadBlock,
-      "",
-      "Patients can also search the full site by location, insurance, and therapy needs on their own. No account, no cost:",
-      "",
-      url,
-      "",
-      "Michael Witham",
-      "BipolarTherapyHub",
-    ].join("\n");
+    return [`Hi ${first},`, "", ...lines, "", "Michael Witham", "BipolarTherapyHub"].join("\n");
   }
   return [
     `Hi ${first},`,
@@ -293,14 +307,15 @@ export function buildReferralFollowUpBody({
     // generic intro, so this follow-up is their first sight of the city list.
     // Lead with it: it is the one thing the big directories cannot give them.
     if (canLinkCityPage(cityName, cityLink, cityListingCount)) {
+      // Lead with the value: the local list, no preamble.
       return [
         `Hi ${first},`,
         "",
-        `Circling back in case this is useful. Here are the bipolar specialists currently seeing patients in ${cityName}:`,
+        `Here are the bipolar specialists currently seeing patients in ${cityName}:`,
         "",
         cityLink,
         "",
-        "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder, for when a patient needs therapy alongside medication management. Every listing is license verified. Patients can search it themselves by location and insurance. No sign-up, no cost.",
+        "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder. Every listing is license verified. Patients can search it themselves by location and insurance. No sign-up, no cost.",
         "",
         "Michael",
         "bipolartherapyhub.com",
@@ -309,11 +324,11 @@ export function buildReferralFollowUpBody({
     return [
       `Hi ${first},`,
       "",
-      "Circling back in case this is useful. BipolarTherapyHub is a free directory of California bipolar specialists, for when a patient needs therapy alongside medication management:",
+      "A free directory of California therapists who specialize in bipolar disorder, for the therapy side of any referral you make:",
       "",
       url,
       "",
-      "Patients can search it themselves by location and insurance. No sign-up, no cost.",
+      "Every listing is license verified. Patients can search it themselves by location and insurance. No sign-up, no cost.",
       "",
       "Michael",
       "bipolartherapyhub.com",
@@ -415,28 +430,36 @@ export function buildReferralResourceBody({
 
 /**
  * Resolve a referral template id to its { subject, body }. Unknown ids fall
- * back to the intro. When `vars.referralCode` is present, every link in the
- * body carries `?ref=<code>` so a resulting match intake can be attributed
- * back to this contact.
+ * back to the intro. When `vars.referralCode` is present, the body's single
+ * link is the clean `/r/<code>` short link — no visible `?ref=` clutter. The
+ * /r/ endpoint resolves the code to the referrer's city page and re-applies the
+ * code, so attribution survives (see api/r/[code].mjs).
  *
  * @param {string} template
  * @param {ReferralVars} vars
  * @returns {{ subject: string, body: string }}
  */
 export function getReferralTemplate(template, vars) {
-  // The city URL is derived from the bare base URL, so build it BEFORE
-  // stamping the code — appending ?ref= first would bury the query string in
-  // the middle of the path.
   const baseUrl = String(vars && vars.directoryUrl ? vars.directoryUrl : "");
   const code = String((vars && vars.referralCode) || "");
   const therapist = isTherapistSegment(vars && vars.segment);
   const prescriber = isPrescriberSegment(vars && vars.segment);
+  // Whether this contact's city has a generated page. When it does, the /r/
+  // link carries the city slug so the redirect lands on that city page; the
+  // copy also names the city. Gated on the listing count so we never encode a
+  // city whose page doesn't exist (the redirect would 404).
   const bareCityUrl =
     therapist || prescriber ? cityDirectoryUrl(vars && vars.city, vars && vars.state, baseUrl) : "";
+  const count = Number(vars && vars.cityListingCount);
+  const hasCityPage =
+    Boolean(bareCityUrl) && Number.isFinite(count) && count >= MIN_CITY_PAGE_PROVIDERS;
+  const slug = hasCityPage ? citySlug(vars && vars.city, vars && vars.state) : "";
 
-  const refUrl = withReferralRef(baseUrl, code);
-  const cityUrl = withReferralRef(bareCityUrl, code);
-  const withUrl = { ...vars, directoryUrl: refUrl, cityUrl };
+  // One clean link for the whole email. Both slots (directoryUrl / cityUrl)
+  // carry it; each template renders the link exactly once.
+  const shortLink = referralLandingUrl(baseUrl, code, slug);
+  const cityUrl = bareCityUrl ? shortLink : "";
+  const withUrl = { ...vars, directoryUrl: shortLink, cityUrl };
   const introSubject = therapist
     ? REFERRAL_THERAPIST_INTRO_SUBJECT
     : prescriber
