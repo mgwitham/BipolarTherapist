@@ -220,7 +220,8 @@ test("prescriber gets medication-management copy, its own subjects, and the city
     directoryUrl: "https://x.org",
   });
   assert.equal(followUp.subject, `Re: ${REFERRAL_PRESCRIBER_INTRO_SUBJECT}`);
-  assert.match(followUp.body, /medication management/);
+  // Prescriber-specific opener that speaks to their role.
+  assert.match(followUp.body, /You handle the medication\./);
   // Closes on the value and the signature. The CAN-SPAM footer carries the
   // STOP opt-out, so the body never mentions replying.
   assert.doesNotMatch(followUp.body, /reply/i);
@@ -279,7 +280,10 @@ test("prescriber follow-up leads with the city list when a city is on file", () 
   // Still threads under the intro they actually received.
   assert.match(subject, /^Re: /);
   assert.match(body, /^Hi Priya,/);
-  assert.match(body, /Circling back/);
+  assert.match(
+    body,
+    /You handle the medication\. Finding the right therapist is the harder half\./,
+  );
   assert.match(body, /bipolar specialists currently seeing patients in San Diego/);
 
   const lines = body.split("\n");

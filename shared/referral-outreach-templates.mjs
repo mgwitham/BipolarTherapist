@@ -295,11 +295,11 @@ export function buildReferralFollowUpBody({
       return [
         `Hi ${first},`,
         "",
-        `Circling back in case this is useful. Here are the bipolar specialists currently seeing patients in ${cityName}:`,
+        `You handle the medication. Finding the right therapist is the harder half. Here are the bipolar specialists currently seeing patients in ${cityName}:`,
         "",
         cityLink,
         "",
-        "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder, for when a patient needs therapy alongside medication management. Every listing is license verified. Patients can search it themselves by location and insurance. No sign-up, no cost.",
+        "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder. Every listing is license verified. Patients can search it themselves by location and insurance. No sign-up, no cost.",
         "",
         "Michael",
         "bipolartherapyhub.com",
@@ -308,7 +308,7 @@ export function buildReferralFollowUpBody({
     return [
       `Hi ${first},`,
       "",
-      "Circling back in case this is useful. BipolarTherapyHub is a free directory of California bipolar specialists, for when a patient needs therapy alongside medication management:",
+      "You handle the medication. Finding the right therapist is the harder half. BipolarTherapyHub is a free, license-verified directory of California bipolar specialists, built for exactly that:",
       "",
       url,
       "",
