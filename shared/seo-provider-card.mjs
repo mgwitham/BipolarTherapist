@@ -129,6 +129,11 @@ export function buildProviderCardHtml(provider, metaText) {
     "</div>" +
     (meta ? '<div class="city-provider-role">' + escapeHtml(meta) + "</div>" : "") +
     '<div class="city-provider-cta">View profile <span aria-hidden="true">&rarr;</span></div>' +
+    // Print only. On paper a "View profile →" link is useless, so the handout
+    // shows the typable URL instead. Hidden on screen; see seo-city-pages.css.
+    '<div class="city-provider-print-url">bipolartherapyhub.com' +
+    escapeHtml(href) +
+    "</div>" +
     "</div>" +
     "</a>"
   );
