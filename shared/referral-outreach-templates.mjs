@@ -429,11 +429,37 @@ export function buildReferralResourceBody({
 }
 
 /**
+ * The bare, human-friendly form of a URL for display in an email body, e.g.
+ * "https://www.bipolartherapyhub.com" → "bipolartherapyhub.com". Strips the
+ * protocol, a leading "www.", and any trailing slash. plainTextToHtml linkifies
+ * this back into a clickable anchor, so it stays a working link while reading
+ * like the brand rather than a raw, phishy-looking URL.
+ *
+ * @param {unknown} url
+ * @returns {string}
+ */
+export function displayDomain(url) {
+  return String(url == null ? "" : url)
+    .trim()
+    .replace(/^https?:\/\//i, "")
+    .replace(/^www\./i, "")
+    .replace(/\/+$/, "");
+}
+
+// Per-referrer attribution is OFF for now. Emails link straight to the
+// destination (a city page or the homepage) with no code, no /r/ redirect, and
+// no ?ref= param. Flip this to true to restore tracking — the /r/ redirect
+// (vercel.json), the browser capture (assets/referral-attribution.js), the
+// matchRequest.referralCode field, and the admin funnel section all remain in
+// place and dormant, so re-enabling is this one line.
+export const REFERRAL_TRACKING_ENABLED = false;
+
+/**
  * Resolve a referral template id to its { subject, body }. Unknown ids fall
- * back to the intro. When `vars.referralCode` is present, the body's single
- * link is the clean `/r/<code>` short link — no visible `?ref=` clutter. The
- * /r/ endpoint resolves the code to the referrer's city page and re-applies the
- * code, so attribution survives (see api/r/[code].mjs).
+ * back to the intro. Each body renders exactly one link. With tracking on it is
+ * the clean `/r/<code>` short link (the /r/ endpoint resolves the city and
+ * re-applies the code); with tracking off it is the direct destination — the
+ * contact's city page when that page exists, else the homepage.
  *
  * @param {string} template
  * @param {ReferralVars} vars
@@ -444,10 +470,9 @@ export function getReferralTemplate(template, vars) {
   const code = String((vars && vars.referralCode) || "");
   const therapist = isTherapistSegment(vars && vars.segment);
   const prescriber = isPrescriberSegment(vars && vars.segment);
-  // Whether this contact's city has a generated page. When it does, the /r/
-  // link carries the city slug so the redirect lands on that city page; the
-  // copy also names the city. Gated on the listing count so we never encode a
-  // city whose page doesn't exist (the redirect would 404).
+  // Whether this contact's city has a generated page. When it does, the link
+  // points at that city page and the copy names the city. Gated on the listing
+  // count so we never link a city whose page doesn't exist (it would 404).
   const bareCityUrl =
     therapist || prescriber ? cityDirectoryUrl(vars && vars.city, vars && vars.state, baseUrl) : "";
   const count = Number(vars && vars.cityListingCount);
@@ -455,11 +480,18 @@ export function getReferralTemplate(template, vars) {
     Boolean(bareCityUrl) && Number.isFinite(count) && count >= MIN_CITY_PAGE_PROVIDERS;
   const slug = hasCityPage ? citySlug(vars && vars.city, vars && vars.state) : "";
 
-  // One clean link for the whole email. Both slots (directoryUrl / cityUrl)
-  // carry it; each template renders the link exactly once.
-  const shortLink = referralLandingUrl(baseUrl, code, slug);
-  const cityUrl = bareCityUrl ? shortLink : "";
-  const withUrl = { ...vars, directoryUrl: shortLink, cityUrl };
+  // One link for the whole email; each template renders it exactly once.
+  //
+  // Tracking off (current): show the bare, friendly domain — "bipolartherapyhub.com"
+  // — pointing at the homepage. A raw https://www... URL on its own line reads
+  // as phishy in a cold email; the clean domain matches the signature and the
+  // brand. Everyone lands on the homepage, so no city path is named either.
+  //
+  // Tracking on: the /r/ short link with the city slug (redirect + attribution).
+  const trackedLink = referralLandingUrl(baseUrl, code, slug);
+  const directoryUrl = REFERRAL_TRACKING_ENABLED ? trackedLink : displayDomain(baseUrl);
+  const cityUrl = REFERRAL_TRACKING_ENABLED ? (bareCityUrl ? trackedLink : "") : "";
+  const withUrl = { ...vars, directoryUrl, cityUrl };
   const introSubject = therapist
     ? REFERRAL_THERAPIST_INTRO_SUBJECT
     : prescriber
