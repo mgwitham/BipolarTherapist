@@ -916,7 +916,10 @@ async function fetchTherapists(config) {
        _updatedAt, "slug": slug.current, name, credentials, title, city, state,
        "photo_url": photo.asset->url,
        sessionFeeMin, sessionFeeMax, acceptsTelehealth, acceptsInPerson,
-       acceptingNewPatients, treatmentModalities, specialties
+       acceptingNewPatients, treatmentModalities, specialties,
+       // Print handout only. Both are already public on each profile page,
+       // which renders tel:/mailto: links client-side.
+       phone, email
      }`,
   );
 }
