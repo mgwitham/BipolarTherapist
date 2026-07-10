@@ -540,3 +540,146 @@
     justify-content: center;
   }
 }
+
+/* ---------------------------------------------------------------
+   PRINT HANDOUT
+   A clinician prints a city page and hands it to a patient. Everything
+   that only works on a screen (nav, hero art, CTAs, FAQ, guides) is
+   dropped; what survives is the verified list, the profile URLs, and
+   the site address so the patient can search on their own later.
+   --------------------------------------------------------------- */
+
+/* Screen: the print-only bits stay hidden. */
+.city-print-header,
+.city-provider-print-url {
+  display: none;
+}
+
+.city-print-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 1.25rem;
+  padding: 0.55rem 1rem;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #155f70;
+  background: #ffffff;
+  border: 1px solid rgba(26, 122, 143, 0.35);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.city-print-button:hover {
+  background: #e8f5f8;
+}
+
+@media print {
+  @page {
+    margin: 0.6in;
+  }
+
+  /* Chrome that must never reach paper. */
+  nav,
+  footer,
+  .public-mobile-nav,
+  .crisis-ribbon,
+  .skip-link,
+  .city-hero-deco,
+  .city-hero-cta-primary,
+  .city-hero-cta-secondary,
+  .city-print-button,
+  .city-provider-cta,
+  .city-provider-avatar,
+  .city-faq,
+  .city-guides,
+  .city-cta-band,
+  .city-criteria,
+  .dir-header,
+  [data-shortlist-link] {
+    display: none !important;
+  }
+
+  html,
+  body,
+  .seo-city-fallback {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt;
+  }
+
+  /* The printed masthead, injected by the city page generator. */
+  .city-print-header {
+    display: block;
+    border-bottom: 2px solid #000000;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+  }
+  .city-print-header h1 {
+    font-size: 16pt;
+    margin: 0 0 0.15rem;
+  }
+  .city-print-header p {
+    font-size: 9.5pt;
+    margin: 0.1rem 0;
+    color: #333333;
+  }
+
+  /* Screen hero collapses; the print header replaces it. */
+  .city-hero,
+  .city-hero-inner,
+  .city-hero-eyebrow,
+  .city-hero-h1,
+  .city-hero-sub {
+    display: none !important;
+  }
+
+  .city-providers {
+    padding: 0 !important;
+  }
+  .city-provider-grid {
+    display: block !important;
+  }
+  .city-section-kicker,
+  .city-section-lede,
+  .city-providers .city-section-h2 {
+    display: none !important;
+  }
+
+  /* One clinician per row. Never split a clinician across two pages —
+     a patient should not have to flip a page to read a phone number. */
+  .city-provider-card {
+    display: block !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 0 !important;
+    border-bottom: 1px solid #cccccc !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    padding: 0.45rem 0 !important;
+    margin: 0 !important;
+    color: #000000 !important;
+    text-decoration: none !important;
+  }
+  .city-provider-name {
+    font-size: 11.5pt;
+    font-weight: 700;
+  }
+  .city-provider-creds {
+    font-weight: 400;
+  }
+  .city-provider-role {
+    font-size: 9.5pt;
+    color: #333333;
+  }
+  .city-provider-print-url {
+    display: block;
+    font-size: 9pt;
+    color: #333333;
+  }
+
+  /* Editorial prose is useful context on screen, noise on a handout. */
+  .city-context {
+    display: none !important;
+  }
+}

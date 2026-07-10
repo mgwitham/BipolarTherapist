@@ -14,6 +14,21 @@ try {
   // Attribution is best-effort; never let it block the page.
 }
 
+// "Print this list" on the generated city pages. Delegated from the document so
+// it works on statically generated markup with no per-page script, and so the
+// button is inert (rather than broken) on browsers that block window.print.
+// The printed layout lives in public/seo-city-pages.css under @media print.
+try {
+  document.addEventListener("click", function (event) {
+    const trigger = event.target && event.target.closest("[data-print-list]");
+    if (!trigger) return;
+    event.preventDefault();
+    window.print();
+  });
+} catch (_printError) {
+  // Non-fatal; the browser's own Print command still works.
+}
+
 let lastShortlistCount = null;
 
 function buildShortlistHref(shortlist) {

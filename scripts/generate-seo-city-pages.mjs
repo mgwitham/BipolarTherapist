@@ -271,10 +271,32 @@ function buildCityProvidersLede(providers) {
   return sentence;
 }
 
-function buildCityProvidersHtml(city, providers) {
+// Masthead for the printed handout. A clinician prints this page and hands it
+// to a patient, so the paper has to stand on its own once it leaves the office:
+// what the list is, that it is license-verified, and where to find it online.
+// Hidden on screen (see public/seo-city-pages.css).
+function buildCityPrintHeaderHtml(city, state, providers) {
+  const count = providers.length;
+  return (
+    '<div class="city-print-header">' +
+    "<h1>Bipolar specialists in " +
+    escapeHtml(city) +
+    ", " +
+    escapeHtml(state) +
+    "</h1>" +
+    "<p>" +
+    (count === 1 ? "1 therapist" : count + " therapists") +
+    " who specialize in bipolar disorder. Every license is verified against California state records.</p>" +
+    "<p>Full list, filters, and profiles: bipolartherapyhub.com</p>" +
+    "</div>"
+  );
+}
+
+function buildCityProvidersHtml(city, state, providers) {
   return (
     '<section class="city-providers" id="cityProviders">' +
     '<div class="city-section-inner">' +
+    buildCityPrintHeaderHtml(city, state, providers) +
     '<p class="city-section-kicker">Verified specialists</p>' +
     '<h2 class="city-section-h2">' +
     providers.length +
@@ -284,6 +306,7 @@ function buildCityProvidersHtml(city, providers) {
     '<p class="city-section-lede">' +
     escapeHtml(buildCityProvidersLede(providers)) +
     "</p>" +
+    '<button type="button" class="city-print-button" data-print-list>Print this list</button>' +
     '<div class="city-provider-grid">' +
     buildProviderCardsHtml(providers) +
     "</div>" +
@@ -549,7 +572,7 @@ function buildFallbackBodyHtml(city, state, providers, cityContent, nearbyHtml) 
     '<div class="seo-city-fallback" data-static-seo-city>' +
     buildCityHeroHtml(city, state, providers) +
     buildCityContextHtml(city, state, cityContent, stats) +
-    buildCityProvidersHtml(city, providers) +
+    buildCityProvidersHtml(city, state, providers) +
     buildWhatToLookForHtml(city) +
     buildCityFaqHtml(city, stats) +
     buildCityGuidesHtml() +
