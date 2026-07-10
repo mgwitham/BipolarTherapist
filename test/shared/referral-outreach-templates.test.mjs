@@ -13,6 +13,7 @@ import {
   getReferralTemplate,
   withReferralRef,
 } from "../../shared/referral-outreach-templates.mjs";
+import { SEGMENTS } from "../../shared/referral-contact-domain.mjs";
 
 // Assert an email body contains a link on its own line, matched exactly.
 // Written as an equality check rather than `lines.includes(url)` so CodeQL's
@@ -417,10 +418,12 @@ test("the resource email points at the print button instead of promising a file"
   }
 });
 
-test("neither the prescriber nor the therapist campaign asks for a reply", () => {
+test("no referral email, in any segment, asks for a reply", () => {
   // The CAN-SPAM footer carries the STOP opt-out, so a body that mentions
   // replying only draws attention to the thing we are not asking for.
-  for (const segment of ["prescriber", "outpatient_therapist"]) {
+  const ALL_SEGMENTS = SEGMENTS.map((s) => s.value);
+  assert.ok(ALL_SEGMENTS.length >= 6, "expected every outreach segment to be covered");
+  for (const segment of ALL_SEGMENTS) {
     for (const template of REFERRAL_TEMPLATES) {
       const { body } = getReferralTemplate(template, {
         contactName: "Sam Reed",
@@ -437,21 +440,23 @@ test("neither the prescriber nor the therapist campaign asks for a reply", () =>
 });
 
 test("the printed handout is offered in the recipient's own vocabulary", () => {
-  const therapist = getReferralTemplate("referral_resource", {
-    segment: "outpatient_therapist",
-    city: "Pasadena",
-    state: "CA",
-    cityListingCount: 7,
-    directoryUrl: "https://www.bipolartherapyhub.com",
-  });
-  assert.match(therapist.body, /hand to a client\./);
-
-  const prescriber = getReferralTemplate("referral_resource", {
-    segment: "prescriber",
-    city: "Pasadena",
-    state: "CA",
-    cityListingCount: 7,
-    directoryUrl: "https://www.bipolartherapyhub.com",
-  });
-  assert.match(prescriber.body, /hand to a patient\./);
+  const expected = {
+    outpatient_therapist: "hand to a client.",
+    prescriber: "hand to a patient.",
+    school_counseling: "hand to a student.",
+    community_peer: "hand to someone who needs it.",
+    primary_care: "hand to a patient.",
+    hospital_case_mgmt: "hand to a patient.",
+    treatment_program: "hand to a patient.",
+  };
+  for (const segment of SEGMENTS.map((s) => s.value)) {
+    const { body } = getReferralTemplate("referral_resource", {
+      segment,
+      directoryUrl: "https://www.bipolartherapyhub.com",
+    });
+    assert.ok(expected[segment], `no expectation for segment ${segment}`);
+    assert.ok(body.includes(expected[segment]), `${segment}: expected "${expected[segment]}"`);
+    // Never "hand to a someone…" — the phrase carries its own article.
+    assert.doesNotMatch(body, /hand to a someone/);
+  }
 });

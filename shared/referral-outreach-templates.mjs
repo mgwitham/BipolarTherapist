@@ -39,6 +39,27 @@ export function audienceNoun(segment) {
 }
 
 /**
+ * Who a recipient would hand the printed list to, article included so segments
+ * without one ("someone who needs it") stay grammatical. A therapist hands it
+ * to a client, a psychiatrist to a patient, a school counselor to a student.
+ *
+ * @param {unknown} segment
+ * @returns {string}
+ */
+export function handoutRecipientPhrase(segment) {
+  switch (segment) {
+    case "outpatient_therapist":
+      return "a client";
+    case "school_counseling":
+      return "a student";
+    case "community_peer":
+      return "someone who needs it";
+    default:
+      return "a patient";
+  }
+}
+
+/**
  * Stamp a referral link with the sending contact's attribution code, so a
  * patient who lands from this email can be traced back to the clinician who
  * referred them. No-op when there is no url or no code, so an unattributed
@@ -228,8 +249,6 @@ export function buildReferralIntroBody({
     "",
     "Feel free to keep the site handy or pass it along when it would help.",
     "",
-    "If this is not useful for your work, just reply and I will not follow up.",
-    "",
     "Michael Witham",
     "BipolarTherapyHub",
   ].join("\n");
@@ -309,8 +328,6 @@ export function buildReferralFollowUpBody({
     "",
     "They can use it on their own whenever they need it. No sign-up, no cost.",
     "",
-    "If it is not relevant to your work, just reply and I will leave it there.",
-    "",
     "Michael",
     "bipolartherapyhub.com",
   ].join("\n");
@@ -339,11 +356,10 @@ export function buildReferralResourceBody({
   // The handout is a Print this list button on every city page, not a file we
   // mail out. Point at it rather than offering to send something: the clinician
   // gets it in one click and nobody waits on a reply.
-  // Therapists say "client", prescribers and everyone else say "patient".
-  const recipient = isTherapistSegment(segment) ? "client" : "patient";
+  const recipient = handoutRecipientPhrase(segment);
   const printLine = hasCity
-    ? `That page has a "Print this list" button. It prints as a one page handout with names, credentials, and phone numbers, ready to hand to a ${recipient}.`
-    : `Every city page has a "Print this list" button. It prints as a one page handout with names, credentials, and phone numbers, ready to hand to a ${recipient}.`;
+    ? `That page has a "Print this list" button. It prints as a one page handout with names, credentials, and phone numbers, ready to hand to ${recipient}.`
+    : `Every city page has a "Print this list" button. It prints as a one page handout with names, credentials, and phone numbers, ready to hand to ${recipient}.`;
 
   if (isTherapistSegment(segment)) {
     return [
