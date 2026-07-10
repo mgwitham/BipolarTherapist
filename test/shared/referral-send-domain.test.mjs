@@ -83,17 +83,16 @@ test("buildReferralEmailContent emits untracked direct links (tracking is off)",
     template: "referral_intro",
     cityListingCount: 12,
   });
-  // No attribution code, no /r/ redirect, no ?ref= — a covered city links
-  // straight to its page.
-  assert.match(
-    intro.text,
-    /https:\/\/www\.bipolartherapyhub\.com\/bipolar-therapists\/los-angeles-ca\//,
-  );
+  // Tracking off: a friendly bare-domain link, no raw URL, no code, no /r/,
+  // no ?ref=, no city path.
+  assert.match(intro.text, /(^|\s)bipolartherapyhub\.com(\s|$)/m);
+  assert.doesNotMatch(intro.text, /https?:\/\//);
   assert.doesNotMatch(intro.text, /\?ref=/);
   assert.doesNotMatch(intro.text, /\/r\//);
+  assert.doesNotMatch(intro.text, /bipolar-therapists\//);
 
-  // A thin city (no count) links to the homepage, still untracked.
   const followUp = buildReferralEmailContent(contact, { template: "referral_follow_up" });
+  assert.doesNotMatch(followUp.text, /https?:\/\//);
   assert.doesNotMatch(followUp.text, /\?ref=/);
   assert.doesNotMatch(followUp.text, /\/r\//);
 });
@@ -104,7 +103,8 @@ test("buildReferralEmailContent defaults to the public homepage URL", () => {
     { template: "referral_intro" },
   );
   assert.ok(DEFAULT_DIRECTORY_URL.length > 0);
-  assert.notEqual(content.text.split("\n").indexOf("https://www.bipolartherapyhub.com"), -1);
+  // Rendered as the friendly bare domain, defaulting to the public homepage.
+  assert.notEqual(content.text.split("\n").indexOf("bipolartherapyhub.com"), -1);
   assert.doesNotMatch(content.text, /\/directory|ref=referral/);
 });
 
@@ -165,7 +165,7 @@ test("buildReferralSendPatch derives a deterministic _key from nowIso", () => {
   assert.equal(a.emailLog[0]._key, b.emailLog[0]._key);
 });
 
-test("buildReferralEmailContent names the city only when the caller proves the page exists", () => {
+test("buildReferralEmailContent never names a city while tracking is off", () => {
   const contact = {
     contactName: "Dr. Sam Reed",
     email: "sam@reedpsych.com",
@@ -173,29 +173,16 @@ test("buildReferralEmailContent names the city only when the caller proves the p
     city: "Folsom",
     state: "CA",
   };
-  // Tracking off: the listing count decides whether the copy names the city AND
-  // whether the link points at the city page. An unproven / thin city stays
-  // generic and links to the homepage, so we never promise a page that 404s.
-  const blind = buildReferralEmailContent(contact, { template: "referral_intro" });
-  assert.doesNotMatch(blind.text, /seeing patients in Folsom/);
-  assert.doesNotMatch(blind.text, /bipolar-therapists\//);
-  assert.doesNotMatch(blind.text, /\/r\//);
-
-  const thin = buildReferralEmailContent(contact, {
-    template: "referral_intro",
-    cityListingCount: 1,
-  });
-  assert.doesNotMatch(thin.text, /seeing patients in Folsom/);
-  assert.doesNotMatch(thin.text, /bipolar-therapists\//);
-
-  const covered = buildReferralEmailContent(contact, {
-    template: "referral_intro",
-    cityListingCount: 5,
-  });
-  assert.match(covered.text, /seeing patients in Folsom/);
-  assert.match(
-    covered.text,
-    /https:\/\/www\.bipolartherapyhub\.com\/bipolar-therapists\/folsom-ca\//,
-  );
-  assert.doesNotMatch(covered.text, /\/r\//);
+  // Tracking off: every email is generic — no city name, no city path, bare
+  // homepage link — regardless of the listing count passed.
+  for (const cityListingCount of [undefined, 1, 5, 50]) {
+    const { text } = buildReferralEmailContent(contact, {
+      template: "referral_intro",
+      cityListingCount,
+    });
+    assert.doesNotMatch(text, /seeing patients in Folsom/);
+    assert.doesNotMatch(text, /bipolar-therapists\//);
+    assert.doesNotMatch(text, /\/r\//);
+    assert.doesNotMatch(text, /https?:\/\//);
+  }
 });
