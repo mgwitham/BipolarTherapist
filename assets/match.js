@@ -2,6 +2,7 @@ import "./sentry-init.js";
 import "./site-analytics.js";
 import { fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
+import { getReferralCode } from "./referral-attribution.js";
 import {
   clearRenderedMatchPanels,
   getMatchShellRefs,
@@ -3073,6 +3074,8 @@ function persistMatchRequest(profile, entries) {
     journey_id: currentJourneyId,
     source_surface: "match_flow",
     created_at: new Date().toISOString(),
+    // "" unless the visitor arrived from a clinician's referral link.
+    referral_code: getReferralCode(),
     request_summary: profile ? buildRequestSummary(profile) : "Directory list comparison",
     care_state: profile && profile.care_state ? profile.care_state : "",
     care_format: profile && profile.care_format ? profile.care_format : "",

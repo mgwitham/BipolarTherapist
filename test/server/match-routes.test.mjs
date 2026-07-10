@@ -83,6 +83,37 @@ test("POST /match/requests rejects a body carrying neither identifier", async ()
   assert.match(response.payload.error, /request_id or journey_id is required/);
 });
 
+test("POST /match/requests persists a referral code onto the document", async () => {
+  const { state, handler } = createHandler();
+  const response = await post(handler, "/match/requests", {
+    ...CLIENT_PAYLOAD,
+    referral_code: "nkennedy-3f2a",
+  });
+
+  assert.equal(response.statusCode, 201);
+  const stored = Array.from(state.documents.values()).find((doc) => doc._type === "matchRequest");
+  assert.equal(stored.referralCode, "nkennedy-3f2a");
+});
+
+test("POST /match/requests omits referralCode for an organic visit", async () => {
+  const { state, handler } = createHandler();
+  await post(handler, "/match/requests", { ...CLIENT_PAYLOAD, referral_code: "" });
+
+  const stored = Array.from(state.documents.values()).find((doc) => doc._type === "matchRequest");
+  assert.equal(stored.referralCode, undefined);
+});
+
+test("POST /match/requests rejects an over-long referral code", async () => {
+  const { handler } = createHandler();
+  const response = await post(handler, "/match/requests", {
+    ...CLIENT_PAYLOAD,
+    referral_code: "x".repeat(41),
+  });
+
+  assert.equal(response.statusCode, 400);
+  assert.match(response.payload.error, /referral_code/);
+});
+
 test("POST /match/requests still enforces field length limits", async () => {
   const { handler } = createHandler();
   const response = await post(handler, "/match/requests", {

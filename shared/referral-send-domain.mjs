@@ -5,6 +5,7 @@
 // it's testable without a network.
 
 import { REFERRAL_TEMPLATES, getReferralTemplate } from "./referral-outreach-templates.mjs";
+import { referralCodeForContact } from "./referral-attribution.mjs";
 import { nextReferralTouch } from "./referral-sequence-domain.mjs";
 import { plainTextToHtml } from "./plain-text-to-html.mjs";
 
@@ -79,6 +80,8 @@ export function buildReferralEmailContent(contact, params) {
     city: record.city,
     state: record.state,
     directoryUrl: params.directoryUrl || DEFAULT_DIRECTORY_URL,
+    // Stable per contact, so the intro and every follow-up share one code.
+    referralCode: referralCodeForContact(record),
   });
   let resolvedSubject = subject;
   if (params.template === "referral_follow_up") {

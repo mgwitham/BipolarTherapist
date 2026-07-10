@@ -10,6 +10,8 @@ const MATCH_REQUEST_SCHEMA = {
   session_id: { type: "string", maxLength: 128 },
   source_surface: { type: "string", maxLength: 64 },
   request_summary: { type: "string", maxLength: 2000 },
+  // Referral attribution code; the domain layer sanitizes it further.
+  referral_code: { type: "string", maxLength: 40 },
 };
 
 /** True when the body carries an identifier the shaper can key the document on. */

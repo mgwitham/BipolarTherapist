@@ -9,6 +9,7 @@
 // CTA is sharing the website, never signing up.
 
 import { firstName } from "./outreach-templates.mjs";
+import { appendReferralCode } from "./referral-attribution.mjs";
 
 export const REFERRAL_TEMPLATES = ["referral_intro", "referral_follow_up", "referral_resource"];
 
@@ -38,14 +39,18 @@ export function audienceNoun(segment) {
 }
 
 /**
- * Preserve the referral URL hook point without adding tracking params to the
- * visible link. No-op on empty/placeholder strings.
+ * Stamp a referral link with the sending contact's attribution code, so a
+ * patient who lands from this email can be traced back to the clinician who
+ * referred them. No-op when there is no url or no code, so an unattributed
+ * send still produces a clean link.
  *
  * @param {string} url
+ * @param {string} [referralCode]
  * @returns {string}
  */
-export function withReferralRef(url) {
-  return url || "";
+export function withReferralRef(url, referralCode) {
+  if (!url) return "";
+  return referralCode ? appendReferralCode(url, referralCode) : url;
 }
 
 export const REFERRAL_INTRO_SUBJECT = "A free bipolar therapy search tool for California";
@@ -109,7 +114,7 @@ export function cityDirectoryUrl(city, state, baseUrl) {
 }
 
 /**
- * @typedef {{ contactName?: unknown, orgName?: unknown, segment?: unknown, directoryUrl?: unknown, city?: unknown, state?: unknown, cityUrl?: unknown }} ReferralVars
+ * @typedef {{ contactName?: unknown, orgName?: unknown, segment?: unknown, directoryUrl?: unknown, city?: unknown, state?: unknown, cityUrl?: unknown, referralCode?: unknown }} ReferralVars
  */
 
 /**
@@ -333,19 +338,27 @@ export function buildReferralResourceBody({ contactName, segment, directoryUrl }
 
 /**
  * Resolve a referral template id to its { subject, body }. Unknown ids fall
- * back to the intro. The website URL is passed through without visible
- * tracking params.
+ * back to the intro. When `vars.referralCode` is present, every link in the
+ * body carries `?ref=<code>` so a resulting match intake can be attributed
+ * back to this contact.
  *
  * @param {string} template
  * @param {ReferralVars} vars
  * @returns {{ subject: string, body: string }}
  */
 export function getReferralTemplate(template, vars) {
-  const refUrl = withReferralRef(String(vars && vars.directoryUrl ? vars.directoryUrl : ""));
+  // The city URL is derived from the bare base URL, so build it BEFORE
+  // stamping the code — appending ?ref= first would bury the query string in
+  // the middle of the path.
+  const baseUrl = String(vars && vars.directoryUrl ? vars.directoryUrl : "");
+  const code = String((vars && vars.referralCode) || "");
   const therapist = isTherapistSegment(vars && vars.segment);
   const prescriber = isPrescriberSegment(vars && vars.segment);
-  const cityUrl =
-    therapist || prescriber ? cityDirectoryUrl(vars && vars.city, vars && vars.state, refUrl) : "";
+  const bareCityUrl =
+    therapist || prescriber ? cityDirectoryUrl(vars && vars.city, vars && vars.state, baseUrl) : "";
+
+  const refUrl = withReferralRef(baseUrl, code);
+  const cityUrl = withReferralRef(bareCityUrl, code);
   const withUrl = { ...vars, directoryUrl: refUrl, cityUrl };
   const introSubject = therapist
     ? REFERRAL_THERAPIST_INTRO_SUBJECT
