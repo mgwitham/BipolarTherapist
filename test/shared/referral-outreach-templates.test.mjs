@@ -13,6 +13,7 @@ import {
   getReferralTemplate,
   withReferralRef,
 } from "../../shared/referral-outreach-templates.mjs";
+import { SEGMENTS } from "../../shared/referral-contact-domain.mjs";
 
 // Assert an email body contains a link on its own line, matched exactly.
 // Written as an equality check rather than `lines.includes(url)` so CodeQL's
@@ -167,6 +168,7 @@ test("outpatient_therapist gets refer-out copy and its own subjects", () => {
   });
   assert.equal(followUp.subject, `Re: ${REFERRAL_THERAPIST_INTRO_SUBJECT}`);
   assert.match(followUp.body, /refer a client out/);
+  assert.doesNotMatch(followUp.body, /reply/i);
 
   const resource = getReferralTemplate("referral_resource", {
     segment: "outpatient_therapist",
@@ -222,7 +224,9 @@ test("prescriber gets medication-management copy, its own subjects, and the city
   });
   assert.equal(followUp.subject, `Re: ${REFERRAL_PRESCRIBER_INTRO_SUBJECT}`);
   assert.match(followUp.body, /medication management/);
-  assert.match(followUp.body, /No need to reply/);
+  // Closes on the value and the signature. The CAN-SPAM footer carries the
+  // STOP opt-out, so the body never mentions replying.
+  assert.doesNotMatch(followUp.body, /reply/i);
   // No city on file: falls back to the homepage link, no dangling city line.
   assert.doesNotMatch(followUp.body, /seeing patients in/);
   assert.ok(hasLinkLine(followUp.body, "https://x.org"));
@@ -233,7 +237,9 @@ test("prescriber gets medication-management copy, its own subjects, and the city
   });
   assert.equal(resource.subject, REFERRAL_PRESCRIBER_RESOURCE_SUBJECT);
   assert.ok(!/^Re:/.test(resource.subject));
-  assert.match(resource.body, /printable one page version/);
+  // The handout is a button on the site, not a file we promise to mail.
+  assert.match(resource.body, /"Print this list" button/);
+  assert.doesNotMatch(resource.body, /reply and I can send one/);
 });
 
 test("non-therapist segments keep the original subjects", () => {
@@ -288,7 +294,7 @@ test("prescriber follow-up leads with the city list when a city is on file", () 
   // The bare homepage link is redundant once the city list is present.
   assert.ok(!lines.includes("https://www.bipolartherapyhub.com?ref=pnair-1234"));
   assert.match(body, /license verified/);
-  assert.match(body, /No need to reply/);
+  assert.doesNotMatch(body, /reply/i);
   assert.doesNotMatch(body, /call|meeting|schedule/i);
 });
 
@@ -363,4 +369,94 @@ test("an unknown listing count suppresses the city link, fail-safe", () => {
     cityListingCount: "12",
   });
   assert.match(body, /bipolar-therapists\/los-angeles-ca\//);
+});
+
+test("the resource email points at the print button instead of promising a file", () => {
+  // With a real city page: link the city list, and say that page prints.
+  const withCity = getReferralTemplate("referral_resource", {
+    contactName: "Dr. Priya Nair",
+    segment: "prescriber",
+    city: "San Diego",
+    state: "CA",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+    cityListingCount: 4,
+    referralCode: "pnair-1234",
+  });
+  assert.ok(
+    hasLinkLine(
+      withCity.body,
+      "https://www.bipolartherapyhub.com/bipolar-therapists/san-diego-ca/?ref=pnair-1234",
+    ),
+  );
+  assert.match(withCity.body, /That page has a "Print this list" button/);
+  assert.match(withCity.body, /names, credentials, and phone numbers/);
+
+  // Thin city: no 404 link, and the copy generalizes to "every city page".
+  const thinCity = getReferralTemplate("referral_resource", {
+    segment: "prescriber",
+    city: "Folsom",
+    state: "CA",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+    cityListingCount: 0,
+  });
+  assert.doesNotMatch(thinCity.body, /bipolar-therapists\//);
+  assert.match(thinCity.body, /Every city page has a "Print this list" button/);
+  assert.ok(hasLinkLine(thinCity.body, "https://www.bipolartherapyhub.com"));
+
+  // No segment variant may still promise to mail a handout, and none asks for
+  // a reply — the whole point is that the clinician needs nothing from us.
+  for (const segment of ["prescriber", "outpatient_therapist", "community_peer"]) {
+    const { body } = getReferralTemplate("referral_resource", {
+      segment,
+      city: "Los Angeles",
+      state: "CA",
+      cityListingCount: 12,
+      directoryUrl: "https://www.bipolartherapyhub.com",
+    });
+    assert.doesNotMatch(body, /reply and I can send one/i, `${segment} still offers to mail it`);
+    assert.match(body, /Print this list/, `${segment} never mentions the button`);
+  }
+});
+
+test("no referral email, in any segment, asks for a reply", () => {
+  // The CAN-SPAM footer carries the STOP opt-out, so a body that mentions
+  // replying only draws attention to the thing we are not asking for.
+  const ALL_SEGMENTS = SEGMENTS.map((s) => s.value);
+  assert.ok(ALL_SEGMENTS.length >= 6, "expected every outreach segment to be covered");
+  for (const segment of ALL_SEGMENTS) {
+    for (const template of REFERRAL_TEMPLATES) {
+      const { body } = getReferralTemplate(template, {
+        contactName: "Sam Reed",
+        segment,
+        city: "Pasadena",
+        state: "CA",
+        cityListingCount: 7,
+        directoryUrl: "https://www.bipolartherapyhub.com",
+      });
+      assert.doesNotMatch(body, /reply/i, `${segment}/${template} asks for a reply`);
+      assert.doesNotMatch(body, /call|meeting|schedule/i, `${segment}/${template} asks for time`);
+    }
+  }
+});
+
+test("the printed handout is offered in the recipient's own vocabulary", () => {
+  const expected = {
+    outpatient_therapist: "hand to a client.",
+    prescriber: "hand to a patient.",
+    school_counseling: "hand to a student.",
+    community_peer: "hand to someone who needs it.",
+    primary_care: "hand to a patient.",
+    hospital_case_mgmt: "hand to a patient.",
+    treatment_program: "hand to a patient.",
+  };
+  for (const segment of SEGMENTS.map((s) => s.value)) {
+    const { body } = getReferralTemplate("referral_resource", {
+      segment,
+      directoryUrl: "https://www.bipolartherapyhub.com",
+    });
+    assert.ok(expected[segment], `no expectation for segment ${segment}`);
+    assert.ok(body.includes(expected[segment]), `${segment}: expected "${expected[segment]}"`);
+    // Never "hand to a someone…" — the phrase carries its own article.
+    assert.doesNotMatch(body, /hand to a someone/);
+  }
 });

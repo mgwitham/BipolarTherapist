@@ -39,6 +39,27 @@ export function audienceNoun(segment) {
 }
 
 /**
+ * Who a recipient would hand the printed list to, article included so segments
+ * without one ("someone who needs it") stay grammatical. A therapist hands it
+ * to a client, a psychiatrist to a patient, a school counselor to a student.
+ *
+ * @param {unknown} segment
+ * @returns {string}
+ */
+export function handoutRecipientPhrase(segment) {
+  switch (segment) {
+    case "outpatient_therapist":
+      return "a client";
+    case "school_counseling":
+      return "a student";
+    case "community_peer":
+      return "someone who needs it";
+    default:
+      return "a patient";
+  }
+}
+
+/**
  * Stamp a referral link with the sending contact's attribution code, so a
  * patient who lands from this email can be traced back to the clinician who
  * referred them. No-op when there is no url or no code, so an unattributed
@@ -180,8 +201,6 @@ export function buildReferralIntroBody({
       "",
       url,
       "",
-      "If this is not useful for your practice, just reply and I will not follow up.",
-      "",
       "Michael Witham",
       "BipolarTherapyHub",
     ].join("\n");
@@ -230,8 +249,6 @@ export function buildReferralIntroBody({
     "",
     "Feel free to keep the site handy or pass it along when it would help.",
     "",
-    "If this is not useful for your work, just reply and I will not follow up.",
-    "",
     "Michael Witham",
     "BipolarTherapyHub",
   ].join("\n");
@@ -265,8 +282,6 @@ export function buildReferralFollowUpBody({
       "",
       "Clients can search it themselves by location and insurance. No sign-up, no cost.",
       "",
-      "If it is not relevant to your practice, just reply and I will leave it there.",
-      "",
       "Michael",
       "bipolartherapyhub.com",
     ].join("\n");
@@ -287,8 +302,6 @@ export function buildReferralFollowUpBody({
         "",
         "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder, for when a patient needs therapy alongside medication management. Every listing is license verified. Patients can search it themselves by location and insurance. No sign-up, no cost.",
         "",
-        "No need to reply. Reply STOP anytime and I will leave it there.",
-        "",
         "Michael",
         "bipolartherapyhub.com",
       ].join("\n");
@@ -301,8 +314,6 @@ export function buildReferralFollowUpBody({
       url,
       "",
       "Patients can search it themselves by location and insurance. No sign-up, no cost.",
-      "",
-      "No need to reply. Reply STOP anytime and I will leave it there.",
       "",
       "Michael",
       "bipolartherapyhub.com",
@@ -317,8 +328,6 @@ export function buildReferralFollowUpBody({
     "",
     "They can use it on their own whenever they need it. No sign-up, no cost.",
     "",
-    "If it is not relevant to your work, just reply and I will leave it there.",
-    "",
     "Michael",
     "bipolartherapyhub.com",
   ].join("\n");
@@ -330,23 +339,41 @@ export function buildReferralFollowUpBody({
  * @param {ReferralVars} vars
  * @returns {string}
  */
-export function buildReferralResourceBody({ contactName, segment, directoryUrl }) {
+export function buildReferralResourceBody({
+  contactName,
+  segment,
+  directoryUrl,
+  city,
+  cityUrl,
+  cityListingCount,
+}) {
   const first = firstName(contactName);
   const who = audienceNoun(segment);
   const url = String(directoryUrl || "");
+  const cityName = String(city || "").trim();
+  const cityLink = String(cityUrl || "").trim();
+  const hasCity = canLinkCityPage(cityName, cityLink, cityListingCount);
+  // The handout is a Print this list button on every city page, not a file we
+  // mail out. Point at it rather than offering to send something: the clinician
+  // gets it in one click and nobody waits on a reply.
+  const recipient = handoutRecipientPhrase(segment);
+  const printLine = hasCity
+    ? `That page has a "Print this list" button. It prints as a one page handout with names, credentials, and phone numbers, ready to hand to ${recipient}.`
+    : `Every city page has a "Print this list" button. It prints as a one page handout with names, credentials, and phone numbers, ready to hand to ${recipient}.`;
+
   if (isTherapistSegment(segment)) {
     return [
       `Hi ${first},`,
       "",
       "Last note from me.",
       "",
-      "If you ever need to transition a client with bipolar disorder out of your care, BipolarTherapyHub may give them a solid next step:",
+      hasCity
+        ? `If you ever need to transition a client with bipolar disorder out of your care, here are the specialists in ${cityName}:`
+        : "If you ever need to transition a client with bipolar disorder out of your care, BipolarTherapyHub may give them a solid next step:",
       "",
-      url,
+      hasCity ? cityLink : url,
       "",
-      "It is free, public, and built so clients can explore it themselves.",
-      "",
-      "If a printable one page version would be helpful for your office, reply and I can send one.",
+      printLine,
       "",
       "Michael Witham",
       "bipolartherapyhub.com",
@@ -358,13 +385,13 @@ export function buildReferralResourceBody({ contactName, segment, directoryUrl }
       "",
       "Last note from me.",
       "",
-      "If a patient ever needs a therapist who understands bipolar disorder, BipolarTherapyHub may give them a solid next step:",
+      hasCity
+        ? `If a patient ever needs a therapist who understands bipolar disorder, here are the specialists in ${cityName}:`
+        : "If a patient ever needs a therapist who understands bipolar disorder, BipolarTherapyHub may give them a solid next step:",
       "",
-      url,
+      hasCity ? cityLink : url,
       "",
-      "It is free, public, and built so patients can explore it themselves.",
-      "",
-      "If a printable one page version would be helpful for your office, reply and I can send one.",
+      printLine,
       "",
       "Michael Witham",
       "bipolartherapyhub.com",
@@ -379,9 +406,7 @@ export function buildReferralResourceBody({ contactName, segment, directoryUrl }
     "",
     url,
     "",
-    "It is free, public, and built so people can explore it themselves.",
-    "",
-    "If a printable one-page version would be helpful, reply and I can send one.",
+    printLine,
     "",
     "Michael Witham",
     "bipolartherapyhub.com",
