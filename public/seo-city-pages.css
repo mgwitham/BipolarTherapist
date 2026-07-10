@@ -551,7 +551,8 @@
 
 /* Screen: the print-only bits stay hidden. */
 .city-print-header,
-.city-provider-print-url {
+.city-provider-print-url,
+.city-provider-print-contact {
   display: none;
 }
 
@@ -671,6 +672,14 @@
   .city-provider-role {
     font-size: 9.5pt;
     color: #333333;
+  }
+  /* The contact line is why the patient keeps the paper. Darker and slightly
+     larger than the URL beneath it. */
+  .city-provider-print-contact {
+    display: block;
+    font-size: 10pt;
+    color: #000000;
+    margin-top: 0.1rem;
   }
   .city-provider-print-url {
     display: block;
