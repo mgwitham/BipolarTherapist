@@ -26,6 +26,7 @@ export function audienceNoun(segment) {
       return "clients";
     case "school_counseling":
       return "students";
+    case "prescriber":
     case "primary_care":
     case "hospital_case_mgmt":
       return "patients";
@@ -63,6 +64,20 @@ export const REFERRAL_THERAPIST_RESOURCE_SUBJECT =
 /** @param {unknown} segment */
 function isTherapistSegment(segment) {
   return segment === "outpatient_therapist";
+}
+
+// Prescriber-segment variants. Psychiatrists and psychiatric NPs manage
+// medication but usually don't provide therapy, so nearly every bipolar
+// patient they see needs a therapy referral — the pitch is "here is where you
+// send them", not "share this with your community".
+export const REFERRAL_PRESCRIBER_INTRO_SUBJECT =
+  "A therapy referral resource for patients with bipolar disorder";
+export const REFERRAL_PRESCRIBER_RESOURCE_SUBJECT =
+  "A therapist referral option for bipolar disorder";
+
+/** @param {unknown} segment */
+function isPrescriberSegment(segment) {
+  return segment === "prescriber";
 }
 
 /**
@@ -141,6 +156,31 @@ export function buildReferralIntroBody({
       "BipolarTherapyHub",
     ].join("\n");
   }
+  if (isPrescriberSegment(segment)) {
+    const cityName = String(city || "").trim();
+    const cityLink = String(cityUrl || "").trim();
+    const cityBlock =
+      cityName && cityLink
+        ? [`Here are the bipolar specialists seeing patients in ${cityName}:`, "", cityLink, ""]
+        : [];
+    return [
+      `Hi ${first},`,
+      "",
+      "A quick note about a free therapy referral resource for your patients with bipolar disorder.",
+      "",
+      "BipolarTherapyHub is a directory of California therapists who specialize in bipolar disorder. Every listing is license verified against state records. When a patient needs therapy alongside medication management, the site gives them a vetted place to start instead of a cold search.",
+      "",
+      ...cityBlock,
+      "Patients can also search the full site by location, insurance, and therapy needs on their own. No account, no cost:",
+      "",
+      url,
+      "",
+      "If this is not useful for your practice, just reply and I will not follow up.",
+      "",
+      "Michael Witham",
+      "BipolarTherapyHub",
+    ].join("\n");
+  }
   return [
     `Hi ${first},`,
     "",
@@ -181,6 +221,22 @@ export function buildReferralFollowUpBody({ contactName, segment, directoryUrl }
       url,
       "",
       "Clients can search it themselves by location and insurance. No sign-up, no cost.",
+      "",
+      "If it is not relevant to your practice, just reply and I will leave it there.",
+      "",
+      "Michael",
+      "bipolartherapyhub.com",
+    ].join("\n");
+  }
+  if (isPrescriberSegment(segment)) {
+    return [
+      `Hi ${first},`,
+      "",
+      "Circling back in case this is useful. BipolarTherapyHub is a free directory of California bipolar specialists, for when a patient needs therapy alongside medication management:",
+      "",
+      url,
+      "",
+      "Patients can search it themselves by location and insurance. No sign-up, no cost.",
       "",
       "If it is not relevant to your practice, just reply and I will leave it there.",
       "",
@@ -232,6 +288,24 @@ export function buildReferralResourceBody({ contactName, segment, directoryUrl }
       "bipolartherapyhub.com",
     ].join("\n");
   }
+  if (isPrescriberSegment(segment)) {
+    return [
+      `Hi ${first},`,
+      "",
+      "Last note from me.",
+      "",
+      "If a patient ever needs a therapist who understands bipolar disorder, BipolarTherapyHub may give them a solid next step:",
+      "",
+      url,
+      "",
+      "It is free, public, and built so patients can explore it themselves.",
+      "",
+      "If a printable one page version would be helpful for your office, reply and I can send one.",
+      "",
+      "Michael Witham",
+      "bipolartherapyhub.com",
+    ].join("\n");
+  }
   return [
     `Hi ${first},`,
     "",
@@ -262,9 +336,15 @@ export function buildReferralResourceBody({ contactName, segment, directoryUrl }
 export function getReferralTemplate(template, vars) {
   const refUrl = withReferralRef(String(vars && vars.directoryUrl ? vars.directoryUrl : ""));
   const therapist = isTherapistSegment(vars && vars.segment);
-  const cityUrl = therapist ? cityDirectoryUrl(vars && vars.city, vars && vars.state, refUrl) : "";
+  const prescriber = isPrescriberSegment(vars && vars.segment);
+  const cityUrl =
+    therapist || prescriber ? cityDirectoryUrl(vars && vars.city, vars && vars.state, refUrl) : "";
   const withUrl = { ...vars, directoryUrl: refUrl, cityUrl };
-  const introSubject = therapist ? REFERRAL_THERAPIST_INTRO_SUBJECT : REFERRAL_INTRO_SUBJECT;
+  const introSubject = therapist
+    ? REFERRAL_THERAPIST_INTRO_SUBJECT
+    : prescriber
+      ? REFERRAL_PRESCRIBER_INTRO_SUBJECT
+      : REFERRAL_INTRO_SUBJECT;
   if (template === "referral_follow_up") {
     return {
       subject: `Re: ${introSubject}`,
@@ -272,8 +352,13 @@ export function getReferralTemplate(template, vars) {
     };
   }
   if (template === "referral_resource") {
+    const resourceSubject = therapist
+      ? REFERRAL_THERAPIST_RESOURCE_SUBJECT
+      : prescriber
+        ? REFERRAL_PRESCRIBER_RESOURCE_SUBJECT
+        : REFERRAL_RESOURCE_SUBJECT;
     return {
-      subject: therapist ? REFERRAL_THERAPIST_RESOURCE_SUBJECT : REFERRAL_RESOURCE_SUBJECT,
+      subject: resourceSubject,
       body: buildReferralResourceBody(withUrl),
     };
   }

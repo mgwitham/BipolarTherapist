@@ -38,9 +38,32 @@ export function resolveReferralSend(contact, options = {}) {
 }
 
 /**
+ * The subject of the intro this contact actually received, from the email log.
+ * "" when no intro has been logged.
+ *
+ * @param {{ emailLog?: unknown }} record
+ * @returns {string}
+ */
+function sentIntroSubject(record) {
+  const log = Array.isArray(record.emailLog) ? record.emailLog : [];
+  for (let index = log.length - 1; index >= 0; index -= 1) {
+    const entry = log[index] || {};
+    if (entry.template === "referral_intro" && String(entry.subject || "").trim()) {
+      return String(entry.subject).trim();
+    }
+  }
+  return "";
+}
+
+/**
  * Build the subject/text/html for a referral send. `footer` is the CAN-SPAM
  * footer ({ text, html }) appended to every commercial email; passed in so this
  * stays pure (the handler reads the address from env).
+ *
+ * A follow-up threads under the intro subject the contact actually received
+ * (from the email log), not the current template's subject — segment copy can
+ * change between touches, and a "Re:" to a subject that was never sent reads
+ * as spam.
  *
  * @param {object} contact
  * @param {{ template: string, directoryUrl?: string, footer?: { text?: string, html?: string } }} params
@@ -57,8 +80,15 @@ export function buildReferralEmailContent(contact, params) {
     state: record.state,
     directoryUrl: params.directoryUrl || DEFAULT_DIRECTORY_URL,
   });
+  let resolvedSubject = subject;
+  if (params.template === "referral_follow_up") {
+    const priorSubject = sentIntroSubject(record);
+    if (priorSubject) {
+      resolvedSubject = /^re:/i.test(priorSubject) ? priorSubject : `Re: ${priorSubject}`;
+    }
+  }
   return {
-    subject,
+    subject: resolvedSubject,
     text: body + (footer.text || ""),
     html: plainTextToHtml(body) + (footer.html || ""),
   };

@@ -43,6 +43,33 @@ test("buildReferralEmailContent assembles subject/text/html with footer + websit
   assert.match(content.html, /<hr>$/); // footer html appended
 });
 
+test("buildReferralEmailContent threads a follow-up under the intro subject actually sent", () => {
+  const contacted = {
+    contactName: "Dr. Priya Nair",
+    segment: "prescriber",
+    emailLog: [
+      {
+        template: "referral_intro",
+        subject: "A free bipolar therapy search tool for California",
+        sentAt: NOW,
+      },
+    ],
+  };
+  const followUp = buildReferralEmailContent(contacted, { template: "referral_follow_up" });
+  assert.equal(followUp.subject, "Re: A free bipolar therapy search tool for California");
+
+  // No logged intro → falls back to the current template's threaded subject.
+  const fresh = buildReferralEmailContent(
+    { segment: "prescriber" },
+    { template: "referral_follow_up" },
+  );
+  assert.match(fresh.subject, /^Re: /);
+
+  // The resource touch is standalone and never rethreads.
+  const resource = buildReferralEmailContent(contacted, { template: "referral_resource" });
+  assert.ok(!/^Re:/.test(resource.subject));
+});
+
 test("buildReferralEmailContent defaults to the public homepage URL", () => {
   const content = buildReferralEmailContent(
     { segment: "school_counseling" },

@@ -3,6 +3,8 @@ import assert from "node:assert/strict";
 
 import {
   REFERRAL_INTRO_SUBJECT,
+  REFERRAL_PRESCRIBER_INTRO_SUBJECT,
+  REFERRAL_PRESCRIBER_RESOURCE_SUBJECT,
   REFERRAL_TEMPLATES,
   REFERRAL_THERAPIST_INTRO_SUBJECT,
   REFERRAL_THERAPIST_RESOURCE_SUBJECT,
@@ -15,6 +17,7 @@ import {
 test("audienceNoun adapts to the segment", () => {
   assert.equal(audienceNoun("outpatient_therapist"), "clients");
   assert.equal(audienceNoun("school_counseling"), "students");
+  assert.equal(audienceNoun("prescriber"), "patients");
   assert.equal(audienceNoun("primary_care"), "patients");
   assert.equal(audienceNoun("hospital_case_mgmt"), "patients");
   assert.equal(audienceNoun("community_peer"), "the people you support");
@@ -119,6 +122,52 @@ test("outpatient_therapist gets refer-out copy and its own subjects", () => {
   assert.equal(resource.subject, REFERRAL_THERAPIST_RESOURCE_SUBJECT);
   assert.ok(!/^Re:/.test(resource.subject));
   assert.match(resource.body, /transition a client/);
+});
+
+test("prescriber gets medication-management copy, its own subjects, and the city link", () => {
+  const intro = getReferralTemplate("referral_intro", {
+    contactName: "Dr. Priya Nair",
+    orgName: "Nair Psychiatry",
+    segment: "prescriber",
+    city: "San Diego",
+    state: "CA",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+  });
+  assert.equal(intro.subject, REFERRAL_PRESCRIBER_INTRO_SUBJECT);
+  assert.match(intro.body, /^Hi Priya,/);
+  assert.match(intro.body, /medication management/);
+  assert.match(intro.body, /license verified/);
+  assert.match(intro.body, /bipolar specialists seeing patients in San Diego/);
+  assert.notEqual(
+    intro.body
+      .split("\n")
+      .indexOf("https://www.bipolartherapyhub.com/bipolar-therapists/san-diego-ca/"),
+    -1,
+  );
+  assert.notEqual(intro.body.split("\n").indexOf("https://www.bipolartherapyhub.com"), -1);
+  assert.match(intro.body, /Michael Witham/);
+
+  const noCity = getReferralTemplate("referral_intro", {
+    segment: "prescriber",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+  });
+  assert.doesNotMatch(noCity.body, /seeing patients in/);
+  assert.doesNotMatch(noCity.body, /bipolar-therapists\//);
+
+  const followUp = getReferralTemplate("referral_follow_up", {
+    segment: "prescriber",
+    directoryUrl: "https://x.org",
+  });
+  assert.equal(followUp.subject, `Re: ${REFERRAL_PRESCRIBER_INTRO_SUBJECT}`);
+  assert.match(followUp.body, /medication management/);
+
+  const resource = getReferralTemplate("referral_resource", {
+    segment: "prescriber",
+    directoryUrl: "https://x.org",
+  });
+  assert.equal(resource.subject, REFERRAL_PRESCRIBER_RESOURCE_SUBJECT);
+  assert.ok(!/^Re:/.test(resource.subject));
+  assert.match(resource.body, /printable one page version/);
 });
 
 test("non-therapist segments keep the original subjects", () => {
