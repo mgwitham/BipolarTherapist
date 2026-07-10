@@ -55,6 +55,7 @@ export default defineConfig({
         privacy: resolve(rootDir, "privacy.html"),
         terms: resolve(rootDir, "terms.html"),
         about: resolve(rootDir, "about.html"),
+        refer: resolve(rootDir, "refer.html"),
         outreach: resolve(rootDir, "outreach.html"),
         referralOutreach: resolve(rootDir, "referral-outreach.html"),
         404: resolve(rootDir, "404.html"),
