@@ -209,4 +209,11 @@ test("referralLandingUrl builds a clean /r/<code> link (no ?ref= clutter)", () =
   assert.equal(referralLandingUrl("https://x.org", null), "https://x.org");
   // No base → "".
   assert.equal(referralLandingUrl("", "abc-1234"), "");
+  // With a city slug → /r/<slug>/<code> (redirect lands on that city page).
+  assert.equal(
+    referralLandingUrl("https://x.org", "abc-1234", "irvine-ca"),
+    "https://x.org/r/irvine-ca/abc-1234",
+  );
+  // City slug is normalized; a blank slug degrades to the short form.
+  assert.equal(referralLandingUrl("https://x.org", "abc-1234", ""), "https://x.org/r/abc-1234");
 });

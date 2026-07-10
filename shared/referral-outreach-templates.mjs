@@ -142,21 +142,36 @@ function canLinkCityPage(cityName, cityUrl, cityListingCount) {
  * @param {unknown} baseUrl
  * @returns {string}
  */
-export function cityDirectoryUrl(city, state, baseUrl) {
-  const base = String(baseUrl || "")
-    .trim()
-    .replace(/\/+$/, "");
+/**
+ * City-page slug, e.g. "irvine-ca". One source of truth shared by the city URL
+ * and the /r/ redirect link so the email and the redirect always agree. Mirrors
+ * citySlug in scripts/generate-seo-city-pages.mjs. Returns "" without a city.
+ *
+ * @param {unknown} city
+ * @param {unknown} state
+ * @returns {string}
+ */
+export function citySlug(city, state) {
   const slug = String(city || "")
     .trim()
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "");
-  if (!base || !slug) return "";
+  if (!slug) return "";
   const stateSlug =
     String(state || "CA")
       .trim()
       .toLowerCase() || "ca";
-  return `${base}/bipolar-therapists/${slug}-${stateSlug}/`;
+  return `${slug}-${stateSlug}`;
+}
+
+export function cityDirectoryUrl(city, state, baseUrl) {
+  const base = String(baseUrl || "")
+    .trim()
+    .replace(/\/+$/, "");
+  const slug = citySlug(city, state);
+  if (!base || !slug) return "";
+  return `${base}/bipolar-therapists/${slug}/`;
 }
 
 /**
@@ -429,15 +444,20 @@ export function getReferralTemplate(template, vars) {
   const code = String((vars && vars.referralCode) || "");
   const therapist = isTherapistSegment(vars && vars.segment);
   const prescriber = isPrescriberSegment(vars && vars.segment);
-  // Whether this contact's city has a generated page — decides the *copy*
-  // (name the city vs stay generic). The redirect resolves the destination, so
-  // the visible link is the same short link either way.
+  // Whether this contact's city has a generated page. When it does, the /r/
+  // link carries the city slug so the redirect lands on that city page; the
+  // copy also names the city. Gated on the listing count so we never encode a
+  // city whose page doesn't exist (the redirect would 404).
   const bareCityUrl =
     therapist || prescriber ? cityDirectoryUrl(vars && vars.city, vars && vars.state, baseUrl) : "";
+  const count = Number(vars && vars.cityListingCount);
+  const hasCityPage =
+    Boolean(bareCityUrl) && Number.isFinite(count) && count >= MIN_CITY_PAGE_PROVIDERS;
+  const slug = hasCityPage ? citySlug(vars && vars.city, vars && vars.state) : "";
 
   // One clean link for the whole email. Both slots (directoryUrl / cityUrl)
   // carry it; each template renders the link exactly once.
-  const shortLink = referralLandingUrl(baseUrl, code);
+  const shortLink = referralLandingUrl(baseUrl, code, slug);
   const cityUrl = bareCityUrl ? shortLink : "";
   const withUrl = { ...vars, directoryUrl: shortLink, cityUrl };
   const introSubject = therapist

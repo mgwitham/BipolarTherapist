@@ -132,23 +132,31 @@ export function appendReferralCode(url, code) {
 }
 
 /**
- * The clean, share-style link a referral email points at: `<base>/r/<code>`.
- * A short path reads like a shared link, not a `?ref=` tracking param, so it
- * doesn't look spammy or depress clicks. The /r/ endpoint resolves the code to
- * the referrer's city page and re-applies the code server-side, so attribution
- * survives. With no code, returns the bare base URL (an unattributed link).
+ * The clean, share-style link a referral email points at. A short `/r/` path
+ * reads like a shared link, not a `?ref=` tracking param, so it doesn't look
+ * spammy or depress clicks. A Vercel redirect (see vercel.json) turns it into
+ * the real landing page with `?ref=<code>` re-applied, so attribution survives:
+ *   - `<base>/r/<citySlug>/<code>` → `/bipolar-therapists/<citySlug>/?ref=<code>`
+ *   - `<base>/r/<code>`            → `/?ref=<code>` (homepage)
+ * With no code, returns the bare base URL (an unattributed link).
  *
  * @param {unknown} baseUrl
  * @param {unknown} code
+ * @param {unknown} [citySlug] slug of the referrer's city page, e.g. "irvine-ca"
  * @returns {string}
  */
-export function referralLandingUrl(baseUrl, code) {
+export function referralLandingUrl(baseUrl, code, citySlug) {
   const base = String(baseUrl == null ? "" : baseUrl)
     .trim()
     .replace(/\/+$/, "");
   const safe = sanitizeReferralCode(code);
   if (!base) return "";
-  return safe ? `${base}/r/${safe}` : base;
+  if (!safe) return base;
+  const seg = String(citySlug == null ? "" : citySlug)
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9-]/g, "");
+  return seg ? `${base}/r/${seg}/${safe}` : `${base}/r/${safe}`;
 }
 
 /**
