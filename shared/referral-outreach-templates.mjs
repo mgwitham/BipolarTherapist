@@ -159,23 +159,32 @@ export function buildReferralIntroBody({
   if (isPrescriberSegment(segment)) {
     const cityName = String(city || "").trim();
     const cityLink = String(cityUrl || "").trim();
-    const cityBlock =
+    // The city list is the strongest thing in this email — the one thing the
+    // big directories can't hand a prescriber — so it leads when we have it.
+    const leadBlock =
       cityName && cityLink
-        ? [`Here are the bipolar specialists seeing patients in ${cityName}:`, "", cityLink, ""]
-        : [];
+        ? [
+            `Here are the bipolar specialists currently seeing patients in ${cityName}:`,
+            "",
+            cityLink,
+            "",
+            "BipolarTherapyHub is a free directory of California therapists who specialize in bipolar disorder. Every listing is license verified against state records. When a patient needs therapy alongside medication management, this gives them a vetted place to start instead of a cold search.",
+          ]
+        : [
+            "A quick note about a free therapy referral resource for your patients with bipolar disorder.",
+            "",
+            "BipolarTherapyHub is a directory of California therapists who specialize in bipolar disorder. Every listing is license verified against state records. When a patient needs therapy alongside medication management, the site gives them a vetted place to start instead of a cold search.",
+          ];
     return [
       `Hi ${first},`,
       "",
-      "A quick note about a free therapy referral resource for your patients with bipolar disorder.",
+      ...leadBlock,
       "",
-      "BipolarTherapyHub is a directory of California therapists who specialize in bipolar disorder. Every listing is license verified against state records. When a patient needs therapy alongside medication management, the site gives them a vetted place to start instead of a cold search.",
-      "",
-      ...cityBlock,
       "Patients can also search the full site by location, insurance, and therapy needs on their own. No account, no cost:",
       "",
       url,
       "",
-      "If this is not useful for your practice, just reply and I will not follow up.",
+      "No need to reply either way. I hope it is useful.",
       "",
       "Michael Witham",
       "BipolarTherapyHub",
@@ -238,7 +247,7 @@ export function buildReferralFollowUpBody({ contactName, segment, directoryUrl }
       "",
       "Patients can search it themselves by location and insurance. No sign-up, no cost.",
       "",
-      "If it is not relevant to your practice, just reply and I will leave it there.",
+      "No need to reply. Reply STOP anytime and I will leave it there.",
       "",
       "Michael",
       "bipolartherapyhub.com",

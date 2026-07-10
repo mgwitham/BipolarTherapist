@@ -137,15 +137,22 @@ test("prescriber gets medication-management copy, its own subjects, and the city
   assert.match(intro.body, /^Hi Priya,/);
   assert.match(intro.body, /medication management/);
   assert.match(intro.body, /license verified/);
-  assert.match(intro.body, /bipolar specialists seeing patients in San Diego/);
-  assert.notEqual(
-    intro.body
-      .split("\n")
-      .indexOf("https://www.bipolartherapyhub.com/bipolar-therapists/san-diego-ca/"),
-    -1,
+  assert.match(intro.body, /bipolar specialists currently seeing patients in San Diego/);
+  const introLines = intro.body.split("\n");
+  const cityLineIndex = introLines.indexOf(
+    "https://www.bipolartherapyhub.com/bipolar-therapists/san-diego-ca/",
   );
-  assert.notEqual(intro.body.split("\n").indexOf("https://www.bipolartherapyhub.com"), -1);
+  const homeLineIndex = introLines.indexOf("https://www.bipolartherapyhub.com");
+  assert.notEqual(cityLineIndex, -1);
+  assert.notEqual(homeLineIndex, -1);
+  // The city list leads: it is the one thing the big directories cannot offer.
+  assert.ok(cityLineIndex < homeLineIndex, "city link should precede the homepage link");
+  assert.ok(cityLineIndex < 6, "city link should sit near the top of the email");
   assert.match(intro.body, /Michael Witham/);
+  // Soft ask: no reply requested, no meeting.
+  assert.match(intro.body, /No need to reply either way/);
+  assert.doesNotMatch(intro.body, /just reply and I will not follow up/);
+  assert.doesNotMatch(intro.body, /call|meeting|schedule|chat/i);
 
   const noCity = getReferralTemplate("referral_intro", {
     segment: "prescriber",
@@ -153,6 +160,7 @@ test("prescriber gets medication-management copy, its own subjects, and the city
   });
   assert.doesNotMatch(noCity.body, /seeing patients in/);
   assert.doesNotMatch(noCity.body, /bipolar-therapists\//);
+  assert.match(noCity.body, /No need to reply either way/);
 
   const followUp = getReferralTemplate("referral_follow_up", {
     segment: "prescriber",
@@ -160,6 +168,7 @@ test("prescriber gets medication-management copy, its own subjects, and the city
   });
   assert.equal(followUp.subject, `Re: ${REFERRAL_PRESCRIBER_INTRO_SUBJECT}`);
   assert.match(followUp.body, /medication management/);
+  assert.match(followUp.body, /No need to reply/);
 
   const resource = getReferralTemplate("referral_resource", {
     segment: "prescriber",
