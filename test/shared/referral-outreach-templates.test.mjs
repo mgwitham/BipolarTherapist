@@ -233,7 +233,9 @@ test("prescriber gets medication-management copy, its own subjects, and the city
   });
   assert.equal(resource.subject, REFERRAL_PRESCRIBER_RESOURCE_SUBJECT);
   assert.ok(!/^Re:/.test(resource.subject));
-  assert.match(resource.body, /printable one page version/);
+  // The handout is a button on the site, not a file we promise to mail.
+  assert.match(resource.body, /"Print this list" button/);
+  assert.doesNotMatch(resource.body, /reply and I can send one/);
 });
 
 test("non-therapist segments keep the original subjects", () => {
@@ -363,4 +365,51 @@ test("an unknown listing count suppresses the city link, fail-safe", () => {
     cityListingCount: "12",
   });
   assert.match(body, /bipolar-therapists\/los-angeles-ca\//);
+});
+
+test("the resource email points at the print button instead of promising a file", () => {
+  // With a real city page: link the city list, and say that page prints.
+  const withCity = getReferralTemplate("referral_resource", {
+    contactName: "Dr. Priya Nair",
+    segment: "prescriber",
+    city: "San Diego",
+    state: "CA",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+    cityListingCount: 4,
+    referralCode: "pnair-1234",
+  });
+  assert.ok(
+    hasLinkLine(
+      withCity.body,
+      "https://www.bipolartherapyhub.com/bipolar-therapists/san-diego-ca/?ref=pnair-1234",
+    ),
+  );
+  assert.match(withCity.body, /That page has a "Print this list" button/);
+  assert.match(withCity.body, /names, credentials, and phone numbers/);
+
+  // Thin city: no 404 link, and the copy generalizes to "every city page".
+  const thinCity = getReferralTemplate("referral_resource", {
+    segment: "prescriber",
+    city: "Folsom",
+    state: "CA",
+    directoryUrl: "https://www.bipolartherapyhub.com",
+    cityListingCount: 0,
+  });
+  assert.doesNotMatch(thinCity.body, /bipolar-therapists\//);
+  assert.match(thinCity.body, /Every city page has a "Print this list" button/);
+  assert.ok(hasLinkLine(thinCity.body, "https://www.bipolartherapyhub.com"));
+
+  // No segment variant may still promise to mail a handout, and none asks for
+  // a reply — the whole point is that the clinician needs nothing from us.
+  for (const segment of ["prescriber", "outpatient_therapist", "community_peer"]) {
+    const { body } = getReferralTemplate("referral_resource", {
+      segment,
+      city: "Los Angeles",
+      state: "CA",
+      cityListingCount: 12,
+      directoryUrl: "https://www.bipolartherapyhub.com",
+    });
+    assert.doesNotMatch(body, /reply and I can send one/i, `${segment} still offers to mail it`);
+    assert.match(body, /Print this list/, `${segment} never mentions the button`);
+  }
 });
