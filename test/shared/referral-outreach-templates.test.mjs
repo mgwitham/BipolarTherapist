@@ -14,6 +14,16 @@ import {
   withReferralRef,
 } from "../../shared/referral-outreach-templates.mjs";
 
+// Assert an email body contains a link on its own line, matched exactly.
+// Written as an equality check rather than `lines.includes(url)` so CodeQL's
+// incomplete-url-substring-sanitization rule doesn't read it as a permissive
+// URL check (it is array membership over exact lines, not substring matching).
+function hasLinkLine(body, url) {
+  return String(body)
+    .split("\n")
+    .some((line) => line.trim() === url);
+}
+
 test("audienceNoun adapts to the segment", () => {
   assert.equal(audienceNoun("outpatient_therapist"), "clients");
   assert.equal(audienceNoun("school_counseling"), "students");
@@ -215,7 +225,7 @@ test("prescriber gets medication-management copy, its own subjects, and the city
   assert.match(followUp.body, /No need to reply/);
   // No city on file: falls back to the homepage link, no dangling city line.
   assert.doesNotMatch(followUp.body, /seeing patients in/);
-  assert.ok(followUp.body.split("\n").includes("https://x.org"));
+  assert.ok(hasLinkLine(followUp.body, "https://x.org"));
 
   const resource = getReferralTemplate("referral_resource", {
     segment: "prescriber",
@@ -308,7 +318,7 @@ test("a city with too few listings never gets a city link (it would 404)", () =>
     assert.doesNotMatch(intro.body, /folsom/i, `count=${count} leaked a city link`);
     assert.doesNotMatch(intro.body, /seeing patients in/);
     // Still a usable email: the homepage link remains.
-    assert.ok(intro.body.split("\n").includes("https://www.bipolartherapyhub.com"));
+    assert.ok(hasLinkLine(intro.body, "https://www.bipolartherapyhub.com"));
 
     const followUp = getReferralTemplate("referral_follow_up", {
       segment: "prescriber",
@@ -318,7 +328,7 @@ test("a city with too few listings never gets a city link (it would 404)", () =>
       cityListingCount: count,
     });
     assert.doesNotMatch(followUp.body, /folsom/i);
-    assert.ok(followUp.body.split("\n").includes("https://www.bipolartherapyhub.com"));
+    assert.ok(hasLinkLine(followUp.body, "https://www.bipolartherapyhub.com"));
   }
 
   // Therapist segment is guarded too.
