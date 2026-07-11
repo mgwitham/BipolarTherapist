@@ -678,14 +678,14 @@ function buildPage(t) {
   return `<!doctype html>
 <html lang="en">
   <head>
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q22R5G7VB5"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() { dataLayer.push(arguments); }
-      gtag("js", new Date());
-      gtag("config", "G-Q22R5G7VB5");
-    </script>
+    <!--
+      Google Analytics is loaded by /assets/site-analytics.js (imported via
+      shortlist-nav.js, injected below in scriptTags). It is intentionally NOT
+      inlined here: site-analytics.js honors GPC/DNT opt-out, disables Google
+      Signals + ad personalization, and redacts sensitive URLs. A second inline
+      gtag("config") here would double-count page_view events and re-enable the
+      privacy behaviors that config deliberately turns off.
+    -->
     <meta charset="UTF-8" />
     <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
