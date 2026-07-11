@@ -60,6 +60,46 @@ function forwardEventToVercel(type, payload) {
     });
 }
 
+// GA4 conversion bridge.
+//
+// The patient funnel flows through trackFunnelEvent() into the in-house
+// funnelEventLog + Vercel Analytics, but never reached GA4 (gtag) — so GA4
+// could not attribute a match intake or a therapist contact back to the
+// organic Search Console query that produced it. GA4 is the only tool that
+// joins conversions to search queries, so we forward *only* the handful of
+// true business conversions here (not the full ~150-event taxonomy). Event
+// names are kept identical to the funnel event names so GA4 and the admin
+// Funnel dashboard line up one-to-one.
+//
+// These events do NOT fire gtag anywhere else (the therapist signup/claim
+// flows call gtagEvent() directly in their own modules), so there is no
+// double-counting. gtag is loaded on a delay + skipped for opted-out users
+// in site-analytics.js; when it is absent we simply skip — late-funnel
+// conversions land well after gtag initializes.
+const GA_CONVERSION_EVENTS = new Set([
+  "home_match_started", // patient started the guided match (funnel entry)
+  "match_submitted", // patient completed intake → shortlist (primary conversion)
+  "match_contact_completed", // patient completed a contact action from matches
+  "directory_card_contact_action", // patient contacted a provider from the directory
+  "profile_contact_route_clicked", // patient clicked a contact route on a profile
+  "saved_list_email_requested", // patient asked us to email their saved list
+  "pricing_checkout_clicked", // therapist started paid checkout (revenue intent)
+]);
+
+function forwardConversionToGtag(type, payload) {
+  if (typeof window === "undefined" || typeof window.gtag !== "function") {
+    return;
+  }
+  if (!GA_CONVERSION_EVENTS.has(type)) {
+    return;
+  }
+  try {
+    window.gtag("event", type, flattenEventPayloadForVercel(payload) || {});
+  } catch (_error) {
+    // best-effort; never let analytics break the funnel
+  }
+}
+
 const FUNNEL_EVENTS_KEY = "bth_funnel_events_v1";
 const FUNNEL_EVENTS_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const EXPERIMENT_ASSIGNMENTS_KEY = "bth_experiment_assignments_v1";
@@ -120,6 +160,7 @@ export function trackFunnelEvent(type, payload) {
   }
 
   forwardEventToVercel(String(type), payload);
+  forwardConversionToGtag(String(type), payload);
   queueEventForServer(String(type), payload);
 }
 
