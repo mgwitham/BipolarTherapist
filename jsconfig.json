@@ -20,7 +20,12 @@
     "strict": false,
     "noImplicitAny": false,
     "skipLibCheck": true,
+    // Don't type-check .js pulled in from node_modules. Newer @types/node
+    // references the userland `punycode` package, and TS otherwise checks its
+    // (untyped, error-riddled) implementation. skipLibCheck only covers .d.ts.
+    "maxNodeModuleJsDepth": 0,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["shared/**/*.mjs"]
+  "include": ["shared/**/*.mjs"],
+  "exclude": ["node_modules", "dist"]
 }

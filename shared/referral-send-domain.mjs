@@ -13,6 +13,25 @@ import { plainTextToHtml } from "./plain-text-to-html.mjs";
 export const DEFAULT_DIRECTORY_URL = "https://www.bipolartherapyhub.com";
 
 /**
+ * The subset of a referralContact document these builders read. Values are
+ * `unknown` because the caller passes a raw Sanity doc and every access is
+ * runtime-guarded; `sequence` is shaped so `sequence.step` stays reachable.
+ *
+ * @typedef {{
+ *   contactName?: unknown,
+ *   orgName?: unknown,
+ *   role?: unknown,
+ *   email?: unknown,
+ *   segment?: unknown,
+ *   city?: unknown,
+ *   state?: unknown,
+ *   emailLog?: unknown,
+ *   emailsSent?: unknown,
+ *   sequence?: { step?: unknown },
+ * }} ReferralContactRecord
+ */
+
+/**
  * Decide which template to send for a contact. An explicit `templateOverride`
  * (admin picked one) wins after validation; otherwise the cadence decides via
  * nextReferralTouch. Returns `{ template, ... }` or `{ error, reason }` when
@@ -71,7 +90,7 @@ function sentIntroSubject(record) {
  * @returns {{ subject: string, text: string, html: string }}
  */
 export function buildReferralEmailContent(contact, params) {
-  const record = contact || {};
+  const record = /** @type {ReferralContactRecord} */ (contact || {});
   const footer = params.footer || {};
   const { subject, body } = getReferralTemplate(params.template, {
     contactName: record.contactName,
@@ -112,7 +131,7 @@ export function buildReferralEmailContent(contact, params) {
  * @returns {Record<string, unknown>}
  */
 export function buildReferralSendPatch(contact, params) {
-  const record = contact || {};
+  const record = /** @type {ReferralContactRecord} */ (contact || {});
   const now = params.nowIso || new Date().toISOString();
   const existingLog = Array.isArray(record.emailLog) ? record.emailLog : [];
   const existingCount = Number(record.emailsSent) || 0;
