@@ -23,6 +23,9 @@ const TEMPLATE_LABEL = {
 const state = {
   contacts: [],
   filters: { status: "", segment: "", search: "" },
+  // Active column sort. column null = default order (fresh first, terminal
+  // last). "lastContacted" sorts by that date; dir toggles on repeat clicks.
+  sort: { column: null, dir: "desc" },
   selectedId: null,
   // Multi-select for bulk send (set of contact _ids with a checked box).
   checked: new Set(),
@@ -107,30 +110,66 @@ function redirectToAdminLogin() {
   window.location.href = "/admin";
 }
 
-// ---- filtering ----
-// Anyone who has already received an email sinks to the bottom of the list, so
-// the top of the working queue is always people who have never been contacted.
-// Within each group the server's order (fitScore desc) is preserved — Array
-// sort is stable, so equal ranks keep their incoming positions.
+// ---- filtering + sorting ----
+// Anyone who has already received an email sinks below the never-contacted, so
+// the top of the working queue is always fresh people.
 export function contactedRank(contact) {
   return Number(contact && contact.emailsSent) > 0 ? 1 : 0;
+}
+
+// Delivery-terminal statuses: the address bounced, the person opted out, or we
+// skipped them, so no further touch will ever go out. These sink to the very
+// bottom of the list. (replied/engaged/partner are also halted, but they are
+// wins, so they stay up in the live group.)
+const TERMINAL_STATUSES = new Set(["bounced", "complained", "opted_out", "skipped"]);
+
+export function isTerminalStatus(status) {
+  return TERMINAL_STATUSES.has(String(status || ""));
+}
+
+// Ordering tier, top to bottom: fresh (0) → contacted-and-alive (1) →
+// terminal/dead (2). Terminal always sinks, regardless of the active sort.
+export function rowRank(contact) {
+  if (isTerminalStatus(contact && contact.status)) return 2;
+  return contactedRank(contact);
+}
+
+// Stable sort. Primary key is always rowRank, so bounced/skipped stay pinned to
+// the bottom. Secondary key is the active column sort — "lastContacted" by date
+// (dir), or, by default, nothing (the server's fitScore order is preserved
+// within each tier because the sort is made stable via the original index).
+export function sortReferralContacts(contacts, sort) {
+  const column = sort && sort.column;
+  const dir = sort && sort.dir === "asc" ? 1 : -1;
+  return (Array.isArray(contacts) ? contacts : [])
+    .map((c, index) => ({ c, index }))
+    .sort((x, y) => {
+      const rankDelta = rowRank(x.c) - rowRank(y.c);
+      if (rankDelta !== 0) return rankDelta;
+      if (column === "lastContacted") {
+        const ax = Date.parse((x.c && x.c.lastContactedAt) || "") || 0;
+        const ay = Date.parse((y.c && y.c.lastContactedAt) || "") || 0;
+        if (ax !== ay) return (ax - ay) * dir;
+      }
+      return x.index - y.index;
+    })
+    .map((entry) => entry.c);
 }
 
 function filtered() {
   const { status, segment, search } = state.filters;
   const q = search.trim().toLowerCase();
-  return state.contacts
-    .filter((c) => {
-      if (status && (c.status || "new") !== status) return false;
-      if (segment && c.segment !== segment) return false;
-      if (q) {
-        const hay =
-          `${c.orgName || ""} ${c.contactName || ""} ${c.email || ""} ${c.role || ""}`.toLowerCase();
-        if (!hay.includes(q)) return false;
-      }
-      return true;
-    })
-    .sort((a, b) => contactedRank(a) - contactedRank(b));
+  const matches = state.contacts.filter((c) => {
+    if (status && (c.status || "new") !== status) return false;
+    if (segment && c.segment !== segment) return false;
+    if (q) {
+      const hay =
+        `${c.orgName || ""} ${c.contactName || ""} ${c.email || ""} ${c.role || ""}`.toLowerCase();
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+  return sortReferralContacts(matches, state.sort);
 }
 
 // ---- render ----
@@ -145,6 +184,9 @@ function render() {
   ).length;
   const opens = state.contacts.reduce((n, c) => n + openCount(c.emailLog), 0);
   const allVisibleChecked = rows.length > 0 && rows.every((c) => state.checked.has(c._id));
+  // Arrow on the sortable "Last contacted" header: ↓ newest-first, ↑ oldest-first.
+  const lastContactedSortIndicator =
+    state.sort.column === "lastContacted" ? (state.sort.dir === "asc" ? " ↑" : " ↓") : "";
 
   // Segment picker is a pill row, not a <select>: the segments are the primary
   // way the list is sliced, so they stay visible with their counts rather than
@@ -215,7 +257,7 @@ function render() {
           <thead><tr>
             <th style="width:28px"><input type="checkbox" data-check-all ${allVisibleChecked ? "checked" : ""} /></th>
             <th>Org / Contact</th><th>Segment</th><th>Status</th><th>Fit</th>
-            <th>Last contacted</th><th>Opens</th><th>Next touch</th>
+            <th data-sort="lastContacted" style="cursor:pointer;user-select:none;" title="Sort by last contacted">Last contacted${lastContactedSortIndicator}</th><th>Opens</th><th>Next touch</th>
           </tr></thead>
           <tbody>
             ${rows.map((c) => renderRow(c)).join("")}
@@ -469,6 +511,20 @@ function bindEvents() {
     if (importBtn) {
       const input = document.querySelector("[data-import-input]");
       if (input) input.click();
+      return;
+    }
+    const sortHeader = event.target.closest("[data-sort]");
+    if (sortHeader) {
+      const column = sortHeader.getAttribute("data-sort");
+      if (state.sort.column === column) {
+        // Same column: toggle direction. A third click clears back to default.
+        if (state.sort.dir === "desc") state.sort = { column, dir: "asc" };
+        else state.sort = { column: null, dir: "desc" };
+      } else {
+        // New column: start newest-first (most useful default for a date).
+        state.sort = { column, dir: "desc" };
+      }
+      render();
       return;
     }
     const segPill = event.target.closest("[data-segment]");
