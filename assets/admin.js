@@ -1627,14 +1627,6 @@ function buildFieldReviewControls(item) {
   );
 }
 
-function csvEscape(value) {
-  const stringValue = String(value || "");
-  if (/[",\n\r]/.test(stringValue)) {
-    return '"' + stringValue.replace(/"/g, '""') + '"';
-  }
-  return stringValue;
-}
-
 function formatStatusLabel(value) {
   return String(value || "")
     .replace(/_/g, " ")
@@ -2757,9 +2749,7 @@ function renderCoverageIntelligence() {
       inferCoverageRole: inferCoverageRole,
       getTherapistFieldTrustAttentionCount: getTherapistFieldTrustAttentionCount,
       escapeHtml: escapeHtml,
-      csvEscape: csvEscape,
       copyText: copyText,
-      downloadText: downloadText,
     });
   });
 }
