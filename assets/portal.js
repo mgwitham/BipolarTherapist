@@ -4,6 +4,7 @@ import { escapeHtml } from "./escape-html.js";
 import { safeAbsoluteExternalUrl as safeExternalUrl, safeStripeRedirectUrl } from "./safe-url.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { mountPortalTdCompleteness, shouldShowCompleteness } from "./portal-td-completeness.js";
+import { computePortalProfileScore } from "./portal-completeness-score.js";
 import { renderPortalPhotoConsent } from "./portal-photo-consent.js";
 import { fetchPublicTherapistBySlug } from "./cms.js";
 import { getTherapistMatchReadiness } from "../shared/matching-model.mjs";
@@ -1995,56 +1996,14 @@ function escapeAttr(value) {
 }
 
 // ─── TD-A score model ─────────────────────────────────────────────────
-// 100-point system per the therapist-dashboard redesign spec.
-//
-// Base = 40 points: what's typically captured at signup (name + city +
-// credentials + specialties + format), so a freshly claimed listing
-// lands in the "Needs work · 50/100" range until the optional rows
-// start filling in.
-//
-// Bio (care_approach ≥ 50 chars) and contact route are required-but-
-// zero-point gates. They block "going live" but don't add points; the
-// header score reflects discoverability, not live status.
-//
-// Optional fields per spec:
-//   Headshot: +15
-//   Treatment modalities: +10
-//   Session fee: +10
-//   Insurance accepted: +7
-//   Populations served: +8
-//   Session format: +5  (auto-credited if either accepts_in_person
-//                        or accepts_telehealth is on)
-//   Years of experience: +5
-//
-// Maximum: 40 + 60 = 100.
+// The header badge and the TD-B completeness panel compute from the SAME
+// registry-driven scorer (assets/portal-completeness-score.js, weights
+// from shared/portal-completeness-registry.mjs — also used by the server
+// snapshot and nudge emails), so every surface shows one number. The
+// hand-coded "40-point signup baseline" model that used to live here
+// predated the registry and had drifted from it.
 function computeProfileScore(therapist) {
-  // Mirror of computeScore in portal-td-completeness.js, keep the two
-  // in sync so the header badge and the panel both display the same
-  // number on every render.
-  const t = therapist || {};
-  let score = 40; // signup baseline
-  if (t.photo_url) score += 15;
-  if (Array.isArray(t.treatment_modalities) && t.treatment_modalities.filter(Boolean).length)
-    score += 10;
-  if (Number(t.session_fee_min) > 0 || Number(t.session_fee_max) > 0 || t.sliding_scale)
-    score += 10;
-  if (Array.isArray(t.client_populations) && t.client_populations.filter(Boolean).length)
-    score += 8;
-  if (String(t.bio || "").trim()) score += 8;
-  if (Array.isArray(t.insurance_accepted) && t.insurance_accepted.filter(Boolean).length)
-    score += 7;
-  if (Array.isArray(t.specialties) && t.specialties.filter(Boolean).length) score += 6;
-  if (t.accepts_in_person || t.accepts_telehealth) score += 5;
-  if (Number(t.bipolar_years_experience) > 0) score += 5;
-  if (Array.isArray(t.languages) && t.languages.filter(Boolean).length) score += 4;
-  if (String(t.estimated_wait_time || "").trim()) score += 4;
-  if (String(t.first_step_expectation || "").trim()) score += 4;
-  if (String(t.practice_name || "").trim()) score += 3;
-  if (String(t.website || "").trim()) score += 3;
-  if (Number(t.years_experience) > 0) score += 3;
-  if (score > 100) score = 100;
-  if (score < 0) score = 0;
-  return score;
+  return computePortalProfileScore(therapist);
 }
 
 // Score band labels per spec. Tones drive the badge colour: amber for
