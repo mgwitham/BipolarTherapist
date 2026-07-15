@@ -12,30 +12,8 @@ import {
   normalizeNameForMatch,
 } from "../shared/email-domain-matching.mjs";
 import { maskEmail } from "../shared/mask-email.mjs";
-
-// Rate-limit window for claim-link requests: max 3 fresh links per
-// slug per hour. Stored as an array of ISO timestamps on the therapist
-// doc so limiting survives across Vercel serverless cold starts (which
-// would reset any in-memory counter). Filter window, check count,
-// append timestamp, persist — cheap patch alongside the claimStatus
-// update we were already doing.
-const CLAIM_LINK_WINDOW_MS = 60 * 60 * 1000; // 1 hour
-const CLAIM_LINK_MAX_PER_WINDOW = 3;
-const CLAIM_LINK_HISTORY_CAP = 10;
-
-function evaluateClaimLinkRateLimit(requestHistory) {
-  const history = Array.isArray(requestHistory) ? requestHistory : [];
-  const cutoff = Date.now() - CLAIM_LINK_WINDOW_MS;
-  const recent = history.filter(function (iso) {
-    const t = new Date(iso).getTime();
-    return Number.isFinite(t) && t >= cutoff;
-  });
-  return {
-    exceeded: recent.length >= CLAIM_LINK_MAX_PER_WINDOW,
-    recentCount: recent.length,
-    nextHistory: recent.concat(new Date().toISOString()).slice(-CLAIM_LINK_HISTORY_CAP),
-  };
-}
+import { anonymizeRequesterIp } from "../shared/recovery-review-domain.mjs";
+import { evaluateClaimLinkRateLimit } from "../shared/claim-link-rate-limit.mjs";
 
 // Reserve a claim-link rate-limit slot BEFORE sending the email. The
 // history write is gated on the document revision we read, so two
@@ -52,7 +30,7 @@ async function reserveClaimLinkSlot(client, therapistId, buildExtraSet) {
     if (!doc) {
       return { ok: false };
     }
-    const rate = evaluateClaimLinkRateLimit(doc.claimLinkRequests);
+    const rate = evaluateClaimLinkRateLimit(doc.claimLinkRequests, Date.now());
     if (rate.exceeded) {
       return { ok: false };
     }
@@ -347,7 +325,7 @@ async function claimPostPortalClaimBySlug(context) {
   }
 
   // Rate limit: max 3 claim-link emails per slug per hour.
-  const rate = evaluateClaimLinkRateLimit(therapist.claimLinkRequests);
+  const rate = evaluateClaimLinkRateLimit(therapist.claimLinkRequests, Date.now());
   if (rate.exceeded) {
     sendJson(
       response,
@@ -517,15 +495,11 @@ async function claimPostPortalQuickClaim(context) {
     }
 
     const nowIso = new Date().toISOString();
-    const requesterIp = (() => {
-      const raw =
-        (request.headers && (request.headers["x-forwarded-for"] || request.headers["x-real-ip"])) ||
+    const requesterIp = anonymizeRequesterIp(
+      (request.headers && (request.headers["x-forwarded-for"] || request.headers["x-real-ip"])) ||
         (request.socket && request.socket.remoteAddress) ||
-        "";
-      const first = String(raw).split(",")[0].trim();
-      const parts = first.split(".");
-      return parts.length === 4 ? parts.slice(0, 3).join(".") + ".x" : "";
-    })();
+        "",
+    );
 
     const reviewReason = profileEmail ? "stale_email_on_file" : "no_email_on_file";
     const recoveryDoc = {
