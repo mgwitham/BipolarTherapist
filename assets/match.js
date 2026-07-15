@@ -2,6 +2,7 @@ import "./sentry-init.js";
 import "./site-analytics.js";
 import { fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
+import { readOutreachOutcomes } from "./outreach-outcomes-store.js";
 import { getReferralCode } from "./referral-attribution.js";
 import {
   clearRenderedMatchPanels,
@@ -145,7 +146,6 @@ let starterResultsMode = false;
 let matchSessionStats = null;
 const MATCH_FEEDBACK_KEY = "bth_match_feedback_v1";
 const CONCIERGE_REQUESTS_KEY = "bth_concierge_requests_v1";
-const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 const MATCH_RESULTS_URL_KEY = "matchResultsUrl";
 // Timestamp (ms) the resume link was last saved. nav.js expires the
 // "Your matches" link 24h after this, reverting to "Get matched".
@@ -2556,14 +2556,6 @@ function writeStoredFeedback(value) {
 function readConciergeRequests() {
   try {
     return JSON.parse(window.localStorage.getItem(CONCIERGE_REQUESTS_KEY) || "[]");
-  } catch (_error) {
-    return [];
-  }
-}
-
-function readOutreachOutcomes() {
-  try {
-    return JSON.parse(window.localStorage.getItem(OUTREACH_OUTCOMES_KEY) || "[]");
   } catch (_error) {
     return [];
   }
