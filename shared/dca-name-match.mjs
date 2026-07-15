@@ -24,7 +24,14 @@ export function applicantNameMatchesDcaLicensee(submittedFullName, dcaLicensee) 
     /,?\s*(PHD|PSYD|MD|DO|LMFT|LCSW|LPCC|MFT|MA|MS|MSW|DNP|PMHNP|APRN|MFCC|LCP|LP|EDD|JD|RN|MFC|JR|SR|II|III|IV)\.?\s*$/i;
   let cleaned = String(submittedFullName).trim();
   while (HONORIFIC.test(cleaned)) cleaned = cleaned.replace(HONORIFIC, "");
-  while (SUFFIX.test(cleaned)) cleaned = cleaned.replace(SUFFIX, "");
+  // Only strip a credential suffix while a first + last name would remain.
+  // Some real surnames are credential lookalikes ("Wei Ma", "John Do");
+  // stripping those left a single token and falsely rejected the applicant.
+  while (SUFFIX.test(cleaned)) {
+    const next = cleaned.replace(SUFFIX, "");
+    if (next.trim().split(/\s+/).filter(Boolean).length < 2) break;
+    cleaned = next;
+  }
   const submittedTokens = cleaned.trim().split(/\s+/).filter(Boolean);
   if (submittedTokens.length < 2) return false;
   const submittedFirst = norm(submittedTokens[0]);
