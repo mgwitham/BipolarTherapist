@@ -5,6 +5,7 @@
 
 import { fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
+import { getInitials } from "./initials.js";
 import { sanityImageUrl } from "./sanity-image.js";
 import {
   readList,
@@ -146,23 +147,6 @@ let hasOpenedOnce = false;
 function getTherapistProfileHref(slug) {
   if (!slug) return "/directory";
   return "/therapists/" + encodeURIComponent(slug);
-}
-
-function getInitials(name) {
-  const parts = String(name || "")
-    .trim()
-    .split(/\s+/)
-    .filter(function (w) {
-      return !/^(dr|mr|mrs|ms|mx|prof)\.?$/i.test(w);
-    })
-    .slice(0, 2);
-  return (
-    parts
-      .map(function (part) {
-        return part.charAt(0).toUpperCase();
-      })
-      .join("") || "?"
-  );
 }
 
 async function loadTherapistsByCache() {

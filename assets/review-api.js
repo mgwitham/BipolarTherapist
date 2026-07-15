@@ -1,4 +1,5 @@
 import { normalizePortableApplication } from "../shared/application-domain.mjs";
+import { canUseSessionStorage } from "./browser-storage.js";
 
 function readBuildEnvValue(getValue) {
   try {
@@ -148,14 +149,6 @@ async function requestText(path, options) {
   }
 
   return text;
-}
-
-function canUseSessionStorage() {
-  try {
-    return typeof window !== "undefined" && !!window.sessionStorage;
-  } catch (_error) {
-    return false;
-  }
 }
 
 export function getAdminSessionToken() {

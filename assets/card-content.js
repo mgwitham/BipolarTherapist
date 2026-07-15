@@ -4,30 +4,11 @@
 // this module presentation-only, no DOM events, no fetches.
 
 import { escapeHtml } from "./escape-html.js";
+import { getInitials } from "./initials.js";
 import { sanityImageUrl } from "./sanity-image.js";
 
 // Rendered CSS pixel size for each avatar variant (see match-page.css).
 const AVATAR_SIZE_PX = { card: 56, "card-mobile": 48, modal: 68, profile: 80 };
-
-const NAME_TITLE_PREFIXES = /^(dr|mr|mrs|ms|mx|prof)\.?$/i;
-
-function getInitials(name) {
-  const words = String(name || "")
-    .split(/\s+/)
-    .filter(Boolean)
-    .filter(function (w) {
-      return !NAME_TITLE_PREFIXES.test(w);
-    });
-  return (
-    words
-      .map(function (w) {
-        return w[0];
-      })
-      .slice(0, 2)
-      .join("")
-      .toUpperCase() || "?"
-  );
-}
 
 // Spec'd 4-color ramp. Deterministic per therapist so a clinician's avatar
 // is stable across sessions.
