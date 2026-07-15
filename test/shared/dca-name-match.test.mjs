@@ -70,11 +70,21 @@ test("1-char first names only match exactly", () => {
   assert.equal(applicantNameMatchesDcaLicensee("J Doe", dca("J", "Doe")), true);
 });
 
-test("KNOWN LIMITATION: credential-lookalike surnames are falsely rejected", () => {
-  // The SUFFIX stripper treats a trailing "Ma"/"Do" as a credential
-  // (MA, DO) and eats the real surname, leaving one token → reject.
-  // These asserts document CURRENT behavior, not desired behavior —
-  // fixing this is a deliberate follow-up, not a refactor side effect.
-  assert.equal(applicantNameMatchesDcaLicensee("Wei Ma", dca("Wei", "Ma")), false);
-  assert.equal(applicantNameMatchesDcaLicensee("John Do", dca("John", "Do")), false);
+test("credential-lookalike surnames are kept (Ma, Do)", () => {
+  // The SUFFIX stripper used to eat a trailing "Ma"/"Do" as a credential
+  // (MA, DO), leaving one token and falsely rejecting the applicant.
+  // Stripping now stops when fewer than first + last name would remain.
+  assert.equal(applicantNameMatchesDcaLicensee("Wei Ma", dca("Wei", "Ma")), true);
+  assert.equal(applicantNameMatchesDcaLicensee("John Do", dca("John", "Do")), true);
+});
+
+test("credential-lookalike surname with a real credential after it", () => {
+  // ", MA" strips (three tokens remain two), then the surname "Do"
+  // survives because stripping it would leave a single token.
+  assert.equal(applicantNameMatchesDcaLicensee("Jane Do, MA", dca("Jane", "Do")), true);
+});
+
+test("real credentials still strip when a full name remains", () => {
+  assert.equal(applicantNameMatchesDcaLicensee("Jane Doe MA", dca("Jane", "Doe")), true);
+  assert.equal(applicantNameMatchesDcaLicensee("Jane Doe, PhD, LMFT", dca("Jane", "Doe")), true);
 });
