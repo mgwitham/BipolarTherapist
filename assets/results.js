@@ -16,6 +16,12 @@ import {
 } from "./match-intake.js";
 import { getCardLocationLabel, getFeeLabel, getInsuranceLabel } from "./card-content.js";
 import { escapeHtml } from "./escape-html.js";
+import { getReferralCode } from "./referral-attribution.js";
+import {
+  buildResultsMatchRequestPayload,
+  getOrCreateResultsJourneyId,
+} from "./results-match-request.js";
+import { submitMatchRequest } from "./review-api.js";
 import { sanityImageUrl } from "./sanity-image.js";
 import { orderMatchEntries } from "./match-ordering.js";
 import { preloadZipcodes, getDistanceMilesFromZipToTherapist } from "./zip-lookup.js";
@@ -424,6 +430,27 @@ function initFilterControls() {
 
 /* ── orchestrator ─────────────────────────────────────────── */
 
+// Persist this search (and any referral attribution) as a matchRequest doc,
+// once per journey. Fire-and-forget: persistence must never block rendering.
+// See assets/results-match-request.js for why /results owns this now.
+let persistedResultsJourneyId = "";
+function persistResultsMatchRequest(profile, entries) {
+  const journeyId = getOrCreateResultsJourneyId();
+  if (!journeyId || persistedResultsJourneyId === journeyId) {
+    return;
+  }
+  persistedResultsJourneyId = journeyId;
+  submitMatchRequest(
+    buildResultsMatchRequestPayload(profile, entries, {
+      journeyId,
+      referralCode: getReferralCode(),
+    }),
+  ).catch(function () {
+    // Allow the next render (e.g. a filter change) to retry.
+    persistedResultsJourneyId = "";
+  });
+}
+
 function renderResults(meta) {
   const profile = state.profile;
   // Rank by care fit, then apply the same ZIP-aware proximity ordering /match
@@ -438,6 +465,7 @@ function renderResults(meta) {
     careFormat: profile && profile.care_format,
   }).slice(0, PRIMARY_LIMIT);
   renderHeader(profile, entries.length);
+  persistResultsMatchRequest(profile, entries);
 
   const detail = Object.assign({ count: entries.length }, meta || {});
 
