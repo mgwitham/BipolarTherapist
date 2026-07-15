@@ -1,4 +1,5 @@
 import { normalizeDisplayRole, normalizeFieldReviewStates } from "../shared/therapist-domain.mjs";
+import { canUseSessionStorage } from "./browser-storage.js";
 import { getStats as getLocalStats, getTherapistBySlug, getTherapists } from "./store.js";
 
 function readBuildEnvValue(getValue, fallback) {
@@ -60,14 +61,6 @@ function cloneCachedValue(value) {
   }
 
   return JSON.parse(JSON.stringify(value));
-}
-
-function canUseSessionStorage() {
-  try {
-    return typeof window !== "undefined" && !!window.sessionStorage;
-  } catch (_error) {
-    return false;
-  }
 }
 
 function readPublicTherapistsCache() {

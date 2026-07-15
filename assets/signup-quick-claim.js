@@ -1,4 +1,5 @@
 import "./sentry-init.js";
+import { canUseSessionStorage } from "./browser-storage.js";
 import { escapeHtml } from "./escape-html.js";
 import {
   fetchTherapistMe,
@@ -52,14 +53,6 @@ const THIN_BANNER_DASHBOARD_ID = "claimThinBannerDashboard";
 const THIN_BANNER_CLAIM_ID = "claimThinBannerClaim";
 const THIN_BANNER_DISMISS_ID = "claimThinBannerDismiss";
 const SELECTED_RESULT_STORAGE_KEY = "bt_claim_selected_slug_v2";
-
-function canUseSessionStorage() {
-  try {
-    return typeof window !== "undefined" && !!window.sessionStorage;
-  } catch (_error) {
-    return false;
-  }
-}
 
 function setStoredSelectedSlug(slug) {
   if (!canUseSessionStorage()) return;

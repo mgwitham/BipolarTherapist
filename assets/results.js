@@ -6,6 +6,7 @@
 import "./sentry-init.js";
 import "./site-analytics.js";
 import { fetchPublicTherapists } from "./cms.js";
+import { getInitials } from "./initials.js";
 import { rankTherapistsForUser, buildUserMatchProfile } from "../shared/matching-model.mjs";
 import {
   restoreProfileFromUrl,
@@ -23,20 +24,6 @@ const FEATURED_RANK = 1;
 const PRIMARY_LIMIT = 8;
 
 /* ── helpers ─────────────────────────────────────────────── */
-
-function getInitials(name) {
-  const parts = String(name || "")
-    .replace(/[^A-Za-z\s]/g, "")
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .filter(function (w) {
-      return !/^(dr|mr|mrs|ms|mx|prof)$/i.test(w);
-    });
-  if (!parts.length) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-}
 
 const REASON_GENERIC = new Set(["bipolar", "mood disorders", "mood disorder"]);
 
