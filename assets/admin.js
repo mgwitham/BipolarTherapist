@@ -10,6 +10,7 @@ import {
 } from "./store.js";
 import { fetchPublicTherapists } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
+import { readOutreachOutcomes } from "./outreach-outcomes-store.js";
 import { showLazyLoadFailureBanner } from "./admin-lazy-load-banner.js";
 import { showSnapshotFailureBanner } from "./admin-snapshot-failure-banner.js";
 import { renderAdminHome } from "./admin-home.js";
@@ -238,7 +239,6 @@ let commandPaletteOpen = false;
 let commandPaletteQuery = "";
 let commandPaletteActiveIndex = 0;
 const adminLazyModuleCache = new Map();
-const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 const REVIEW_ACTIVITY_SAVED_VIEWS_KEY = "bth_review_activity_saved_views_v1";
 const COMMAND_PALETTE_RECENTS_KEY = "bth_admin_command_palette_recents_v1";
 const COMMAND_PALETTE_FAVORITES_KEY = "bth_admin_command_palette_favorites_v1";
@@ -1625,14 +1625,6 @@ function buildFieldReviewControls(item) {
       .join("") +
     "</div>"
   );
-}
-
-function readOutreachOutcomes() {
-  try {
-    return JSON.parse(window.localStorage.getItem(OUTREACH_OUTCOMES_KEY) || "[]");
-  } catch (_error) {
-    return [];
-  }
 }
 
 function csvEscape(value) {

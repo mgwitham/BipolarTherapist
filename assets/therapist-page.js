@@ -1,6 +1,7 @@
 import "./sentry-init.js";
 import { fetchPublicTherapistBySlug, fetchPublicTherapists, getCmsState } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
+import { readOutreachOutcomes, writeOutreachOutcomes } from "./outreach-outcomes-store.js";
 import { safeAbsoluteExternalUrl as safeExternalUrl } from "./safe-url.js";
 import { sanityImageUrl } from "./sanity-image.js";
 import { getDataFreshnessSummary, getTherapistMatchReadiness } from "../shared/matching-model.mjs";
@@ -186,7 +187,6 @@ const profileSource = profileParams.get("source") || "";
     // Analytics is best-effort.
   }
 })();
-const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
 const DIRECTORY_LIST_LIMIT = SAVED_LIST_MAX;
 let activeTherapistContactExperimentVariant = "control";
 
@@ -1160,14 +1160,6 @@ function readShortlist() {
   return readSavedList();
 }
 
-function readOutreachOutcomes() {
-  try {
-    return JSON.parse(window.localStorage.getItem(OUTREACH_OUTCOMES_KEY) || "[]");
-  } catch (_error) {
-    return [];
-  }
-}
-
 function buildOutreachQueueUrl(focusSlug) {
   const shortlist = readShortlist();
   const slugs = shortlist
@@ -1264,9 +1256,7 @@ function recordProfileOutreachOutcome(therapist, outcome) {
   };
   existing.unshift(entry);
 
-  try {
-    window.localStorage.setItem(OUTREACH_OUTCOMES_KEY, JSON.stringify(existing.slice(0, 150)));
-  } catch (_error) {
+  if (!writeOutreachOutcomes(existing)) {
     return null;
   }
 

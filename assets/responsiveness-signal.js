@@ -1,26 +1,5 @@
 import { isBookingRouteHealthy, isWebsiteRouteHealthy } from "./route-health.js";
-
-const OUTREACH_OUTCOMES_KEY = "bth_outreach_outcomes_v1";
-
-function canUseStorage() {
-  try {
-    return typeof window !== "undefined" && !!window.localStorage;
-  } catch (_error) {
-    return false;
-  }
-}
-
-function readOutreachOutcomes() {
-  if (!canUseStorage()) {
-    return [];
-  }
-
-  try {
-    return JSON.parse(window.localStorage.getItem(OUTREACH_OUTCOMES_KEY) || "[]");
-  } catch (_error) {
-    return [];
-  }
-}
+import { readOutreachOutcomes } from "./outreach-outcomes-store.js";
 
 export function summarizeTherapistContactRouteOutcomes(therapist) {
   if (!therapist || !therapist.slug) {
