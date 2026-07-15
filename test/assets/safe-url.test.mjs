@@ -11,7 +11,8 @@ globalThis.window = {
   },
 };
 
-const { safeExternalUrl, safeStripeRedirectUrl } = await import("../../assets/safe-url.js");
+const { safeAbsoluteExternalUrl, safeExternalUrl, safeStripeRedirectUrl } =
+  await import("../../assets/safe-url.js");
 
 test("safeExternalUrl: passes http(s) and relative links unchanged", () => {
   assert.equal(safeExternalUrl("https://example.com/x"), "https://example.com/x");
@@ -31,6 +32,31 @@ test("safeExternalUrl: empty / nullish input yields empty string", () => {
   assert.equal(safeExternalUrl(""), "");
   assert.equal(safeExternalUrl(null), "");
   assert.equal(safeExternalUrl(undefined), "");
+});
+
+test("safeAbsoluteExternalUrl: passes absolute http(s), returns normalized href", () => {
+  assert.equal(safeAbsoluteExternalUrl("https://example.com/x"), "https://example.com/x");
+  // bare domain normalizes to trailing-slash href
+  assert.equal(safeAbsoluteExternalUrl("https://example.com"), "https://example.com/");
+  assert.equal(safeAbsoluteExternalUrl("  https://example.com/x  "), "https://example.com/x");
+});
+
+test("safeAbsoluteExternalUrl: rejects relative and protocol-less values (divergence from lax variant)", () => {
+  // These are the cases where the strict and lax variants deliberately
+  // differ — therapist-submitted "www.foo.com" must NOT resolve against
+  // our own origin and render as a broken same-site link.
+  assert.equal(safeAbsoluteExternalUrl("/portal.html"), "");
+  assert.equal(safeAbsoluteExternalUrl("www.foo.com"), "");
+  assert.equal(safeExternalUrl("/portal.html"), "/portal.html"); // lax keeps relative
+});
+
+test("safeAbsoluteExternalUrl: blocks dangerous schemes and empty input", () => {
+  assert.equal(safeAbsoluteExternalUrl("javascript:alert(1)"), "");
+  assert.equal(safeAbsoluteExternalUrl("data:text/html,x"), "");
+  assert.equal(safeAbsoluteExternalUrl("vbscript:msgbox(1)"), "");
+  assert.equal(safeAbsoluteExternalUrl(""), "");
+  assert.equal(safeAbsoluteExternalUrl(null), "");
+  assert.equal(safeAbsoluteExternalUrl(undefined), "");
 });
 
 test("safeStripeRedirectUrl: allows https Stripe domains", () => {

@@ -1,6 +1,7 @@
 import "./sentry-init.js";
 import { fetchPublicTherapistBySlug, fetchPublicTherapists, getCmsState } from "./cms.js";
 import { escapeHtml } from "./escape-html.js";
+import { safeAbsoluteExternalUrl as safeExternalUrl } from "./safe-url.js";
 import { sanityImageUrl } from "./sanity-image.js";
 import { getDataFreshnessSummary, getTherapistMatchReadiness } from "../shared/matching-model.mjs";
 import { firstName as stripTitleFirstName } from "../shared/outreach-templates.mjs";
@@ -235,20 +236,6 @@ function showContactFallbackToast(message) {
   showContactFallbackToast.hideTimer = window.setTimeout(function () {
     toast.classList.remove("is-visible");
   }, 8000);
-}
-
-function safeExternalUrl(value) {
-  const raw = String(value || "").trim();
-  if (!raw) {
-    return "";
-  }
-
-  try {
-    const url = new URL(raw);
-    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
-  } catch (_error) {
-    return "";
-  }
 }
 
 // ─── Hero avatar (initial render + background photo refresh) ───────────

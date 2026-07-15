@@ -19,18 +19,8 @@ import { renderPortalCardPreview, updatePortalCardPreview } from "./portal-card-
 import { patchTherapistProfile, uploadPortalPhoto } from "./review-api.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { escapeHtml } from "./escape-html.js";
+import { safeAbsoluteExternalUrl as safeExternalUrl } from "./safe-url.js";
 import { PORTAL_COMPLETENESS_POINTS as PTS } from "../shared/portal-completeness-registry.mjs";
-
-function safeExternalUrl(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  try {
-    const url = new URL(raw);
-    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
-  } catch (_error) {
-    return "";
-  }
-}
 
 // ─── Score model (mirrors TD-A header) ────────────────────────────────
 

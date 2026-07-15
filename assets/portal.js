@@ -1,7 +1,7 @@
 import "./sentry-init.js";
 import "./funnel-analytics.js";
 import { escapeHtml } from "./escape-html.js";
-import { safeStripeRedirectUrl } from "./safe-url.js";
+import { safeAbsoluteExternalUrl as safeExternalUrl, safeStripeRedirectUrl } from "./safe-url.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { mountPortalTdCompleteness, shouldShowCompleteness } from "./portal-td-completeness.js";
 import { renderPortalPhotoConsent } from "./portal-photo-consent.js";
@@ -1992,17 +1992,6 @@ function scrollToEditorOnSignupLanding() {
 
 function escapeAttr(value) {
   return escapeHtml(value);
-}
-
-function safeExternalUrl(value) {
-  const raw = String(value || "").trim();
-  if (!raw) return "";
-  try {
-    const url = new URL(raw);
-    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
-  } catch (_error) {
-    return "";
-  }
 }
 
 // ─── TD-A score model ─────────────────────────────────────────────────

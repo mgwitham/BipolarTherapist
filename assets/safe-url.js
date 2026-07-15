@@ -35,6 +35,24 @@ export function safeExternalUrl(value) {
   }
 }
 
+// Strict variant: absolute http(s) URLs ONLY — relative and protocol-less
+// values (e.g. "www.foo.com") are rejected rather than resolved against
+// our origin, and the normalized url.href is returned. Use for
+// therapist-submitted external targets (website, booking_url) and API-
+// provided asset URLs (photo_url), where a "relative" value is always a
+// data problem, never a real link. Consolidated from identical inline
+// copies in portal.js, portal-td-completeness.js, and therapist-page.js.
+export function safeAbsoluteExternalUrl(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+  } catch (_error) {
+    return "";
+  }
+}
+
 export function safeStripeRedirectUrl(value) {
   const raw = String(value == null ? "" : value).trim();
   if (!raw) return "";
