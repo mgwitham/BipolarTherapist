@@ -21,101 +21,35 @@ import { trackFunnelEvent } from "./funnel-analytics.js";
 import { escapeHtml } from "./escape-html.js";
 import { safeAbsoluteExternalUrl as safeExternalUrl } from "./safe-url.js";
 import { PORTAL_COMPLETENESS_POINTS as PTS } from "../shared/portal-completeness-registry.mjs";
+import {
+  computePortalProfileScore as computeScore,
+  isCardBioComplete,
+  isContactRouteComplete,
+  isFeeComplete,
+  isFirstStepComplete,
+  isFormatComplete,
+  isFullBioComplete,
+  isGenderComplete,
+  isHeadshotComplete,
+  isInsuranceComplete,
+  isLanguagesComplete,
+  isLocationComplete,
+  isModalitiesComplete,
+  isNameComplete,
+  isPopulationsComplete,
+  isPracticeNameComplete,
+  isSpecialtiesComplete,
+  isTotalYearsComplete,
+  isWaitTimeComplete,
+  isWebsiteComplete,
+  isYearsComplete,
+} from "./portal-completeness-score.js";
 
-// ─── Score model (mirrors TD-A header) ────────────────────────────────
-
-// 100-point system. Every field in FIELD_REGISTRY carries a `pts` value;
-// weights sum to exactly 100 so the score only reaches 100 when all fields
-// are complete. computeScore() derives entirely from the registry,
-// badge display and scoring cannot drift apart.
-function computeScore(t) {
-  if (!t) return 0;
-  // Computed after FIELD_REGISTRY is declared, see the bottom of this block.
-  return _computeScoreFromRegistry(t);
-}
-
-// ─── Field completion predicates ─────────────────────────────────────
-
-// "Your card bio", short bipolar-specific paragraph that powers the
-// patient match-card voice slot. Required, ≥50 chars to gate going-live.
-// NOT the same as t.bio (the long-form full profile body, see
-// isFullBioComplete below).
-function isCardBioComplete(t) {
-  return Boolean(t && String(t.care_approach || "").trim().length >= 50);
-}
-// "Full bio", long-form text shown on the public profile page. Optional,
-// no char minimum.
-function isFullBioComplete(t) {
-  return Boolean(t && String(t.bio || "").trim());
-}
-function isContactRouteComplete(t) {
-  if (!t) return false;
-  const method = String(t.preferred_contact_method || "").toLowerCase();
-  if (method === "email") return Boolean(String(t.email || "").trim());
-  if (method === "phone") return Boolean(String(t.phone || "").trim());
-  if (method === "booking") return Boolean(String(t.booking_url || "").trim());
-  return false;
-}
-function isHeadshotComplete(t) {
-  return Boolean(t && t.photo_url);
-}
-function isNameComplete(t) {
-  return Boolean(t && String(t.name || "").trim());
-}
-function isLocationComplete(t) {
-  return Boolean(t && String(t.city || "").trim() && String(t.state || "").trim());
-}
-function isFeeComplete(t) {
-  if (!t) return false;
-  return Number(t.session_fee_min) > 0 || Number(t.session_fee_max) > 0 || Boolean(t.sliding_scale);
-}
-function isModalitiesComplete(t) {
-  return (
-    t && Array.isArray(t.treatment_modalities) && t.treatment_modalities.filter(Boolean).length > 0
-  );
-}
-function isFormatComplete(t) {
-  return Boolean(t && (t.accepts_in_person || t.accepts_telehealth));
-}
-function isInsuranceComplete(t) {
-  return (
-    t && Array.isArray(t.insurance_accepted) && t.insurance_accepted.filter(Boolean).length > 0
-  );
-}
-function isPopulationsComplete(t) {
-  return (
-    t && Array.isArray(t.client_populations) && t.client_populations.filter(Boolean).length > 0
-  );
-}
-function isYearsComplete(t) {
-  return Number(t && t.bipolar_years_experience) > 0;
-}
-// TF-B new fields
-function isPracticeNameComplete(t) {
-  return Boolean(t && String(t.practice_name || "").trim());
-}
-function isWebsiteComplete(t) {
-  return Boolean(t && String(t.website || "").trim());
-}
-function isLanguagesComplete(t) {
-  return Boolean(t && Array.isArray(t.languages) && t.languages.filter(Boolean).length > 0);
-}
-function isWaitTimeComplete(t) {
-  return Boolean(t && String(t.estimated_wait_time || "").trim());
-}
-function isFirstStepComplete(t) {
-  return Boolean(t && String(t.first_step_expectation || "").trim());
-}
-function isSpecialtiesComplete(t) {
-  return Boolean(t && Array.isArray(t.specialties) && t.specialties.filter(Boolean).length > 0);
-}
-function isTotalYearsComplete(t) {
-  return Number(t && t.years_experience) > 0;
-}
-function isGenderComplete(t) {
-  const g = String((t && t.gender) || "").trim();
-  return g === "male" || g === "female" || g === "non_binary";
-}
+// ─── Score model ──────────────────────────────────────────────────────
+// computeScore + the per-field predicates live in
+// assets/portal-completeness-score.js, shared with the TD-A header badge
+// (portal.js) so the two surfaces can never disagree. FIELD_REGISTRY below
+// keeps only the UI metadata (sections, titles, hints, badges).
 
 // ─── Field registry ──────────────────────────────────────────────────
 
@@ -310,17 +244,6 @@ const FIELD_REGISTRY = [
     isComplete: isGenderComplete,
   },
 ];
-
-// Registry-driven score. Sum of all `pts` values = 100 exactly, so the
-// score only reaches 100 when every field is complete.
-function _computeScoreFromRegistry(t) {
-  let score = 0;
-  for (let i = 0; i < FIELD_REGISTRY.length; i++) {
-    const f = FIELD_REGISTRY[i];
-    if (f.isComplete(t)) score += f.pts;
-  }
-  return score;
-}
 
 const SECTIONS = [
   { key: "essential", title: "Essential, required to go live" },
