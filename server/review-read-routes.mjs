@@ -1,26 +1,11 @@
 import { slugify as slugifyReviewerId } from "../shared/therapist-domain.mjs";
 import { buildReferralAttributionReport } from "../shared/referral-attribution.mjs";
-
-function getEventLane(doc) {
-  const eventType = String((doc && doc.eventType) || "");
-  if (
-    eventType.startsWith("licensure_") ||
-    eventType === "therapist_review_completed" ||
-    eventType === "therapist_review_deferred"
-  ) {
-    return "ops";
-  }
-  if (doc && doc.applicationId) {
-    return "application";
-  }
-  if (doc && (doc.candidateId || doc.candidateDocumentId)) {
-    return "candidate";
-  }
-  if (doc && doc.therapistId) {
-    return "therapist";
-  }
-  return "ops";
-}
+import { buildCsvResponse, formatCsvCell } from "../shared/csv-export.mjs";
+import {
+  decodeReviewEventCursor,
+  encodeReviewEventCursor,
+  getEventLane,
+} from "../shared/review-event-feed.mjs";
 
 function parsePositiveInteger(value, fallback, maxValue) {
   const parsed = Number.parseInt(String(value || ""), 10);
@@ -30,48 +15,12 @@ function parsePositiveInteger(value, fallback, maxValue) {
   return Math.min(parsed, maxValue || parsed);
 }
 
-function formatCsvCell(value) {
-  let text = String(value == null ? "" : value);
-  // Neutralize spreadsheet formula injection: a cell beginning with = + - @
-  // (optionally after whitespace) is executed as a formula by Excel/Sheets.
-  // Some of these cells carry values from unauthenticated public endpoints
-  // (e.g. match request summaries), so prefix a single quote to force the
-  // cell to be treated as text.
-  if (/^[\s]*[=+\-@]/.test(text)) {
-    text = `'${text}`;
-  }
-  if (/[",\n]/.test(text)) {
-    return `"${text.replace(/"/g, '""')}"`;
-  }
-  return text;
-}
-
 // Projection shared by the /events feed and /events/export.
 const REVIEW_EVENT_PROJECTION = `{
   _id, _createdAt, eventType, providerId, candidateId, candidateDocumentId, applicationId,
   therapistId, decision, reviewStatus, publishRecommendation, actorName, rationale,
   notes, changedFields, createdAt
 }`;
-
-function reviewEventSortStamp(doc) {
-  return (doc && (doc.createdAt || doc._createdAt)) || "";
-}
-
-// Compound cursor "<timestamp>|<_id>" gives a total order even when many
-// events share an identical createdAt (build*ReviewEvent stamps them in the
-// same millisecond), so page boundaries neither skip nor duplicate siblings.
-function encodeReviewEventCursor(doc) {
-  return `${reviewEventSortStamp(doc)}|${(doc && doc._id) || ""}`;
-}
-
-function decodeReviewEventCursor(raw) {
-  const value = String(raw || "").trim();
-  if (!value) return null;
-  const idx = value.lastIndexOf("|");
-  // Back-compat: a legacy timestamp-only cursor decodes with an empty id.
-  if (idx === -1) return { ts: value, id: "" };
-  return { ts: value.slice(0, idx), id: value.slice(idx + 1) };
-}
 
 // Fetch review events for an optional lane, scanning older windows until we
 // have enough lane matches to fill the page (plus one to detect a next page)
@@ -161,30 +110,6 @@ function normalizeReviewerDirectoryEntries(entries) {
     .filter(function (entry) {
       return entry.id && entry.name;
     });
-}
-
-function stringifyExportValue(value) {
-  if (Array.isArray(value)) {
-    return value.join(" | ");
-  }
-  if (value && typeof value === "object") {
-    return JSON.stringify(value);
-  }
-  return value == null ? "" : String(value);
-}
-
-function buildCsvResponse(rows, columns) {
-  const header = columns.map(function (column) {
-    return formatCsvCell(column.header);
-  });
-  const body = rows.map(function (row) {
-    return columns
-      .map(function (column) {
-        return formatCsvCell(stringifyExportValue(row[column.key]));
-      })
-      .join(",");
-  });
-  return [header.join(","), ...body].join("\n");
 }
 
 export async function handleReadRoutes(context) {
