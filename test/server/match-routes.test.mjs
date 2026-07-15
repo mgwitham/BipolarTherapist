@@ -201,3 +201,30 @@ test("GET /match/referral-attribution rolls intakes up to the referring clinicia
   assert.equal(response.payload.rows[0].intakes, 1);
   assert.equal(response.payload.rows[0].code, code);
 });
+
+// The /results flow (assets/results.js) is the surface patients actually
+// reach — bare /match.html redirects home, so if THIS payload stops being
+// accepted, match demand and referral attribution silently vanish again.
+// Builds the payload with the real client module rather than a copy.
+test("POST /match/requests accepts the /results client payload and stores the referral code", async () => {
+  const { buildResultsMatchRequestPayload } = await import("../../assets/results-match-request.js");
+  const payload = buildResultsMatchRequestPayload(
+    { care_state: "CA", care_format: "Telehealth", insurance: "Aetna" },
+    [{ therapist: { slug: "jane-doe" } }],
+    {
+      journeyId: "results:test-journey-1",
+      referralCode: "nkennedy-3f2a",
+      now: "2026-07-15T12:00:00.000Z",
+    },
+  );
+
+  const { state, handler } = createHandler();
+  const response = await post(handler, "/match/requests", payload);
+  assert.equal(response.statusCode, 201, `expected 201, got ${JSON.stringify(response.payload)}`);
+
+  const stored = Array.from(state.documents.values()).find((doc) => doc._type === "matchRequest");
+  assert.ok(stored, "matchRequest document should be created");
+  assert.equal(stored.requestId, "results:test-journey-1");
+  assert.equal(stored.referralCode, "nkennedy-3f2a");
+  assert.equal(stored.sourceSurface, "results_page");
+});
