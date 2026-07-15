@@ -6,6 +6,12 @@ import { sendPortalContactEmail } from "./review-email.mjs";
 import { getClientAddress } from "./review-http-auth.mjs";
 import { verifyTurnstileToken } from "./turnstile-verify.mjs";
 import { validateBody } from "./validate.mjs";
+import { maskEmail } from "../shared/mask-email.mjs";
+import {
+  anonymizeRequesterIp,
+  buildRecoveryRequestFlags,
+  countRecentLicensesByIp,
+} from "../shared/recovery-review-domain.mjs";
 
 const RECOVERY_REQUEST_SCHEMA = {
   full_name: { type: "string", required: true, maxLength: 200 },
@@ -14,25 +20,6 @@ const RECOVERY_REQUEST_SCHEMA = {
   prior_email: { type: "email" },
   reason: { type: "string", maxLength: 2000 },
 };
-
-function maskEmail(email) {
-  const trimmed = String(email || "").trim();
-  if (!trimmed) {
-    return "";
-  }
-  const at = trimmed.indexOf("@");
-  if (at < 1) {
-    return trimmed.slice(0, 1) + "***";
-  }
-  const local = trimmed.slice(0, at);
-  const domain = trimmed.slice(at + 1);
-  const dot = domain.lastIndexOf(".");
-  const domainHead = dot > 0 ? domain.slice(0, dot) : domain;
-  const domainTail = dot > 0 ? domain.slice(dot) : "";
-  const maskLocal = local.slice(0, 1) + "***";
-  const maskDomain = (domainHead ? domainHead.slice(0, 1) + "***" : "***") + domainTail;
-  return maskLocal + "@" + maskDomain;
-}
 
 export async function handleRecoveryRoutes(context) {
   for (const route of RECOVERY_ROUTES) {
@@ -259,15 +246,11 @@ async function recoveryPostPortalRecoveryRequest(context) {
   );
 
   const nowIso = new Date().toISOString();
-  const requesterIp = (() => {
-    const raw =
-      (request.headers && (request.headers["x-forwarded-for"] || request.headers["x-real-ip"])) ||
+  const requesterIp = anonymizeRequesterIp(
+    (request.headers && (request.headers["x-forwarded-for"] || request.headers["x-real-ip"])) ||
       (request.socket && request.socket.remoteAddress) ||
-      "";
-    const first = String(raw).split(",")[0].trim();
-    const parts = first.split(".");
-    return parts.length === 4 ? parts.slice(0, 3).join(".") + ".x" : "";
-  })();
+      "",
+  );
 
   // The GROQ projection casts slug to a string, but the in-memory
   // test client doesn't honor projections and returns the raw doc.
@@ -379,77 +362,12 @@ async function recoveryGetRecoveryRequests(context) {
       : [];
   const anchorById = new Map(therapistAnchors.map((t) => [t._id, t]));
 
-  // Suspicious-pattern detection: count how many DIFFERENT licenses
-  // each IP has filed under in the last 30d. >1 means same person/IP
-  // is filing for multiple therapists — suspicious.
-  const ipCounts = new Map();
-  for (const r of list) {
-    if (!r.requesterIp) continue;
-    const cutoff = Date.now() - 30 * 86400000;
-    const created = new Date(r.createdAt || 0).getTime();
-    if (created < cutoff) continue;
-    if (!ipCounts.has(r.requesterIp)) ipCounts.set(r.requesterIp, new Set());
-    ipCounts.get(r.requesterIp).add(r.licenseNumber);
-  }
-
-  const FREE_EMAIL = new Set([
-    "gmail.com",
-    "yahoo.com",
-    "outlook.com",
-    "hotmail.com",
-    "icloud.com",
-    "me.com",
-    "aol.com",
-    "proton.me",
-    "protonmail.com",
-    "mail.com",
-  ]);
-
+  // Suspicious-pattern detection + per-request warning flags live in
+  // shared/recovery-review-domain.mjs (pure, unit-tested).
+  const ipCounts = countRecentLicensesByIp(list, Date.now());
   const enriched = list.map((req) => {
     const anchor = req.therapistDocId ? anchorById.get(req.therapistDocId) : null;
-    const flags = [];
-    const requestedDomain = String(req.requestedEmail || "")
-      .split("@")[1]
-      ?.toLowerCase();
-    if (requestedDomain && FREE_EMAIL.has(requestedDomain)) {
-      flags.push({
-        severity: "warn",
-        code: "free_email_provider",
-        message:
-          "Requested email is at a free provider (gmail/yahoo/etc.), no domain anchor. Verify identity through another channel.",
-      });
-    }
-    const ipLicenses = req.requesterIp ? ipCounts.get(req.requesterIp) : null;
-    if (ipLicenses && ipLicenses.size > 1) {
-      flags.push({
-        severity: "high",
-        code: "multi_license_same_ip",
-        message: `Same IP (${req.requesterIp}) has filed recovery requests for ${ipLicenses.size} different licenses in the last 30 days. Investigate before approving.`,
-      });
-    }
-    if (anchor && anchor.disciplineFlag) {
-      flags.push({
-        severity: "high",
-        code: "discipline_on_file",
-        message:
-          "DCA shows public disciplinary actions on this license. Approval will give the requester control of a profile that may need to be unpublished.",
-      });
-    }
-    if (anchor && anchor.licenseStatus && anchor.licenseStatus !== "active") {
-      flags.push({
-        severity: "high",
-        code: "license_not_active",
-        message: `DCA shows license status as "${anchor.licenseStatus}" (not active). Verify before approving. The listing may need to be unpublished instead.`,
-      });
-    }
-    if (anchor && !anchor.email && !anchor.website) {
-      flags.push({
-        severity: "warn",
-        code: "no_anchors_available",
-        message:
-          "No email, no website on the profile. Only DCA address-of-record + phone (if any) are verification channels. Consider phone verification or postal code.",
-      });
-    }
+    const flags = buildRecoveryRequestFlags(req, anchor, ipCounts);
     return { ...req, anchor: anchor || null, flags };
   });
 

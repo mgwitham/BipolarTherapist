@@ -11,6 +11,7 @@ import {
   emailDomainMatchesWebsite,
   normalizeNameForMatch,
 } from "../shared/email-domain-matching.mjs";
+import { maskEmail } from "../shared/mask-email.mjs";
 
 // Rate-limit window for claim-link requests: max 3 fresh links per
 // slug per hour. Stored as an array of ISO timestamps on the therapist
@@ -69,25 +70,6 @@ async function reserveClaimLinkSlot(client, therapistId, buildExtraSet) {
     }
   }
   return { ok: false };
-}
-
-function maskEmail(email) {
-  const trimmed = String(email || "").trim();
-  if (!trimmed) {
-    return "";
-  }
-  const at = trimmed.indexOf("@");
-  if (at < 1) {
-    return trimmed.slice(0, 1) + "***";
-  }
-  const local = trimmed.slice(0, at);
-  const domain = trimmed.slice(at + 1);
-  const dot = domain.lastIndexOf(".");
-  const domainHead = dot > 0 ? domain.slice(0, dot) : domain;
-  const domainTail = dot > 0 ? domain.slice(dot) : "";
-  const maskLocal = local.slice(0, 1) + "***";
-  const maskDomain = (domainHead ? domainHead.slice(0, 1) + "***" : "***") + domainTail;
-  return maskLocal + "@" + maskDomain;
 }
 
 import { shapePortalTherapist } from "../shared/therapist-publishing-domain.mjs";
