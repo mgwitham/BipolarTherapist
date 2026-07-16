@@ -1,3 +1,9 @@
+import { initWebVitals } from "./web-vitals.js";
+
+// Start vitals observers immediately (they're passive); reporting happens
+// at page-hide and only if PostHog was loaded (consent-gated in loadPostHog).
+initWebVitals();
+
 const measurementId = "G-Q22R5G7VB5";
 
 // Query params that carry patient search context or single-use tokens.
