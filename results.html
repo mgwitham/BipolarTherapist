@@ -21,6 +21,9 @@
     />
     <link rel="stylesheet" href="assets/results-page.css" />
     <link rel="stylesheet" href="assets/public-nav.css" />
+    <!-- Early-start the therapist data fetch (see public/results-prefetch.js).
+         After the stylesheets so CSS discovery isn't delayed. -->
+    <script src="/results-prefetch.js"></script>
   </head>
   <body>
     <nav aria-label="Main navigation" class="nav-dark">
