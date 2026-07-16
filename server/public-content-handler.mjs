@@ -130,7 +130,9 @@ export const PUBLIC_THERAPIST_PROFILE_PROJECTION = `{
   "slug": slug.current
 }`;
 
-const PUBLIC_THERAPIST_LIST_QUERY = `*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"] | order(name asc) ${PUBLIC_THERAPIST_LIST_PROJECTION}`;
+// Exported so the /directory SEO pre-render (scripts/generate-seo-directory-page.mjs)
+// fetches the EXACT list the live API serves — same visibility gates, same fields.
+export const PUBLIC_THERAPIST_LIST_QUERY = `*[_type == "therapist" && listingActive == true && status == "active" && visibilityIntent == "listed"] | order(name asc) ${PUBLIC_THERAPIST_LIST_PROJECTION}`;
 const PUBLIC_THERAPIST_BY_SLUG_QUERY = `*[_type == "therapist" && slug.current == $slug && listingActive == true && status == "active" && visibilityIntent == "listed"][0] ${PUBLIC_THERAPIST_PROFILE_PROJECTION}`;
 
 function getAllowedOrigin(origin, config) {

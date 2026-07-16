@@ -206,7 +206,10 @@ function normalizeSiteSettings(doc) {
   return { ...doc };
 }
 
-function normalizeTherapist(doc) {
+// Exported so the /directory SEO pre-render (scripts/generate-seo-directory-page.mjs)
+// shapes build-time docs exactly like the browser does, keeping the static
+// page-1 cards pixel-compatible with the hydrated render.
+export function normalizeTherapist(doc) {
   const fieldReviewStates = normalizeFieldReviewStates(doc.fieldReviewStates, {
     keyStyle: "camelCase",
   });

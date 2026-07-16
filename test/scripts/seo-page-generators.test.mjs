@@ -395,10 +395,15 @@ test("directory SEO generator injects CollectionPage JSON-LD and crawlable provi
   const html = injectDirectorySeo(DIRECTORY_SHELL, DIRECTORY_PROVIDERS);
   // CollectionPage replaces the bare ItemList stub inside #dirJsonLd.
   assert.match(html, /"@type":"CollectionPage"/);
-  // Real, linked provider cards land in the grid in place of the skeletons.
+  // Page 1 renders in the hydrated app's own card design (hydration
+  // parity — the fix for the static→app "directory flash"), whose profile
+  // links carry the ?ref=directory attribution param.
+  assert.match(html, /class="dir-card/);
+  assert.match(html, /href="\/therapists\/jane-doe-los-angeles-ca\/\?ref=directory/);
+  assert.match(html, /href="\/therapists\/alex-rivera-fresno-ca\/\?ref=directory/);
+  // The crawlable compact link list block still exists for providers
+  // beyond page 1 (empty with this two-provider fixture, wrapper present).
   assert.match(html, /data-static-seo-directory/);
-  assert.match(html, /href="\/therapists\/jane-doe-los-angeles-ca\/"/);
-  assert.match(html, /href="\/therapists\/alex-rivera-fresno-ca\/"/);
   assert.doesNotMatch(html, /dir-skel-card/);
   // Open Graph tags the SPA shell lacks.
   assert.match(html, /property="og:title"/);

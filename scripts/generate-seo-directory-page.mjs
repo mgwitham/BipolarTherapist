@@ -21,6 +21,24 @@ import { escapeHtml } from "../shared/escape-html.mjs";
 import { buildProviderCardHtml } from "../shared/seo-provider-card.mjs";
 import { pathToFileURL } from "node:url";
 import { createClient } from "@sanity/client";
+// The static page-1 reuses the browser's own pipeline (normalize → order →
+// view model → card markup) so the pre-rendered cards are the SAME design
+// the hydrated app paints. Before this, the static grid used the plain
+// city-page card style and hydration visibly swapped the whole page design
+// (the "directory flash"). All four modules are pure and Node-importable.
+import { normalizeTherapist } from "../assets/cms.js";
+import { compareTherapistsWithFilters } from "../assets/directory-logic.js";
+import { buildCardViewModel } from "../assets/directory-view-model.js";
+import { renderCardMarkup } from "../assets/directory-render.js";
+import { DIRECTORY_PAGE_SIZE } from "../assets/directory-controller.js";
+import { PUBLIC_THERAPIST_LIST_QUERY } from "../server/public-content-handler.mjs";
+
+// Deterministic build-time stand-in for the client's session-seeded
+// stable_random sort: same comparator, no shuffle map, so the static order
+// is "accepting first, most-complete first, name asc". The client reshuffles
+// within those bands on hydrate (fairness rotation) — same-design cards
+// reordering reads as content settling, not a page flash.
+const STATIC_ORDER_FILTERS = { sortBy: "stable_random", stableOrderMap: null, sortZip: "" };
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
@@ -145,12 +163,38 @@ function applyAnchoredReplace(html, label, pattern, replacement) {
   return next;
 }
 
+function buildInteractiveCardsHtml(providers) {
+  return providers
+    .map(function (therapist) {
+      return renderCardMarkup({
+        model: buildCardViewModel({
+          therapist: therapist,
+          filters: STATIC_ORDER_FILTERS,
+          shortlist: [],
+          isShortlisted: function () {
+            return false;
+          },
+        }),
+      });
+    })
+    .join("");
+}
+
 function injectSeo(html, providers) {
   const headBlock = buildHeadTags();
   const jsonLd = JSON.stringify(buildJsonLd(providers));
+  const sorted = providers.slice().sort(function (a, b) {
+    return compareTherapistsWithFilters(STATIC_ORDER_FILTERS, a, b);
+  });
+  // Page 1 in the hydrated design (direct grid children so #resultsGrid's
+  // CSS grid lays them out exactly like the live render); every remaining
+  // provider stays crawlable in the compact link list below the fold.
+  // Both live inside #resultsGrid, so directory.js's first repaint clears
+  // the whole static block at once.
   const cardsHtml =
-    '<div class="city-provider-grid" data-static-seo-directory>' +
-    buildProviderCardsHtml(providers) +
+    buildInteractiveCardsHtml(sorted.slice(0, DIRECTORY_PAGE_SIZE)) +
+    '<div class="city-provider-grid" data-static-seo-directory style="grid-column:1/-1">' +
+    buildProviderCardsHtml(sorted.slice(DIRECTORY_PAGE_SIZE)) +
     "</div>";
 
   let out = html;
@@ -197,12 +241,13 @@ async function fetchTherapists(config) {
     apiVersion: API_VERSION,
     useCdn: true,
   });
-  return client.fetch(
-    `*[_type == "therapist" && listingActive == true && status == "active" && defined(slug.current)] | order(name asc) {
-       "slug": slug.current, name, credentials, title, city, state,
-       "photo_url": photo.asset->url
-     }`,
-  );
+  // The exact query the live /api/public/therapists endpoint runs — same
+  // visibility gates (the old inline query here was missing the
+  // visibilityIntent == "listed" clause, so opted-out therapists could leak
+  // into the static SEO page) and the full projection the card renderer
+  // needs. Docs are then shaped with the browser's own normalizeTherapist.
+  const docs = await client.fetch(PUBLIC_THERAPIST_LIST_QUERY);
+  return (Array.isArray(docs) ? docs : []).map(normalizeTherapist);
 }
 
 async function main() {
