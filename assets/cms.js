@@ -533,7 +533,27 @@ export async function fetchPublicTherapists(options) {
   }
 
   try {
-    const fetchPromise = fetchPublicContentJson("/therapists", { fresh }).then(function (docs) {
+    // Consume the early-start fetch kicked off in results.html's <head>
+    // (public/results-prefetch.js) when present, so the network request
+    // overlaps stylesheet/module download instead of starting after the
+    // module graph executes. Consumed once; any failure falls back to the
+    // normal live fetch below. Mirrors the directory-content flow.
+    const rawDocsPromise = (async function () {
+      if (!fresh && typeof window !== "undefined") {
+        const early = window.__bthPublicTherapistsPromise;
+        if (early && typeof early.then === "function") {
+          window.__bthPublicTherapistsPromise = null;
+          const docs = await early.catch(function () {
+            return null;
+          });
+          if (Array.isArray(docs)) {
+            return docs;
+          }
+        }
+      }
+      return fetchPublicContentJson("/therapists", { fresh });
+    })();
+    const fetchPromise = rawDocsPromise.then(function (docs) {
       const normalized = Array.isArray(docs) ? docs.map(normalizeTherapist) : [];
       if (!fresh) {
         writePublicTherapistsCache(normalized);

@@ -9,7 +9,14 @@ const FOUNDING_SLOT_CAP = 50;
 // Edge cache window: directory data changes a few times a day at most, so a
 // 5-minute fresh window plus a 1-hour stale-while-revalidate keeps almost all
 // traffic on Vercel's edge while bounding staleness to minutes.
-const PUBLIC_CACHE_CONTROL = "public, max-age=0, s-maxage=300, stale-while-revalidate=3600";
+// s-maxage=900: the edge serves HITs for 15 minutes, then
+// stale-while-revalidate serves the STALE copy instantly for up to a day
+// while refreshing in the background — so real visitors essentially never
+// pay the ~1s serverless+Sanity refill that a cold MISS costs. Content
+// staleness is bounded by the browser-side session cache (1h) anyway, so
+// raising this from 300 doesn't change what therapists observe after an
+// edit in practice.
+const PUBLIC_CACHE_CONTROL = "public, max-age=0, s-maxage=900, stale-while-revalidate=86400";
 
 const PUBLIC_THERAPIST_LIST_PROJECTION = `{
   _id,
