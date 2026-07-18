@@ -201,7 +201,22 @@ export function shouldApplyEvent(existing, incomingEventId, incomingEventCreated
   if (!existing.lastEventAt || !incomingEventCreatedAt) {
     return true;
   }
-  return new Date(incomingEventCreatedAt).getTime() >= new Date(existing.lastEventAt).getTime();
+  const incomingMs = new Date(incomingEventCreatedAt).getTime();
+  const existingMs = new Date(existing.lastEventAt).getTime();
+  if (incomingMs > existingMs) {
+    return true;
+  }
+  if (incomingMs < existingMs) {
+    return false;
+  }
+  // Equal timestamps. Stripe's `event.created` is only second-granularity, so
+  // a subscription.updated and subscription.deleted for the same subscription
+  // can share it and be delivered out of order. When the already-applied state
+  // is terminal (canceled / unpaid / incomplete_expired), refuse a same-second
+  // sibling so a stale `updated` can't resurrect a canceled subscription;
+  // Stripe never un-cancels via a same-second event. Non-terminal ties still
+  // apply — idempotent replays converge via lastEventId + the _rev guard.
+  return !LAPSED_STATUSES.has(String(existing.status || ""));
 }
 
 export function mergeSubscriptionDocuments(existing, next) {

@@ -962,7 +962,13 @@ import { isDatasetEmpty, renderDatasetEmptyStateMarkup } from "./empty-dataset-s
     FILTER_BOOLEAN_KEYS.forEach(function (key) {
       if (params.get(key) === "true") {
         filters[key] = true;
-        getElement(key).checked = true;
+        // Guard the DOM lookup: a boolean key whose checkbox has been
+        // removed from directory.html (as happened when recently_confirmed
+        // was retired) would otherwise throw here and abort hydration.
+        const input = getElement(key);
+        if (input) {
+          input.checked = true;
+        }
       }
     });
 
