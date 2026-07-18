@@ -157,6 +157,29 @@ test("shouldApplyEvent skips events that have already been processed", () => {
   assert.equal(shouldApplyEvent(null, "evt_first", "2026-04-17T12:00:00.000Z"), true);
 });
 
+test("shouldApplyEvent refuses same-second events that would resurrect a canceled subscription", () => {
+  // Stripe `event.created` is second-granularity: a subscription.updated and
+  // subscription.deleted can share it and arrive out of order.
+  const canceled = {
+    lastEventId: "evt_deleted",
+    lastEventAt: "2026-04-17T12:00:00.000Z",
+    status: "canceled",
+  };
+  // A stale same-second `updated` must not overwrite the terminal state.
+  assert.equal(shouldApplyEvent(canceled, "evt_updated", "2026-04-17T12:00:00.000Z"), false);
+  // A genuinely newer event (later second) still applies.
+  assert.equal(shouldApplyEvent(canceled, "evt_updated", "2026-04-17T12:00:01.000Z"), true);
+
+  // Non-terminal state: a same-second sibling still applies (idempotent
+  // replays converge via lastEventId + the _rev guard at the call site).
+  const active = {
+    lastEventId: "evt_a",
+    lastEventAt: "2026-04-17T12:00:00.000Z",
+    status: "active",
+  };
+  assert.equal(shouldApplyEvent(active, "evt_b", "2026-04-17T12:00:00.000Z"), true);
+});
+
 test("mergeSubscriptionDocuments preserves existing fields not in next", () => {
   const existing = {
     _id: "therapistSubscription-alex",
