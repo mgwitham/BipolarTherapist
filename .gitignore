@@ -27,6 +27,11 @@ data/import/referral-contacts-*.json
 !data/import/therapists-template.csv
 !data/import/therapist-candidates-template.csv
 !data/import/therapist-source-seeds-template.csv
+# Directory-wide evidence audits. These are durable operating records of a
+# removal decision, not disposable working output, so they are tracked per
+# docs/DATA_ARTIFACT_POLICY.md. Re-running the audit later would produce
+# different results as clinicians edit their public profiles.
+!data/import/bipolar-evidence-audit-*.csv
 scripts/*-ingest-batch-*.json
 
 # Audit / report output — see scripts/audit-ghost-candidates.mjs and friends
