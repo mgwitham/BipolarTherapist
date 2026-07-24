@@ -811,6 +811,7 @@ function maybeLiveRecompute(event) {
     executeMatch(profile, {
       scroll: false,
       source: "match_live_refine",
+      refinement: true,
     });
     const count = Array.isArray(latestEntries) ? latestEntries.length : 0;
     const topSlug =
@@ -1409,25 +1410,32 @@ function executeMatch(profile, options) {
   // base + zip-aware pipeline.
   activeSecondPassMode = "balanced";
   const entries = rankEntriesForProfile(profile);
-  // Flush any prior session's outcome before we overwrite stats, this
-  // covers the in-tab refine flow where match_submitted fires multiple
-  // times without a navigation.
-  if (matchSessionStats && !matchSessionStats.outcome_emitted) {
-    emitMatchSessionOutcome();
+  // A refine (drawer filter tweak, chip dismiss) continues the session the user
+  // is already in. It must not emit match_submitted: that event is a GA4
+  // primary conversion, so firing it per debounced filter change counted one
+  // patient as many. The refine paths emit their own match_live_filter_applied
+  // / match_filter_chip_dismissed instead, and the session ends with a single
+  // match_session_outcome when the user actually leaves.
+  if (settings.refinement) {
+    updateMatchSessionResults(profile, entries);
+  } else {
+    if (matchSessionStats && !matchSessionStats.outcome_emitted) {
+      emitMatchSessionOutcome();
+    }
+    trackFunnelEvent("match_submitted", {
+      care_state: profile.care_state,
+      care_intent: profile.care_intent,
+      urgency: profile.urgency,
+      priority_mode: profile.priority_mode,
+      result_count: entries.length,
+      top_slug: entries[0] ? entries[0].therapist.slug : "",
+      top_has_photo: Boolean(entries[0] && entries[0].therapist && entries[0].therapist.photo_url),
+      strategy: buildAdaptiveStrategySnapshot(profile),
+      experiments: getActiveExperimentContext(),
+      source: settings.source,
+    });
+    startMatchSessionTracking(profile, entries);
   }
-  trackFunnelEvent("match_submitted", {
-    care_state: profile.care_state,
-    care_intent: profile.care_intent,
-    urgency: profile.urgency,
-    priority_mode: profile.priority_mode,
-    result_count: entries.length,
-    top_slug: entries[0] ? entries[0].therapist.slug : "",
-    top_has_photo: Boolean(entries[0] && entries[0].therapist && entries[0].therapist.photo_url),
-    strategy: buildAdaptiveStrategySnapshot(profile),
-    experiments: getActiveExperimentContext(),
-    source: settings.source,
-  });
-  startMatchSessionTracking(profile, entries);
   latestProfile = profile;
   latestEntries = entries;
   serializeProfileToUrl(profile);
@@ -2938,25 +2946,32 @@ function getEntryRankPosition(slug) {
   );
 }
 
-function startMatchSessionTracking(profile, entries) {
+// The parts of the session snapshot that describe the current result set and
+// profile. Split out so a refine can refresh them without resetting the
+// interaction counters accumulated so far in the same session.
+function buildMatchSessionContext(profile, entries) {
   const topEntry = Array.isArray(entries) && entries[0] ? entries[0] : null;
   const topTherapist = topEntry && topEntry.therapist ? topEntry.therapist : {};
-  const topRoute = topEntry ? getPreferredRouteType(topEntry) || "" : "";
-  matchSessionStats = {
-    started_at: Date.now(),
-    journey_id: currentJourneyId || "",
+  return {
     result_count: Array.isArray(entries) ? entries.length : 0,
     top_slug: topTherapist.slug || "",
     top_has_photo: Boolean(topTherapist.photo_url),
     top_completeness: Number(topTherapist.completeness_score || 0) || 0,
     top_bipolar_years: Number(topTherapist.bipolar_years_experience || 0) || 0,
-    top_route_type: topRoute,
+    top_route_type: topEntry ? getPreferredRouteType(topEntry) || "" : "",
     care_intent: (profile && profile.care_intent) || "",
     care_format: (profile && profile.care_format) || "",
     care_state: (profile && profile.care_state) || "",
     priority_mode: (profile && profile.priority_mode) || "",
     has_insurance: Boolean(profile && profile.insurance),
     has_budget: Boolean(profile && profile.budget_max),
+  };
+}
+
+function startMatchSessionTracking(profile, entries) {
+  matchSessionStats = Object.assign(buildMatchSessionContext(profile, entries), {
+    started_at: Date.now(),
+    journey_id: currentJourneyId || "",
     experiments: getActiveExperimentContext(),
     contact_clicks: 0,
     profile_clicks: 0,
@@ -2967,7 +2982,18 @@ function startMatchSessionTracking(profile, entries) {
     contacted_routes: [],
     contacted_slugs: [],
     outcome_emitted: false,
-  };
+  });
+}
+
+// A refine narrows an existing session rather than starting a new one, so the
+// result context is refreshed in place and the counters (contact clicks, saves,
+// refine opens) keep accumulating toward one match_session_outcome.
+function updateMatchSessionResults(profile, entries) {
+  if (!matchSessionStats) {
+    startMatchSessionTracking(profile, entries);
+    return;
+  }
+  Object.assign(matchSessionStats, buildMatchSessionContext(profile, entries));
 }
 
 function recordMatchSessionInteraction(kind, payload) {
@@ -3089,7 +3115,10 @@ function persistMatchRequest(profile, entries) {
     top_slug: entries && entries[0] && entries[0].therapist ? entries[0].therapist.slug : "",
     result_count: Array.isArray(entries) ? entries.length : 0,
   }).catch(function () {
-    persistedJourneyId = persistedJourneyId || currentJourneyId;
+    // Clear the marker so the next render retries. Leaving it set treated a
+    // transient network failure as a successful save and silently dropped the
+    // matchRequest (and its referral attribution) for the whole session.
+    persistedJourneyId = "";
   });
 }
 
@@ -3404,7 +3433,11 @@ function renderPrimaryMatchCards(entries, profile) {
         if (el) el.value = "";
       }
       const newProfile = readCurrentIntakeProfile();
-      executeMatch(newProfile, { scroll: false, source: "filter_chip_dismiss" });
+      executeMatch(newProfile, {
+        scroll: false,
+        source: "filter_chip_dismiss",
+        refinement: true,
+      });
       trackFunnelEvent("match_filter_chip_dismissed", { field: field });
     });
   });

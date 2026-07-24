@@ -340,7 +340,13 @@ export function readCurrentIntakeProfile(options) {
   return profile;
 }
 
-export function serializeProfileToUrl(profile) {
+// Params that identify the session rather than the intake answers. vercel.json
+// redirects /match.html to "/" when `shortlist` is missing, so dropping these
+// while rewriting the URL turns reload, back/forward, and link-sharing into a
+// bounce to the homepage.
+const SESSION_URL_KEYS = ["shortlist", "entry"];
+
+export function buildProfileUrl(profile, currentSearch) {
   const params = new URLSearchParams();
   Object.keys(profile || {}).forEach(function (key) {
     const value = profile[key];
@@ -353,7 +359,18 @@ export function serializeProfileToUrl(profile) {
     }
     params.set(key, String(value));
   });
-  const next = params.toString() ? "match.html?" + params.toString() : "match.html";
+  const carried = new URLSearchParams(currentSearch || "");
+  SESSION_URL_KEYS.forEach(function (key) {
+    const value = carried.get(key);
+    if (value) {
+      params.set(key, value);
+    }
+  });
+  return params.toString() ? "match.html?" + params.toString() : "match.html";
+}
+
+export function serializeProfileToUrl(profile) {
+  const next = buildProfileUrl(profile, window.location.search);
   window.history.replaceState({}, "", next);
 }
 
