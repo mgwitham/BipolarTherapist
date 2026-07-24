@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { buildJsonLd, buildFAQItems } from "../../api/therapists/[slug].mjs";
+import { buildJsonLd, buildFAQItems, buildPage } from "../../api/therapists/[slug].mjs";
 
 // Covers the SEO-critical structured data emitted by the server-rendered
 // therapist profile (api/therapists/[slug].mjs) — the JSON-LD crawlers
@@ -148,4 +148,25 @@ test("buildFAQItems: not-accepting + no insurance flip the copy", () => {
   const items = buildFAQItems(therapist({ accepting_new_patients: false, insurance_accepted: [] }));
   assert.match(items[0].a, /not currently accepting/);
   assert.ok(items.some((i) => /Does .* accept insurance\?/.test(i.q)));
+});
+
+// ── og:image (SSR fallback path) ───────────────────────────────────────
+// This handler only serves a profile when it hasn't landed in the static
+// build yet. Its og:image must resolve to the same pre-rendered PNG the
+// static build points at (scripts/generate-og-cards.mjs writes it to
+// dist/og/therapists/<slug>.png) — not a serverless /api/og/... route,
+// which was never implemented and always 404s, silently killing the X/
+// Twitter card for any profile served through this fallback.
+
+test("buildPage points og:image/twitter:image at the static og-card PNG, not a nonexistent /api/og route", () => {
+  const html = buildPage(therapist());
+  const ogImageMatches = [...html.matchAll(/<meta property="og:image" content="([^"]+)"/g)];
+  const twitterImageMatches = [...html.matchAll(/<meta name="twitter:image" content="([^"]+)"/g)];
+  assert.equal(ogImageMatches.length, 1, "exactly one og:image tag");
+  assert.equal(twitterImageMatches.length, 1, "exactly one twitter:image tag");
+  const [, ogImage] = ogImageMatches[0];
+  const [, twitterImage] = twitterImageMatches[0];
+  assert.equal(ogImage, twitterImage);
+  assert.match(ogImage, /\/og\/therapists\/dr-jane-smith-los-angeles-ca\.png\?v5$/);
+  assert.ok(!ogImage.includes("/api/og/"), "must not point at the unimplemented /api/og/ route");
 });
