@@ -783,9 +783,17 @@ function renderLookupState(options) {
   });
 }
 
+// Returns { text, link? }. The optional call-to-action stays structured rather
+// than baked into the string as an <a>, so the caller can render the copy with
+// textContent and append a real anchor. Previously the free-tier branch was the
+// only one returning markup while the renderer used textContent, so every
+// unsubscribed therapist saw raw HTML in the card meant to sell the paid plan.
 function describeFeaturedStatus(subscription) {
   if (!subscription || subscription.plan === "none" || !subscription.status) {
-    return 'You\'re on the free listing. Upgrade to unlock the weekly analytics dashboard, Monday digest email, and same-day profile edits. <a href="/pricing" style="color:var(--teal)">See what\'s included →</a>';
+    return {
+      text: "You're on the free listing. Upgrade to unlock the weekly analytics dashboard, Monday digest email, and same-day profile edits.",
+      link: { href: "/pricing", label: "See what's included →" },
+    };
   }
   if (subscription.has_active_featured) {
     const endDate = formatDate(subscription.current_period_ends_at);
@@ -795,31 +803,38 @@ function describeFeaturedStatus(subscription) {
       // reach a billed period), falling back to currentPeriodEndsAt for
       // post-trial cancels.
       const cancelDate = formatDate(subscription.trial_ends_at) || endDate;
-      return (
-        "Cancellation scheduled" +
-        (cancelDate ? " for " + cancelDate : "") +
-        ". Your paid features (analytics, digest email, same-day profile edits) continue through that date, then your listing reverts to free. Resume anytime from Manage subscription."
-      );
+      return {
+        text:
+          "Cancellation scheduled" +
+          (cancelDate ? " for " + cancelDate : "") +
+          ". Your paid features (analytics, digest email, same-day profile edits) continue through that date, then your listing reverts to free. Resume anytime from Manage subscription.",
+      };
     }
     if (subscription.status === "trialing") {
       const trialEnd = formatDate(subscription.trial_ends_at);
-      return (
-        "14-day free trial active." +
-        (trialEnd ? " Trial ends " + trialEnd + "." : "") +
-        " You can cancel anytime before then, no charge until day 15. " +
-        "Use Manage subscription below to cancel in one click."
-      );
+      return {
+        text:
+          "14-day free trial active." +
+          (trialEnd ? " Trial ends " + trialEnd + "." : "") +
+          " You can cancel anytime before then, no charge until day 15. " +
+          "Use Manage subscription below to cancel in one click.",
+      };
     }
-    return (
-      "Subscription active." +
-      (endDate ? " Renews " + endDate + "." : "") +
-      " Cancel or update payment anytime from Manage subscription."
-    );
+    return {
+      text:
+        "Subscription active." +
+        (endDate ? " Renews " + endDate + "." : "") +
+        " Cancel or update payment anytime from Manage subscription.",
+    };
   }
   if (subscription.status === "past_due" || subscription.status === "unpaid") {
-    return "Your subscription needs attention. Open Manage subscription to fix your payment method.";
+    return {
+      text: "Your subscription needs attention. Open Manage subscription to fix your payment method.",
+    };
   }
-  return "No active subscription. Start a 14-day free trial to unlock analytics and enhanced profile.";
+  return {
+    text: "No active subscription. Start a 14-day free trial to unlock analytics and enhanced profile.",
+  };
 }
 
 // Welcome-upsell banner reveal. Called once subscription loads. Paid
@@ -954,7 +969,16 @@ function renderFeaturedCard(subscription) {
   if (!body || !actions) {
     return;
   }
-  body.textContent = describeFeaturedStatus(subscription);
+  const status = describeFeaturedStatus(subscription);
+  body.textContent = status.text;
+  if (status.link) {
+    body.appendChild(document.createTextNode(" "));
+    const statusLink = document.createElement("a");
+    statusLink.href = status.link.href;
+    statusLink.textContent = status.link.label;
+    statusLink.style.color = "var(--teal)";
+    body.appendChild(statusLink);
+  }
   const hasCustomer = Boolean(
     subscription && subscription.plan && subscription.plan !== "none" && subscription.status,
   );
@@ -1941,6 +1965,9 @@ function renderStripeReturnBanner() {
   if (!shell) {
     return;
   }
+  if (document.getElementById("portalStripeReturnBanner")) {
+    return;
+  }
   let message = "";
   let tone = "neutral";
   if (state === "success") {
@@ -1961,7 +1988,7 @@ function renderStripeReturnBanner() {
   const color = tone === "success" ? "#065f46" : "#334155";
   shell.insertAdjacentHTML(
     "afterbegin",
-    '<section class="portal-card" style="margin-bottom:1rem;background:' +
+    '<section id="portalStripeReturnBanner" class="portal-card" style="margin-bottom:1rem;background:' +
       bg +
       ";border:1px solid " +
       border +
@@ -2728,15 +2755,19 @@ function renderPortal(therapist, options) {
   }
 
   // Post-signup: if the therapist just returned from Stripe checkout
-  // or picked the free path, scroll them to the editor. Their next
-  // real step is writing a bio; surfacing it reduces the odds they
-  // bounce off the dashboard before going live.
+  // or picked the free path, confirm it and scroll them to the editor.
+  // Their next real step is writing a bio; surfacing it reduces the odds
+  // they bounce off the dashboard before going live.
+  //
+  // The banner is rendered here, after the shell exists, rather than at
+  // init: renderPortal replaces shell.innerHTML wholesale, so a banner
+  // inserted before this point was destroyed and the therapist who had
+  // just paid landed on a dashboard with no confirmation at all.
+  renderStripeReturnBanner();
   scrollToEditorOnSignupLanding();
 }
 
 (async function init() {
-  renderStripeReturnBanner();
-
   // Dev-login is a development-only affordance (the server also 404s it outside
   // NODE_ENV=development). Gate the client attempt on the build mode so a prod
   // user can't trigger the flow via the ?dev_login= URL param.
