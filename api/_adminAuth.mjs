@@ -1,58 +1,30 @@
-import crypto from "node:crypto";
+// Admin session check for the standalone api/admin/* functions (the outreach
+// CRM endpoints, which live outside the review dispatcher).
+//
+// Delegates to server/review-http-auth.mjs rather than reimplementing the
+// cookie parse + HMAC verify. The previous local copy had already drifted: it
+// read only REVIEW_API_SESSION_SECRET and ignored
+// REVIEW_API_SESSION_SECRET_PREVIOUS, so during a documented rotation overlap
+// admin sessions kept working on /api/review/* while every endpoint here
+// started returning 401 — a confusing half-broken admin UI rather than a clean
+// re-login. That module is light (node:crypto plus the rate-limit store), so
+// there is no cold-start reason to keep a second implementation.
+import { readAdminSessionFromRequest } from "../server/review-http-auth.mjs";
 
-// Reuses the review API's existing admin session.
-// Cookie + signing format must match server/review-http-auth.mjs.
-const COOKIE_NAME = "bt_admin_session";
-
-function readCookie(request, name) {
-  const header =
-    (typeof request.headers?.get === "function"
-      ? request.headers.get("cookie")
-      : request.headers?.cookie) || "";
-  if (!header) return "";
-  for (const part of header.split(";")) {
-    const i = part.indexOf("=");
-    if (i === -1) continue;
-    if (part.slice(0, i).trim() === name) {
-      try {
-        return decodeURIComponent(part.slice(i + 1).trim());
-      } catch {
-        return part.slice(i + 1).trim();
-      }
-    }
-  }
-  return "";
-}
-
-function signValue(value, secret) {
-  return crypto.createHmac("sha256", secret).update(value).digest("base64url");
-}
-
-function signaturesMatch(expected, actual) {
-  const a = Buffer.from(String(expected || ""), "base64url");
-  const b = Buffer.from(String(actual || ""), "base64url");
-  return a.length === b.length && crypto.timingSafeEqual(a, b);
+// Mirrors review-config.mjs: signing always uses REVIEW_API_SESSION_SECRET,
+// while verification also accepts a comma-separated list of previous secrets
+// for the duration of a rotation overlap.
+function sessionConfigFromEnv() {
+  return {
+    sessionSecret: process.env.REVIEW_API_SESSION_SECRET || "",
+    sessionSecretsPrevious: String(process.env.REVIEW_API_SESSION_SECRET_PREVIOUS || "")
+      .split(",")
+      .map((secret) => secret.trim())
+      .filter(Boolean),
+  };
 }
 
 export function verifyAdminSession(request) {
-  const secret = process.env.REVIEW_API_SESSION_SECRET;
-  if (!secret) return false;
-
-  const token = readCookie(request, COOKIE_NAME);
-  if (!token) return false;
-
-  const parts = token.split(".");
-  if (parts.length !== 2) return false;
-
-  const [encodedPayload, signature] = parts;
-  if (!signaturesMatch(signValue(encodedPayload, secret), signature)) return false;
-
-  let payload;
-  try {
-    payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8"));
-  } catch {
-    return false;
-  }
-
-  return payload && payload.sub === "admin" && payload.exp > Date.now();
+  if (!process.env.REVIEW_API_SESSION_SECRET) return false;
+  return Boolean(readAdminSessionFromRequest(request, sessionConfigFromEnv()));
 }
