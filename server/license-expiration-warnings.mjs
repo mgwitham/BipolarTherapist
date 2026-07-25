@@ -1,3 +1,6 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { log } from "./logger.mjs";
 import { firstName } from "../shared/outreach-templates.mjs";
 import { getLicenseStateBoardInfo } from "./license-states.mjs";
@@ -195,7 +198,12 @@ export async function runLicenseExpirationWarnings({
   return summary;
 }
 
-const isCli = import.meta.url === `file://${process.argv[1]}`;
+// Compare resolved paths rather than string-building a file:// URL —
+// import.meta.url percent-encodes the space in this repo's own path, so
+// `file://${process.argv[1]}` never matched and running this file directly
+// silently did nothing. See scripts/discover-therapist-candidates.mjs.
+const isCli =
+  Boolean(process.argv[1]) && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 if (isCli) {
   const dryRun = process.argv.includes("--dry-run");
   runLicenseExpirationWarnings({ dryRun }).catch((err) => {

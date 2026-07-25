@@ -1,3 +1,6 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
 import { log } from "./logger.mjs";
 import { getLicenseVerifierForState } from "./license-states.mjs";
 
@@ -178,7 +181,15 @@ export async function runDcaFreshnessCheck({
 }
 
 // CLI entry point — invoked when run directly via Node.
-const isCli = import.meta.url === `file://${process.argv[1]}`;
+//
+// Compare resolved paths rather than string-building a file:// URL.
+// import.meta.url percent-encodes characters that need it, and this repo's
+// own path ("Main_Bipolar Therapist Directory") contains a space — so
+// `file://${process.argv[1]}` never matched and running this file directly
+// silently did nothing at all. Same pattern as
+// scripts/discover-therapist-candidates.mjs, whose comment documents this.
+const isCli =
+  Boolean(process.argv[1]) && fileURLToPath(import.meta.url) === path.resolve(process.argv[1]);
 if (isCli) {
   const dryRun = process.argv.includes("--dry-run");
   runDcaFreshnessCheck({ dryRun }).catch((err) => {
