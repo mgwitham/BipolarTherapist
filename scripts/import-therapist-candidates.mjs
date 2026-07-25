@@ -6,6 +6,8 @@ import {
   buildProviderId,
   classifyDuplicateCertainty,
   normalizeLicense as normalizeLicenseShared,
+  normalizePhone,
+  normalizeWebsite,
   pickStrongestDuplicateMatch,
 } from "../shared/therapist-domain.mjs";
 import { decodeHtmlEntities } from "../shared/html-entities.mjs";
@@ -202,32 +204,24 @@ function normalizeLicenseSegment(value) {
   return normalizeLicenseShared(value);
 }
 
+// normalizePhone and normalizeWebsite are imported from
+// shared/therapist-domain.mjs rather than reimplemented here. The local
+// normalizeWebsite had drifted: it never lowercased url.pathname, so its
+// with-protocol branch disagreed with its own protocol-less fallback and
+// "https://Example.com/About" ingested as a different identity than
+// "example.com/about". shared/ fixed exactly that (the comment there
+// documents it), but the fix never reached this copy — so a duplicate whose
+// source URL differed only in path casing passed ingest dedupe and landed in
+// the review queue as a fresh candidate.
+//
+// normalizeEmail stays local on purpose: shared/therapist-domain.mjs returns
+// "" for a value with no "@", which is a different dedupe signal than this
+// trim+lowercase. Reconciling that (there is also a third implementation in
+// shared/normalize-email.mjs claiming to be canonical) is its own decision.
 function normalizeEmail(value) {
   return String(value || "")
     .trim()
     .toLowerCase();
-}
-
-function normalizePhone(value) {
-  return String(value || "").replace(/[^0-9]/g, "");
-}
-
-function normalizeWebsite(value) {
-  const raw = String(value || "").trim();
-  if (!raw) {
-    return "";
-  }
-
-  try {
-    const url = new URL(raw);
-    const pathname = url.pathname.replace(/\/+$/, "");
-    return `${url.hostname.toLowerCase()}${pathname}`;
-  } catch (_error) {
-    return raw
-      .toLowerCase()
-      .replace(/^https?:\/\//, "")
-      .replace(/\/+$/, "");
-  }
 }
 
 function buildProviderFingerprint(record) {
