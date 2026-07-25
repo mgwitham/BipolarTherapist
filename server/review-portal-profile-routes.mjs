@@ -112,7 +112,7 @@ async function loadOwnPhotoTarget(context) {
   }
   const doc = await client.fetch(
     `*[_type == "therapist" && slug.current == $slug][0]{
-      _id, "slug": slug.current,
+      _id, "slug": slug.current, claimedByEmail, ownershipChangedAt,
       photoSourceType, photoSuppressed, photoCandidateStatus,
       "hasPhoto": defined(photo.asset),
       "candidateAssetRef": photoCandidate.asset._ref,
@@ -123,6 +123,20 @@ async function loadOwnPhotoTarget(context) {
   );
   if (!doc) {
     sendJson(response, 404, { error: "Therapist profile not found." }, origin, config);
+    return null;
+  }
+  // Every other portal route runs this gate; keep/remove did not, so a
+  // displaced previous owner holding a still-signed session could publish or
+  // suppress the photo on a listing that had been transferred away from them.
+  // The projection above now carries the two fields the gate needs.
+  if (sessionIsStaleForListing(session, doc)) {
+    sendJson(
+      response,
+      401,
+      { error: "Your session is no longer valid for this listing." },
+      origin,
+      config,
+    );
     return null;
   }
   return doc;
