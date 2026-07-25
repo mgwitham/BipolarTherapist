@@ -1,8 +1,10 @@
 // Vercel cron entry. Reads funnelEventLog.singleton, builds the
 // 7-day operator digest, and emails it to config.notificationTo.
-// Schedule lives in vercel.json (currently Monday 14:00 UTC, an hour
-// after the per-therapist weekly-digest cron so the two emails don't
-// collide if Resend rate-limits).
+// NOT CURRENTLY SCHEDULED. Its vercel.json schedule (Monday 14:00 UTC, an
+// hour after the per-therapist weekly-digest cron so the two emails don't
+// collide if Resend rate-limits) was removed on 2026-05-07 by #599 ("halt all
+// automated email sends"). This one emails only config.notificationTo — the
+// founder — so re-scheduling it resumes no therapist-facing mail.
 
 import { createClient } from "@sanity/client";
 

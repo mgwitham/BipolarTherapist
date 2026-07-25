@@ -63,29 +63,36 @@ Six HTML entry points (`index.html`, `match.html`, `directory.html`, `therapist.
 
 Route modules each own a cluster of endpoints (full set in `server/*-routes.mjs`):
 
-| Module                                      | Responsibility                                          |
-| ------------------------------------------- | ------------------------------------------------------- |
-| `server/review-auth-routes.mjs`             | Admin login, sessions, dev-login guard                  |
-| `server/review-auth-portal-routes.mjs`      | Therapist portal auth/sessions                          |
-| `server/review-read-routes.mjs`             | Admin list/read, event stream, exports                  |
-| `server/review-application-routes.mjs`      | Therapist application intake + approval workflows       |
-| `server/review-candidate-routes.mjs`        | Candidate review, publish, merge/dedupe decisions       |
-| `server/review-candidate-ingest-routes.mjs` | Bulk candidate ingestion                                |
-| `server/review-ops-routes.mjs`              | Therapist + licensure operations (admin God-mode)       |
-| `server/review-match-routes.mjs`            | Match request/outcome persistence reads                 |
-| `server/review-claim-routes.mjs`            | Listing-claim flow (magic-link, quick-claim, sign-in)   |
-| `server/review-recovery-routes.mjs`         | Account recovery / ownership transfer                   |
-| `server/review-portal-profile-routes.mjs`   | Therapist self-service profile edits, photo, analytics  |
-| `server/review-stripe-routes.mjs`           | Stripe checkout, billing portal, webhook                |
-| `server/review-resend-webhook-routes.mjs`   | Resend delivery webhook (Svix-verified)                 |
-| `server/review-analytics-routes.mjs`        | Funnel event log + admin funnel dashboard               |
-| `server/review-engagement-routes.mjs`       | Public profile-view / CTA-click counters                |
-| `server/review-waitlist-routes.mjs`         | Out-of-state waitlist signups                           |
-| `server/review-saved-list-routes.mjs`       | "Email me my saved list"                                |
-| `server/review-patient-signal-routes.mjs`   | Patient demand signals                                  |
-| `server/review-cron-routes.mjs`             | Scheduled jobs (DCA freshness, license expiry, digests) |
+| Module                                      | Responsibility                                                                                   |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------ |
+| `server/review-auth-routes.mjs`             | Admin login, sessions, dev-login guard                                                           |
+| `server/review-auth-portal-routes.mjs`      | Therapist portal auth/sessions                                                                   |
+| `server/review-read-routes.mjs`             | Admin list/read, event stream, exports                                                           |
+| `server/review-application-routes.mjs`      | Therapist application intake + approval workflows                                                |
+| `server/review-candidate-routes.mjs`        | Candidate review, publish, merge/dedupe decisions                                                |
+| `server/review-candidate-ingest-routes.mjs` | Bulk candidate ingestion                                                                         |
+| `server/review-ops-routes.mjs`              | Therapist + licensure operations (admin God-mode)                                                |
+| `server/review-match-routes.mjs`            | Match request/outcome persistence reads                                                          |
+| `server/review-claim-routes.mjs`            | Listing-claim flow (magic-link, quick-claim, sign-in)                                            |
+| `server/review-recovery-routes.mjs`         | Account recovery / ownership transfer                                                            |
+| `server/review-portal-profile-routes.mjs`   | Therapist self-service profile edits, photo, analytics                                           |
+| `server/review-stripe-routes.mjs`           | Stripe checkout, billing portal, webhook                                                         |
+| `server/review-resend-webhook-routes.mjs`   | Resend delivery webhook (Svix-verified)                                                          |
+| `server/review-analytics-routes.mjs`        | Funnel event log + admin funnel dashboard                                                        |
+| `server/review-engagement-routes.mjs`       | Public profile-view / CTA-click counters                                                         |
+| `server/review-waitlist-routes.mjs`         | Out-of-state waitlist signups                                                                    |
+| `server/review-saved-list-routes.mjs`       | "Email me my saved list"                                                                         |
+| `server/review-patient-signal-routes.mjs`   | Patient demand signals                                                                           |
+| `server/review-cron-routes.mjs`             | Scheduled jobs (abandoned-claim alerts, outreach-click digest, referral cadence, photo sourcing) |
 
 Supporting modules: `review-config.mjs` (env), `review-http-auth.mjs` (JWT sessions + session/origin helpers), `cron-auth.mjs` (cron Bearer gate), `review-email.mjs` (Resend), `review-application-support.mjs` (document shaping), `rate-limit-store.mjs` (Upstash/in-memory limiter).
+
+DCA freshness, license-expiry warnings and the two digests live in
+`api/cron/*.mjs` instead, and **none of them are scheduled**: #599 removed all
+four `vercel.json` schedules on 2026-05-07 to halt automated email sends. Three
+of the four send email; `dca-freshness` does not, and is runnable by hand (see
+the header comment in `api/cron/dca-freshness.mjs`). Don't assume license
+monitoring is running.
 
 ### 3. Shared Domain Layer (`shared/`)
 

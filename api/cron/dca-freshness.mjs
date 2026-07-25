@@ -1,6 +1,16 @@
-// Vercel cron entry point for the weekly DCA license freshness check.
-// Schedule lives in vercel.json; Vercel sends `Authorization: Bearer
-// <CRON_SECRET>` automatically when CRON_SECRET is set on the project.
+// Cron entry point for the DCA license freshness check.
+//
+// NOT CURRENTLY SCHEDULED. Its vercel.json schedule was removed on
+// 2026-05-07 by #599 ("halt all automated email sends") along with the other
+// three cron schedules, so nothing invokes this endpoint today and no ongoing
+// license monitoring is running. This job sends no email — it was collateral
+// in that batch rather than a target of it. Re-adding a `crons` entry in
+// vercel.json is all it needs; Vercel then sends `Authorization: Bearer
+// <CRON_SECRET>` automatically, which isAuthorizedCronRequest verifies.
+//
+// Until then, run it manually:
+//   node --env-file=.env server/dca-freshness-check.mjs --dry-run   # preview
+//   node --env-file=.env server/dca-freshness-check.mjs             # live
 //
 // Re-verifies every published therapist against CA DCA, refreshes the
 // stored licensureVerification snapshot, and auto-unpublishes anyone
