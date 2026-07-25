@@ -188,6 +188,34 @@ export function buildTherapistObservationDocuments(therapistDocument) {
   });
 }
 
+// A BLANK licenseState is strictly worse than an absent one, because two
+// consumers treat "" as a real value:
+//
+//   - dca-freshness-check.mjs resolves a verifier per state. "" resolves none,
+//     so the listing is counted `unmonitoredState`, skipped, and can never be
+//     auto-unpublished however its license changes.
+//   - review-claim-routes.mjs looks listings up with
+//     `licenseState == $state || !defined(licenseState)`. "" equals neither, so
+//     NEITHER branch matches and the therapist cannot claim their own listing —
+//     quick-claim tells them no such profile exists and offers a duplicate.
+//
+// `licenseState: source.licenseState || ""` produced exactly that on 60 of 154
+// therapist docs (backfilled in #1192). So: use the explicit value, else infer
+// from the practice state, else OMIT the key so it is genuinely undefined and
+// the `!defined()` guards work as their comments intend.
+//
+// Inferring from `state` is safe in both directions rather than silently wrong.
+// Licensed elsewhere but practising in a live market: the board query fails
+// verification and the run reports SKIP. Practising outside any live market:
+// no verifier resolves and the loud unmonitoredState warning fires. Neither
+// can unpublish the wrong person, and both surface instead of going quiet.
+function resolveLicenseState(explicitLicenseState, practiceState) {
+  const resolved = String(explicitLicenseState || practiceState || "")
+    .trim()
+    .toUpperCase();
+  return resolved || undefined;
+}
+
 export function buildTherapistDocument(application, existingId, helpers) {
   const slug =
     application.submittedSlug ||
@@ -247,7 +275,7 @@ export function buildTherapistDocument(application, existingId, helpers) {
     state: application.state || "",
     zip: application.zip || "",
     country: application.country || "US",
-    licenseState: application.licenseState || "",
+    licenseState: resolveLicenseState(application.licenseState, application.state),
     licenseNumber: application.licenseNumber || "",
     licensureVerification: helpers.normalizeLicensureVerification(
       application.licensureVerification,
@@ -351,7 +379,7 @@ export function buildTherapistDocumentFromCandidate(candidate, existingId, helpe
     state: candidate.state || "",
     zip: candidate.zip || "",
     country: candidate.country || "US",
-    licenseState: candidate.licenseState || "",
+    licenseState: resolveLicenseState(candidate.licenseState, candidate.state),
     licenseNumber: candidate.licenseNumber || "",
     licensureVerification: helpers.normalizeLicensureVerification(candidate.licensureVerification),
     specialties: helpers.splitList(candidate.specialties),

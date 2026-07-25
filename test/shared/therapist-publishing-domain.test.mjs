@@ -220,3 +220,66 @@ test("normalizePortableApplicationDocument maps a missing numeric field to null"
   assert.equal(doc.session_fee_min, null);
   assert.equal(doc.years_experience, null);
 });
+
+// --- licenseState is never written blank ---
+// A blank licenseState is worse than an absent one: dca-freshness-check.mjs
+// resolves a verifier per state (so "" means no license monitoring, ever), and
+// review-claim-routes.mjs matches `licenseState == $state || !defined(...)`,
+// which "" satisfies neither — leaving the therapist unable to claim their own
+// listing. `licenseState: source.licenseState || ""` had produced exactly that
+// on 60 of 154 therapist docs (backfilled in #1192).
+
+test("candidate publish: explicit licenseState is preserved and normalized", () => {
+  const doc = buildTherapistDocumentFromCandidate(
+    { name: "Jamie Rivera", city: "Oakland", state: "CA", licenseState: " ca " },
+    "therapist-jamie",
+    publishHelpers,
+  );
+  assert.equal(doc.licenseState, "CA");
+});
+
+test("candidate publish: a missing licenseState falls back to the practice state", () => {
+  const doc = buildTherapistDocumentFromCandidate(
+    { name: "Jamie Rivera", city: "Oakland", state: "CA" },
+    "therapist-jamie",
+    publishHelpers,
+  );
+  assert.equal(doc.licenseState, "CA");
+});
+
+test("candidate publish: an empty-string licenseState is never persisted as ''", () => {
+  const doc = buildTherapistDocumentFromCandidate(
+    { name: "Jamie Rivera", city: "Oakland", state: "CA", licenseState: "" },
+    "therapist-jamie",
+    publishHelpers,
+  );
+  assert.notEqual(doc.licenseState, "", "'' breaks both the verifier lookup and quick-claim");
+  assert.equal(doc.licenseState, "CA");
+});
+
+test("candidate publish: with neither value the key is omitted, not blank", () => {
+  const doc = buildTherapistDocumentFromCandidate(
+    { name: "Jamie Rivera", city: "Oakland" },
+    "therapist-jamie",
+    publishHelpers,
+  );
+  assert.equal(doc.licenseState, undefined);
+  // Omitted rather than "" so `!defined(licenseState)` guards still fire, and
+  // JSON serialization drops the key on create/createOrReplace.
+  assert.equal(JSON.parse(JSON.stringify(doc)).licenseState, undefined);
+  assert.ok(
+    !Object.prototype.hasOwnProperty.call(JSON.parse(JSON.stringify(doc)), "licenseState"),
+    "the key must not survive serialization",
+  );
+});
+
+test("candidate publish: an explicit licenseState wins over a differing practice state", () => {
+  // Licensed in one state, practising in another: keep what was stated rather
+  // than overwriting it from the address.
+  const doc = buildTherapistDocumentFromCandidate(
+    { name: "Jamie Rivera", city: "Reno", state: "NV", licenseState: "CA" },
+    "therapist-jamie",
+    publishHelpers,
+  );
+  assert.equal(doc.licenseState, "CA");
+});
