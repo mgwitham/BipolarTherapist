@@ -12,10 +12,27 @@ const FIELD_STALE_AFTER_DAYS = {
   bipolarYearsExperience: 180,
 };
 
-function addDays(isoString, days) {
-  const base = isoString ? new Date(isoString) : new Date();
+// Every clock read in this module goes through here so callers can pin "now".
+// The freshness lanes and the confidence age-decay steps are the core of the
+// trust system, and while this read the wall clock directly none of their
+// thresholds could be tested deterministically — a typo in a boundary would
+// have shipped green. Matches the `options.nowIso` convention already used by
+// weekly-digest-domain, referral-cadence-domain and founder-funnel-digest-domain.
+function resolveNowMs(options) {
+  const nowIso = options && options.nowIso;
+  if (nowIso) {
+    const pinned = new Date(nowIso).getTime();
+    if (!Number.isNaN(pinned)) {
+      return pinned;
+    }
+  }
+  return Date.now();
+}
+
+function addDays(isoString, days, nowMs) {
+  const base = isoString ? new Date(isoString) : new Date(nowMs);
   if (Number.isNaN(base.getTime())) {
-    const fallback = new Date();
+    const fallback = new Date(nowMs);
     fallback.setUTCDate(fallback.getUTCDate() + days);
     return fallback.toISOString();
   }
@@ -103,7 +120,7 @@ function getFieldVerifiedAt(record, fieldName, sourceKind) {
   return "";
 }
 
-function computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind) {
+function computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind, nowMs) {
   let score =
     reviewState === "editorially_verified" ? 92 : reviewState === "needs_reconfirmation" ? 44 : 76;
 
@@ -116,14 +133,12 @@ function computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind)
   }
 
   const sourceAgeDays = toValidDate(record.sourceReviewedAt)
-    ? Math.max(0, Math.floor((Date.now() - new Date(record.sourceReviewedAt).getTime()) / 86400000))
+    ? Math.max(0, Math.floor((nowMs - new Date(record.sourceReviewedAt).getTime()) / 86400000))
     : null;
   const confirmationAgeDays = toValidDate(record.therapistReportedConfirmedAt)
     ? Math.max(
         0,
-        Math.floor(
-          (Date.now() - new Date(record.therapistReportedConfirmedAt).getTime()) / 86400000,
-        ),
+        Math.floor((nowMs - new Date(record.therapistReportedConfirmedAt).getTime()) / 86400000),
       )
     : null;
 
@@ -161,7 +176,12 @@ export function computeTherapistCompletenessScore(record) {
   return Math.round((passed / checks.length) * 100);
 }
 
-export function buildFieldTrustMeta(record) {
+/**
+ * @param {Record<string, any>} record
+ * @param {{ nowIso?: string }} [options] pin "now" for deterministic tests
+ */
+export function buildFieldTrustMeta(record, options = {}) {
+  const nowMs = resolveNowMs(options);
   return FIELD_TRUST_KEYS.reduce(function (accumulator, fieldName) {
     const reviewState = getFieldReviewState(record, fieldName);
     const sourceKind = getFieldSourceKind(record, fieldName, reviewState);
@@ -169,18 +189,29 @@ export function buildFieldTrustMeta(record) {
     const staleAfterDays = FIELD_STALE_AFTER_DAYS[fieldName];
     accumulator[fieldName] = {
       reviewState,
-      confidenceScore: computeFieldConfidenceScore(record, fieldName, reviewState, sourceKind),
+      confidenceScore: computeFieldConfidenceScore(
+        record,
+        fieldName,
+        reviewState,
+        sourceKind,
+        nowMs,
+      ),
       sourceKind,
       verifiedAt,
       staleAfterDays,
-      staleAfterAt: verifiedAt ? addDays(verifiedAt, staleAfterDays) : "",
+      staleAfterAt: verifiedAt ? addDays(verifiedAt, staleAfterDays, nowMs) : "",
     };
     return accumulator;
   }, {});
 }
 
-export function computeTherapistVerificationMeta(record) {
-  const now = new Date();
+/**
+ * @param {Record<string, any>} record
+ * @param {{ nowIso?: string }} [options] pin "now" for deterministic tests
+ */
+export function computeTherapistVerificationMeta(record, options = {}) {
+  const nowMs = resolveNowMs(options);
+  const now = new Date(nowMs);
   const sourceReviewedAt = record.sourceReviewedAt ? new Date(record.sourceReviewedAt) : null;
   const therapistConfirmedAt = record.therapistReportedConfirmedAt
     ? new Date(record.therapistReportedConfirmedAt)
@@ -221,7 +252,7 @@ export function computeTherapistVerificationMeta(record) {
   if (needsReconfirmationFields.length) {
     return {
       lastOperationalReviewAt,
-      nextReviewDueAt: addDays(lastOperationalReviewAt, 7),
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 7, nowMs),
       verificationPriority: Math.min(98, 82 + needsReconfirmationFields.length * 4),
       verificationLane: "needs_reconfirmation",
       dataCompletenessScore: computeTherapistCompletenessScore(record),
@@ -231,7 +262,7 @@ export function computeTherapistVerificationMeta(record) {
   if (sourceAgeDays !== null && sourceAgeDays >= 120) {
     return {
       lastOperationalReviewAt,
-      nextReviewDueAt: addDays(lastOperationalReviewAt, 120),
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 120, nowMs),
       verificationPriority: 84,
       verificationLane: "refresh_now",
       dataCompletenessScore: computeTherapistCompletenessScore(record),
@@ -241,7 +272,7 @@ export function computeTherapistVerificationMeta(record) {
   if (sourceAgeDays !== null && sourceAgeDays >= 75) {
     return {
       lastOperationalReviewAt,
-      nextReviewDueAt: addDays(lastOperationalReviewAt, 105),
+      nextReviewDueAt: addDays(lastOperationalReviewAt, 105, nowMs),
       verificationPriority: 61,
       verificationLane: "refresh_soon",
       dataCompletenessScore: computeTherapistCompletenessScore(record),
@@ -250,7 +281,7 @@ export function computeTherapistVerificationMeta(record) {
 
   return {
     lastOperationalReviewAt,
-    nextReviewDueAt: addDays(lastOperationalReviewAt, 120),
+    nextReviewDueAt: addDays(lastOperationalReviewAt, 120, nowMs),
     verificationPriority: 28,
     verificationLane: "fresh",
     dataCompletenessScore: computeTherapistCompletenessScore(record),
