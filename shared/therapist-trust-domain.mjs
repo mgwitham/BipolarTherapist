@@ -1,4 +1,6 @@
-const FIELD_TRUST_KEYS = [
+// Exported so operational scripts can iterate the same field set instead of
+// keeping their own copy of the list.
+export const FIELD_TRUST_KEYS = [
   "estimatedWaitTime",
   "insuranceAccepted",
   "telehealthStates",
