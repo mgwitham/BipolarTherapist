@@ -89,6 +89,7 @@ export function createTransactionSpy(state) {
         set: {},
         setIfMissing: {},
         append: {},
+        ifRevisionId: null,
       };
       const patchApi = {
         set(fields) {
@@ -103,12 +104,36 @@ export function createTransactionSpy(state) {
           patchState.append[field] = values;
           return patchApi;
         },
+        // Modelled on the real client: a mismatched revision rejects the WHOLE
+        // transaction, which is what makes a multi-document state transition
+        // all-or-nothing. Without this the spy silently ignored the
+        // precondition and no test could cover a lost concurrent update.
+        ifRevisionId(rev) {
+          patchState.ifRevisionId = rev;
+          return patchApi;
+        },
       };
       builder(patchApi);
       operations.push({ type: "patch", id, patchState });
       return this;
     },
     async commit() {
+      // Preconditions are checked BEFORE anything is applied, so a failure
+      // leaves the store untouched — the property the production code relies on
+      // to keep a two-document transition from half-landing.
+      if (state.documents) {
+        for (const operation of operations) {
+          if (operation.type !== "patch" || !operation.patchState.ifRevisionId) continue;
+          const current = state.documents.get(operation.id);
+          if (!current || current._rev !== operation.patchState.ifRevisionId) {
+            const error = new Error(
+              `Revision mismatch for ${operation.id}: expected ${operation.patchState.ifRevisionId}, found ${current ? current._rev : "(missing document)"}`,
+            );
+            error.statusCode = 409;
+            throw error;
+          }
+        }
+      }
       if (state.documents) {
         operations.forEach(function (operation) {
           if (operation.type === "create" || operation.type === "createOrReplace") {

@@ -630,3 +630,128 @@ test("POST /recovery-requests/:id/reject requires admin auth", async () => {
 
   assert.equal(response.statusCode, 401);
 });
+
+// ── Approval is all-or-nothing ───────────────────────────────────────
+// Approving moves TWO documents: the recovery request to `approved`, and the
+// therapist's claimedByEmail/ownershipChangedAt. These used to be sequential
+// commits. If the second failed, the request read `approved` while ownership
+// had not moved — and there was no way out. "Resend sign-in" only checks
+// `status === "approved"`, so it minted a link for the NEW email while
+// claimedByEmail still held the OLD one, and claim-accept rejected every click
+// with ownership_conflict. Re-approving was blocked by the status gate.
+
+function failingTransactionClient(client) {
+  return {
+    ...client,
+    transaction() {
+      return {
+        patch() {
+          return this;
+        },
+        async commit() {
+          const error = new Error("simulated Sanity write failure");
+          error.statusCode = 500;
+          throw error;
+        },
+      };
+    },
+  };
+}
+
+test("approve: transfers ownership on the therapist doc, not just the request", async () => {
+  const { client, state } = createMemoryClient(seedColdTakeoverFixtures());
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { outcome_message: "approved" },
+    routePath: "/recovery-requests/recovery-1/approve",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+
+  const therapist = state.documents.get("therapist-jamie");
+  assert.equal(therapist.claimedByEmail, "jamie@newpractice.com");
+  assert.equal(therapist.claimStatus, "claimed");
+  assert.ok(
+    therapist.ownershipChangedAt,
+    "must stamp ownershipChangedAt to cut off the old session",
+  );
+  assert.ok(therapist.claimedAt, "a previously-unclaimed listing gets claimedAt");
+});
+
+test("approve: a failed write leaves the request pending, never half-approved", async () => {
+  const { client, state } = createMemoryClient(seedColdTakeoverFixtures());
+  const { response, context } = buildAdminApproveContext({
+    client: failingTransactionClient(client),
+    body: { outcome_message: "approved" },
+    routePath: "/recovery-requests/recovery-1/approve",
+  });
+  await handleAuthAndPortalRoutes(context);
+
+  assert.notEqual(response.statusCode, 200, "a failed transfer must not report success");
+  const recovery = state.documents.get("recovery-1");
+  assert.equal(
+    recovery.status,
+    "pending",
+    "the request stays actionable — approving again is the way out",
+  );
+  const therapist = state.documents.get("therapist-jamie");
+  assert.equal(therapist.claimedByEmail, undefined, "ownership did not move");
+  assert.equal(therapist.ownershipChangedAt, undefined);
+});
+
+test("approve: an already-claimed listing keeps its original claimedAt", async () => {
+  const { client, state } = createMemoryClient(seedColdTakeoverFixtures());
+  state.documents.set("therapist-jamie", {
+    ...state.documents.get("therapist-jamie"),
+    claimStatus: "claimed",
+    claimedByEmail: "old-owner@example.com",
+    claimedAt: "2026-01-01T00:00:00.000Z",
+  });
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { outcome_message: "approved" },
+    routePath: "/recovery-requests/recovery-1/approve",
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+
+  const therapist = state.documents.get("therapist-jamie");
+  assert.equal(therapist.claimedByEmail, "jamie@newpractice.com", "ownership transferred");
+  assert.equal(therapist.claimedAt, "2026-01-01T00:00:00.000Z", "original claim date preserved");
+  assert.ok(therapist.ownershipChangedAt);
+});
+
+test("self-confirm: a failed sign-in email still leaves an approved, resendable request", async () => {
+  // The mirror-image window: ownership used to move, then the email send sat
+  // BETWEEN that write and the one marking the request approved. A delivery
+  // failure returned early, leaving a transferred listing attached to a request
+  // still reading `pending` — which is precisely the state in which "Resend
+  // sign-in" refuses to help, because it requires `status === "approved"`.
+  const { client, state } = createMemoryClient(
+    seedColdTakeoverFixtures({
+      confirmationTokenNonce: "abc123",
+      confirmationChannel: "info@practice.com",
+      confirmationChannelContext: "Practice website footer",
+      confirmationSentAt: new Date().toISOString(),
+      confirmationResponse: "pending",
+    }),
+  );
+  const { response, context } = buildAdminApproveContext({
+    client,
+    body: { token: "tok|recovery-1|abc123", response: "yes" },
+    routePath: "/recovery-confirm",
+  });
+  context.deps.sendRecoveryApprovedEmail = async () => {
+    throw new Error("resend is down");
+  };
+  await handleAuthAndPortalRoutes(context);
+
+  assert.equal(response.statusCode, 502, "the caller is told the email failed");
+  const recovery = state.documents.get("recovery-1");
+  assert.equal(recovery.status, "approved", "state transition committed despite the email failure");
+  const therapist = state.documents.get("therapist-jamie");
+  assert.equal(therapist.claimedByEmail, "jamie@newpractice.com");
+  assert.ok(therapist.ownershipChangedAt);
+  // Both halves landed, so the admin's Resend sign-in path is now valid.
+  assert.notEqual(recovery.confirmationTokenNonce, "abc123", "the used nonce is still rotated");
+});
