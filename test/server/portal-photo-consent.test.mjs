@@ -173,3 +173,90 @@ test("photo remove: never touches a therapist-uploaded photo", async () => {
   // No sourced state → 409, own upload untouched by this path.
   assert.equal(response.statusCode, 409);
 });
+
+// --- Ownership transfer must revoke photo control too ---
+// Every other portal route runs sessionIsStaleForListing; keep/remove did not,
+// so a displaced previous owner holding a still-signed session could publish or
+// suppress the photo on a listing that had been transferred away from them.
+
+const TRANSFERRED = {
+  claimedByEmail: "new-owner@example.com",
+  ownershipChangedAt: "2026-02-01T00:00:00.000Z",
+  photoSourceType: "public_source",
+  photoCandidateStatus: "pending",
+  candidateAssetRef: "image-cand",
+  candidateUrl: "https://cdn/cand.jpg",
+};
+
+test("photo keep: rejects a session whose email no longer owns the listing", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-jamie": seedTherapist(TRANSFERRED),
+  });
+  const { response, context } = buildContext({
+    client,
+    routePath: "/portal/photo/keep",
+    session: { slug: "jamie-rivera", email: "old-owner@example.com" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 401);
+  const doc = state.documents.get("therapist-jamie");
+  assert.equal(doc.photoSuppressed, undefined, "no write may land from a displaced owner");
+});
+
+test("photo remove: rejects a session whose email no longer owns the listing", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-jamie": seedTherapist(TRANSFERRED),
+  });
+  const { response, context } = buildContext({
+    client,
+    routePath: "/portal/photo/remove",
+    session: { slug: "jamie-rivera", email: "old-owner@example.com" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 401);
+  const doc = state.documents.get("therapist-jamie");
+  assert.equal(doc.photoSuppressed, undefined, "no write may land from a displaced owner");
+});
+
+test("photo keep: rejects a session minted before the transfer even on a same-email doc", async () => {
+  // The email gate can't fire here — the timestamp gate is the only thing
+  // standing between a pre-transfer session and the listing.
+  const { client } = createMemoryClient({
+    "therapist-jamie": seedTherapist({
+      ...TRANSFERRED,
+      claimedByEmail: "jamie@example.com",
+    }),
+  });
+  const { response, context } = buildContext({
+    client,
+    routePath: "/portal/photo/keep",
+    session: {
+      slug: "jamie-rivera",
+      email: "jamie@example.com",
+      mintedAt: Date.parse("2026-01-01T00:00:00.000Z"),
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 401);
+});
+
+test("photo keep: the current owner is unaffected", async () => {
+  const { client } = createMemoryClient({
+    "therapist-jamie": seedTherapist({
+      ...TRANSFERRED,
+      claimedByEmail: "jamie@example.com",
+      ownershipChangedAt: "2026-01-01T00:00:00.000Z",
+    }),
+  });
+  const { response, context } = buildContext({
+    client,
+    routePath: "/portal/photo/keep",
+    session: {
+      slug: "jamie-rivera",
+      email: "jamie@example.com",
+      mintedAt: Date.parse("2026-02-01T00:00:00.000Z"),
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+});

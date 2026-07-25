@@ -303,6 +303,12 @@ export function createTherapistSession(config, claims) {
     {
       sub: "therapist",
       iat: Date.now(),
+      // When this identity FIRST authenticated, as opposed to when this
+      // particular token was issued. The sliding refresh re-mints `iat` on
+      // every request, so only `mintedAt` can be compared against
+      // ownershipChangedAt. Callers preserve it across refreshes by passing it
+      // through; it defaults to now for a genuinely new sign-in.
+      mintedAt: Date.now(),
       exp: Date.now() + ttl,
       nonce: crypto.randomBytes(12).toString("hex"),
       ...extraClaims,
@@ -331,6 +337,8 @@ export function getAuthorizedTherapist(request, config) {
     slug: String(payload.slug || ""),
     email: String(payload.email || ""),
     issuedAt: payload.iat || 0,
+    // Falls back to `iat` for tokens minted before mintedAt existed.
+    mintedAt: payload.mintedAt || payload.iat || 0,
     expiresAt: payload.exp || 0,
   };
 }
@@ -361,9 +369,12 @@ export function sessionIsStaleForListing(session, therapistDoc) {
   if (!session || !therapistDoc) {
     return false;
   }
-  // Sessions minted by getAuthorizedTherapist expose `issuedAt`; raw JWT
-  // payloads expose `iat`. Both are epoch milliseconds.
-  const issuedAtMs = Number(session.issuedAt || session.iat || 0);
+  // Prefer `mintedAt` — when this identity first authenticated. The sliding
+  // refresh re-mints `iat` on every portal request older than an hour, so
+  // comparing against `iat` let a refreshed session always look newer than the
+  // transfer and silently disabled this gate. `issuedAt` / `iat` remain as
+  // fallbacks for tokens minted before mintedAt existed. All epoch ms.
+  const issuedAtMs = Number(session.mintedAt || session.issuedAt || session.iat || 0);
   const ownershipChangedAtMs = Date.parse(therapistDoc.ownershipChangedAt || "");
   if (
     issuedAtMs > 0 &&
@@ -493,6 +504,11 @@ export function refreshTherapistSessionIfStale(request, response, config) {
   const newToken = createTherapistSession(config, {
     slug: payload.slug,
     email: payload.email,
+    // Carry the original authentication time forward. Letting this advance
+    // with the refresh would push every long-lived session past
+    // ownershipChangedAt, defeating the transfer gate in
+    // sessionIsStaleForListing.
+    mintedAt: payload.mintedAt || payload.iat || Date.now(),
   });
   const ttl = Number.isFinite(config.therapistSessionTtlMs)
     ? config.therapistSessionTtlMs

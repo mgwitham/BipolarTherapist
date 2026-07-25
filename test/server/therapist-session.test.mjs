@@ -1024,3 +1024,89 @@ test("PATCH /portal/therapist still auto-publishes the pending_profile signup st
   assert.equal(raw.listingActive, true, "first complete portal save flips the stub live");
   assert.equal(raw.status, "active");
 });
+
+// --- The sliding refresh must not launder a session past the transfer gate ---
+// refreshTherapistSessionIfStale re-mints the cookie on every portal request
+// older than an hour. It used to re-stamp `iat`, which is what the timestamp
+// gate compared against — so any session that stayed active across a refresh
+// always looked newer than the ownership transfer, and gate #1 (the one the
+// comment calls "authoritative") silently stopped firing. `mintedAt` records
+// when the identity first authenticated and never advances.
+
+test("sessionIsStaleForListing: prefers mintedAt over a refreshed iat", () => {
+  const originalLogin = Date.parse("2026-01-01T00:00:00.000Z");
+  const afterRefresh = Date.parse("2026-03-01T00:00:00.000Z");
+  assert.equal(
+    sessionIsStaleForListing(
+      // The token was re-minted after the transfer, but the identity behind it
+      // authenticated well before it.
+      { email: "jamie@example.com", mintedAt: originalLogin, iat: afterRefresh },
+      {
+        claimedByEmail: "jamie@example.com",
+        ownershipChangedAt: "2026-02-01T00:00:00.000Z",
+      },
+    ),
+    true,
+  );
+});
+
+test("sessionIsStaleForListing: a genuine re-login after the transfer still passes", () => {
+  assert.equal(
+    sessionIsStaleForListing(
+      { email: "jamie@example.com", mintedAt: Date.parse("2026-03-01T00:00:00.000Z") },
+      {
+        claimedByEmail: "jamie@example.com",
+        ownershipChangedAt: "2026-02-01T00:00:00.000Z",
+      },
+    ),
+    false,
+  );
+});
+
+test("createTherapistSession stamps mintedAt, and it survives an explicit carry-forward", () => {
+  const config = createTestApiConfig();
+  const fresh = readTherapistSession(
+    createTherapistSession(config, { slug: "jamie-rivera", email: "jamie@example.com" }),
+    config,
+  );
+  assert.ok(Number(fresh.mintedAt) > 0, "a new sign-in stamps mintedAt");
+
+  const originalLogin = Date.parse("2026-01-01T00:00:00.000Z");
+  const carried = readTherapistSession(
+    createTherapistSession(config, {
+      slug: "jamie-rivera",
+      email: "jamie@example.com",
+      mintedAt: originalLogin,
+    }),
+    config,
+  );
+  assert.equal(carried.mintedAt, originalLogin, "refresh preserves the original login time");
+  assert.ok(carried.iat > originalLogin, "but iat still advances to now");
+});
+
+test("getAuthorizedTherapist exposes mintedAt, falling back to iat on legacy tokens", () => {
+  const config = createTestApiConfig();
+  const originalLogin = Date.parse("2026-01-01T00:00:00.000Z");
+  const token = createTherapistSession(config, {
+    slug: "jamie-rivera",
+    email: "jamie@example.com",
+    mintedAt: originalLogin,
+  });
+  const session = getAuthorizedTherapist(
+    { headers: standardHeaders({ cookie: `${THERAPIST_SESSION_COOKIE}=${token}` }) },
+    config,
+  );
+  assert.equal(session.mintedAt, originalLogin);
+
+  // A token predating this field must still resolve a usable timestamp.
+  const legacy = createTherapistSession(config, {
+    slug: "jamie-rivera",
+    email: "jamie@example.com",
+    mintedAt: undefined,
+  });
+  const legacySession = getAuthorizedTherapist(
+    { headers: standardHeaders({ cookie: `${THERAPIST_SESSION_COOKIE}=${legacy}` }) },
+    config,
+  );
+  assert.ok(Number(legacySession.mintedAt) > 0, "falls back to iat rather than 0");
+});
