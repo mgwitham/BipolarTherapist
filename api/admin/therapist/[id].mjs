@@ -201,6 +201,23 @@ async function handlePatch(req, res, id) {
 
   const client = getSanityClient();
 
+  // Guard the document type before writing. `client.patch(id)` targets ANY
+  // document, so a mistargeted id would write therapist profile fields (name,
+  // bio, outreach.status …) onto an unrelated doc. The soft-delete path in this
+  // file already constrains the type through its GROQ filter; PATCH did not.
+  let existing;
+  try {
+    existing = await client.getDocument(id);
+  } catch (err) {
+    console.error("therapist patch lookup error:", err);
+    res.status(500).json({ error: "Failed to update therapist" });
+    return;
+  }
+  if (!existing || existing._type !== "therapist") {
+    res.status(404).json({ error: "Therapist not found" });
+    return;
+  }
+
   let updated;
   try {
     updated = await client.patch(id).set(patch).commit({ returnDocuments: true });

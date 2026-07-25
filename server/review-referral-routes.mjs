@@ -138,6 +138,23 @@ async function handlePatch(context, id) {
   if (Object.keys(patch).length === 0) return json(response, 400, { error: "No valid fields" });
   patch.updatedAt = new Date().toISOString();
 
+  // Guard the document type before writing. `client.patch(id)` targets ANY
+  // document, and `status` is a live field on therapist docs where anything
+  // other than "active" drops the listing out of every public query
+  // (PUBLIC_THERAPIST_LIST_QUERY and friends filter on it). A mistargeted id
+  // from a UI bug would therefore silently take a therapist offline, with no
+  // publish event recording it. handleSend already checks this; PATCH did not.
+  let existing;
+  try {
+    existing = await client.getDocument(id);
+  } catch (err) {
+    log.error("referral-contact patch lookup error", { err: err?.message || String(err) });
+    return json(response, 500, { error: "Failed to update contact" });
+  }
+  if (!existing || existing._type !== "referralContact") {
+    return json(response, 404, { error: "Referral contact not found" });
+  }
+
   try {
     const updated = await client.patch(id).set(patch).commit({ returnDocuments: true });
     return json(response, 200, { ok: true, doc: updated });
