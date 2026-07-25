@@ -1,4 +1,9 @@
-import { CogIcon, DocumentIcon, HomeIcon, UserIcon } from "@sanity/icons";
+// @sanity/icons v5 moved every icon to its own subpath export; the package
+// root now exposes only `Icon` and `icons`. Same component names, new paths.
+import { CogIcon } from "@sanity/icons/Cog";
+import { DocumentIcon } from "@sanity/icons/Document";
+import { HomeIcon } from "@sanity/icons/Home";
+import { UserIcon } from "@sanity/icons/User";
 
 export function deskStructure(S: any) {
   return S.list()
