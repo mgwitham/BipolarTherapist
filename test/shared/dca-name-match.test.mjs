@@ -18,10 +18,44 @@ test("case, punctuation, and spacing are ignored", () => {
   );
 });
 
-test("nickname variants pass (2-char prefix or containment)", () => {
+test("nickname variants pass (alias table or containment)", () => {
   assert.equal(applicantNameMatchesDcaLicensee("Mike Smith", dca("Michael", "Smith")), true);
   assert.equal(applicantNameMatchesDcaLicensee("Michael Smith", dca("Mike", "Smith")), true);
   assert.equal(applicantNameMatchesDcaLicensee("Liz Taylor", dca("Elizabeth", "Taylor")), true); // containment
+});
+
+test("more diminutives the alias table has to carry (not substrings)", () => {
+  assert.equal(applicantNameMatchesDcaLicensee("Bob Jones", dca("Robert", "Jones")), true);
+  assert.equal(applicantNameMatchesDcaLicensee("Bill Jones", dca("William", "Jones")), true);
+  assert.equal(applicantNameMatchesDcaLicensee("Tom Jones", dca("Thomas", "Jones")), true);
+  assert.equal(applicantNameMatchesDcaLicensee("Kate Jones", dca("Katherine", "Jones")), true);
+  assert.equal(applicantNameMatchesDcaLicensee("Sue Jones", dca("Susan", "Jones")), true);
+});
+
+test("diminutives that containment already covers keep working", () => {
+  assert.equal(applicantNameMatchesDcaLicensee("Dan Jones", dca("Daniel", "Jones")), true);
+  assert.equal(applicantNameMatchesDcaLicensee("Beth Jones", dca("Elizabeth", "Jones")), true);
+  assert.equal(applicantNameMatchesDcaLicensee("Tony Jones", dca("Anthony", "Jones")), true);
+  assert.equal(applicantNameMatchesDcaLicensee("Chris Jones", dca("Christopher", "Jones")), true);
+});
+
+// The gate exists to stop someone registering under a colleague's, spouse's,
+// or sibling's license. A shared 2-character first-name prefix used to be
+// enough to clear it, so any same-surname pair could collide by coincidence.
+test("same surname + coincidental first-name prefix is rejected", () => {
+  assert.equal(applicantNameMatchesDcaLicensee("John Garcia", dca("Jose", "Garcia")), false);
+  assert.equal(applicantNameMatchesDcaLicensee("Mark Nguyen", dca("Maria", "Nguyen")), false);
+  assert.equal(applicantNameMatchesDcaLicensee("Dan Smith", dca("David", "Smith")), false);
+  assert.equal(applicantNameMatchesDcaLicensee("Sam Smith", dca("Sarah", "Smith")), false);
+  assert.equal(applicantNameMatchesDcaLicensee("Chris Lee", dca("Charles", "Lee")), false);
+  assert.equal(applicantNameMatchesDcaLicensee("Jean Park", dca("Jeanette", "Park")), true); // genuine containment
+});
+
+test("two-character fragments no longer satisfy containment", () => {
+  // "AN" sits inside a large share of given names; allowing 2-char
+  // containment would re-open the hole the prefix rule left.
+  assert.equal(applicantNameMatchesDcaLicensee("An Tran", dca("Diana", "Tran")), false);
+  assert.equal(applicantNameMatchesDcaLicensee("Jo Park", dca("Joanna", "Park")), false);
 });
 
 test("different last name fails, even with same first", () => {
