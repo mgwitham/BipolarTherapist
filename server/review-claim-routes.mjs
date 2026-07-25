@@ -394,7 +394,27 @@ async function claimPostPortalClaimBySlug(context) {
 
 async function claimPostPortalQuickClaim(context) {
   const { client, config, deps, origin, request, requestId, response } = context;
-  const { parseBody, sendJson, sendPortalClaimLink } = context.deps;
+  const {
+    canAttemptPortalAuth,
+    parseBody,
+    recordPortalAuthAttempt,
+    sendJson,
+    sendPortalClaimLink,
+  } = context.deps;
+  // Every sibling claim endpoint gates on the per-IP portal limiter first;
+  // this one did not, leaving only the gateway limit in front of a route that
+  // sends email.
+  if (
+    typeof canAttemptPortalAuth === "function" &&
+    !(await canAttemptPortalAuth(request, config))
+  ) {
+    sendJson(response, 429, { error: "Too many requests. Try again later." }, origin, config);
+    return true;
+  }
+  if (typeof recordPortalAuthAttempt === "function") {
+    await recordPortalAuthAttempt(request, config);
+  }
+
   const body = await parseBody(request);
   const rawFullName = String(body.full_name || "").trim();
   const rawEmail = String(body.email || "").trim();
@@ -563,17 +583,36 @@ async function claimPostPortalQuickClaim(context) {
     return true;
   }
 
-  await sendPortalClaimLink(config, therapist, requesterEmail, config.portalBaseUrl);
-
-  const claimStatusUpdate = therapist.claimStatus === "claimed" ? "claimed" : "claim_requested";
-  const patchBuilder = client.patch(therapist._id).set({ claimStatus: claimStatusUpdate });
-  if (domainVerified) {
-    patchBuilder.set({
-      lastClaimVerificationMethod: "email_domain_match",
-      lastClaimVerificationAt: new Date().toISOString(),
-    });
+  // Same per-listing budget as every other claim-link sender. The manual-review
+  // branch above has its own cap (3 pending recovery requests), but this
+  // auto-verified path had none, so a caller holding only public profile data
+  // could send unlimited magic links to the therapist's inbox.
+  const reserved = await reserveClaimLinkSlot(client, therapist._id, function (doc) {
+    const extra = {
+      claimStatus: doc.claimStatus === "claimed" ? "claimed" : "claim_requested",
+    };
+    if (domainVerified) {
+      extra.lastClaimVerificationMethod = "email_domain_match";
+      extra.lastClaimVerificationAt = new Date().toISOString();
+    }
+    return extra;
+  });
+  if (!reserved.ok) {
+    sendJson(
+      response,
+      429,
+      {
+        error:
+          "Too many claim link requests for this listing. Try again in an hour or contact support.",
+        reason: "rate_limited",
+      },
+      origin,
+      config,
+    );
+    return true;
   }
-  await patchBuilder.commit({ visibility: "sync" });
+
+  await sendPortalClaimLink(config, therapist, requesterEmail, config.portalBaseUrl);
 
   sendJson(
     response,
@@ -759,6 +798,31 @@ async function claimPostPortalClaimLink(context) {
     return true;
   }
 
+  // Reserve the per-listing slot (and stamp claimStatus) atomically BEFORE
+  // sending. This endpoint previously enforced only the per-IP limiter, so it
+  // sat outside the 3/hour claimLinkRequests budget that claim-by-slug and
+  // sign-in share — which is exactly the "can't multiply the budget by
+  // spreading across endpoints" property the sign-in comment claims. Both the
+  // slug and the public contact email are published on the profile, so the gap
+  // let anyone flood a therapist's real inbox with magic links.
+  const reserved = await reserveClaimLinkSlot(client, therapist._id, function (doc) {
+    return { claimStatus: doc.claimStatus === "claimed" ? "claimed" : "claim_requested" };
+  });
+  if (!reserved.ok) {
+    sendJson(
+      response,
+      429,
+      {
+        error:
+          "Too many claim link requests for this listing. Try again in an hour or contact support.",
+        reason: "rate_limited",
+      },
+      origin,
+      config,
+    );
+    return true;
+  }
+
   try {
     await sendPortalClaimLink(config, therapist, requesterEmail, config.portalBaseUrl, {
       mode: therapist.claimStatus === "claimed" ? "signin" : "claim",
@@ -777,13 +841,6 @@ async function claimPostPortalClaimLink(context) {
     );
     return true;
   }
-
-  await client
-    .patch(therapist._id)
-    .set({
-      claimStatus: therapist.claimStatus === "claimed" ? "claimed" : "claim_requested",
-    })
-    .commit({ visibility: "sync" });
 
   sendJson(
     response,
