@@ -3,8 +3,31 @@ import assert from "node:assert/strict";
 
 import { addDays, computeCandidateReviewMeta } from "../../shared/candidate-review-domain.mjs";
 
+// `+ 0` normalizes -0 to 0. The "due now" lanes set nextReviewDueAt from a
+// clock read taken inside computeCandidateReviewMeta, and the caller below
+// reads the clock again afterwards — so the delta is a few NEGATIVE
+// milliseconds whenever the two reads straddle a millisecond boundary.
+// Math.round(-2 / 86400000) is -0, and assert.equal from node:assert/strict
+// uses Object.is semantics, which treats -0 and 0 as different values. Without
+// this the "due now" assertions fail on roughly a coin flip.
 const daysBetween = (fromIso, toIso) =>
-  Math.round((new Date(toIso).getTime() - new Date(fromIso).getTime()) / 86400000);
+  Math.round((new Date(toIso).getTime() - new Date(fromIso).getTime()) / 86400000) + 0;
+
+// Deterministic guard for the flake above: reverse the pair so the delta is a
+// couple of negative milliseconds, exactly what the "due now" lanes produce
+// when the two clock reads straddle a millisecond boundary.
+test("daysBetween reports a sub-millisecond backwards delta as 0, not -0", () => {
+  const later = "2026-07-15T12:00:00.002Z";
+  const earlier = "2026-07-15T12:00:00.000Z";
+  assert.equal(daysBetween(later, earlier), 0);
+  assert.ok(
+    Object.is(daysBetween(later, earlier), 0),
+    "must be +0, since assert.equal is Object.is",
+  );
+  // Real day gaps, including genuinely negative ones, are untouched.
+  assert.equal(daysBetween("2026-07-15T00:00:00.000Z", "2026-07-17T00:00:00.000Z"), 2);
+  assert.equal(daysBetween("2026-07-17T00:00:00.000Z", "2026-07-15T00:00:00.000Z"), -2);
+});
 
 test("addDays adds UTC days to a valid ISO timestamp", () => {
   assert.equal(addDays("2026-07-15T12:00:00.000Z", 2), "2026-07-17T12:00:00.000Z");
