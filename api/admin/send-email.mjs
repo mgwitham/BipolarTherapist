@@ -2,6 +2,7 @@ import { createClient } from "@sanity/client";
 import { verifyAdminSession } from "../_adminAuth.mjs";
 import { getRateLimiter } from "../../server/rate-limit-store.mjs";
 import { getSuppressionEntry } from "../../server/outreach-suppression.mjs";
+import { escapeHtml } from "../../shared/escape-html.mjs";
 import {
   ADD_PHOTO_SUBJECT,
   FREE_LEADS_SUBJECT,
@@ -185,12 +186,7 @@ function getSanityClient() {
 // line and profile link both render as clickable anchors, then turns
 // blank lines into paragraph breaks and single newlines into <br>.
 function plainTextToHtml(text) {
-  const escaped = String(text)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+  const escaped = escapeHtml(text);
   // Order matters: match full URLs first so the bare-domain fallback
   // doesn't truncate them mid-path.
   const URL_PATTERN = /(https?:\/\/[^\s<]+|www\.[^\s<]+|bipolartherapyhub\.com)/gi;
@@ -225,7 +221,7 @@ function buildFooter() {
   const html =
     '<hr style="border:none;border-top:1px solid #e5e7eb;margin:24px 0 12px;">' +
     `<p style="color:#6b7280;font-size:12px;margin:0;">` +
-    `${escapeForHtml(orgName)} · ${escapeForHtml(address)}<br>` +
+    `${escapeHtml(orgName)} · ${escapeHtml(address)}<br>` +
     `Reply <strong>STOP</strong> and I'll stop emailing you.` +
     `</p>`;
   return { text, html };
@@ -242,13 +238,6 @@ function resolveTestRecipient(fromAddress) {
   // Bare-address from-field with no <…> wrapper.
   const trimmed = String(fromAddress || "").trim();
   return /@/.test(trimmed) ? trimmed : "";
-}
-
-function escapeForHtml(str) {
-  return String(str || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
 }
 
 async function parseBody(req) {

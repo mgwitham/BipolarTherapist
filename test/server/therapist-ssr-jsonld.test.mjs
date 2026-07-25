@@ -170,3 +170,34 @@ test("buildPage points og:image/twitter:image at the static og-card PNG, not a n
   assert.match(ogImage, /\/og\/therapists\/dr-jane-smith-los-angeles-ca\.png\?v5$/);
   assert.ok(!ogImage.includes("/api/og/"), "must not point at the unimplemented /api/og/ route");
 });
+
+// ── HTML escaping on the SSR page ────────────────────────────────────
+// This page used a local `esc()` that escaped only & < > " and coerced with
+// `String(str || "")`. Both are now the canonical shared/escape-html.mjs:
+// apostrophes are escaped too, and 0 renders as "0" instead of vanishing —
+// the exact coercion bug the canonical module's comment documents.
+
+// The page also embeds a JSON.stringify data island and JSON-LD, which are
+// correctly protected by a </script> guard rather than HTML escaping. Raw
+// values legitimately appear there, so assertions about escaped MARKUP must
+// look at the HTML outside script blocks.
+function htmlOutsideScripts(page) {
+  return page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+}
+
+test("SSR: escapes apostrophes in rendered names, not just angle brackets", () => {
+  const markup = htmlOutsideScripts(buildPage(therapist({ name: "Siobhan O'Brien" })));
+  assert.ok(markup.includes("Siobhan O&#39;Brien"), "apostrophe must be escaped");
+  assert.ok(!markup.includes("Siobhan O'Brien"), "the raw apostrophe must not reach the markup");
+});
+
+test("SSR: still escapes the characters the old local escaper handled", () => {
+  const markup = htmlOutsideScripts(
+    buildPage(therapist({ name: 'A<script>alert("x")</script>B & C', practice_name: "D<i>E</i>" })),
+  );
+  assert.ok(!markup.includes("<script>alert"), "no raw script tag from therapist data");
+  assert.ok(!markup.includes("<i>E</i>"), "no raw markup from therapist data");
+  assert.ok(markup.includes("&lt;script&gt;"), "angle brackets escaped");
+  assert.ok(markup.includes("&amp;"), "ampersand escaped");
+  assert.ok(markup.includes("&quot;"), "double quote escaped");
+});

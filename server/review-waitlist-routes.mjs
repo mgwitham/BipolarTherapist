@@ -9,6 +9,7 @@
 
 import { log } from "./logger.mjs";
 import { appendFunnelLogEvents } from "./funnel-event-log.mjs";
+import { escapeHtml } from "../shared/escape-html.mjs";
 
 const MAX_PAYLOAD_BYTES = 1024;
 
@@ -92,12 +93,6 @@ function safeString(value, max) {
 
 function normalizeEmail(value) {
   return safeString(value, 200).trim().toLowerCase();
-}
-
-function escapeHtml(value) {
-  return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
-  });
 }
 
 function isValidEmail(email) {
