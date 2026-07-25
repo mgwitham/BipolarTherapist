@@ -632,3 +632,147 @@ test("quick-claim: normalizes name and email to case-insensitive compare", async
   await handleAuthAndPortalRoutes(context);
   assert.equal(response.statusCode, 200);
 });
+
+// ── Per-listing claim-link budget ────────────────────────────────────
+// Every endpoint that emails a magic link shares one 3/hour budget, stored as
+// claimLinkRequests on the therapist doc. claim-by-slug and sign-in reserved a
+// slot; claim-link and quick-claim did not, so the cap could be sidestepped by
+// switching endpoints. Both the slug and the public contact email are
+// published on the profile, so the gap let anyone flood a therapist's inbox.
+
+function recentClaimStamps(count) {
+  const now = Date.now();
+  return Array.from({ length: count }, (_, i) => new Date(now - (i + 1) * 60 * 1000).toISOString());
+}
+
+test("claim-link: rate-limits to 3 requests per listing per hour", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      claimLinkRequests: recentClaimStamps(3),
+    }),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-link",
+    client,
+    body: { therapist_slug: "jamie-rivera", requester_email: "jamie@example.com" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 429);
+  assert.equal(response.payload.reason, "rate_limited");
+  assert.equal(emailsSent.length, 0, "no email may be sent once the budget is spent");
+});
+
+test("claim-link: consumes a slot from the shared budget on success", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345"),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-link",
+    client,
+    body: { therapist_slug: "jamie-rivera", requester_email: "jamie@example.com" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(emailsSent.length, 1);
+  const updated = state.documents.get("therapist-LMFT12345");
+  assert.equal(updated.claimLinkRequests.length, 1);
+  // The claimStatus stamp now rides along with the reservation instead of
+  // being a separate unguarded patch after the send.
+  assert.equal(updated.claimStatus, "claim_requested");
+});
+
+test("claim-link: budget already spent by claim-by-slug still blocks", async () => {
+  // The point of one shared bucket: spending it on another endpoint must not
+  // hand this one a fresh allowance.
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345"),
+  });
+  for (let i = 0; i < 3; i += 1) {
+    const call = buildContext({
+      method: "POST",
+      routePath: "/portal/claim-by-slug",
+      client,
+      body: { slug: "jamie-rivera" },
+    });
+    await handleAuthAndPortalRoutes(call.context);
+    assert.equal(call.response.statusCode, 200, `claim-by-slug call ${i + 1} should succeed`);
+  }
+  const spent = state.documents.get("therapist-LMFT12345");
+  assert.equal(spent.claimLinkRequests.length, 3);
+
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/claim-link",
+    client,
+    body: { therapist_slug: "jamie-rivera", requester_email: "jamie@example.com" },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 429);
+  assert.equal(emailsSent.length, 0);
+});
+
+test("quick-claim: rate-limits the auto-verified path per listing", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345", {
+      claimLinkRequests: recentClaimStamps(3),
+    }),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/quick-claim",
+    client,
+    body: {
+      full_name: "Jamie Rivera",
+      email: "jamie@example.com",
+      license_number: "LMFT12345",
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 429);
+  assert.equal(response.payload.reason, "rate_limited");
+  assert.equal(emailsSent.length, 0);
+});
+
+test("quick-claim: consumes a slot from the shared budget on success", async () => {
+  const { client, state } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345"),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/quick-claim",
+    client,
+    body: {
+      full_name: "Jamie Rivera",
+      email: "jamie@example.com",
+      license_number: "LMFT12345",
+    },
+  });
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(emailsSent.length, 1);
+  const updated = state.documents.get("therapist-LMFT12345");
+  assert.equal(updated.claimLinkRequests.length, 1);
+  assert.equal(updated.claimStatus, "claim_requested");
+});
+
+test("quick-claim: honours the per-IP portal limiter like its siblings", async () => {
+  const { client } = createMemoryClient({
+    "therapist-LMFT12345": seedTherapist("LMFT12345"),
+  });
+  const { response, emailsSent, context } = buildContext({
+    method: "POST",
+    routePath: "/portal/quick-claim",
+    client,
+    body: {
+      full_name: "Jamie Rivera",
+      email: "jamie@example.com",
+      license_number: "LMFT12345",
+    },
+  });
+  context.deps.canAttemptPortalAuth = async () => false;
+  await handleAuthAndPortalRoutes(context);
+  assert.equal(response.statusCode, 429);
+  assert.equal(emailsSent.length, 0);
+});

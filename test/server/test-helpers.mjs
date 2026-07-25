@@ -199,7 +199,15 @@ export function createMemoryClient(initialDocuments) {
             return null;
           }
           const cloned = deepClone(match);
-          cloned.slug = params.slug;
+          // Mirror what the projection actually asks for. `"slug": slug.current`
+          // yields a string; `"slug": slug` (or no projection) yields the slug
+          // OBJECT, which is what real Sanity returns. Flattening every case to
+          // a string made routes that read `therapist.slug.current` — such as
+          // /portal/claim-link — 404 under test no matter what they did, so
+          // they were silently untestable.
+          cloned.slug = /"slug"\s*:\s*slug\.current/.test(query)
+            ? params.slug
+            : { ...(match.slug || {}), current: params.slug, _type: "slug" };
           return cloned;
         }
 
