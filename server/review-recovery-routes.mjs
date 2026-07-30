@@ -438,27 +438,65 @@ async function recoveryPostRecoveryRequestsIdApprove(context, match) {
   const nowIso = new Date().toISOString();
   const reviewer = deps.getAuthorizedActor(request, config);
 
-  // Atomic claim FIRST: transition the recovery doc pending->approved
-  // gated on its revision. This is the lock — if two admins approve the
-  // same request concurrently (or one double-clicks), only one commit
-  // succeeds; the loser hits the revision conflict here and bails before
-  // any side effects, so we never double-grant access or double-send the
-  // approval email.
+  // Both writes go in ONE transaction, so approving is all-or-nothing.
+  //
+  // These used to be two sequential commits: the recovery doc flipped to
+  // approved first, then the therapist doc. If the second one failed, the
+  // request was left marked approved while ownership had not actually moved —
+  // and there was no way back. "Resend sign-in" only checks
+  // `status === "approved"`, so it happily minted a link for the NEW email
+  // while claimedByEmail still held the OLD one, and claim-accept rejected
+  // every click with ownership_conflict (review-claim-routes.mjs:919, whose
+  // comment assumes exactly the ordering that had failed). Re-approving was
+  // blocked by the status gate, so the admin had no UI path at all.
+  //
+  // ifRevisionId stays on the recovery doc and keeps its original job as the
+  // concurrency lock: two admins approving at once, or one double-click, still
+  // means one commit wins and the loser bails before any side effect. Inside a
+  // transaction a failed precondition rejects the WHOLE commit, so the loser
+  // no longer half-applies either.
   let updated;
   try {
-    updated = await client
-      .patch(recovery._id)
-      .ifRevisionId(recovery._rev)
-      .set({
-        status: "approved",
-        reviewedAt: nowIso,
-        reviewedBy: reviewer || "admin",
-        outcomeMessage: customMessage,
-        adminNote: adminNote || recovery.adminNote || "",
-      })
+    await client
+      .transaction()
+      .patch(recovery._id, (patch) =>
+        patch.ifRevisionId(recovery._rev).set({
+          status: "approved",
+          reviewedAt: nowIso,
+          reviewedBy: reviewer || "admin",
+          outcomeMessage: customMessage,
+          adminNote: adminNote || recovery.adminNote || "",
+        }),
+      )
+      // The actual recovery: promote claimedByEmail to the new address and mark
+      // claimed. The therapist can then sign in with the new email via this
+      // magic link AND via /claim going forward.
+      .patch(therapist._id, (patch) =>
+        patch.set({
+          claimStatus: "claimed",
+          claimedByEmail: recovery.requestedEmail,
+          ...(therapist.claimStatus === "claimed" ? {} : { claimedAt: nowIso }),
+          // Invalidate any session minted before this transfer. Without this,
+          // the previous owner's still-signature-valid token keeps edit/billing
+          // access to a listing they no longer own. See sessionIsStaleForListing.
+          ownershipChangedAt: nowIso,
+        }),
+      )
       .commit({ visibility: "sync" });
+    // A transaction commit returns transaction info rather than the document,
+    // so re-read for the response. Cosmetic only — the write already landed, so
+    // a failed read falls back to the locally-derived shape instead of
+    // reporting an error for an approval that succeeded.
+    updated = (await client.getDocument(recovery._id).catch(() => null)) || {
+      ...recovery,
+      status: "approved",
+      reviewedAt: nowIso,
+      reviewedBy: reviewer || "admin",
+      outcomeMessage: customMessage,
+      adminNote: adminNote || recovery.adminNote || "",
+    };
   } catch (error) {
-    log.warn("[recovery approve] revision conflict — already resolved", {
+    log.warn("[recovery approve] transaction failed — nothing applied", {
       requestId: contextRequestId,
       err: error?.message || String(error),
     });
@@ -471,23 +509,6 @@ async function recoveryPostRecoveryRequestsIdApprove(context, match) {
     );
     return true;
   }
-
-  // Update the therapist doc: promote claimedByEmail to the new
-  // address and mark claimed (if it wasn't already). This is the
-  // actual recovery — the therapist can now sign in with the new
-  // email both via this magic link AND via /claim going forward.
-  await client
-    .patch(therapist._id)
-    .set({
-      claimStatus: "claimed",
-      claimedByEmail: recovery.requestedEmail,
-      claimedAt: therapist.claimStatus === "claimed" ? undefined : nowIso,
-      // Invalidate any session minted before this transfer. Without this, the
-      // previous owner's still-signature-valid token keeps edit/billing access
-      // to a listing they no longer own. See sessionIsStaleForListing.
-      ownershipChangedAt: nowIso,
-    })
-    .commit({ visibility: "sync" });
 
   // Build and send the magic link. deps.sendPortalClaimLink expects
   // a therapist with slug.current. Build the shape it wants.
@@ -1084,17 +1105,52 @@ async function recoveryPostRecoveryConfirm(context) {
     return true;
   }
 
+  const autoVerificationNote =
+    "Confirmed by therapist via " +
+    (recovery.confirmationChannel || "email") +
+    " (" +
+    (recovery.confirmationChannelContext || "admin-sourced channel") +
+    ") at " +
+    nowIso +
+    ".";
+
+  // Ownership transfer and the request's own resolution commit together.
+  //
+  // These used to be two writes with the email send BETWEEN them: the therapist
+  // doc moved first, and the recovery doc was only marked approved after the
+  // email succeeded. A delivery failure returned early, leaving ownership
+  // transferred while the request still read `pending` — the admin queue showed
+  // outstanding work for a transfer that had already happened, and because
+  // "Resend sign-in" requires `status === "approved"`, the one purpose-built
+  // way to get the therapist their link was unavailable.
+  //
+  // Now the state transition is atomic and happens first; a failed email leaves
+  // a consistent, resendable record instead of a split one.
   await client
-    .patch(therapist._id)
-    .set({
-      claimStatus: "claimed",
-      claimedByEmail: recovery.requestedEmail,
-      claimedAt: therapist.claimStatus === "claimed" ? undefined : nowIso,
-      // Invalidate any session minted before this transfer. Without this, the
-      // previous owner's still-signature-valid token keeps edit/billing access
-      // to a listing they no longer own. See sessionIsStaleForListing.
-      ownershipChangedAt: nowIso,
-    })
+    .transaction()
+    .patch(therapist._id, (patch) =>
+      patch.set({
+        claimStatus: "claimed",
+        claimedByEmail: recovery.requestedEmail,
+        ...(therapist.claimStatus === "claimed" ? {} : { claimedAt: nowIso }),
+        // Invalidate any session minted before this transfer. Without this, the
+        // previous owner's still-signature-valid token keeps edit/billing access
+        // to a listing they no longer own. See sessionIsStaleForListing.
+        ownershipChangedAt: nowIso,
+      }),
+    )
+    .patch(recovery._id, (patch) =>
+      patch.set({
+        status: "approved",
+        reviewedAt: nowIso,
+        reviewedBy: "therapist-self-confirm",
+        outcomeMessage: "",
+        identityVerification: autoVerificationNote,
+        confirmationResponse: "yes",
+        confirmationRespondedAt: nowIso,
+        confirmationTokenNonce: newNonce,
+      }),
+    )
     .commit({ visibility: "sync" });
 
   const therapistForLink =
@@ -1122,35 +1178,15 @@ async function recoveryPostRecoveryConfirm(context) {
     sendJson(
       response,
       502,
-      { error: "Confirmation saved, but the sign-in email could not be sent. Contact support." },
+      {
+        error:
+          "Confirmation saved and ownership transferred, but the sign-in email could not be sent. Contact support and we can resend it.",
+      },
       origin,
       config,
     );
     return true;
   }
-
-  const autoVerificationNote =
-    "Confirmed by therapist via " +
-    (recovery.confirmationChannel || "email") +
-    " (" +
-    (recovery.confirmationChannelContext || "admin-sourced channel") +
-    ") at " +
-    nowIso +
-    ".";
-
-  await client
-    .patch(recovery._id)
-    .set({
-      status: "approved",
-      reviewedAt: nowIso,
-      reviewedBy: "therapist-self-confirm",
-      outcomeMessage: "",
-      identityVerification: autoVerificationNote,
-      confirmationResponse: "yes",
-      confirmationRespondedAt: nowIso,
-      confirmationTokenNonce: newNonce,
-    })
-    .commit({ visibility: "sync" });
 
   sendJson(
     response,
