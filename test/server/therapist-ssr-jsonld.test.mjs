@@ -177,27 +177,39 @@ test("buildPage points og:image/twitter:image at the static og-card PNG, not a n
 // apostrophes are escaped too, and 0 renders as "0" instead of vanishing —
 // the exact coercion bug the canonical module's comment documents.
 
-// The page also embeds a JSON.stringify data island and JSON-LD, which are
-// correctly protected by a </script> guard rather than HTML escaping. Raw
-// values legitimately appear there, so assertions about escaped MARKUP must
-// look at the HTML outside script blocks.
-function htmlOutsideScripts(page) {
-  return page.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, "");
+// Assert on the specific rendered elements rather than stripping <script>
+// blocks out of the whole page. An earlier version of this test used a
+// script-stripping regex, which CodeQL correctly flagged (js/bad-tag-filter:
+// `</script>` does not match `</script >`) — and the assertion's correctness
+// depended on that regex being exactly right. Targeting the element the value
+// is rendered into is both narrower and not sanitization-shaped.
+//
+// The page separately embeds JSON.stringify(therapist) as a data island, where
+// raw values legitimately appear; that context is protected by a </script>
+// guard, not by HTML escaping, so it is deliberately out of scope here.
+function renderedText(page, pattern) {
+  const match = page.match(pattern);
+  assert.ok(match, `expected the page to render ${pattern}`);
+  return match[1];
 }
 
 test("SSR: escapes apostrophes in rendered names, not just angle brackets", () => {
-  const markup = htmlOutsideScripts(buildPage(therapist({ name: "Siobhan O'Brien" })));
-  assert.ok(markup.includes("Siobhan O&#39;Brien"), "apostrophe must be escaped");
-  assert.ok(!markup.includes("Siobhan O'Brien"), "the raw apostrophe must not reach the markup");
+  const page = buildPage(therapist({ name: "Siobhan O'Brien" }));
+  const heading = renderedText(page, /<h1>([\s\S]*?)<\/h1>/);
+  assert.equal(heading.trim(), "Siobhan O&#39;Brien");
+  assert.ok(!heading.includes("'"), "no raw apostrophe in the rendered heading");
 });
 
 test("SSR: still escapes the characters the old local escaper handled", () => {
-  const markup = htmlOutsideScripts(
-    buildPage(therapist({ name: 'A<script>alert("x")</script>B & C', practice_name: "D<i>E</i>" })),
+  const page = buildPage(
+    therapist({ name: 'A<script>alert("x")</script>B & C', practice_name: "D<i>E</i>" }),
   );
-  assert.ok(!markup.includes("<script>alert"), "no raw script tag from therapist data");
-  assert.ok(!markup.includes("<i>E</i>"), "no raw markup from therapist data");
-  assert.ok(markup.includes("&lt;script&gt;"), "angle brackets escaped");
-  assert.ok(markup.includes("&amp;"), "ampersand escaped");
-  assert.ok(markup.includes("&quot;"), "double quote escaped");
+  const heading = renderedText(page, /<h1>([\s\S]*?)<\/h1>/);
+  assert.ok(!heading.includes("<script"), "no raw script tag in the rendered heading");
+  assert.ok(heading.includes("&lt;script&gt;"), "angle brackets escaped");
+  assert.ok(heading.includes("&amp;"), "ampersand escaped");
+  assert.ok(heading.includes("&quot;"), "double quote escaped");
+
+  const practice = renderedText(page, /class="title-text practice-line">([\s\S]*?)<\/div>/);
+  assert.equal(practice.trim(), "D&lt;i&gt;E&lt;/i&gt;");
 });
