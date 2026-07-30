@@ -54,3 +54,15 @@ test("requireEscapeHtml: includes caller name in the error for fast debugging", 
     assert.match(err.message, /renderApplicationsPanel/);
   }
 });
+
+// The reason this module exists. Several copies used `String(value || "")`,
+// which turns 0 and false into "" — a fee, a count, or a years-of-experience
+// of 0 rendered blank in emails and SEO pages. `value == null` means only
+// null/undefined blank out. Previously only the null/undefined half was
+// pinned, so a regression to `|| ""` would still have passed.
+test("escapeHtml: 0 and false render, they do not blank out", () => {
+  assert.equal(escapeHtml(0), "0");
+  assert.equal(escapeHtml(false), "false");
+  assert.equal(escapeHtml(""), "");
+  assert.equal(escapeHtml(NaN), "NaN");
+});

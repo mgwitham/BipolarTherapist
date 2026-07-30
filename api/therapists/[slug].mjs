@@ -20,6 +20,7 @@ import {
   normalizeFieldReviewStates,
 } from "../../shared/therapist-domain.mjs";
 import { hasActiveFeatured } from "../../shared/therapist-subscription-domain.mjs";
+import { escapeHtml } from "../../shared/escape-html.mjs";
 
 // ─── Config ──────────────────────────────────────────────────────────────────
 
@@ -162,14 +163,6 @@ function normalizeDoc(doc, subscription = null) {
 }
 
 // ─── HTML helpers ─────────────────────────────────────────────────────────────
-
-function esc(str) {
-  return String(str || "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;");
-}
 
 const SCRAPED_PREFIX_RE = /^.+,\s*\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4},?\s+/;
 function stripScrapedPrefix(value) {
@@ -481,13 +474,13 @@ function renderSSRProfile(t) {
     return parts.join(", ");
   })();
   const avatar = t.photo_url
-    ? `<img src="${esc(t.photo_url)}" alt="${esc(photoAlt)}" class="bth-avatar bth-avatar-profile" loading="eager">`
-    : `<div class="bth-avatar bth-avatar-profile" aria-hidden="true" style="background:#1a7a8f;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:600">${esc(initials)}</div>`;
+    ? `<img src="${escapeHtml(t.photo_url)}" alt="${escapeHtml(photoAlt)}" class="bth-avatar bth-avatar-profile" loading="eager">`
+    : `<div class="bth-avatar bth-avatar-profile" aria-hidden="true" style="background:#1a7a8f;color:#fff;display:inline-flex;align-items:center;justify-content:center;font-weight:600">${escapeHtml(initials)}</div>`;
 
   const trustSignals = [];
   if (t.license_number) {
     trustSignals.push(
-      `${esc(t.license_state || t.state || "")} ${esc(t.credentials || "License")} #${esc(String(t.license_number))}`.trim(),
+      `${escapeHtml(t.license_state || t.state || "")} ${escapeHtml(t.credentials || "License")} #${escapeHtml(String(t.license_number))}`.trim(),
     );
   }
   if (t.verification_status === "editorially_verified") trustSignals.push("Editorially verified");
@@ -516,7 +509,7 @@ function renderSSRProfile(t) {
     t.accepts_in_person ? "In-person" : null,
   ]
     .filter(Boolean)
-    .map((f) => `<span class="profile-tag profile-tag-format">${esc(f)}</span>`)
+    .map((f) => `<span class="profile-tag profile-tag-format">${escapeHtml(f)}</span>`)
     .join("");
 
   const phoneDigits = t.phone ? t.phone.replace(/[^0-9+]/g, "") : "";
@@ -532,19 +525,19 @@ function renderSSRProfile(t) {
               <div class="eyebrow">Bipolar-informed therapist profile</div>
               ${acceptingBadge}
             </div>
-            <h1>${esc(t.name)}</h1>
-            ${t.credentials ? `<div class="creds">${esc(t.credentials)}</div>` : ""}
-            ${t.title ? `<div class="title-text">${esc(t.title)}</div>` : ""}
-            ${t.practice_name ? `<div class="title-text practice-line">${esc(t.practice_name)}</div>` : ""}
-            <div class="location">📍 ${esc(location)}</div>
+            <h1>${escapeHtml(t.name)}</h1>
+            ${t.credentials ? `<div class="creds">${escapeHtml(t.credentials)}</div>` : ""}
+            ${t.title ? `<div class="title-text">${escapeHtml(t.title)}</div>` : ""}
+            ${t.practice_name ? `<div class="title-text practice-line">${escapeHtml(t.practice_name)}</div>` : ""}
+            <div class="location">📍 ${escapeHtml(location)}</div>
             ${formatBadges ? `<div class="hero-meta"><div class="trust-pills">${formatBadges}</div></div>` : ""}
           </div>
         </div>
         <div class="profile-contact-card">
           <div class="profile-contact-card-label">Contact</div>
-          ${t.phone ? `<a href="tel:${esc(phoneDigits)}" class="profile-contact-row" aria-label="Call ${esc(t.name)}"><span class="profile-contact-icon" aria-hidden="true">📞</span><span class="profile-contact-value">${esc(t.phone)}</span></a>` : ""}
-          ${t.website ? `<a href="${esc(t.website)}" target="_blank" rel="noopener noreferrer" class="profile-contact-row" aria-label="Visit ${esc(t.name)}'s website"><span class="profile-contact-icon" aria-hidden="true">🌐</span><span class="profile-contact-value">Practice website →</span></a>` : ""}
-          ${t.booking_url ? `<a href="${esc(t.booking_url)}" target="_blank" rel="noopener noreferrer" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">📅</span><span class="profile-contact-value">Booking link</span></a>` : ""}
+          ${t.phone ? `<a href="tel:${escapeHtml(phoneDigits)}" class="profile-contact-row" aria-label="Call ${escapeHtml(t.name)}"><span class="profile-contact-icon" aria-hidden="true">📞</span><span class="profile-contact-value">${escapeHtml(t.phone)}</span></a>` : ""}
+          ${t.website ? `<a href="${escapeHtml(t.website)}" target="_blank" rel="noopener noreferrer" class="profile-contact-row" aria-label="Visit ${escapeHtml(t.name)}'s website"><span class="profile-contact-icon" aria-hidden="true">🌐</span><span class="profile-contact-value">Practice website →</span></a>` : ""}
+          ${t.booking_url ? `<a href="${escapeHtml(t.booking_url)}" target="_blank" rel="noopener noreferrer" class="profile-contact-row"><span class="profile-contact-icon" aria-hidden="true">📅</span><span class="profile-contact-value">Booking link</span></a>` : ""}
           ${!t.phone && !t.website && !t.booking_url ? '<div class="profile-contact-empty">No direct contact path listed yet.</div>' : ""}
         </div>
       </div>
@@ -552,8 +545,8 @@ function renderSSRProfile(t) {
         t.bio
           ? `<div class="profile-bio-wrap" data-profile-bio-wrap>
         <div class="profile-bio-text" id="profileBioPanel">
-          <p class="profile-bio-paragraph">${esc(stripScrapedPrefix(t.bio))}</p>
-          ${t.care_approach ? `<p class="profile-bio-paragraph profile-bio-approach">${esc(stripScrapedPrefix(t.care_approach))}</p>` : ""}
+          <p class="profile-bio-paragraph">${escapeHtml(stripScrapedPrefix(t.bio))}</p>
+          ${t.care_approach ? `<p class="profile-bio-paragraph profile-bio-approach">${escapeHtml(stripScrapedPrefix(t.care_approach))}</p>` : ""}
         </div>
         <div class="profile-bio-fade" aria-hidden="true"></div>
       </div>
@@ -578,7 +571,7 @@ function renderSSRProfile(t) {
             <span class="section-toggle">Hide</span>
           </button>
           <div class="profile-section-content">
-            <div class="profile-tags">${specialties.map((s) => `<span class="specialty-tag">${esc(s)}</span>`).join("")}</div>
+            <div class="profile-tags">${specialties.map((s) => `<span class="specialty-tag">${escapeHtml(s)}</span>`).join("")}</div>
           </div>
         </section>`
           : ""
@@ -591,10 +584,10 @@ function renderSSRProfile(t) {
             <span class="section-toggle">Hide</span>
           </button>
           <div class="profile-section-content">
-            ${feeLabel ? `<p class="profile-fee-line"><strong>${esc(feeLabel)}</strong></p>` : ""}
+            ${feeLabel ? `<p class="profile-fee-line"><strong>${escapeHtml(feeLabel)}</strong></p>` : ""}
             ${
               ins.length
-                ? `<ul class="insurance-list">${ins.map((i) => `<li>${esc(i)}</li>`).join("")}</ul>`
+                ? `<ul class="insurance-list">${ins.map((i) => `<li>${escapeHtml(i)}</li>`).join("")}</ul>`
                 : ""
             }
           </div>
@@ -608,8 +601,8 @@ function renderSSRProfile(t) {
         </button>
         <div class="profile-section-content">
           <p class="outreach-intro">Reaching out is easier than it feels. The full outreach guide loads below.</p>
-          ${t.phone ? `<a href="tel:${esc(phoneDigits)}" class="btn-contact" data-profile-contact-route="phone" data-profile-contact-priority="primary">Call ${esc(t.phone)}</a>` : ""}
-          ${t.website ? `<a href="${esc(t.website)}" target="_blank" rel="noopener noreferrer" class="btn-contact btn-contact--secondary" data-profile-contact-route="website" data-profile-contact-priority="secondary">Visit website →</a>` : ""}
+          ${t.phone ? `<a href="tel:${escapeHtml(phoneDigits)}" class="btn-contact" data-profile-contact-route="phone" data-profile-contact-priority="primary">Call ${escapeHtml(t.phone)}</a>` : ""}
+          ${t.website ? `<a href="${escapeHtml(t.website)}" target="_blank" rel="noopener noreferrer" class="btn-contact btn-contact--secondary" data-profile-contact-route="website" data-profile-contact-priority="secondary">Visit website →</a>` : ""}
         </div>
       </section>
       <section class="profile-section profile-section-collapsible" id="section-faq" data-profile-section>
@@ -618,17 +611,17 @@ function renderSSRProfile(t) {
           <span class="section-toggle">Hide</span>
         </button>
         <div class="profile-section-content">
-          <p class="faq-intro">Common questions about ${esc(t.name)}.</p>
+          <p class="faq-intro">Common questions about ${escapeHtml(t.name)}.</p>
           <div class="faq-list">
             ${faqItems
               .map(
                 (item, i) => `
               <div class="faq-item" data-faq-item>
                 <button type="button" class="faq-question" aria-expanded="false" aria-controls="faq-answer-${i}" data-faq-toggle="${i}">
-                  ${esc(item.q)}<span class="faq-toggle-icon" aria-hidden="true">+</span>
+                  ${escapeHtml(item.q)}<span class="faq-toggle-icon" aria-hidden="true">+</span>
                 </button>
                 <div class="faq-answer" id="faq-answer-${i}" role="region" hidden>
-                  <p>${esc(item.a)}</p>
+                  <p>${escapeHtml(item.a)}</p>
                 </div>
               </div>`,
               )
@@ -693,27 +686,27 @@ export function buildPage(t) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
-    <title>${esc(seoTitle)}</title>
-    <meta name="description" content="${esc(seoDescription)}" />
-    <link rel="canonical" href="${esc(canonicalUrl)}" />
+    <title>${escapeHtml(seoTitle)}</title>
+    <meta name="description" content="${escapeHtml(seoDescription)}" />
+    <link rel="canonical" href="${escapeHtml(canonicalUrl)}" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="BipolarTherapyHub" />
-    <meta property="og:url" content="${esc(canonicalUrl)}" />
-    <meta property="og:title" content="${esc(shareTitle)}" />
-    <meta property="og:description" content="${esc(seoDescription)}" />
-    <meta property="og:image" content="${esc(ogImage)}" />
+    <meta property="og:url" content="${escapeHtml(canonicalUrl)}" />
+    <meta property="og:title" content="${escapeHtml(shareTitle)}" />
+    <meta property="og:description" content="${escapeHtml(seoDescription)}" />
+    <meta property="og:image" content="${escapeHtml(ogImage)}" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:image:alt" content="${esc(ogImageAlt)}" />
+    <meta property="og:image:alt" content="${escapeHtml(ogImageAlt)}" />
     <!-- summary_large_image gives the big preview card on Twitter
          instead of a tiny thumbnail. Requires a 1.91:1 image, which
          buildOgImageFromSanity produces above. -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:url" content="${esc(canonicalUrl)}" />
-    <meta name="twitter:title" content="${esc(shareTitle)}" />
-    <meta name="twitter:description" content="${esc(seoDescription)}" />
-    <meta name="twitter:image" content="${esc(ogImage)}" />
-    <meta name="twitter:image:alt" content="${esc(ogImageAlt)}" />
+    <meta name="twitter:url" content="${escapeHtml(canonicalUrl)}" />
+    <meta name="twitter:title" content="${escapeHtml(shareTitle)}" />
+    <meta name="twitter:description" content="${escapeHtml(seoDescription)}" />
+    <meta name="twitter:image" content="${escapeHtml(ogImage)}" />
+    <meta name="twitter:image:alt" content="${escapeHtml(ogImageAlt)}" />
     ${jsonLd}
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -758,7 +751,7 @@ ${linkTags}
 
     <div class="breadcrumb">
       <a href="/">Home</a> › <a href="/directory" id="breadcrumbDirectoryLink">Directory</a> ›
-      <span id="breadcrumbName">${esc(t.name)}</span>
+      <span id="breadcrumbName">${escapeHtml(t.name)}</span>
     </div>
 
     <aside class="ts-claim-banner" id="inPageClaimBanner">

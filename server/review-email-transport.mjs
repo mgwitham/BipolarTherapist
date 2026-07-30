@@ -5,6 +5,7 @@
 // import sendEmail + the renderers + escapeEmailHtml from this module.
 
 import { log } from "./logger.mjs";
+import { escapeHtml as escapeEmailHtml } from "../shared/escape-html.mjs";
 
 export function hasEmailConfig(config) {
   return Boolean(config.resendApiKey && config.emailFrom && config.notificationTo);
@@ -120,11 +121,13 @@ export async function sendEmail(config, payload) {
   return result;
 }
 
-export function escapeEmailHtml(value) {
-  return String(value == null ? "" : value).replace(/[&<>"']/g, function (char) {
-    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[char];
-  });
-}
+// Re-exported under its historical name. This used to be a byte-for-byte
+// reimplementation of the canonical escaper; the alias is kept because
+// review-email-recovery.mjs and the renderers below import it, but there is now
+// one implementation. Note this must be an import + separate export, NOT
+// `export { x as y } from ...` — that form creates no local binding, and the
+// renderers in this file call escapeEmailHtml directly.
+export { escapeEmailHtml };
 
 // Shared branded shell for all therapist-facing emails. Mobile-friendly,
 // uses table-based button markup so Outlook doesn't mangle it, and
