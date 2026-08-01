@@ -88,6 +88,51 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  visual:
+    name: Visual regression
+    runs-on: ubuntu-latest
+    # NON-BLOCKING on purpose. Screenshot baselines are per-platform (font
+    # rasterisation differs between macOS and Linux), and the committed
+    # baselines were generated on darwin. Until Linux baselines are seeded —
+    # run this job once with `npm run test:visual -- --update-snapshots` and
+    # commit test/e2e/__screenshots__/linux/ — this job reports diffs as an
+    # artifact instead of failing the build. Flip continue-on-error off once
+    # those exist, and it becomes a real gate.
+    continue-on-error: true
+    env:
+      VITE_SANITY_PROJECT_ID: e2e-memory
+      VITE_SANITY_DATASET: e2e
+      VITE_SANITY_API_VERSION: 2026-04-02
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run visual regression suite
+        run: npm run test:visual
+
+      - name: Upload visual diffs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs
+          path: |
+            test-results/
+            test/e2e/__screenshots__/
+          retention-days: 7
+          if-no-files-found: ignore
+
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
