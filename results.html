@@ -9,16 +9,15 @@
     <link rel="icon" type="image/png" href="/favicon.png" />
     <link rel="apple-touch-icon" href="/favicon.png" />
     <link rel="stylesheet" href="assets/fonts.css" />
-    <!-- Preconnect first: the icon stylesheet below is render-blocking and
-         cross-origin, so warming DNS+TLS early shaves its fetch latency.
-         Two variants: the CSS fetch uses a no-CORS connection, the icon
-         font it references uses a CORS one. -->
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" />
-    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"
-    />
+    <!-- No Tabler icon webfont. It used to be pulled from cdn.jsdelivr.net,
+         but this site's CSP is `style-src 'self'` (and `font-src 'self'`), so
+         the browser has always refused it in production: every `.ti-*` element
+         resolves to the body font with `content: none` and lays out at 0x0.
+         Verified live — 27 icon elements, all invisible. The tag only cost a
+         blocked request plus two preconnects, so it is gone. The `.ti-*`
+         markup is left in place for a follow-up that inlines real SVGs (the
+         directory already does this); adding it back via CDN would need a CSP
+         change and would reintroduce a render-blocking third-party fetch. -->
     <link rel="stylesheet" href="assets/results-page.css" />
     <link rel="stylesheet" href="assets/public-nav.css" />
     <!-- Early-start the therapist data fetch (see public/results-prefetch.js).
