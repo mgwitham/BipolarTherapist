@@ -5,18 +5,39 @@
       "url": [
         "http://localhost/index.html",
         "http://localhost/directory.html",
-        "http://localhost/therapists/abigail-horton-los-angeles-ca/index.html",
-        "http://localhost/bipolar-therapists/los-angeles-ca/index.html",
-        "http://localhost/insurance/aetna/index.html"
+        "http://localhost/results.html",
+        "http://localhost/therapists/abigail-horton-los-angeles-ca/",
+        "http://localhost/bipolar-therapists/los-angeles-ca/",
+        "http://localhost/insurance/aetna/"
       ],
       "numberOfRuns": 1
     },
     "assert": {
       "assertions": {
-        "categories:performance": ["warn", { "minScore": 0.85 }],
-        "categories:accessibility": ["error", { "minScore": 0.9 }],
-        "categories:best-practices": ["warn", { "minScore": 0.9 }],
-        "categories:seo": ["error", { "minScore": 0.9 }]
+        "categories:performance": [
+          "warn",
+          {
+            "minScore": 0.85
+          }
+        ],
+        "categories:accessibility": [
+          "error",
+          {
+            "minScore": 0.9
+          }
+        ],
+        "categories:best-practices": [
+          "warn",
+          {
+            "minScore": 0.9
+          }
+        ],
+        "categories:seo": [
+          "error",
+          {
+            "minScore": 0.9
+          }
+        ]
       }
     }
   }

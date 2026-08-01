@@ -20,7 +20,13 @@ const SOURCE = path.join(ROOT, ".lighthouserc.json");
 const OUT = path.join(ROOT, ".lighthouserc.generated.json");
 
 // Always-present Vite multi-page entry points.
-const STATIC_URLS = ["http://localhost/index.html", "http://localhost/directory.html"];
+// /results is where the homepage search actually lands — the primary
+// patient destination — and it was absent from the audit set entirely.
+const STATIC_URLS = [
+  "http://localhost/index.html",
+  "http://localhost/directory.html",
+  "http://localhost/results.html",
+];
 
 // One representative URL per post-build SEO template, in the order the
 // committed config used them.
@@ -37,7 +43,16 @@ function firstGeneratedPage(dirName) {
     .map((entry) => entry.name)
     .filter((name) => fs.existsSync(path.join(dir, name, "index.html")))
     .sort()[0];
-  return slug ? `http://localhost/${dirName}/${slug}/index.html` : null;
+  // Trailing slash, NOT /index.html. therapist-page.js derives the profile
+  // slug with /^\/therapists\/([^/]+)\/?$/, which an /index.html suffix does
+  // not match — so auditing that URL measured a page that had bailed to the
+  // "Choose a therapist to review" empty state instead of the real profile.
+  // That understated the score badly (locally: 0.51 with CLS 0.946, versus
+  // 0.73 with CLS 0.03 on the real URL) and meant the gate was watching a
+  // page no visitor ever sees. The lhci static server resolves a directory
+  // URL to its index.html, so this serves the same file the deployed site
+  // does, through the same code path.
+  return slug ? `http://localhost/${dirName}/${slug}/` : null;
 }
 
 if (!fs.existsSync(SOURCE)) {
