@@ -91,14 +91,15 @@ jobs:
   visual:
     name: Visual regression
     runs-on: ubuntu-latest
-    # NON-BLOCKING on purpose. Screenshot baselines are per-platform (font
-    # rasterisation differs between macOS and Linux), and the committed
-    # baselines were generated on darwin. Until Linux baselines are seeded —
-    # run this job once with `npm run test:visual -- --update-snapshots` and
-    # commit test/e2e/__screenshots__/linux/ — this job reports diffs as an
-    # artifact instead of failing the build. Flip continue-on-error off once
-    # those exist, and it becomes a real gate.
-    continue-on-error: true
+    # Baselines are per-platform: macOS and Linux rasterise fonts differently,
+    # so test/e2e/__screenshots__/ holds a darwin/ and a linux/ set. The linux
+    # ones were seeded from this job's own first run (Playwright writes a
+    # missing baseline before failing, and the artifact upload captured it),
+    # which is also the way to re-seed after an intentional redesign:
+    #   1. push the change, let this job fail and upload visual-diffs
+    #   2. copy test/e2e/__screenshots__/linux/ out of the artifact
+    #   3. eyeball every replaced PNG, then commit
+    # A failure here means the rendered page moved. Treat it as a real result.
     env:
       VITE_SANITY_PROJECT_ID: e2e-memory
       VITE_SANITY_DATASET: e2e
