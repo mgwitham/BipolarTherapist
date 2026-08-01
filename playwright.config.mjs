@@ -16,6 +16,11 @@ const isCI = Boolean(process.env.CI);
 export default defineConfig({
   testDir: "test/e2e",
   testMatch: "**/*.spec.mjs",
+  // Visual baselines are per-platform: macOS and Linux rasterise fonts
+  // differently, so a macOS baseline would fail on CI's Linux runner for
+  // reasons unrelated to any change. Keeping them in separate directories
+  // lets both exist, and lets CI seed its own on first run.
+  snapshotPathTemplate: "{testDir}/__screenshots__/{platform}/{arg}{ext}",
   fullyParallel: true,
   retries: isCI ? 2 : 0,
   forbidOnly: isCI,

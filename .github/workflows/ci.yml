@@ -88,6 +88,52 @@ jobs:
           path: playwright-report/
           retention-days: 7
 
+  visual:
+    name: Visual regression
+    runs-on: ubuntu-latest
+    # Baselines are per-platform: macOS and Linux rasterise fonts differently,
+    # so test/e2e/__screenshots__/ holds a darwin/ and a linux/ set. The linux
+    # ones were seeded from this job's own first run (Playwright writes a
+    # missing baseline before failing, and the artifact upload captured it),
+    # which is also the way to re-seed after an intentional redesign:
+    #   1. push the change, let this job fail and upload visual-diffs
+    #   2. copy test/e2e/__screenshots__/linux/ out of the artifact
+    #   3. eyeball every replaced PNG, then commit
+    # A failure here means the rendered page moved. Treat it as a real result.
+    env:
+      VITE_SANITY_PROJECT_ID: e2e-memory
+      VITE_SANITY_DATASET: e2e
+      VITE_SANITY_API_VERSION: 2026-04-02
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run visual regression suite
+        run: npm run test:visual
+
+      - name: Upload visual diffs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-diffs
+          path: |
+            test-results/
+            test/e2e/__screenshots__/
+          retention-days: 7
+          if-no-files-found: ignore
+
   audit:
     name: Dependency audit
     runs-on: ubuntu-latest
