@@ -7,7 +7,31 @@ import {
   isPsychiatristProvider,
 } from "./directory-logic.js";
 import { renderValuePillRow } from "./therapist-pills.js";
+import { formatDistanceMiles } from "./card-content.js";
 import { getZipDistanceMiles } from "./zip-lookup.js";
+
+// Distance is only a decision factor on an in-person-only search (in-person
+// filter on, telehealth off). For telehealth or mixed searches it's noise, so
+// it's hidden there. Uses only a ZIP the patient entered (search box or sort
+// ZIP), never the IP-derived ranking ZIP or device location, and skips
+// providers who don't see patients in person.
+function getInPersonDistanceMiles(therapist, filters) {
+  if (!filters || !filters.in_person || filters.telehealth) return null;
+  if (!therapist || therapist.accepts_in_person === false) return null;
+  const searchZip = String(filters.zip || filters.sortZip || "").trim();
+  const providerZip = String(therapist.zip || "").trim();
+  if (!/^\d{5}$/.test(searchZip) || !/^\d{5}$/.test(providerZip)) return null;
+  const miles = getZipDistanceMiles(searchZip, providerZip);
+  // getZipDistanceMiles returns Infinity (not null) when a ZIP isn't in the
+  // CA dataset. Cap at 60mi to match the in-person commute range.
+  if (!Number.isFinite(miles) || miles < 0 || miles > 60) return null;
+  return { miles: miles, searchZip: searchZip };
+}
+
+function buildInPersonDistanceLabel(therapist, filters) {
+  const distance = getInPersonDistanceMiles(therapist, filters);
+  return distance ? formatDistanceMiles(distance.miles) + " away" : "";
+}
 
 // Strip scraped directory metadata: "Name, Credential, City, State, ZIP, (Phone), actual bio"
 const SCRAPED_PREFIX_RE = /^.+?\(\d{3}\)\s*\d{3}[- ]\d{4},?\s*/;
@@ -336,6 +360,7 @@ export function buildCardViewModel(options) {
     therapist: therapist,
     locationSummary: buildLocationSummary(therapist),
     careFormatSummary: buildCareFormatSummary(therapist),
+    distanceLabel: buildInPersonDistanceLabel(therapist, filters),
     metaLine: buildMetaLine(therapist),
     voiceQuote: extractVoiceQuote(therapist),
     shortlistEntry: shortlistEntry,
@@ -484,18 +509,11 @@ export function buildDirectoryDetailsViewModel(options) {
     return s !== "Accepting new patients" && !/^Near /.test(s) && s !== "Telehealth available";
   });
 
-  // Distance pill, uses search zip, never device location
-  let distancePill = "";
-  const sortZip = String(filters.sortZip || "").trim();
-  const providerZip = String(therapist.zip || "").trim();
-  if (/^\d{5}$/.test(sortZip) && /^\d{5}$/.test(providerZip)) {
-    const miles = getZipDistanceMiles(sortZip, providerZip);
-    // getZipDistanceMiles returns Infinity (not null) when a ZIP isn't in the
-    // CA dataset, so guard with isFinite or the pill renders "~Infinity mi".
-    if (Number.isFinite(miles) && miles >= 0) {
-      distancePill = "~" + Math.round(miles) + " mi from " + sortZip;
-    }
-  }
+  // Distance pill: same in-person-only rule as the browse card.
+  const pillDistance = getInPersonDistanceMiles(therapist, filters);
+  const distancePill = pillDistance
+    ? "~" + Math.round(pillDistance.miles) + " mi from " + pillDistance.searchZip
+    : "";
 
   // Fee display for bottom sheet: "$150–$175 / session"
   let feeDisplay = "";

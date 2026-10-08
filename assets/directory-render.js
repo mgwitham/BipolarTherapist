@@ -388,6 +388,9 @@ export function renderCardMarkup(options) {
     buildExpertiseBand(therapist) +
     buildAvailabilityRow(therapist) +
     buildFormatPriceRow(therapist) +
+    (model.distanceLabel
+      ? '<div class="dir-card-distance">' + escapeHtml(model.distanceLabel) + "</div>"
+      : "") +
     buildInsuranceLine(therapist) +
     '<div class="dir-card-spacer"></div>' +
     '<div class="dir-card-actions">' +
