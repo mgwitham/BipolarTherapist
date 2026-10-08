@@ -1,3 +1,5 @@
+import { buildSentryDataCollection } from "../shared/sentry-data-collection.mjs";
+
 // Strip single-use claim/sign-in tokens from any URL we send to Sentry.
 // Magic-link emails land the user on /portal.html?token=...&slug=...; the
 // portal scrubs the token from the address bar as fast as it can, but if
@@ -85,6 +87,9 @@ if (dsn) {
           environment: import.meta.env.MODE,
           // Capture 100% of errors; set tracesSampleRate to enable performance monitoring.
           tracesSampleRate: 0,
+          // Sentry v11 collects cookies, user info, headers and bodies unless
+          // told not to; see shared/sentry-data-collection.mjs.
+          dataCollection: buildSentryDataCollection(),
           beforeSend: scrubEvent,
           beforeBreadcrumb: scrubBreadcrumb,
         });
