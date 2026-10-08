@@ -123,23 +123,23 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "@playwright/test": "^1.62.0",
+    "@playwright/test": "^1.64.0",
     "@sanity/client": "^8.9.0",
-    "@types/node": "^26.1.2",
-    "eslint": "^10.7.0",
+    "@types/node": "^26.6.4",
+    "eslint": "^10.12.0",
     "husky": "^9.1.7",
-    "lint-staged": "^17.1.0",
-    "prettier": "^3.9.5",
+    "lint-staged": "^17.6.0",
+    "prettier": "^3.9.9",
     "typescript": "^7.0.2",
-    "vite": "^8.1.5"
+    "vite": "^8.3.3"
   },
   "dependencies": {
     "@sentry/browser": "^10.66.0",
     "@sentry/node": "^10.66.0",
-    "@upstash/redis": "^1.38.0",
+    "@upstash/redis": "^1.39.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/og": "1.0.1",
-    "posthog-js": "^1.407.5",
+    "posthog-js": "^1.438.2",
     "sharp": "^0.35.5",
     "stripe": "^23.0.0"
   },
