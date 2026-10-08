@@ -134,8 +134,8 @@
     "vite": "^8.1.5"
   },
   "dependencies": {
-    "@sentry/browser": "^10.66.0",
-    "@sentry/node": "^10.66.0",
+    "@sentry/browser": "^11.5.0",
+    "@sentry/node": "^11.5.0",
     "@upstash/redis": "^1.38.0",
     "@vercel/analytics": "^2.0.1",
     "@vercel/og": "1.0.1",

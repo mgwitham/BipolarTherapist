@@ -1,21 +1,19 @@
 import * as Sentry from "@sentry/node";
 
+import { buildSentryDataCollection } from "../shared/sentry-data-collection.mjs";
+
 let initialized = false;
 
-export function initSentry() {
-  if (initialized) return;
-  const dsn = process.env.SENTRY_DSN;
-  if (!dsn) return;
-  Sentry.init({
+export function buildSentryNodeOptions(dsn) {
+  return {
     dsn,
     environment: process.env.NODE_ENV || "production",
     // Capture 100% of errors; set tracesSampleRate > 0 to enable performance monitoring
     tracesSampleRate: 0,
-    // Never attach IPs, cookies, or request bodies to events. Default is
-    // already false in @sentry/node v8+, but we set it explicitly so a
-    // future SDK upgrade or a request-handler integration can't silently
-    // start shipping therapist PII / patient query params.
-    sendDefaultPii: false,
+    // Never attach IPs, cookies, headers, request bodies or local variables
+    // to events. Sentry v11 collects all of these by default (sendDefaultPii
+    // is gone), so the policy is explicit; see shared/sentry-data-collection.mjs.
+    dataCollection: buildSentryDataCollection(),
     // Defense in depth: strip query strings from any request URL that
     // reaches an event, so patient ZIP / care type and single-use tokens
     // never persist in server-side error reports.
@@ -29,7 +27,14 @@ export function initSentry() {
       }
       return event;
     },
-  });
+  };
+}
+
+export function initSentry() {
+  if (initialized) return;
+  const dsn = process.env.SENTRY_DSN;
+  if (!dsn) return;
+  Sentry.init(buildSentryNodeOptions(dsn));
   initialized = true;
 }
 
