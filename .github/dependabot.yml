@@ -5,6 +5,12 @@ updates:
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5
+    ignore:
+      # 1.0.2 and 1.0.3 ship broken Node bundles (missing hb.wasm, dynamic
+      # require("fs") in ESM) that crash build:og-cards. 1.0.1 is pinned;
+      # test/shared/og-card.test.mjs gates any newer release.
+      - dependency-name: "@vercel/og"
+        versions: ["1.0.2", "1.0.3"]
     groups:
       tooling:
         patterns:

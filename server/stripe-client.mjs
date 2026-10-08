@@ -34,7 +34,16 @@ async function getStripeClient(config) {
     throw new Error("Stripe is not configured.");
   }
   const Stripe = await loadStripe();
-  return new Stripe(config.stripeSecretKey, { apiVersion: "2025-03-31.basil" });
+  const options = { apiVersion: "2025-03-31.basil" };
+  // Test-only seam: points the real SDK at a local fake Stripe so tests can
+  // exercise the actual request shapes. Not read from env in production.
+  if (config.stripeApiBaseUrl) {
+    const base = new URL(config.stripeApiBaseUrl);
+    options.host = base.hostname;
+    options.port = base.port;
+    options.protocol = base.protocol.replace(":", "");
+  }
+  return new Stripe(config.stripeSecretKey, options);
 }
 
 export async function createFeaturedCheckoutSession(config, options) {
