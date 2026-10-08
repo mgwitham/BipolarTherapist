@@ -388,6 +388,25 @@ function initHeroZipFocusRow() {
   });
 }
 
+// Playback speed for the hero background video (1 = normal, lower = slower).
+const HERO_VIDEO_PLAYBACK_RATE = 0.6;
+
+function initHeroVideoSpeed() {
+  const video = document.querySelector(".hero-video");
+
+  if (!video) {
+    return;
+  }
+
+  // defaultPlaybackRate survives the browser re-loading the source;
+  // playbackRate applies it to the copy that is already playing.
+  video.defaultPlaybackRate = HERO_VIDEO_PLAYBACK_RATE;
+  video.playbackRate = HERO_VIDEO_PLAYBACK_RATE;
+  video.addEventListener("loadedmetadata", function () {
+    video.playbackRate = HERO_VIDEO_PLAYBACK_RATE;
+  });
+}
+
 function appendTextElement(parent, tagName, className, value) {
   const node = document.createElement(tagName);
   if (className) {
@@ -847,6 +866,7 @@ function initHomeSearchForm() {
 
   initHeroCareDropdown();
   initHeroZipFocusRow();
+  initHeroVideoSpeed();
   // ca-zipcodes.json is ~198 KB. Most home visitors never type a
   // location, so defer the fetch until they focus or start typing in
   // the location field. preloadZipcodes() is idempotent — calling it
