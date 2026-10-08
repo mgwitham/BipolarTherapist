@@ -372,13 +372,6 @@ footer a:active {
   line-height: 1.2;
   white-space: nowrap;
 }
-.value-pill--expandable {
-  cursor: pointer;
-  font-family: inherit;
-  transition:
-    background-color 120ms ease,
-    border-color 120ms ease;
-}
 .value-pill--expandable:hover,
 .value-pill--expandable:focus-visible {
   background: rgba(26, 122, 143, 0.18);

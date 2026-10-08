@@ -214,10 +214,6 @@ h3 {
   }
 }
 
-.motion-focus {
-  animation: bthFocusRing 620ms ease;
-}
-
 a {
   color: inherit;
 }
@@ -316,16 +312,6 @@ nav {
   color: #fff !important;
 }
 
-.nav-browse-btn {
-  border: 1.5px solid rgba(255, 255, 255, 0.5) !important;
-  background: transparent !important;
-  color: #fff !important;
-  padding: 8px 18px !important;
-  border-radius: 8px !important;
-  font-weight: 500 !important;
-  white-space: nowrap;
-}
-
 .nav-browse-btn:hover {
   border-color: #fff !important;
   background: rgba(255, 255, 255, 0.08) !important;
@@ -353,14 +339,6 @@ nav {
   color: var(--teal) !important;
   text-decoration: underline;
   text-underline-offset: 2px;
-}
-
-.nav-cta {
-  background: var(--coral) !important;
-  color: white !important;
-  padding: 0.5rem 1.25rem;
-  border-radius: 8px;
-  font-weight: 500 !important;
 }
 
 .nav-cta:hover {
