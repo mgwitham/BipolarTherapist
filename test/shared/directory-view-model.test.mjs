@@ -19,6 +19,54 @@ const zipData = JSON.parse(readFileSync(fileURLToPath(zipUrl), "utf8"));
 globalThis.fetch = async () => ({ ok: true, json: async () => zipData });
 await preloadZipcodes();
 
+test("buildCardViewModel: distance shows only for an in-person-only search", function () {
+  const therapist = {
+    slug: "nearby-inperson",
+    name: "Nearby Therapist",
+    city: "Beverly Hills",
+    state: "CA",
+    zip: "90211",
+    accepts_in_person: true,
+    accepts_telehealth: true,
+    specialties: ["Bipolar I"],
+  };
+  const label = (filters, overrides) =>
+    buildCardViewModel({ therapist: { ...therapist, ...overrides }, filters }).distanceLabel;
+
+  // In-person only with a typed ZIP (search box or sort ZIP): real distance.
+  assert.match(label({ in_person: true, telehealth: false, zip: "90210" }), /^~[\d.]+ mi away$/);
+  assert.match(label({ in_person: true, telehealth: false, sortZip: "90210" }), /mi away$/);
+
+  // Telehealth on, "any" (neither filter), or no ZIP: hidden.
+  assert.equal(label({ in_person: true, telehealth: true, zip: "90210" }), "");
+  assert.equal(label({ in_person: false, telehealth: true, zip: "90210" }), "");
+  assert.equal(label({ in_person: false, telehealth: false, zip: "90210" }), "");
+  assert.equal(label({ in_person: true, telehealth: false }), "");
+
+  // The IP-derived ranking ZIP is never used for a displayed distance.
+  assert.equal(label({ in_person: true, telehealth: false, ranking_zip: "90210" }), "");
+
+  // Provider doesn't see patients in person, or is beyond 60mi: hidden.
+  assert.equal(label({ in_person: true, zip: "90210" }, { accepts_in_person: false }), "");
+  assert.equal(label({ in_person: true, zip: "96161" }), ""); // Truckee, ~400mi
+});
+
+test("buildDirectoryDetailsViewModel: distance pill follows the same in-person-only rule", function () {
+  const pill = (filters) =>
+    buildDirectoryDetailsViewModel({
+      therapist: { slug: "t", name: "T", zip: "94941", accepts_in_person: true },
+      filters,
+      shortlist: [],
+      isShortlisted: function () {
+        return false;
+      },
+    }).distancePill;
+
+  assert.match(pill({ in_person: true, sortZip: "94901" }), /^~\d+ mi from 94901$/);
+  assert.equal(pill({ sortZip: "94901" }), "");
+  assert.equal(pill({ in_person: true, telehealth: true, sortZip: "94901" }), "");
+});
+
 test("buildCardViewModel prepares a renderer-friendly card model", function () {
   const therapist = {
     slug: "jamie-rivera",
@@ -220,7 +268,7 @@ test("buildDirectoryDetailsViewModel: distance pill is empty for a ZIP outside t
   // "~Infinity mi from ...".
   const outOfDataset = buildDirectoryDetailsViewModel({
     therapist: { slug: "t", name: "T", zip: "10001" }, // valid 5-digit, not in CA dataset
-    filters: { sortZip: "94901" },
+    filters: { sortZip: "94901", in_person: true },
     shortlist: [],
     isShortlisted: function () {
       return false;
@@ -231,7 +279,7 @@ test("buildDirectoryDetailsViewModel: distance pill is empty for a ZIP outside t
   // Control: two in-dataset ZIPs still produce a finite pill.
   const inDataset = buildDirectoryDetailsViewModel({
     therapist: { slug: "t", name: "T", zip: "94941" },
-    filters: { sortZip: "94901" },
+    filters: { sortZip: "94901", in_person: true },
     shortlist: [],
     isShortlisted: function () {
       return false;
