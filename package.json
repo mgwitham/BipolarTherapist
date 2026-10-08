@@ -140,12 +140,12 @@
     "@vercel/analytics": "^2.0.1",
     "@vercel/og": "^0.11.1",
     "posthog-js": "^1.407.5",
-    "sharp": "^0.35.5",
+    "sharp": "^0.35.3",
     "stripe": "^22.3.2"
   },
   "overrides": {
     "@vercel/og": {
-      "sharp": "^0.35.5"
+      "sharp": "^0.35.3"
     }
   }
 }

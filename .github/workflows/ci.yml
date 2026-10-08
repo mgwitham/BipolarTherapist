@@ -154,12 +154,9 @@ jobs:
       - name: Audit production dependencies (root)
         run: npm audit --omit=dev --audit-level=high
 
-      # Studio (Sanity CMS) is build-time only; still gate on high/critical,
-      # minus advisories with no patched release (allowlist + reasons live in
-      # scripts/audit-gate.mjs). Leave `shell` unset: the default runs without
-      # pipefail, so audit's own non-zero exit doesn't override the gate.
+      # Studio (Sanity CMS) is build-time only; still gate on high/critical.
       - name: Audit studio dependencies
-        run: npm --prefix studio audit --json | node scripts/audit-gate.mjs --level=high
+        run: npm --prefix studio audit --audit-level=high
 
   lighthouse:
     name: Lighthouse CI
