@@ -141,7 +141,7 @@
     "@vercel/og": "1.0.1",
     "posthog-js": "^1.438.2",
     "sharp": "^0.35.5",
-    "stripe": "^22.3.2"
+    "stripe": "^23.0.0"
   },
   "overrides": {
     "@vercel/og": {
