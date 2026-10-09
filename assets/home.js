@@ -911,11 +911,7 @@ function initHomeSearchForm() {
       // (see HEADLINE_KEY_EVENTS in assets/admin-funnel.js).
       trackFunnelEvent("home_find_care_clicked", {
         surface: "homepage",
-        cta_location: link.classList.contains("mobile-sticky-cta")
-          ? "mobile_sticky"
-          : link.classList.contains("btn-cta-white")
-            ? "footer"
-            : "inline",
+        cta_location: link.classList.contains("btn-cta-white") ? "footer" : "inline",
       });
       window.scrollTo({ top: 0, behavior: "smooth" });
       const first = document.getElementById("homepage_interest");
