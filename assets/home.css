@@ -1286,9 +1286,17 @@ footer {
     ),
     linear-gradient(180deg, rgba(11, 37, 48, 0.2) 0%, rgba(11, 37, 48, 0.45) 100%);
 }
+/* Phones stack the text over the full width of the frame, so the scrim is
+   a vertical fade: darkest behind the heading, lighter lower down where the
+   white search card sits, letting the video read through. */
 @media (max-width: 768px) {
   .hero-media::after {
-    background: rgba(11, 37, 48, 0.78);
+    background: linear-gradient(
+      180deg,
+      rgba(11, 37, 48, 0.66) 0%,
+      rgba(11, 37, 48, 0.58) 55%,
+      rgba(11, 37, 48, 0.4) 100%
+    );
   }
 }
 @media (prefers-reduced-motion: reduce) {
