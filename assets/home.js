@@ -391,16 +391,17 @@ function initHeroZipFocusRow() {
 // Playback speed for the hero background video (1 = normal, lower = slower).
 const HERO_VIDEO_PLAYBACK_RATE = 0.6;
 
-// Phones play a portrait cut of just the forest and waves scenes; wider screens play the
-// full clip. index.html tags the phone <source>s with
+// Phones play a portrait cut of just the forest and waves scenes; wider
+// screens play the full clip. index.html tags the phone <source>s with
 // media="(max-width: 768px)", but some browsers (notably iOS Safari) ignore
 // media on <video> sources and just take the first playable one, so enforce
-// the choice here too.
+// the choice here too. Phones list MP4 (H.264) first: every phone decodes it,
+// while iOS reports WebM as "maybe" playable and then can fail on it.
 const HERO_VIDEO_MOBILE_QUERY = "(max-width: 768px)";
 const HERO_VIDEO_SOURCES = {
   mobile: [
-    { src: "/video/home-hero-mobile.webm", type: "video/webm" },
     { src: "/video/home-hero-mobile.mp4", type: "video/mp4" },
+    { src: "/video/home-hero-mobile.webm", type: "video/webm" },
   ],
   desktop: [
     { src: "/video/home-hero.webm", type: "video/webm" },
@@ -417,16 +418,25 @@ function initHeroVideoSource() {
 
   const isMobile = window.matchMedia(HERO_VIDEO_MOBILE_QUERY).matches;
   const sources = HERO_VIDEO_SOURCES[isMobile ? "mobile" : "desktop"];
-  const playable = sources.find(function (source) {
-    return video.canPlayType(source.type) !== "";
+  const alreadyRight = sources.some(function (source) {
+    return video.currentSrc.endsWith(source.src);
   });
 
-  if (!playable || video.currentSrc.endsWith(playable.src)) {
+  if (alreadyRight) {
     return;
   }
 
-  // Assigning src overrides the <source> children.
-  video.src = playable.src;
+  // Swap the <source> list rather than setting video.src, so the browser
+  // can still fall back to the next format if the first one fails.
+  video.querySelectorAll("source").forEach(function (node) {
+    node.remove();
+  });
+  sources.forEach(function (source) {
+    const node = document.createElement("source");
+    node.src = source.src;
+    node.type = source.type;
+    video.appendChild(node);
+  });
   video.load();
   const playing = video.play();
   if (playing && typeof playing.catch === "function") {
