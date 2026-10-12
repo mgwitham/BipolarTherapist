@@ -391,7 +391,7 @@ function initHeroZipFocusRow() {
 // Playback speed for the hero background video (1 = normal, lower = slower).
 const HERO_VIDEO_PLAYBACK_RATE = 0.6;
 
-// Phones play a portrait cut of just the waves scene; wider screens play the
+// Phones play a portrait cut of just the forest and waves scenes; wider screens play the
 // full clip. index.html tags the phone <source>s with
 // media="(max-width: 768px)", but some browsers (notably iOS Safari) ignore
 // media on <video> sources and just take the first playable one, so enforce
