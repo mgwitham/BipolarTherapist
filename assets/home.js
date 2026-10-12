@@ -391,6 +391,51 @@ function initHeroZipFocusRow() {
 // Playback speed for the hero background video (1 = normal, lower = slower).
 const HERO_VIDEO_PLAYBACK_RATE = 0.6;
 
+// Phones play a portrait cut of just the waves scene; wider screens play the
+// full clip. index.html tags the phone <source>s with
+// media="(max-width: 768px)", but some browsers (notably iOS Safari) ignore
+// media on <video> sources and just take the first playable one, so enforce
+// the choice here too.
+const HERO_VIDEO_MOBILE_QUERY = "(max-width: 768px)";
+const HERO_VIDEO_SOURCES = {
+  mobile: [
+    { src: "/video/home-hero-mobile.webm", type: "video/webm" },
+    { src: "/video/home-hero-mobile.mp4", type: "video/mp4" },
+  ],
+  desktop: [
+    { src: "/video/home-hero.webm", type: "video/webm" },
+    { src: "/video/home-hero.mp4", type: "video/mp4" },
+  ],
+};
+
+function initHeroVideoSource() {
+  const video = document.querySelector(".hero-video");
+
+  if (!video) {
+    return;
+  }
+
+  const isMobile = window.matchMedia(HERO_VIDEO_MOBILE_QUERY).matches;
+  const sources = HERO_VIDEO_SOURCES[isMobile ? "mobile" : "desktop"];
+  const playable = sources.find(function (source) {
+    return video.canPlayType(source.type) !== "";
+  });
+
+  if (!playable || video.currentSrc.endsWith(playable.src)) {
+    return;
+  }
+
+  // Assigning src overrides the <source> children.
+  video.src = playable.src;
+  video.load();
+  const playing = video.play();
+  if (playing && typeof playing.catch === "function") {
+    // Autoplay can still be refused (e.g. Low Power Mode); the poster
+    // background stays visible in that case.
+    playing.catch(function () {});
+  }
+}
+
 function initHeroVideoSpeed() {
   const video = document.querySelector(".hero-video");
 
@@ -866,6 +911,7 @@ function initHomeSearchForm() {
 
   initHeroCareDropdown();
   initHeroZipFocusRow();
+  initHeroVideoSource();
   initHeroVideoSpeed();
   // ca-zipcodes.json is ~198 KB. Most home visitors never type a
   // location, so defer the fetch until they focus or start typing in
