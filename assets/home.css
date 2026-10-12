@@ -1290,6 +1290,10 @@ footer {
    a vertical fade: darkest behind the heading, lighter lower down where the
    white search card sits, letting the video read through. */
 @media (max-width: 768px) {
+  /* Matches the <source media> breakpoint in index.html. */
+  .hero-media {
+    background-image: url("/video/home-hero-mobile-poster.jpg");
+  }
   .hero-media::after {
     background: linear-gradient(
       180deg,
