@@ -230,9 +230,17 @@
             playsinline
             disablepictureinpicture
             preload="auto"
-            poster="/video/home-hero-poster.jpg"
             tabindex="-1"
           >
+            <!-- Phones get a portrait cut of just the waves scene. No poster
+                 attribute: .hero-media's background already swaps the still
+                 per breakpoint, and the video is transparent until it plays. -->
+            <source
+              src="/video/home-hero-mobile.webm"
+              type="video/webm"
+              media="(max-width: 768px)"
+            />
+            <source src="/video/home-hero-mobile.mp4" type="video/mp4" media="(max-width: 768px)" />
             <source src="/video/home-hero.webm" type="video/webm" />
             <source src="/video/home-hero.mp4" type="video/mp4" />
           </video>
