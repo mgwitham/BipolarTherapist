@@ -389,20 +389,63 @@ function initHeroZipFocusRow() {
 }
 
 // Playback speed for the hero background video (1 = normal, lower = slower).
+// Phones play their clip at full speed: it is real 24fps frames, and slowing
+// it down would show ~14fps, which reads as stutter on a phone screen.
 const HERO_VIDEO_PLAYBACK_RATE = 0.6;
+const HERO_VIDEO_MOBILE_PLAYBACK_RATE = 1;
 
-// Phones don't get the video: the scenes are under 2s long, so any phone
-// loop read as jolting. They get the CSS forest/waves drift in home.css
-// instead. index.html tags the video <source>s with media="(min-width:
-// 769px)", but iOS Safari ignores media on <video> sources, so remove the
-// element here before it downloads anything.
+// Phones play a portrait cut of just the forest and waves scenes; wider
+// screens play the full clip. index.html tags the phone <source>s with
+// media="(max-width: 768px)", but some browsers (notably iOS Safari) ignore
+// media on <video> sources and just take the first playable one, so enforce
+// the choice here too. Phones list MP4 (H.264) first: every phone decodes it,
+// while iOS reports WebM as "maybe" playable and then can fail on it.
 const HERO_VIDEO_MOBILE_QUERY = "(max-width: 768px)";
+const HERO_VIDEO_SOURCES = {
+  mobile: [
+    { src: "/video/home-hero-mobile.mp4", type: "video/mp4" },
+    { src: "/video/home-hero-mobile.webm", type: "video/webm" },
+  ],
+  desktop: [
+    { src: "/video/home-hero.webm", type: "video/webm" },
+    { src: "/video/home-hero.mp4", type: "video/mp4" },
+  ],
+};
 
 function initHeroVideoSource() {
   const video = document.querySelector(".hero-video");
 
-  if (video && window.matchMedia(HERO_VIDEO_MOBILE_QUERY).matches) {
-    video.remove();
+  if (!video) {
+    return;
+  }
+
+  const isMobile = window.matchMedia(HERO_VIDEO_MOBILE_QUERY).matches;
+  const sources = HERO_VIDEO_SOURCES[isMobile ? "mobile" : "desktop"];
+  const alreadyRight = sources.some(function (source) {
+    return video.currentSrc.endsWith(source.src);
+  });
+
+  if (alreadyRight) {
+    return;
+  }
+
+  // Swap the <source> list rather than setting video.src, so the browser
+  // can still fall back to the next format if the first one fails.
+  video.querySelectorAll("source").forEach(function (node) {
+    node.remove();
+  });
+  sources.forEach(function (source) {
+    const node = document.createElement("source");
+    node.src = source.src;
+    node.type = source.type;
+    video.appendChild(node);
+  });
+  video.load();
+  const playing = video.play();
+  if (playing && typeof playing.catch === "function") {
+    // Autoplay can still be refused (e.g. Low Power Mode); the poster
+    // background stays visible in that case.
+    playing.catch(function () {});
   }
 }
 
@@ -413,12 +456,16 @@ function initHeroVideoSpeed() {
     return;
   }
 
+  const rate = window.matchMedia(HERO_VIDEO_MOBILE_QUERY).matches
+    ? HERO_VIDEO_MOBILE_PLAYBACK_RATE
+    : HERO_VIDEO_PLAYBACK_RATE;
+
   // defaultPlaybackRate survives the browser re-loading the source;
   // playbackRate applies it to the copy that is already playing.
-  video.defaultPlaybackRate = HERO_VIDEO_PLAYBACK_RATE;
-  video.playbackRate = HERO_VIDEO_PLAYBACK_RATE;
+  video.defaultPlaybackRate = rate;
+  video.playbackRate = rate;
   video.addEventListener("loadedmetadata", function () {
-    video.playbackRate = HERO_VIDEO_PLAYBACK_RATE;
+    video.playbackRate = rate;
   });
 }
 
