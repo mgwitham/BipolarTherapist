@@ -1,4 +1,5 @@
 import { initWebVitals } from "./web-vitals.js";
+import { classifyAnalyticsPage } from "../shared/analytics-page-context.mjs";
 
 // Start vitals observers immediately (they're passive); reporting happens
 // at page-hide and only if PostHog was loaded (consent-gated in loadPostHog).
@@ -95,11 +96,23 @@ function loadGoogleAnalytics() {
   // page_location is overridden with a redacted URL so the patient ZIP
   // and care type (passed as query params on /match) never enter GA's
   // page_location dimension.
-  window.gtag("config", measurementId, {
-    allow_google_signals: false,
-    allow_ad_personalization_signals: false,
-    page_location: redactSensitiveUrl(window.location.href),
-  });
+  //
+  // page_type / content_group (plus the slug params) let Looker split SEO
+  // city, insurance and guide pages from therapist profiles. Register
+  // page_type, therapist_slug, city_slug, insurance_slug and guide_slug as
+  // event-scoped custom dimensions in GA4 (see docs/ANALYTICS_DASHBOARD.md).
+  window.gtag(
+    "config",
+    measurementId,
+    Object.assign(
+      {
+        allow_google_signals: false,
+        allow_ad_personalization_signals: false,
+        page_location: redactSensitiveUrl(window.location.href),
+      },
+      classifyAnalyticsPage(window.location.pathname),
+    ),
+  );
 }
 
 // Path-gate: PostHog session recordings only run on patient-facing

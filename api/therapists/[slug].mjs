@@ -673,14 +673,9 @@ export function buildPage(t) {
   return `<!doctype html>
 <html lang="en">
   <head>
-    <!-- Google Analytics -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q22R5G7VB5"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() { dataLayer.push(arguments); }
-      gtag("js", new Date());
-      gtag("config", "G-Q22R5G7VB5");
-    </script>
+    <!-- GA4 loads from assets/site-analytics.js (privacy redaction, page_type).
+         An inline gtag snippet here would be blocked by the CSP and would
+         double count pageviews if it ever ran. -->
     <meta charset="UTF-8" />
     <link rel="preconnect" href="https://cdn.sanity.io" crossorigin />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
