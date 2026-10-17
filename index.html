@@ -222,11 +222,6 @@
     <main id="main-content">
       <section class="hero" id="startMatch">
         <div class="hero-media" aria-hidden="true">
-          <!-- Phones: two stills (forest, waves) that drift and dissolve in
-               CSS instead of a video. The source shots are under 2s long, so
-               any looped phone video read as jolting. -->
-          <div class="bth-hero-drift bth-hero-drift-forest"></div>
-          <div class="bth-hero-drift bth-hero-drift-waves"></div>
           <video
             class="hero-video"
             autoplay
@@ -237,11 +232,17 @@
             preload="auto"
             tabindex="-1"
           >
-            <!-- Wider screens only; home.js removes the video on phones (iOS
-                 ignores media on <source>). No poster attribute:
-                 .hero-media's background already shows the still. -->
-            <source src="/video/home-hero.webm" type="video/webm" media="(min-width: 769px)" />
-            <source src="/video/home-hero.mp4" type="video/mp4" media="(min-width: 769px)" />
+            <!-- Phones get a portrait cut of just the forest and waves scenes. No poster
+                 attribute: .hero-media's background already swaps the still
+                 per breakpoint, and the video is transparent until it plays. -->
+            <source src="/video/home-hero-mobile.mp4" type="video/mp4" media="(max-width: 768px)" />
+            <source
+              src="/video/home-hero-mobile.webm"
+              type="video/webm"
+              media="(max-width: 768px)"
+            />
+            <source src="/video/home-hero.webm" type="video/webm" />
+            <source src="/video/home-hero.mp4" type="video/mp4" />
           </video>
         </div>
         <div class="hero-deco" aria-hidden="true">
