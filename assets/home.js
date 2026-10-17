@@ -389,7 +389,10 @@ function initHeroZipFocusRow() {
 }
 
 // Playback speed for the hero background video (1 = normal, lower = slower).
+// Phones play their clip at full speed: it is real 24fps frames, and slowing
+// it down would show ~14fps, which reads as stutter on a phone screen.
 const HERO_VIDEO_PLAYBACK_RATE = 0.6;
+const HERO_VIDEO_MOBILE_PLAYBACK_RATE = 1;
 
 // Phones play a portrait cut of just the forest and waves scenes; wider
 // screens play the full clip. index.html tags the phone <source>s with
@@ -453,12 +456,16 @@ function initHeroVideoSpeed() {
     return;
   }
 
+  const rate = window.matchMedia(HERO_VIDEO_MOBILE_QUERY).matches
+    ? HERO_VIDEO_MOBILE_PLAYBACK_RATE
+    : HERO_VIDEO_PLAYBACK_RATE;
+
   // defaultPlaybackRate survives the browser re-loading the source;
   // playbackRate applies it to the copy that is already playing.
-  video.defaultPlaybackRate = HERO_VIDEO_PLAYBACK_RATE;
-  video.playbackRate = HERO_VIDEO_PLAYBACK_RATE;
+  video.defaultPlaybackRate = rate;
+  video.playbackRate = rate;
   video.addEventListener("loadedmetadata", function () {
-    video.playbackRate = HERO_VIDEO_PLAYBACK_RATE;
+    video.playbackRate = rate;
   });
 }
 

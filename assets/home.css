@@ -1294,6 +1294,14 @@ footer {
   .hero-media {
     background-image: url("/video/home-hero-mobile-poster.jpg");
   }
+  /* The sticky nav is 96% opaque, so its blur is barely visible, but over
+     the playing video it re-blurs every frame and drops frames on phones
+     while scrolling. The body prefix outranks public-nav.css, which loads
+     after this file. */
+  body nav[aria-label="Main navigation"] {
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+  }
   .hero-media::after {
     background: linear-gradient(
       180deg,
