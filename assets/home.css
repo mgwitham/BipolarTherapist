@@ -1290,12 +1290,15 @@ footer {
    a vertical fade: darkest behind the heading, lighter lower down where the
    white search card sits, letting the video read through. */
 @media (max-width: 768px) {
-  /* Matches the <source media> breakpoint in index.html. */
+  /* Matches HERO_VIDEO_MOBILE_QUERY in home.js. */
   .hero-media {
     background-image: url("/video/home-hero-mobile-poster.jpg");
   }
+  .hero-video {
+    display: none;
+  }
   /* The sticky nav is 96% opaque, so its blur is barely visible, but over
-     the playing video it re-blurs every frame and drops frames on phones
+     the moving hero it re-blurs every frame and drops frames on phones
      while scrolling. The body prefix outranks public-nav.css, which loads
      after this file. */
   body nav[aria-label="Main navigation"] {
@@ -1311,9 +1314,68 @@ footer {
     );
   }
 }
+/* Phone hero: the forest still drifts in very slowly and eases to a stop
+   before drifting back, and the waves still dissolves in over it and back
+   out. Transform and opacity only, so the compositor runs it at the
+   screen's refresh rate. One full cycle is 48s. */
+.bth-hero-drift {
+  position: absolute;
+  inset: 0;
+  background: center / cover no-repeat;
+  will-change: transform, opacity;
+}
+.bth-hero-drift-forest {
+  background-image: url("/video/home-hero-mobile-poster.jpg");
+  animation: bth-hero-drift-forest 24s ease-in-out infinite alternate;
+}
+.bth-hero-drift-waves {
+  background-image: url("/video/home-hero-mobile-waves.jpg");
+  opacity: 0;
+  animation:
+    bth-hero-drift-waves 24s ease-in-out infinite alternate,
+    bth-hero-drift-dissolve 48s ease-in-out infinite;
+}
+@keyframes bth-hero-drift-forest {
+  from {
+    transform: scale(1.04);
+  }
+  to {
+    transform: scale(1.14) translate3d(-1.5%, -1%, 0);
+  }
+}
+@keyframes bth-hero-drift-waves {
+  from {
+    transform: scale(1.12) translate3d(1%, 0, 0);
+  }
+  to {
+    transform: scale(1.04);
+  }
+}
+@media (min-width: 769px) {
+  .bth-hero-drift {
+    display: none;
+  }
+}
+/* Forest ~18s, 6s dissolve, waves ~18s, 6s dissolve back. */
+@keyframes bth-hero-drift-dissolve {
+  0%,
+  37.5% {
+    opacity: 0;
+  }
+  50%,
+  87.5% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .hero-video {
     display: none;
+  }
+  .bth-hero-drift {
+    animation: none;
   }
 }
 .hero-deco {
