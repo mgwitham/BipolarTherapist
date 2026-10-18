@@ -18,10 +18,11 @@ style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
 font-src 'self' https://fonts.gstatic.com;
 img-src 'self' data: blob:
   https://cdn.sanity.io https://*.cdn.sanity.io
-  https://www.google-analytics.com
+  https://www.google-analytics.com https://www.googletagmanager.com
   https://us.i.posthog.com;
 connect-src 'self'
-  https://www.google-analytics.com https://analytics.google.com
+  https://*.google-analytics.com https://*.analytics.google.com
+  https://*.googletagmanager.com
   https://ipapi.co
   https://us.i.posthog.com https://us-assets.i.posthog.com
   https://*.ingest.us.sentry.io;
@@ -100,13 +101,21 @@ imports from gstatic).
   2026-05-27.
 - `blob:` is required for image previews on signup (headshot
   upload) where a File is shown to the user before submission.
+- `www.googletagmanager.com` — the Google tag sends image beacons here;
+  without it GA4 Tag diagnostics reports "security settings are blocking
+  measurement".
 - `*.cdn.sanity.io` is wildcarded because Sanity's CDN serves from
   multiple subdomains (`projectId.cdn.sanity.io`). Narrowing this
   would break therapist photos.
 
 ### `connect-src` — analytics + Sentry + ipapi
 
-- `analytics.google.com` + `google-analytics.com` — GA collection.
+- `*.google-analytics.com`, `*.analytics.google.com` and
+  `*.googletagmanager.com` — GA collection. These are Google's documented
+  hosts for GA4: collection can go to regional endpoints (for example
+  `region1.google-analytics.com`), so a single `www.` host drops hits.
+  GA4's Tag diagnostics flagged `https://www.googletagmanager.com` as
+  blocked under `img-src` (see below), which prompted widening both.
 - `ipapi.co` — IP-based location lookup for the directory's
   "near me" sort. Free tier, no API key.
 - `*.ingest.us.sentry.io` — Sentry error reporting from the
