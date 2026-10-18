@@ -87,8 +87,10 @@ Register these as event-scoped custom dimensions (Admin -> Custom definitions)
 so Looker can break conversions down: `lead_source`, `method`, `plan_tier`,
 `plan_interval` (`therapist_slug` is already registered).
 
-The in-house funnel log and Vercel Analytics use the same production-only,
-no-automation gate (`shouldSendFunnelBeacons`), except local dev is allowed.
+The in-house funnel log and Vercel Web Analytics page views use the same
+production-only, no-automation gate (`shouldSendFunnelBeacons`), except local dev
+is allowed. Custom events are no longer sent to Vercel Analytics (GA4, PostHog
+and the in-house log already hold them, and Vercel bills per custom event).
 
 ## Server-side revenue events
 
