@@ -8,8 +8,21 @@ function standardHeaders() {
   return { host: "localhost:8787" };
 }
 
+// The engagement endpoints only create summary docs for therapists that exist.
+function withTherapists(...slugs) {
+  const docs = {};
+  for (const slug of slugs) {
+    docs["therapist-" + slug] = {
+      _id: "therapist-" + slug,
+      _type: "therapist",
+      slug: { _type: "slug", current: slug },
+    };
+  }
+  return createMemoryClient(docs);
+}
+
 test("engagement: view endpoint creates a summary doc and increments counters by source", async function () {
-  const { client, state } = createMemoryClient();
+  const { client, state } = withTherapists("jamie-rivera");
   const handler = createReviewApiHandler(createTestApiConfig(), client);
 
   const first = await runHandlerRequest(handler, {
@@ -44,7 +57,7 @@ test("engagement: view endpoint creates a summary doc and increments counters by
 });
 
 test("engagement: cta-click endpoint increments route counters", async function () {
-  const { client, state } = createMemoryClient();
+  const { client, state } = withTherapists("alex-chen");
   const handler = createReviewApiHandler(createTestApiConfig(), client);
 
   await runHandlerRequest(handler, {
@@ -128,7 +141,7 @@ test("engagement: malformed slug is rejected and writes no document", async func
 });
 
 test("engagement: a maximum-length valid slug is still accepted", async function () {
-  const { client } = createMemoryClient();
+  const { client } = withTherapists("a".repeat(120));
   const handler = createReviewApiHandler(createTestApiConfig(), client);
 
   const response = await runHandlerRequest(handler, {
@@ -140,4 +153,49 @@ test("engagement: a maximum-length valid slug is still accepted", async function
 
   assert.equal(response.statusCode, 200);
   assert.equal(response.payload.ok, true);
+});
+
+test("engagement: unknown therapist slug writes no document", async function () {
+  // Valid-looking slugs that match no therapist must not mint documents; the
+  // dataset has a hard document cap and these endpoints are anonymous.
+  const { client, state } = withTherapists("jamie-rivera");
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  for (const url of ["/engagement/view", "/engagement/cta-click"]) {
+    for (let i = 0; i < 5; i += 1) {
+      const response = await runHandlerRequest(handler, {
+        body: { therapist_slug: "made-up-slug-" + i, source: "directory", route: "email" },
+        headers: standardHeaders(),
+        method: "POST",
+        url,
+      });
+      assert.equal(response.statusCode, 404);
+    }
+  }
+  const docs = Array.from(state.documents.values()).filter(
+    (doc) => doc._type === "therapistEngagementSummary",
+  );
+  assert.equal(docs.length, 0);
+});
+
+test("engagement: client-supplied occurred_at cannot pick the week bucket", async function () {
+  const { client, state } = withTherapists("jamie-rivera");
+  const handler = createReviewApiHandler(createTestApiConfig(), client);
+
+  for (const occurred_at of ["1999-01-01", "2999-12-31T00:00:00Z", "nope"]) {
+    const response = await runHandlerRequest(handler, {
+      body: { therapist_slug: "jamie-rivera", source: "directory", occurred_at },
+      headers: standardHeaders(),
+      method: "POST",
+      url: "/engagement/view",
+    });
+    assert.equal(response.statusCode, 200);
+  }
+  const docs = Array.from(state.documents.values()).filter(
+    (doc) => doc._type === "therapistEngagementSummary",
+  );
+  assert.equal(docs.length, 1, "all events land in the current week's single document");
+  assert.equal(docs[0].profileViewsTotal, 3);
+  assert.ok(/^20\d\d-W\d\d$/.test(docs[0].periodKey));
+  assert.notEqual(docs[0].periodKey, "1998-W53");
 });

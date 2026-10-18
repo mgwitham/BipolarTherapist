@@ -34,3 +34,12 @@ test("static pages and html aliases resolve", () => {
   assert.equal(classifyAnalyticsPage("/signup").content_group, "Therapist funnel");
   assert.equal(classifyAnalyticsPage("/portal").page_type, "other");
 });
+
+test("malformed percent-encoding in a profile URL never throws", () => {
+  for (const path of ["/therapists/%/", "/therapists/%E0%A4%A/", "/therapists/%zz-slug"]) {
+    const context = classifyAnalyticsPage(path);
+    assert.equal(context.page_type, "therapist_profile");
+    assert.ok(context.therapist_slug.length > 0);
+  }
+  assert.equal(classifyAnalyticsPage("/therapists/caf%C3%A9/").therapist_slug, "café");
+});

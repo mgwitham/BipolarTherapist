@@ -30,3 +30,15 @@ test("sanityImageUrl rounds fractional dimensions", function () {
   const out = sanityImageUrl("https://cdn.sanity.io/images/x.jpg", { width: 56.4, height: 56.6 });
   assert.match(out, /w=56&h=57&/);
 });
+
+test("sanityImageUrl matches on the hostname, not a substring", function () {
+  const lookalike = "https://evil.example/photo.jpg?via=cdn.sanity.io";
+  assert.equal(sanityImageUrl(lookalike, { width: 100 }), lookalike);
+  const lookalikeHost = "https://cdn.sanity.io.evil.example/x.jpg";
+  assert.equal(sanityImageUrl(lookalikeHost, { width: 100 }), lookalikeHost);
+  assert.match(
+    sanityImageUrl("https://p.cdn.sanity.io/images/p/d/abc.jpg", { width: 100 }),
+    /w=100/,
+  );
+  assert.equal(sanityImageUrl("not a url cdn.sanity.io", {}), "not a url cdn.sanity.io");
+});
