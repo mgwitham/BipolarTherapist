@@ -3,8 +3,10 @@ import assert from "node:assert/strict";
 
 import {
   isAutomatedBrowser,
+  isLocalDevHost,
   isProductionHost,
   shouldSendAnalytics,
+  shouldSendFunnelBeacons,
 } from "../../shared/analytics-eligibility.mjs";
 
 test("only the production hostnames are eligible", () => {
@@ -30,4 +32,32 @@ test("shouldSendAnalytics needs production host and a real browser", () => {
   assert.equal(shouldSendAnalytics({ hostname: host, navigator: { webdriver: true } }), false);
   assert.equal(shouldSendAnalytics({ hostname: "localhost", navigator: {} }), false);
   assert.equal(shouldSendAnalytics(undefined), false);
+});
+
+test("funnel beacons allow production and local dev, but not previews or bots", () => {
+  assert.equal(isLocalDevHost("localhost"), true);
+  assert.equal(isLocalDevHost("127.0.0.1"), true);
+  assert.equal(isLocalDevHost("evil-localhost.example"), false);
+
+  const real = { webdriver: false };
+  assert.equal(
+    shouldSendFunnelBeacons({ hostname: "www.bipolartherapyhub.com", navigator: real }),
+    true,
+  );
+  assert.equal(
+    shouldSendFunnelBeacons({ hostname: "localhost", navigator: { webdriver: true } }),
+    true,
+  );
+  assert.equal(
+    shouldSendFunnelBeacons({ hostname: "bipolar-pr-9.vercel.app", navigator: real }),
+    false,
+  );
+  assert.equal(
+    shouldSendFunnelBeacons({
+      hostname: "www.bipolartherapyhub.com",
+      navigator: { webdriver: true },
+    }),
+    false,
+  );
+  assert.equal(shouldSendFunnelBeacons(undefined), false);
 });

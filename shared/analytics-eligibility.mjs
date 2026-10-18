@@ -27,3 +27,22 @@ export function shouldSendAnalytics(env) {
   const { hostname, navigator } = env || {};
   return isProductionHost(hostname) && !isAutomatedBrowser(navigator);
 }
+
+const LOCAL_DEV_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
+/** @param {unknown} hostname */
+export function isLocalDevHost(hostname) {
+  return typeof hostname === "string" && LOCAL_DEV_HOSTS.has(hostname.toLowerCase());
+}
+
+/**
+ * Gate for the in-house funnel log and Vercel Analytics beacons. Same rule as
+ * GA (production host, real browser), except local dev is allowed so the admin
+ * Funnel dashboard can still be exercised against a local API. Preview deploys
+ * and automated browsers on production are dropped.
+ * @param {{ hostname?: unknown, navigator?: { webdriver?: boolean } | null }} env
+ */
+export function shouldSendFunnelBeacons(env) {
+  const { hostname } = env || {};
+  return isLocalDevHost(hostname) || shouldSendAnalytics(env);
+}
