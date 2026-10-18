@@ -1,6 +1,9 @@
 import { toGaEvent } from "../shared/ga-conversion-events.mjs";
 import { shouldSendFunnelBeacons } from "../shared/analytics-eligibility.mjs";
 
+// Vercel Web Analytics is kept for page views only (inject() below). Custom
+// events are deliberately NOT sent to it: GA4 and PostHog already hold them,
+// the in-house log feeds the admin Funnel tab, and Vercel bills per custom event.
 let vercelAnalyticsInjected = false;
 let vercelAnalyticsPromise = null;
 function loadVercelAnalytics() {
@@ -19,7 +22,8 @@ function loadVercelAnalytics() {
   return vercelAnalyticsPromise;
 }
 
-function flattenEventPayloadForVercel(payload) {
+// Flatten a payload to the primitives the server log stores (10 keys, 200 chars).
+function flattenEventPayload(payload) {
   if (!payload || typeof payload !== "object") {
     return undefined;
   }
@@ -45,22 +49,6 @@ function flattenEventPayloadForVercel(payload) {
     }
   }
   return count > 0 ? flat : undefined;
-}
-
-function forwardEventToVercel(type, payload) {
-  if (typeof window === "undefined") {
-    return;
-  }
-  loadVercelAnalytics()
-    .then(function (analytics) {
-      if (!analytics || typeof analytics.track !== "function") {
-        return;
-      }
-      analytics.track(type, flattenEventPayloadForVercel(payload));
-    })
-    .catch(function () {
-      // best-effort
-    });
 }
 
 // GA4 conversion bridge. Which events are forwarded lives in
@@ -149,7 +137,7 @@ export function trackFunnelEvent(type, payload) {
   if (!canSendFunnelBeacons()) {
     return;
   }
-  forwardEventToVercel(String(type), payload);
+  loadVercelAnalytics();
   forwardConversionToGtag(String(type), payload);
   queueEventForServer(String(type), payload);
 }
@@ -281,7 +269,7 @@ function queueEventForServer(type, payload) {
     type: type,
     occurredAt: new Date().toISOString(),
     sessionId: getSessionId(),
-    payload: flattenEventPayloadForVercel(payload) || {},
+    payload: flattenEventPayload(payload) || {},
   });
   if (serverEventBatch.length >= SERVER_BATCH_MAX) {
     flushServerBatch();
