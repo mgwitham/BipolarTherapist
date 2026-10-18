@@ -70,8 +70,22 @@ function hasAnalyticsOptOut() {
   );
 }
 
-function loadGoogleAnalytics() {
-  if (typeof window === "undefined" || hasAnalyticsOptOut()) {
+function isAnalyticsAllowedHere() {
+  return (
+    typeof window !== "undefined" &&
+    !hasAnalyticsOptOut() &&
+    shouldSendAnalytics({ hostname: window.location.hostname, navigator: window.navigator })
+  );
+}
+
+// The gtag stub and the js/config commands run immediately at module load, the
+// same as Google's standard snippet; only the heavy gtag.js download is
+// deferred to idle (injectGoogleAnalyticsScript). Commands and events issued
+// before the script arrives queue in dataLayer and are processed once it loads.
+// Defining window.gtag lazily instead dropped every page_view and event from
+// visitors who tapped through within ~3 seconds (the idle-load window).
+function startGoogleAnalyticsQueue() {
+  if (!isAnalyticsAllowedHere()) {
     return;
   }
 
@@ -79,11 +93,6 @@ function loadGoogleAnalytics() {
   window.gtag = function () {
     window.dataLayer.push(arguments);
   };
-
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(measurementId);
-  document.head.appendChild(script);
 
   window.gtag("js", new Date());
   // Disable Google Signals + ad-personalization so GA collects only
@@ -114,6 +123,16 @@ function loadGoogleAnalytics() {
       classifyAnalyticsPage(window.location.pathname),
     ),
   );
+}
+
+function injectGoogleAnalyticsScript() {
+  if (typeof window.gtag !== "function") {
+    return;
+  }
+  const script = document.createElement("script");
+  script.async = true;
+  script.src = "https://www.googletagmanager.com/gtag/js?id=" + encodeURIComponent(measurementId);
+  document.head.appendChild(script);
 }
 
 // Path-gate: PostHog session recordings only run on patient-facing
@@ -222,9 +241,12 @@ function loadAll() {
   if (!shouldSendAnalytics({ hostname: window.location.hostname, navigator: window.navigator })) {
     return;
   }
-  loadGoogleAnalytics();
+  injectGoogleAnalyticsScript();
   loadPostHog();
 }
+
+// Queue immediately (cheap, no network) so early events are never dropped.
+startGoogleAnalyticsQueue();
 
 if ("requestIdleCallback" in window) {
   window.requestIdleCallback(loadAll, { timeout: 3000 });
