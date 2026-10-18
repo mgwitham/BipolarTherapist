@@ -1,5 +1,6 @@
 import { initWebVitals } from "./web-vitals.js";
 import { classifyAnalyticsPage } from "../shared/analytics-page-context.mjs";
+import { shouldSendAnalytics } from "../shared/analytics-eligibility.mjs";
 
 // Start vitals observers immediately (they're passive); reporting happens
 // at page-hide and only if PostHog was loaded (consent-gated in loadPostHog).
@@ -216,6 +217,11 @@ function loadPostHog() {
 }
 
 function loadAll() {
+  // Skip CI runs, preview deploys and headless browsers so they never
+  // reach the production GA / PostHog projects.
+  if (!shouldSendAnalytics({ hostname: window.location.hostname, navigator: window.navigator })) {
+    return;
+  }
   loadGoogleAnalytics();
   loadPostHog();
 }

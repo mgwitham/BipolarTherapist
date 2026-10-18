@@ -45,3 +45,15 @@ this property. Suggested pages and tiles:
 4. **Sources and conversions**: Session default channel group by Key events.
 
 Add a date range control and a `Content group` filter control on every page.
+
+## Which visits are counted
+
+`shared/analytics-eligibility.mjs` gates both GA4 and PostHog. They only load on
+`bipolartherapyhub.com` and `www.bipolartherapyhub.com`, and never in automated
+browsers (`navigator.webdriver`). CI runs (Playwright, Lighthouse), localhost and
+Vercel previews therefore no longer reach the production properties.
+
+Data from before this change (to Oct 2026) includes that noise: look for Direct
+sessions with 0s engagement on `/index.html`, `/directory.html`, `/claim.html`
+and `/signup.html`. For trend charts, start the date range after the deploy date
+or filter to engaged sessions.
