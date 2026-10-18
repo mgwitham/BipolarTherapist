@@ -13,9 +13,15 @@
   },
   "redirects": [
     {
+      "source": "/therapist",
+      "has": [{ "type": "query", "key": "slug", "value": "(?<slug>.+)" }],
+      "destination": "/therapists/:slug/",
+      "permanent": true
+    },
+    {
       "source": "/therapist.html",
       "has": [{ "type": "query", "key": "slug", "value": "(?<slug>.+)" }],
-      "destination": "/therapists/:slug",
+      "destination": "/therapists/:slug/",
       "permanent": true
     },
     {
