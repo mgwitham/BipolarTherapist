@@ -759,3 +759,76 @@ test("hasStripeConfig accepts the canonical paid-monthly-only configuration", as
   assert.equal(hasStripeConfig({ stripeSecretKey: "sk_test_x" }), false);
   assert.equal(hasStripeConfig({ stripePaidMonthlyPriceId: "price_paid" }), false);
 });
+
+test("webhook: new trial sends a trial_started event to GA4", async () => {
+  const { client } = createMemoryClient();
+  const sent = [];
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/webhook",
+    headers: { "stripe-signature": "sig-ok" },
+    client,
+    deps: {
+      parseBody: async () => null,
+      parseRawBody: async () => Buffer.from("{}"),
+      createFeaturedCheckoutSession: async () => null,
+      sendGaEvent: async (_config, event) => {
+        sent.push(event);
+      },
+      verifyAndParseWebhook: async () => ({
+        id: "evt_ga_trial",
+        type: "customer.subscription.created",
+        created: 1_700_000_100,
+        data: { object: buildStripeSubscription() },
+      }),
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].name, "trial_started");
+  assert.equal(sent[0].clientId, "stripe.cus_test_456");
+});
+
+test("webhook: trial converting to paid sends a purchase event to GA4", async () => {
+  const { client } = createMemoryClient({
+    "therapistSubscription-jamie-rivera": {
+      _id: "therapistSubscription-jamie-rivera",
+      _type: "therapistSubscription",
+      therapistSlug: "jamie-rivera",
+      status: "trialing",
+      lastEventId: "evt_older",
+      lastEventAt: "2026-04-17T12:00:00.000Z",
+    },
+  });
+  const sent = [];
+  const { response, context } = buildContext({
+    method: "POST",
+    routePath: "/stripe/webhook",
+    headers: { "stripe-signature": "sig-ok" },
+    client,
+    deps: {
+      parseBody: async () => null,
+      parseRawBody: async () => Buffer.from("{}"),
+      createFeaturedCheckoutSession: async () => null,
+      sendGaEvent: async (_config, event) => {
+        sent.push(event);
+      },
+      verifyAndParseWebhook: async () => ({
+        id: "evt_ga_paid",
+        type: "customer.subscription.updated",
+        created: 1_800_000_000,
+        data: { object: buildStripeSubscription({ status: "active" }) },
+      }),
+      retrieveSubscription: async () => null,
+    },
+  });
+
+  await handleStripeRoutes(context);
+  assert.equal(response.statusCode, 200);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].name, "purchase");
+  assert.equal(sent[0].params.transaction_id, "sub_test_123_first_paid");
+});

@@ -1,3 +1,5 @@
+import { buildTherapistLifecycleGaEvent } from "../shared/ga-measurement-protocol.mjs";
+import { sendGaEvent as defaultSendGaEvent } from "./ga-measurement-protocol.mjs";
 import { log } from "./logger.mjs";
 import { sessionIsStaleForListing } from "./review-http-auth.mjs";
 import {
@@ -77,6 +79,7 @@ export async function handleStripeRoutes(context) {
     parseBody,
     parseRawBody,
     sendFounderAlert,
+    sendGaEvent = defaultSendGaEvent,
     sendJson,
     sendTrialEndingReminder,
     sendUnverifiedTrialCanceledNotice,
@@ -440,6 +443,15 @@ export async function handleStripeRoutes(context) {
       return client.fetch(`*[_type == "therapist" && slug.current == $slug][0]{ name, email }`, {
         slug: therapistSlug,
       });
+    }
+
+    // GA4 server-side conversions. Best effort; sendGaEvent never throws and is
+    // a no-op until GA_MEASUREMENT_API_SECRET is configured.
+    if (event.type === "customer.subscription.created" && isTrialingNow) {
+      await sendGaEvent(config, buildTherapistLifecycleGaEvent("trial_started", merged));
+    }
+    if (event.type === "customer.subscription.updated" && wasTrialingBefore && isActiveNow) {
+      await sendGaEvent(config, buildTherapistLifecycleGaEvent("purchase", merged));
     }
 
     // 1. New trial started.

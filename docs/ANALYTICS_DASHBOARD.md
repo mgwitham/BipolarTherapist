@@ -74,3 +74,21 @@ reports so key-event counts stay about real outreach.
 
 The in-house funnel log and Vercel Analytics use the same production-only,
 no-automation gate (`shouldSendFunnelBeacons`), except local dev is allowed.
+
+## Server-side revenue events
+
+The Stripe webhook sends `trial_started` (new trial) and `purchase` (trial
+converted to paid) to GA4 through the Measurement Protocol
+(`server/ga-measurement-protocol.mjs`). Browsers miss revenue events (ad
+blockers, Do Not Track, checkout on Stripe's domain), so these come from the
+server. They use a Stripe-derived client id, so revenue is counted but not
+stitched to the visitor's web session. `purchase` carries a
+`transaction_id` (`<subscription>_first_paid`) so a redelivered webhook is not
+double counted.
+
+It does nothing until the API secret exists:
+
+1. GA4: Admin -> Data streams -> your stream -> Measurement Protocol API
+   secrets -> Create.
+2. Add it to Vercel as `GA_MEASUREMENT_API_SECRET` (Production) and redeploy.
+3. Mark `purchase` and `trial_started` as key events once they first arrive.
