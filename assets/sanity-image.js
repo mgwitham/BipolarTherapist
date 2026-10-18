@@ -3,9 +3,20 @@
 // of the full-resolution original. No-op for non-Sanity URLs (some
 // photo_url values are external aggregator links), so it is always safe to
 // wrap a raw URL with this.
+// Match on the parsed hostname, not a substring: a URL that merely contains
+// "cdn.sanity.io" in its path or query is not a Sanity asset.
+function isSanityCdnUrl(raw) {
+  try {
+    const host = new URL(raw).hostname.toLowerCase();
+    return host === "cdn.sanity.io" || host.endsWith(".cdn.sanity.io");
+  } catch (_error) {
+    return false;
+  }
+}
+
 export function sanityImageUrl(url, options) {
   const raw = String(url || "").trim();
-  if (!raw || raw.indexOf("cdn.sanity.io") === -1) {
+  if (!raw || !isSanityCdnUrl(raw)) {
     return raw;
   }
   const opts = options || {};

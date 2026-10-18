@@ -136,7 +136,9 @@ export function normalizeEngagementInput(input) {
     slug,
     source: normalizeViewSource(input && input.source),
     route: normalizeCtaRoute(input && input.route),
-    occurredAt: input && input.occurred_at ? String(input.occurred_at) : new Date().toISOString(),
+    // Always server time. A client-supplied timestamp would let anyone pick the
+    // week bucket (any year) and mint a new summary document per value.
+    occurredAt: new Date().toISOString(),
   };
 }
 

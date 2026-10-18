@@ -41,6 +41,22 @@ export async function handleEngagementRoutes(context) {
   const periodKey = buildEngagementPeriodKey(occurredAt);
   const id = buildEngagementSummaryId(slug, periodKey);
 
+  // Only create a summary document for a therapist that exists. The slug shape
+  // check alone still let anyone mint unlimited documents (any valid-looking
+  // slug) in a dataset with a hard document cap. Checked once per therapist per
+  // week: only when there is no summary doc yet.
+  let therapistKnown = null;
+  async function therapistExists() {
+    if (therapistKnown === null) {
+      const found = await client.fetch(
+        `*[_type == "therapist" && slug.current == $slug][0]{ _id }`,
+        { slug },
+      );
+      therapistKnown = Boolean(found && found._id);
+    }
+    return therapistKnown;
+  }
+
   // Read-modify-write on a shared per-therapist/per-week counter. A plain
   // createOrReplace loses increments when two events for the same summary
   // race (both read N, both write N+1). Gate the write on the revision we
@@ -52,6 +68,10 @@ export async function handleEngagementRoutes(context) {
   let lastError = null;
   for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt += 1) {
     const existing = await client.getDocument(id);
+    if (!existing && !(await therapistExists())) {
+      sendJson(response, 404, { error: "Unknown therapist." }, origin, config);
+      return true;
+    }
     next = isView
       ? applyViewToSummary(existing, slug, source, occurredAt)
       : applyCtaClickToSummary(existing, slug, route, occurredAt);

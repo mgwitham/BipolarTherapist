@@ -696,8 +696,8 @@ if (typeof window !== "undefined") {
       const focusId = String(inspectorFocusButton.getAttribute("data-inspector-focus-id") || "");
       const selector =
         focusKind === "candidate"
-          ? '[data-candidate-card-id="' + focusId.replace(/"/g, '\\"') + '"]'
-          : '[data-application-card-id="' + focusId.replace(/"/g, '\\"') + '"]';
+          ? '[data-candidate-card-id="' + window.CSS.escape(focusId) + '"]'
+          : '[data-application-card-id="' + window.CSS.escape(focusId) + '"]';
       const target = document.querySelector(selector);
       if (target) {
         spotlightSection(target);
@@ -2156,8 +2156,8 @@ function getCommandPaletteCommands() {
       run: function () {
         const selector =
           selected.kind === "candidate"
-            ? '[data-candidate-card-id="' + String(selected.item.id).replace(/"/g, '\\"') + '"]'
-            : '[data-application-card-id="' + String(selected.item.id).replace(/"/g, '\\"') + '"]';
+            ? '[data-candidate-card-id="' + window.CSS.escape(String(selected.item.id)) + '"]'
+            : '[data-application-card-id="' + window.CSS.escape(String(selected.item.id)) + '"]';
         const target = document.querySelector(selector);
         if (target) {
           spotlightSection(target);

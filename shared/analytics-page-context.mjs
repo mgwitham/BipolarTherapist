@@ -35,6 +35,20 @@ function normalize(pathname) {
   return path || "/";
 }
 
+/**
+ * decodeURIComponent throws URIError on malformed escapes ("/therapists/%/").
+ * This runs at page load inside the analytics module, so a throw would take
+ * the importing page's whole script down; fall back to the raw segment.
+ * @param {string} value
+ */
+function safeDecode(value) {
+  try {
+    return decodeURIComponent(value);
+  } catch (_error) {
+    return value;
+  }
+}
+
 /** @param {string} pathname @returns {AnalyticsPageContext} */
 export function classifyAnalyticsPage(pathname) {
   const path = normalize(pathname);
@@ -44,7 +58,7 @@ export function classifyAnalyticsPage(pathname) {
     return {
       page_type: "therapist_profile",
       content_group: "Therapist profile",
-      therapist_slug: decodeURIComponent(profile[1]),
+      therapist_slug: safeDecode(profile[1]),
     };
   }
   if (path === "/bipolar-therapists") {
