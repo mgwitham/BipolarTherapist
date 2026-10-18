@@ -161,6 +161,11 @@ export function getReviewApiConfig() {
       rootEnv.UPSTASH_REDIS_REST_TOKEN ||
       rootEnv.KV_REST_API_TOKEN ||
       "",
+    // GA4 Measurement Protocol for server-side revenue events. The measurement
+    // ID is public (it ships in every page); the API secret is optional and
+    // the sender is a no-op without it.
+    gaMeasurementId: process.env.GA_MEASUREMENT_ID || rootEnv.GA_MEASUREMENT_ID || "G-Q22R5G7VB5",
+    gaApiSecret: process.env.GA_MEASUREMENT_API_SECRET || rootEnv.GA_MEASUREMENT_API_SECRET || "",
     stripeSecretKey: process.env.STRIPE_SECRET_KEY || rootEnv.STRIPE_SECRET_KEY || "",
     stripeWebhookSecret: process.env.STRIPE_WEBHOOK_SECRET || rootEnv.STRIPE_WEBHOOK_SECRET || "",
     stripeFeaturedPriceId:
