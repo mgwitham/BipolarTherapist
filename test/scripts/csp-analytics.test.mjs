@@ -25,18 +25,20 @@ async function readCsp() {
 // hosts allowed so hits are not silently dropped.
 test("CSP allows the hosts GA4 needs", async () => {
   const csp = await readCsp();
-  assert.ok(csp.get("img-src").includes("https://www.googletagmanager.com"));
+  const imgSrc = new Set(csp.get("img-src"));
+  const connectSrc = new Set(csp.get("connect-src"));
+  assert.ok(imgSrc.has("https://www.googletagmanager.com"));
   for (const host of [
     "https://*.google-analytics.com",
     "https://*.analytics.google.com",
     "https://*.googletagmanager.com",
   ]) {
-    assert.ok(csp.get("connect-src").includes(host), `connect-src missing ${host}`);
+    assert.ok(connectSrc.has(host), `connect-src missing ${host}`);
   }
 });
 
 test("CSP still forbids inline and eval scripts", async () => {
-  const scriptSrc = (await readCsp()).get("script-src");
-  assert.ok(!scriptSrc.includes("'unsafe-inline'"));
-  assert.ok(!scriptSrc.includes("'unsafe-eval'"));
+  const scriptSrc = new Set((await readCsp()).get("script-src"));
+  assert.equal(scriptSrc.has("'unsafe-inline'"), false);
+  assert.equal(scriptSrc.has("'unsafe-eval'"), false);
 });
