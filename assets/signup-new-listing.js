@@ -12,6 +12,7 @@ import "./sentry-init.js";
 import "./site-analytics.js";
 import { trackFunnelEvent } from "./funnel-analytics.js";
 import { mountTurnstile } from "./turnstile-widget.js";
+import { toGaDirectEvent } from "../shared/ga-conversion-events.mjs";
 
 let turnstileHandle = null;
 
@@ -67,9 +68,12 @@ function checkSubmitRateLimit() {
 //   signup_choice_selected      , user picks a plan; value param ("trial"|"free")
 //   signup_claim_link_clicked   , either claim link clicked; source param
 // ==========================================================================
+// Only outcome events reach GA4 (see shared/ga-conversion-events.mjs); the
+// rest of the micro-events here are intentionally dropped.
 function gtagEvent(name, params) {
-  if (typeof window.gtag === "function") {
-    window.gtag("event", name, params || {});
+  const gaEvent = toGaDirectEvent(name, params);
+  if (gaEvent && typeof window.gtag === "function") {
+    window.gtag("event", gaEvent.name, gaEvent.params);
   }
 }
 

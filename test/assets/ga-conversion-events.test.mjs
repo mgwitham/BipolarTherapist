@@ -3,7 +3,13 @@ import assert from "node:assert/strict";
 import { readFileSync, readdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
-import { GA_CONVERSION_EVENTS, isGaConversionEvent } from "../../shared/ga-conversion-events.mjs";
+import {
+  GA_CONVERSION_EVENTS,
+  isGaConversionEvent,
+  sanitizeGaParams,
+  toGaDirectEvent,
+  toGaEvent,
+} from "../../shared/ga-conversion-events.mjs";
 import { PATIENT_STEPS } from "../../shared/funnel-step-definitions.mjs";
 
 // Same scan as funnel-step-keys.test.mjs: collect every trackFunnelEvent("…")
@@ -39,4 +45,66 @@ test("the live patient funnel reaches GA4", () => {
   }
   assert.equal(isGaConversionEvent("directory_viewed"), false);
   assert.equal(isGaConversionEvent(undefined), false);
+});
+
+test("contact actions become GA4 generate_lead with their source and route", () => {
+  assert.deepEqual(
+    toGaEvent("profile_contact_route_clicked", {
+      route: "email",
+      therapist_slug: "jamie-rivera",
+      experiments: { a: "b" },
+    }),
+    {
+      name: "generate_lead",
+      params: { lead_source: "profile", method: "email", therapist_slug: "jamie-rivera" },
+    },
+  );
+  assert.deepEqual(
+    toGaEvent("directory_card_contact_action", { therapist_slug: "x", sort_by: "y" }),
+    {
+      name: "generate_lead",
+      params: { lead_source: "directory", therapist_slug: "x" },
+    },
+  );
+});
+
+test("checkout intent becomes begin_checkout and funnel-only events send nothing", () => {
+  assert.equal(toGaEvent("pricing_checkout_clicked", {}).name, "begin_checkout");
+  assert.equal(toGaEvent("directory_viewed", {}), null);
+  assert.equal(toGaEvent("toString", {}), null);
+});
+
+test("signup and claim direct events: outcomes only", () => {
+  assert.deepEqual(toGaDirectEvent("signup_verification_succeeded", { duration_ms: 1200, x: 1 }), {
+    name: "sign_up",
+    params: { method: "license_verified", duration_ms: 1200 },
+  });
+  assert.equal(toGaDirectEvent("claim_link_sent", { therapist_slug: "a" }).name, "claim_link_sent");
+  for (const noisy of [
+    "signup_field_focused",
+    "signup_field_completed",
+    "signup_field_abandoned",
+    "signup_page_viewed",
+    "claim_search_submitted",
+    "claim_page_viewed",
+    "constructor",
+  ]) {
+    assert.equal(toGaDirectEvent(noisy, {}), null, noisy);
+  }
+});
+
+test("GA params keep primitives only, trimmed and capped", () => {
+  const clean = sanitizeGaParams({
+    a: "x".repeat(300),
+    b: 3,
+    c: true,
+    d: { nested: 1 },
+    e: NaN,
+    f: "",
+  });
+  assert.deepEqual(Object.keys(clean), ["a", "b", "c"]);
+  assert.equal(clean.a.length, 100);
+  const many = {};
+  for (let i = 0; i < 20; i += 1) many["k" + i] = i;
+  assert.equal(Object.keys(sanitizeGaParams(many)).length, 10);
 });

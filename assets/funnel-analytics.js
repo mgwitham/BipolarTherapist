@@ -1,4 +1,4 @@
-import { isGaConversionEvent } from "../shared/ga-conversion-events.mjs";
+import { toGaEvent } from "../shared/ga-conversion-events.mjs";
 import { shouldSendFunnelBeacons } from "../shared/analytics-eligibility.mjs";
 
 let vercelAnalyticsInjected = false;
@@ -73,11 +73,12 @@ function forwardConversionToGtag(type, payload) {
   if (typeof window === "undefined" || typeof window.gtag !== "function") {
     return;
   }
-  if (!isGaConversionEvent(type)) {
+  const gaEvent = toGaEvent(type, payload);
+  if (!gaEvent) {
     return;
   }
   try {
-    window.gtag("event", type, flattenEventPayloadForVercel(payload) || {});
+    window.gtag("event", gaEvent.name, gaEvent.params);
   } catch (_error) {
     // best-effort; never let analytics break the funnel
   }

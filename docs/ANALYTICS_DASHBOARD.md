@@ -58,19 +58,34 @@ sessions with 0s engagement on `/index.html`, `/directory.html`, `/claim.html`
 and `/signup.html`. For trend charts, start the date range after the deploy date
 or filter to engaged sessions.
 
-## Conversions in GA4
+## Tracking plan: what reaches GA4
 
-`shared/ga-conversion-events.mjs` is the list of funnel events forwarded to GA4,
-and a test checks every name is an event the app really emits. The live patient
-path is `home_match_started` -> `match_results_page_viewed` ->
-`match_results_card_clicked` -> `profile_contact_route_clicked` /
-`directory_card_contact_action`. (`match_submitted` belongs to the retired
-guided intake and almost never fires.)
+GA4 holds outcomes and the few milestones that matter for acquisition and SEO
+reporting. Keystroke-level behavior stays in PostHog and the in-house log.
+`shared/ga-conversion-events.mjs` is the single mapping, and a test checks every
+funnel name in it is an event the app really emits.
 
-Mark these as **Key events** in GA4 (Admin -> Events): `match_results_card_clicked`,
-`profile_contact_route_clicked`, `directory_card_contact_action`. Leave
-`home_match_started` and `match_results_page_viewed` as plain events for funnel
-reports so key-event counts stay about real outreach.
+| In-house / source event                                                                            | GA4 event                   | Key event?        | Params                                                                        |
+| -------------------------------------------------------------------------------------------------- | --------------------------- | ----------------- | ----------------------------------------------------------------------------- |
+| `profile_contact_route_clicked`, `directory_card_contact_action`, legacy `match_contact_completed` | `generate_lead`             | Yes               | `lead_source` (profile, directory, match), `method` (route), `therapist_slug` |
+| `signup_verification_succeeded` (therapist signup)                                                 | `sign_up`                   | Yes               | `method`, `duration_ms`                                                       |
+| `claim_accepted` (portal)                                                                          | `claim_accepted`            | Yes               | `therapist_slug`                                                              |
+| `pricing_checkout_clicked`                                                                         | `begin_checkout`            | No                | `source`, `therapist_slug`                                                    |
+| Stripe webhook (server)                                                                            | `trial_started`, `purchase` | `purchase`        | `plan_tier`, `plan_interval`, `therapist_slug`                                |
+| `home_match_started`, `match_results_page_viewed`, `match_results_card_clicked`                    | same names                  | No (funnel steps) | `interest_type`, `has_location`, `therapist_slug`                             |
+| `claim_link_sent`, `saved_list_email_requested`, legacy `match_submitted`                          | same names                  | No                | `therapist_slug`, `method`                                                    |
+
+Everything else (about 30 signup and claim micro-events such as
+`signup_field_focused`) is dropped before it reaches GA4.
+
+Key events should be conversions, not funnel steps. In GA4 (Admin -> Events)
+mark `generate_lead`, `sign_up`, `claim_accepted` and `purchase`; unmark
+`home_match_started`, `claim_link_sent` and the old `profile_contact_route_clicked`
+/ `directory_card_contact_action` once `generate_lead` is arriving.
+
+Register these as event-scoped custom dimensions (Admin -> Custom definitions)
+so Looker can break conversions down: `lead_source`, `method`, `plan_tier`,
+`plan_interval` (`therapist_slug` is already registered).
 
 The in-house funnel log and Vercel Analytics use the same production-only,
 no-automation gate (`shouldSendFunnelBeacons`), except local dev is allowed.
