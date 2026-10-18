@@ -15,7 +15,11 @@ import {
 } from "../../scripts/generate-seo-profile-pages.mjs";
 import {
   bucketTherapistsByInsurance,
+  buildBodyHtml as buildInsuranceBodyHtml,
+  buildInsuranceDescription,
+  buildInsuranceTitle,
   insuranceSlug,
+  pickCityLinks,
 } from "../../scripts/generate-seo-insurance-pages.mjs";
 import {
   bucketTherapistsByCity,
@@ -423,4 +427,60 @@ test("directory SEO generator fails loudly when the #dirJsonLd anchor drifts", (
     () => injectDirectorySeo(drifted, DIRECTORY_PROVIDERS),
     /injection anchor not found: JSON-LD/,
   );
+});
+
+const OPTUM_BUCKET = {
+  name: "Optum",
+  providers: [
+    { slug: "a", name: "A", city: "Los Angeles", state: "CA", acceptsTelehealth: true },
+    { slug: "b", name: "B", city: "Los Angeles", state: "CA" },
+    { slug: "c", name: "C", city: "San Diego", state: "CA" },
+    { slug: "d", name: "D", city: "Tiny Town", state: "CA" },
+  ],
+};
+
+test("insurance page title leads with the carrier and stays short", () => {
+  assert.equal(buildInsuranceTitle("Optum"), "Bipolar Therapists Who Accept Optum | California");
+});
+
+test("insurance page description carries real facts and stays within length", () => {
+  const description = buildInsuranceDescription(OPTUM_BUCKET);
+  assert.match(description, /^4 license-verified bipolar specialists in California take Optum\./);
+  assert.match(description, /Practices in Los Angeles and San Diego\./);
+  assert.ok(description.length <= 158, description.length + " chars");
+
+  const oneCity = buildInsuranceDescription({
+    name: "Optum",
+    providers: OPTUM_BUCKET.providers.slice(0, 2),
+  });
+  assert.match(oneCity, /Practices in Los Angeles\./);
+  assert.match(oneCity, /Telehealth available\./);
+  assert.ok(oneCity.length <= 158, oneCity.length + " chars");
+
+  const long = buildInsuranceDescription({
+    name: "Blue Shield of California",
+    providers: OPTUM_BUCKET.providers,
+  });
+  assert.ok(long.length <= 158, long.length + " chars");
+  assert.ok(!/\u2014/.test(description));
+});
+
+test("insurance city links skip cities without a generated page, busiest first", () => {
+  const links = pickCityLinks(OPTUM_BUCKET.providers, new Set(["san-diego-ca", "los-angeles-ca"]));
+  assert.deepEqual(
+    links.map((l) => l.slug),
+    ["los-angeles-ca", "san-diego-ca"],
+  );
+});
+
+test("insurance body links to city pages and other carriers, and adds query-matching FAQs", () => {
+  const html = buildInsuranceBodyHtml(OPTUM_BUCKET, {
+    citySlugs: new Set(["los-angeles-ca"]),
+    otherBuckets: [OPTUM_BUCKET, { name: "Cigna", providers: [] }],
+  });
+  assert.match(html, /href="\/bipolar-therapists\/los-angeles-ca\/"/);
+  assert.match(html, /href="\/insurance\/cigna\/"/);
+  assert.doesNotMatch(html, /href="\/insurance\/optum\/"/);
+  assert.match(html, /Does Optum cover therapy for bipolar disorder\?/);
+  assert.match(html, /How do I find a Optum bipolar therapist near me\?/);
 });

@@ -18,6 +18,7 @@ import {
   summarizeProviders,
 } from "../shared/seo-provider-stats.mjs";
 import { buildProviderCardHtml } from "../shared/seo-provider-card.mjs";
+import { buildCityPath, citySlug } from "./generate-seo-city-pages.mjs";
 
 const ROOT = process.cwd();
 const API_VERSION = "2026-04-02";
@@ -162,7 +163,7 @@ function buildFaqItems(bucket) {
       insuranceName +
       " providers listed here, self-reported session fees run " +
       feeRange +
-      ". Insurance may cover most of that depending on your plan and deductible — confirm your mental-health benefits and copay with " +
+      ". Insurance may cover most of that depending on your plan and deductible. Confirm your mental health benefits and copay with " +
       insuranceName +
       " directly, since networks and coverage change often."
     : "Session fees vary by provider and are listed on each profile. Out-of-pocket cost after insurance depends on your specific " +
@@ -188,6 +189,23 @@ function buildFaqItems(bucket) {
     {
       q: "How many " + insuranceName + " bipolar therapists are listed?",
       a: coverageAnswer,
+    },
+    {
+      q: "Does " + insuranceName + " cover therapy for bipolar disorder?",
+      a:
+        "Many plans include outpatient mental health coverage, but benefits depend on your specific " +
+        insuranceName +
+        " plan, deductible, and network. Call the number on your insurance card and ask about outpatient therapy, your copay, and whether the therapist is in your network.",
+    },
+    {
+      q: "How do I find a " + insuranceName + " bipolar therapist near me?",
+      a:
+        (stats.topCities.length
+          ? "Start with the cities listed on this page, including " +
+            formatNameList(stats.topCities, 3) +
+            ". "
+          : "") +
+        "You can also use the matching flow to filter by your location, telehealth, and care preferences.",
     },
   ];
 }
@@ -238,17 +256,43 @@ function buildJsonLd(bucket) {
   ];
 }
 
+// Key phrase first so it survives truncation in search results. Queries
+// seen in Search Console use both "accept" and "take", so the description
+// carries "take" while the title carries "accept".
+export function buildInsuranceTitle(name) {
+  return "Bipolar Therapists Who Accept " + name + " | California";
+}
+
+const DESCRIPTION_MAX = 158;
+
+export function buildInsuranceDescription(bucket) {
+  const stats = summarizeProviders(bucket.providers);
+  const parts = [
+    stats.count +
+      " license-verified bipolar specialist" +
+      (stats.count === 1 ? "" : "s") +
+      " in California take " +
+      bucket.name +
+      ".",
+  ];
+  const tail = " Check your plan before you book.";
+  const extras = [];
+  if (stats.topCities.length) {
+    extras.push(" Practices in " + formatNameList(stats.topCities, 2) + ".");
+  }
+  if (stats.telehealthCount > 0) extras.push(" Telehealth available.");
+  let text = parts[0];
+  for (const extra of extras) {
+    if ((text + extra + tail).length <= DESCRIPTION_MAX) text += extra;
+  }
+  return text + tail;
+}
+
 function buildHeadTags(bucket) {
   const slug = insuranceSlug(bucket.name);
   const url = canonicalUrl(slug);
-  const title =
-    "Bipolar Therapists Who Accept " + bucket.name + " in California - BipolarTherapyHub";
-  const description =
-    "Find " +
-    bucket.providers.length +
-    " license-verified bipolar-informed therapists in California who list " +
-    bucket.name +
-    " as accepted insurance. Confirm plan fit before booking.";
+  const title = buildInsuranceTitle(bucket.name);
+  const description = buildInsuranceDescription(bucket);
   return [
     "<title>" + escapeHtml(title) + "</title>",
     '<meta name="description" content="' + escapeAttribute(description) + '" />',
@@ -425,6 +469,56 @@ function buildFaqHtml(bucket) {
   );
 }
 
+// Cities for this carrier, most providers first, limited to cities that
+// actually have a generated city page so we never link to a dead URL.
+export function pickCityLinks(providers, availableCitySlugs, limit) {
+  const counts = new Map();
+  for (const provider of providers) {
+    if (!provider.city || !provider.state) continue;
+    const slug = citySlug(provider.city, provider.state);
+    if (!availableCitySlugs.has(slug)) continue;
+    const entry = counts.get(slug) || { city: String(provider.city).trim(), slug, count: 0 };
+    entry.count += 1;
+    counts.set(slug, entry);
+  }
+  return [...counts.values()]
+    .sort((a, b) => b.count - a.count || a.city.localeCompare(b.city))
+    .slice(0, limit || 8);
+}
+
+function buildExploreHtml(bucket, context) {
+  const ctx = context || {};
+  const cities = pickCityLinks(bucket.providers, ctx.citySlugs || new Set(), 8);
+  const others = (ctx.otherBuckets || []).filter((other) => other.name !== bucket.name).slice(0, 5);
+  if (!cities.length && !others.length) return "";
+  const link = (href, label) =>
+    '<a class="city-hub-card" href="' +
+    escapeAttribute(href) +
+    '"><div class="city-hub-card-body"><div class="city-hub-card-name">' +
+    escapeHtml(label) +
+    '</div></div><div class="city-hub-card-arrow" aria-hidden="true">&rarr;</div></a>';
+  return (
+    '<section class="city-hub-list"><div class="city-section-inner">' +
+    (cities.length
+      ? '<p class="city-section-kicker">Near you</p>' +
+        '<h2 class="city-section-h2">' +
+        escapeHtml(bucket.name) +
+        " bipolar therapists by city</h2>" +
+        '<div class="city-hub-grid">' +
+        cities.map((c) => link(buildCityPath(c.slug), c.city)).join("") +
+        "</div>"
+      : "") +
+    (others.length
+      ? '<p class="city-section-kicker">Other plans</p>' +
+        '<h2 class="city-section-h2">Compare other insurance</h2>' +
+        '<div class="city-hub-grid">' +
+        others.map((o) => link(buildInsurancePath(insuranceSlug(o.name)), o.name)).join("") +
+        "</div>"
+      : "") +
+    "</div></section>"
+  );
+}
+
 function buildCtaHtml() {
   return (
     '<section class="city-cta-band"><div class="city-cta-band-inner">' +
@@ -435,13 +529,14 @@ function buildCtaHtml() {
   );
 }
 
-function buildBodyHtml(bucket) {
+export function buildBodyHtml(bucket, context) {
   return (
     '<div class="seo-city-fallback seo-insurance-fallback" data-static-seo-insurance>' +
     buildHeroHtml(bucket) +
     buildContextHtml(bucket) +
     buildProvidersHtml(bucket) +
     buildCriteriaHtml() +
+    buildExploreHtml(bucket, context) +
     buildFaqHtml(bucket) +
     buildCtaHtml() +
     "</div>"
@@ -698,6 +793,20 @@ async function main() {
     return;
   }
 
+  // City pages are built earlier in the pipeline; only link to ones that exist.
+  const cityDir = path.join(DIST_DIR, "bipolar-therapists");
+  const citySlugs = new Set(
+    fs.existsSync(cityDir)
+      ? fs
+          .readdirSync(cityDir, { withFileTypes: true })
+          .filter(
+            (entry) =>
+              entry.isDirectory() && fs.existsSync(path.join(cityDir, entry.name, "index.html")),
+          )
+          .map((entry) => entry.name)
+      : [],
+  );
+
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   let written = 0;
   for (const bucket of buckets) {
@@ -706,7 +815,11 @@ async function main() {
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(
       path.join(dir, "index.html"),
-      rewritePage(template, buildHeadTags(bucket), buildBodyHtml(bucket)),
+      rewritePage(
+        template,
+        buildHeadTags(bucket),
+        buildBodyHtml(bucket, { citySlugs, otherBuckets: buckets }),
+      ),
       "utf8",
     );
     written += 1;
