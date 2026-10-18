@@ -57,3 +57,20 @@ Data from before this change (to Oct 2026) includes that noise: look for Direct
 sessions with 0s engagement on `/index.html`, `/directory.html`, `/claim.html`
 and `/signup.html`. For trend charts, start the date range after the deploy date
 or filter to engaged sessions.
+
+## Conversions in GA4
+
+`shared/ga-conversion-events.mjs` is the list of funnel events forwarded to GA4,
+and a test checks every name is an event the app really emits. The live patient
+path is `home_match_started` -> `match_results_page_viewed` ->
+`match_results_card_clicked` -> `profile_contact_route_clicked` /
+`directory_card_contact_action`. (`match_submitted` belongs to the retired
+guided intake and almost never fires.)
+
+Mark these as **Key events** in GA4 (Admin -> Events): `match_results_card_clicked`,
+`profile_contact_route_clicked`, `directory_card_contact_action`. Leave
+`home_match_started` and `match_results_page_viewed` as plain events for funnel
+reports so key-event counts stay about real outreach.
+
+The in-house funnel log and Vercel Analytics use the same production-only,
+no-automation gate (`shouldSendFunnelBeacons`), except local dev is allowed.

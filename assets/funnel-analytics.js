@@ -1,3 +1,6 @@
+import { isGaConversionEvent } from "../shared/ga-conversion-events.mjs";
+import { shouldSendFunnelBeacons } from "../shared/analytics-eligibility.mjs";
+
 let vercelAnalyticsInjected = false;
 let vercelAnalyticsPromise = null;
 function loadVercelAnalytics() {
@@ -60,37 +63,17 @@ function forwardEventToVercel(type, payload) {
     });
 }
 
-// GA4 conversion bridge.
-//
-// The patient funnel flows through trackFunnelEvent() into the in-house
-// funnelEventLog + Vercel Analytics, but never reached GA4 (gtag) — so GA4
-// could not attribute a match intake or a therapist contact back to the
-// organic Search Console query that produced it. GA4 is the only tool that
-// joins conversions to search queries, so we forward *only* the handful of
-// true business conversions here (not the full ~150-event taxonomy). Event
-// names are kept identical to the funnel event names so GA4 and the admin
-// Funnel dashboard line up one-to-one.
-//
-// These events do NOT fire gtag anywhere else (the therapist signup/claim
-// flows call gtagEvent() directly in their own modules), so there is no
-// double-counting. gtag is loaded on a delay + skipped for opted-out users
-// in site-analytics.js; when it is absent we simply skip — late-funnel
-// conversions land well after gtag initializes.
-const GA_CONVERSION_EVENTS = new Set([
-  "home_match_started", // patient started the guided match (funnel entry)
-  "match_submitted", // patient completed intake → shortlist (primary conversion)
-  "match_contact_completed", // patient completed a contact action from matches
-  "directory_card_contact_action", // patient contacted a provider from the directory
-  "profile_contact_route_clicked", // patient clicked a contact route on a profile
-  "saved_list_email_requested", // patient asked us to email their saved list
-  "pricing_checkout_clicked", // therapist started paid checkout (revenue intent)
-]);
-
+// GA4 conversion bridge. Which events are forwarded lives in
+// shared/ga-conversion-events.mjs (and is test-checked against the events the
+// app really emits). These events do NOT fire gtag anywhere else (the therapist
+// signup/claim flows call gtagEvent() directly in their own modules), so there
+// is no double-counting. gtag is loaded on a delay + skipped for opted-out and
+// non-production users in site-analytics.js; when it is absent we simply skip.
 function forwardConversionToGtag(type, payload) {
   if (typeof window === "undefined" || typeof window.gtag !== "function") {
     return;
   }
-  if (!GA_CONVERSION_EVENTS.has(type)) {
+  if (!isGaConversionEvent(type)) {
     return;
   }
   try {
@@ -159,9 +142,25 @@ export function trackFunnelEvent(type, payload) {
     // localStorage may fail; still forward to Vercel Analytics below
   }
 
+  // The local buffer above always records (it drives on-page behavior). The
+  // three outbound sinks skip preview deploys and automated browsers so CI and
+  // bots never reach the funnel log, Vercel Analytics or GA4.
+  if (!canSendFunnelBeacons()) {
+    return;
+  }
   forwardEventToVercel(String(type), payload);
   forwardConversionToGtag(String(type), payload);
   queueEventForServer(String(type), payload);
+}
+
+function canSendFunnelBeacons() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  return shouldSendFunnelBeacons({
+    hostname: window.location.hostname,
+    navigator: window.navigator,
+  });
 }
 
 // =============================================================
