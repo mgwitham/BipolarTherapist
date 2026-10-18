@@ -12,6 +12,14 @@
 // against assets/ so a renamed or dead event can't silently read zero in GA4
 // (match_submitted did exactly that after the guided intake was retired).
 //
+// PARAM NAMING RULES (learned the hard way):
+//   - Never send a param named `source`, `medium` or `campaign`: GA4 reads them
+//     as traffic-source overrides. A funnel payload with `source: "hero"` created
+//     phantom "hero / (not set)" sessions in Traffic acquisition.
+//   - Don't reuse one generic name (`method`) for different meanings. `method` is
+//     reserved for Google's recommended `sign_up` event; leads use
+//     `contact_method`, claims use `claim_method`.
+//
 // Pure: no I/O.
 
 const MAX_PARAMS = 10;
@@ -77,7 +85,7 @@ const FUNNEL_TO_GA = {
     name: "generate_lead",
     params: {
       lead_source: "profile",
-      method: (p && p.route) || "",
+      contact_method: (p && p.route) || "",
       ...pick(p, ["therapist_slug"]),
     },
   }),
@@ -96,7 +104,7 @@ const FUNNEL_TO_GA = {
   // Therapist side.
   pricing_checkout_clicked: (p) => ({
     name: "begin_checkout",
-    params: { source: "pricing_page", ...pick(p, ["therapist_slug"]) },
+    params: { checkout_source: "pricing_page", ...pick(p, ["therapist_slug"]) },
   }),
   claim_accepted: (p) => ({ name: "claim_accepted", params: pick(p, ["therapist_slug"]) }),
 };
@@ -133,7 +141,7 @@ const DIRECT_TO_GA = {
   }),
   claim_link_sent: (p) => ({
     name: "claim_link_sent",
-    params: pick(p, ["therapist_slug", "method"]),
+    params: { ...pick(p, ["therapist_slug"]), claim_method: (p && p.method) || "" },
   }),
 };
 

@@ -65,15 +65,15 @@ reporting. Keystroke-level behavior stays in PostHog and the in-house log.
 `shared/ga-conversion-events.mjs` is the single mapping, and a test checks every
 funnel name in it is an event the app really emits.
 
-| In-house / source event                                                                            | GA4 event                   | Key event?        | Params                                                                        |
-| -------------------------------------------------------------------------------------------------- | --------------------------- | ----------------- | ----------------------------------------------------------------------------- |
-| `profile_contact_route_clicked`, `directory_card_contact_action`, legacy `match_contact_completed` | `generate_lead`             | Yes               | `lead_source` (profile, directory, match), `method` (route), `therapist_slug` |
-| `signup_verification_succeeded` (therapist signup)                                                 | `sign_up`                   | Yes               | `method`, `duration_ms`                                                       |
-| `claim_accepted` (portal)                                                                          | `claim_accepted`            | Yes               | `therapist_slug`                                                              |
-| `pricing_checkout_clicked`                                                                         | `begin_checkout`            | No                | `source`, `therapist_slug`                                                    |
-| Stripe webhook (server)                                                                            | `trial_started`, `purchase` | `purchase`        | `plan_tier`, `plan_interval`, `therapist_slug`                                |
-| `home_match_started`, `match_results_page_viewed`, `match_results_card_clicked`                    | same names                  | No (funnel steps) | `interest_type`, `has_location`, `therapist_slug`                             |
-| `claim_link_sent`, `saved_list_email_requested`, legacy `match_submitted`                          | same names                  | No                | `therapist_slug`, `method`                                                    |
+| In-house / source event                                                                            | GA4 event                   | Key event?        | Params                                                                                |
+| -------------------------------------------------------------------------------------------------- | --------------------------- | ----------------- | ------------------------------------------------------------------------------------- |
+| `profile_contact_route_clicked`, `directory_card_contact_action`, legacy `match_contact_completed` | `generate_lead`             | Yes               | `lead_source` (profile, directory, match), `contact_method` (route), `therapist_slug` |
+| `signup_verification_succeeded` (therapist signup)                                                 | `sign_up`                   | Yes               | `method`, `duration_ms`                                                               |
+| `claim_accepted` (portal)                                                                          | `claim_accepted`            | Yes               | `therapist_slug`                                                                      |
+| `pricing_checkout_clicked`                                                                         | `begin_checkout`            | No                | `checkout_source`, `therapist_slug`                                                   |
+| Stripe webhook (server)                                                                            | `trial_started`, `purchase` | `purchase`        | `plan_tier`, `plan_interval`, `therapist_slug`                                        |
+| `home_match_started`, `match_results_page_viewed`, `match_results_card_clicked`                    | same names                  | No (funnel steps) | `interest_type`, `has_location`, `therapist_slug`                                     |
+| `claim_link_sent`, `saved_list_email_requested`, legacy `match_submitted`                          | same names                  | No                | `therapist_slug`, `claim_method`                                                      |
 
 Everything else (about 30 signup and claim micro-events such as
 `signup_field_focused`) is dropped before it reaches GA4.
@@ -84,7 +84,7 @@ mark `generate_lead`, `sign_up`, `claim_accepted` and `purchase`; unmark
 / `directory_card_contact_action` once `generate_lead` is arriving.
 
 Register these as event-scoped custom dimensions (Admin -> Custom definitions)
-so Looker can break conversions down: `lead_source`, `method`, `plan_tier`,
+so Looker can break conversions down: `lead_source`, `contact_method`, `plan_tier`,
 `plan_interval` (`therapist_slug` is already registered).
 
 The in-house funnel log and Vercel Web Analytics page views use the same
@@ -109,3 +109,10 @@ It does nothing until the API secret exists:
    secrets -> Create.
 2. Add it to Vercel as `GA_MEASUREMENT_API_SECRET` (Production) and redeploy.
 3. Mark `purchase` and `trial_started` as key events once they first arrive.
+
+## Param naming rules
+
+Never send `source`, `medium` or `campaign` as event params: GA4 treats them as
+traffic-source overrides (a payload with `source: "hero"` created phantom
+"hero / (not set)" sessions). Keep one meaning per param name; `method` is
+reserved for Google's `sign_up` event. A test enforces both.

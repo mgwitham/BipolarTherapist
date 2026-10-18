@@ -56,7 +56,7 @@ test("contact actions become GA4 generate_lead with their source and route", () 
     }),
     {
       name: "generate_lead",
-      params: { lead_source: "profile", method: "email", therapist_slug: "jamie-rivera" },
+      params: { lead_source: "profile", contact_method: "email", therapist_slug: "jamie-rivera" },
     },
   );
   assert.deepEqual(
@@ -70,6 +70,7 @@ test("contact actions become GA4 generate_lead with their source and route", () 
 
 test("checkout intent becomes begin_checkout and funnel-only events send nothing", () => {
   assert.equal(toGaEvent("pricing_checkout_clicked", {}).name, "begin_checkout");
+  assert.equal(toGaEvent("pricing_checkout_clicked", {}).params.checkout_source, "pricing_page");
   assert.equal(toGaEvent("directory_viewed", {}), null);
   assert.equal(toGaEvent("toString", {}), null);
 });
@@ -107,4 +108,36 @@ test("GA params keep primitives only, trimmed and capped", () => {
   const many = {};
   for (let i = 0; i < 20; i += 1) many["k" + i] = i;
   assert.equal(Object.keys(sanitizeGaParams(many)).length, 10);
+});
+
+test("no GA param can be read as a traffic-source override or be overloaded", () => {
+  const forbidden = new Set(["source", "medium", "campaign", "term", "content"]);
+  const samples = [
+    ["home_match_started", { source: "hero", interest_type: "x" }],
+    ["pricing_checkout_clicked", { source: "pricing_page", branch: "b" }],
+    ["profile_contact_route_clicked", { source: "directory", route: "email" }],
+    ["directory_card_contact_action", { source: "x" }],
+    ["match_contact_completed", { source: "x" }],
+    ["claim_accepted", { source: "x" }],
+  ];
+  for (const [type, payload] of samples) {
+    const event = toGaEvent(type, payload);
+    for (const key of Object.keys(event.params)) {
+      assert.equal(forbidden.has(key), false, `${type} sends reserved param ${key}`);
+    }
+  }
+  // `method` belongs to Google's sign_up event only.
+  assert.equal(
+    "method" in toGaEvent("profile_contact_route_clicked", { route: "email" }).params,
+    false,
+  );
+  assert.equal(
+    "method" in
+      toGaDirectEvent("claim_link_sent", { method: "slug_picked", therapist_slug: "a" }).params,
+    false,
+  );
+  assert.equal(
+    toGaDirectEvent("claim_link_sent", { method: "slug_picked" }).params.claim_method,
+    "slug_picked",
+  );
 });
